@@ -6,7 +6,7 @@ plugins {
 
 group = 'com.ssafy.b108'
 version = '0.0.1-SNAPSHOT'
-description = 'walletslot'
+description = 'walletslot-backend'
 
 java {
     toolchain {
