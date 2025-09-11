@@ -14,6 +14,19 @@ export { useAccount, useTransactions } from './useAccount';
 // 슬롯 관련 (기본 틀)
 export { useSlots, useSlot, useSlotRecommendations } from './useSlots';
 
+// 알림 관련
+export { 
+  useNotifications, 
+  useUnreadNotificationCount, 
+  useNotificationSettings,
+  useMarkNotificationAsRead,
+  useMarkAllNotificationsAsRead,
+  useUpdateNotificationSettings,
+  useRegisterPushToken,
+  useDeleteNotification,
+  usePushNotificationSystem
+} from './useNotifications';
+
 // 공통 유틸리티 훅
 export const useDebounce = (value: string, delay: number) => {
   const [debouncedValue, setDebouncedValue] = useState(value);

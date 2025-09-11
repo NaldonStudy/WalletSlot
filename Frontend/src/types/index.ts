@@ -312,3 +312,56 @@ export interface TransactionCategory {
   isDefault: boolean;
   sortOrder: number;
 }
+
+// ===== 푸시 알림 관련 타입들 =====
+
+/**
+ * 알림 항목 인터페이스
+ */
+export interface NotificationItem {
+  id: string;
+  title: string;
+  message: string;
+  type: 'budget_exceeded' | 'goal_achieved' | 'spending_pattern' | 'system' | 'account_sync';
+  isRead: boolean;
+  createdAt: string;
+  slotId?: number;
+  accountId?: number;
+  pushData?: {
+    action?: string;        // 알림 클릭 시 액션
+    targetScreen?: string;  // 이동할 화면
+    params?: any;          // 추가 데이터
+  };
+}
+
+/**
+ * 푸시 토큰 등록 요청
+ */
+export interface PushTokenRequest {
+  deviceId: string;
+  token: string;
+  platform: 'android' | 'ios';
+  userId?: number;
+}
+
+/**
+ * 푸시 알림 설정
+ */
+export interface NotificationSettings {
+  pushEnabled: boolean;
+  budgetAlertsEnabled: boolean;
+  goalAlertsEnabled: boolean;
+  spendingPatternEnabled: boolean;
+  systemAlertsEnabled: boolean;
+}
+
+/**
+ * 푸시 알림 전송 요청 (테스트용)
+ */
+export interface SendNotificationRequest {
+  userIds?: number[];
+  title: string;
+  message: string;
+  type: NotificationItem['type'];
+  data?: any;
+}
