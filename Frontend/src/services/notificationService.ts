@@ -5,6 +5,17 @@ import { Platform } from 'react-native';
 
 import type { NotificationItem, PushTokenRequest } from '@/src/types';
 
+// 환경별 설정
+const isDevelopment = __DEV__;
+const isExpoGo = Constants.appOwnership === 'expo';
+
+console.log('🌍 알림 환경 정보:', {
+  isDevelopment,
+  isExpoGo,
+  platform: Platform.OS,
+  deviceName: Device.deviceName,
+});
+
 // 알림 표시 방식 설정
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -74,16 +85,23 @@ export class NotificationService {
         return null;
       }
 
-      // 4. 푸시 토큰 발급 (Expo Go에서는 실패할 수 있음)
+      // 4. 환경별 푸시 토큰 발급
       try {
-        const tokenData = await Notifications.getExpoPushTokenAsync({
-          projectId: Constants.expoConfig?.extra?.eas?.projectId,
-        });
-        
-        token = tokenData.data;
-        console.log('🎯 푸시 토큰 발급 완료:', token);
+        if (isExpoGo) {
+          // Expo Go 환경: Expo Push Token 사용
+          const tokenData = await Notifications.getExpoPushTokenAsync({
+            projectId: Constants.expoConfig?.extra?.eas?.projectId,
+          });
+          token = tokenData.data;
+          console.log('🎯 Expo 푸시 토큰 발급 완료:', token);
+        } else {
+          // Development Build / 운영 환경: Native FCM Token 사용
+          const deviceToken = await Notifications.getDevicePushTokenAsync();
+          token = deviceToken.data;
+          console.log('🎯 네이티브 푸시 토큰 발급 완료:', token);
+        }
       } catch (error) {
-        console.warn('⚠️ 푸시 토큰 발급 실패 (Expo Go 제한):', error);
+        console.warn('⚠️ 푸시 토큰 발급 실패:', error);
         console.log('📱 로컬 알림만 사용합니다.');
         // 에러를 던지지 않고 null 반환
         return null;
@@ -210,7 +228,10 @@ export class NotificationService {
         badge: 1,
         data,
       },
-      trigger: { seconds: delaySeconds },
+      trigger: { 
+        type: 'timeInterval',
+        seconds: delaySeconds 
+      },
     });
   }
 
@@ -292,9 +313,12 @@ export class NotificationService {
     }
 
     return {
-      deviceId: `device_${Date.now()}`, // TODO: 실제 deviceId 생성 로직
+      deviceId: Constants.deviceId || `device_${Date.now()}`,
       token: this.pushToken,
       platform: Platform.OS as 'android' | 'ios',
+      tokenType: isExpoGo ? 'expo' : 'fcm', // 백엔드에서 토큰 타입 구분
+      environment: isDevelopment ? 'development' : 'production',
+      appVersion: Constants.expoConfig?.version || '1.0.0',
       // userId는 실제 로그인 상태에서 추가
     };
   }
