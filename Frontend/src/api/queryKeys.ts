@@ -30,9 +30,11 @@ export const queryKeys = {
   },
 
   // 알림 관련
-  notification: {
-    all: ['notification'] as const,
-    list: () => [...queryKeys.notification.all, 'list'] as const,
-    unreadCount: () => [...queryKeys.notification.all, 'unreadCount'] as const,
+  notifications: {
+    all: ['notifications'] as const,
+    list: (params?: any) => [...queryKeys.notifications.all, 'list', params] as const,
+    detail: (id: string) => [...queryKeys.notifications.all, 'detail', id] as const,
+    unreadCount: () => [...queryKeys.notifications.all, 'unreadCount'] as const,
+    settings: () => [...queryKeys.notifications.all, 'settings'] as const,
   },
 } as const;

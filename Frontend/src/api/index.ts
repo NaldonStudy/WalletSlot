@@ -5,3 +5,4 @@ export { queryKeys } from './queryKeys';
 export { authApi } from './auth';
 export { accountApi, transactionApi, transactionCategoryApi } from './account';
 export { slotApi, slotCategoryApi } from './slot';
+export { notificationApi } from './notification';
