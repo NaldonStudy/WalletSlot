@@ -341,6 +341,9 @@ export interface PushTokenRequest {
   deviceId: string;
   token: string;
   platform: 'android' | 'ios';
+  tokenType: 'expo' | 'fcm';         // 토큰 타입 구분
+  environment: 'development' | 'production'; // 환경 구분
+  appVersion: string;                // 앱 버전
   userId?: number;
 }
 
