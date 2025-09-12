@@ -1,14 +1,14 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import { AppState, AppStateStatus } from 'react-native';
 
 import { notificationApi } from '@/src/api';
 import { queryKeys } from '@/src/api/queryKeys';
 import { notificationService } from '@/src/services/notificationService';
-import type { 
-  NotificationItem, 
-  NotificationSettings, 
-  PushTokenRequest 
+import type {
+  InitialTokenRequest,
+  NotificationItem,
+  NotificationSettings
 } from '@/src/types';
 
 /**
@@ -99,17 +99,17 @@ export const useUpdateNotificationSettings = () => {
 };
 
 /**
- * 푸시 토큰 등록 뮤테이션
+ * 최초 푸시 토큰 등록 뮤테이션
  */
-export const useRegisterPushToken = () => {
+export const useRegisterInitialPushToken = () => {
   return useMutation({
-    mutationFn: (data: PushTokenRequest) => 
-      notificationApi.registerPushToken(data),
+    mutationFn: (data: InitialTokenRequest) => 
+      notificationApi.registerInitialPushToken(data),
     onSuccess: () => {
-      console.log('✅ 푸시 토큰 등록 완료');
+      console.log('최초 푸시 토큰 등록 완료');
     },
     onError: (error) => {
-      console.error('❌ 푸시 토큰 등록 실패:', error);
+      console.error('최초 푸시 토큰 등록 실패:', error);
     },
   });
 };
@@ -132,31 +132,18 @@ export const useDeleteNotification = () => {
 
 /**
  * 푸시 알림 시스템 통합 관리 훅
- * 초기화, 토큰 등록, 앱 상태 감지를 한번에 처리
  */
 export const usePushNotificationSystem = () => {
   const [pushToken, setPushToken] = useState<string | null>(null);
   const [appState, setAppState] = useState<AppStateStatus>(AppState.currentState);
   const [isInitialized, setIsInitialized] = useState(false);
-  
-  const registerPushTokenMutation = useRegisterPushToken();
 
-  // 푸시 알림 시스템 초기화
   useEffect(() => {
     const initializePushNotifications = async () => {
       try {
-        // 1. 알림 서비스 초기화
-        const token = await notificationService.initialize();
+        // TODO: 로그인 후 토큰 초기화 로직 구현
+        const token = notificationService.getPushToken();
         setPushToken(token);
-        
-        // 2. 서버에 토큰 등록
-        if (token) {
-          const tokenData = notificationService.getPushTokenData();
-          if (tokenData) {
-            registerPushTokenMutation.mutate(tokenData);
-          }
-        }
-        
         setIsInitialized(true);
       } catch (error) {
         console.error('푸시 알림 초기화 실패:', error);
@@ -166,23 +153,16 @@ export const usePushNotificationSystem = () => {
 
     initializePushNotifications();
 
-    // 컴포넌트 언마운트 시 정리
     return () => {
       notificationService.cleanup();
     };
   }, []);
 
-  // 앱 상태 감지
   useEffect(() => {
     const subscription = AppState.addEventListener('change', (nextAppState) => {
-      console.log('📱 앱 상태 변화:', appState, '→', nextAppState);
-      
       if (appState.match(/inactive|background/) && nextAppState === 'active') {
-        console.log('🔄 앱이 foreground로 돌아옴');
-        // 배지 초기화
         notificationService.setBadgeCount(0);
       }
-      
       setAppState(nextAppState);
     });
 
@@ -194,6 +174,5 @@ export const usePushNotificationSystem = () => {
     appState,
     isInitialized,
     notificationService,
-    registerPushToken: registerPushTokenMutation,
   };
 };
