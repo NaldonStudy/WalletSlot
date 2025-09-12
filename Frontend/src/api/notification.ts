@@ -1,33 +1,51 @@
-import { apiClient } from './client';
-import type { 
-  BaseResponse, 
-  NotificationItem, 
-  PushTokenRequest, 
+import type {
+  BaseResponse,
+  InitialTokenRequest,
+  InitialTokenResponse,
+  NotificationItem,
   NotificationSettings,
+  PaginatedResponse,
   SendNotificationRequest,
-  PaginatedResponse 
+  UpdateTokenRequest
 } from '@/src/types';
+import { apiClient } from './client';
 
 /**
  * 푸시 알림 관련 API 함수들
  */
 export const notificationApi = {
   /**
-   * 푸시 토큰을 서버에 등록
+   * 최초 푸시 토큰 등록 (알림 권한 허용시)
    */
-  registerPushToken: async (data: PushTokenRequest): Promise<BaseResponse<void>> => {
+  registerInitialPushToken: async (data: InitialTokenRequest): Promise<InitialTokenResponse> => {
     try {
-      return await apiClient.post('/notifications/register-token', data);
-    } catch (error) {
-      console.error('푸시 토큰 등록 실패:', error);
-      // TODO: 실제 API 구현 전까지 임시 응답
+      // TODO: 실제 API 구현시 서버에서 deviceId 반환하도록 수정 필요
+      const response = await apiClient.post('/notifications/register-initial-token', data);
+      
+      // Mock response - 실제 구현에서는 서버에서 deviceId 반환
       return {
-        success: true,
-        data: undefined,
-        message: '푸시 토큰이 등록되었습니다 (Mock)'
+        ...response,
+        deviceId: `device_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`
       };
+    } catch (error) {
+      console.error('최초 푸시 토큰 등록 실패:', error);
+      throw error;
     }
   },
+
+  /**
+   * 푸시 토큰 갱신 (앱 실행시 토큰이 변경된 경우)
+   */
+  updatePushToken: async (data: UpdateTokenRequest): Promise<BaseResponse<void>> => {
+    try {
+      return await apiClient.put('/notifications/update-token', data);
+    } catch (error) {
+      console.error('푸시 토큰 갱신 실패:', error);
+      throw error;
+    }
+  },
+
+
 
   /**
    * 사용자의 알림 목록 조회
@@ -39,7 +57,19 @@ export const notificationApi = {
     type?: NotificationItem['type'];
   }): Promise<PaginatedResponse<NotificationItem>> => {
     try {
-      return await apiClient.get('/notifications', { params });
+      const response = await apiClient.get<NotificationItem[]>('/notifications', { params });
+      return {
+        success: response.success,
+        data: response.data,
+        message: response.message,
+        errorCode: response.errorCode,
+        meta: {
+          page: params?.page || 1,
+          limit: params?.limit || 20,
+          total: Array.isArray(response.data) ? response.data.length : 0,
+          hasNext: false
+        }
+      };
     } catch (error) {
       // 개발 중에는 조용히 처리 (콘솔 로그 없음)
       // console.error('알림 목록 조회 실패:', error);
