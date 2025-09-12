@@ -14,7 +14,7 @@ export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: theme.colors.primary[500],
+        tabBarActiveTintColor: '#2383BD',
         headerShown: false,
         tabBarButton: HapticTab,
         tabBarBackground: TabBarBackground,
@@ -30,16 +30,24 @@ export default function TabLayout() {
         name="dashboard"
         options={{
           title: '대시보드',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="speedometer" color={color} />,
+          tabBarIcon: ({ color }) => <IconSymbol size={28} name="chart.bar.fill" color={color} />,
         }}
       />
       <Tabs.Screen
         name="report"
         options={{
           title: '리포트',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="chart.bar.fill" color={color} />,
+          tabBarIcon: ({ color }) => <IconSymbol size={28} name="doc.text.fill" color={color} />,
         }}
       />
+      <Tabs.Screen
+        name="wishlist"
+        options={{
+          title: '위시리스트',
+          tabBarIcon: ({ color }) => <IconSymbol size={28} name="heart.fill" color={color} />,
+        }}
+      />
+      
       <Tabs.Screen
         name="notifications"
         options={{
