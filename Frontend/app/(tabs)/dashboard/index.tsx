@@ -4,31 +4,36 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { faker } from '@faker-js/faker';
 import { Button } from '@/src/components';
 import { themes, Spacing, Typography } from '@/src/constants/theme';
+import AccountCard from '@/src/components/account/AccountCard';
+import { BANK_CODES } from '@/src/constants/banks';
+
 
 // 현실적인 샘플 데이터 생성
 const generateUserData = () => {
   const koreanLastNames = ['김', '이', '박', '최', '정', '강', '조', '윤', '장', '임'];
   const koreanFirstNames = ['민수', '영희', '철수', '수빈', '지현', '준호', '혜진', '동훈', '소영', '태현'];
-  
+
   const lastName = faker.helpers.arrayElement(koreanLastNames);
   const firstName = faker.helpers.arrayElement(koreanFirstNames);
   return { userName: lastName + firstName };
 };
 
-const generateAccountData = () => {
-  const banks = ['KB국민은행', '신한은행', '우리은행', '하나은행', '카카오뱅크', '토스뱅크'];
-  const bank = faker.helpers.arrayElement(banks);
+const generateAccountCardData = () => {
+  const bankCodes = ['004', '088', '020', '001', '002', '003', '011', '023', '027', '031', '034', '035', '037', '039', '045', '081', '090', '999'];
+  const bankCode = faker.helpers.arrayElement(bankCodes);
   const balance = faker.number.int({ min: 500000, max: 5000000 });
-  const uncategorized = faker.number.int({ min: 0, max: Math.floor(balance * 0.1) });
-  
+  const accountName = faker.helpers.arrayElement(['주거래계좌', '급여계좌', '저축계좌', '주택금융', '자유적금']);
+  const accountNumber = faker.finance.accountNumber(12).replace(/(\d{4})(\d{2})(\d{6})/, '$1-$2-$3');
   return {
-    bankName: bank,
-    balance,
-    uncategorized
+    bankCode,
+    accountName,
+    accountNumber,
+    balanceFormatted: `${balance.toLocaleString()}원`
   };
 };
 
-const generateSampleSlots = () => {
+
+  const generateSampleSlots = () => {
   const slotTypes = [
     { name: '식비', emoji: '🍽️', avgBudget: 400000 },
     { name: '교통비', emoji: '🚗', avgBudget: 150000 },
@@ -45,14 +50,14 @@ const generateSampleSlots = () => {
   const selectedSlots = faker.helpers.arrayElements(slotTypes, numSlots);
 
   return selectedSlots.map((slotType, index) => {
-    const budget = faker.number.int({ 
-      min: slotType.avgBudget * 0.7, 
-      max: slotType.avgBudget * 1.3 
+    const budget = faker.number.int({
+      min: slotType.avgBudget * 0.7,
+      max: slotType.avgBudget * 1.3
     });
-    
+
     // 일부 슬롯은 예산 초과하도록 설정
     const shouldExceed = faker.datatype.boolean(0.2); // 20% 확률로 예산 초과
-    const currentAmount = shouldExceed 
+    const currentAmount = shouldExceed
       ? faker.number.int({ min: budget * 1.1, max: budget * 1.4 })
       : faker.number.int({ min: 0, max: budget * 0.9 });
 
@@ -69,10 +74,10 @@ const generateSampleSlots = () => {
 export default function DashboardScreen() {
   const colorScheme = useColorScheme() ?? 'light';
   const theme = themes[colorScheme];
-  
+
   // 컴포넌트 렌더링 시마다 새로운 데이터 생성 (실제로는 API에서 가져올 데이터)
   const userData = generateUserData();
-  const accountData = generateAccountData();
+  const accountCardData = generateAccountCardData();
   const sampleSlots = generateSampleSlots();
 
   return (
@@ -85,16 +90,24 @@ export default function DashboardScreen() {
         </View>
 
         {/* 계좌 정보 */}
-        <View style={[styles.accountCard, { backgroundColor: theme.colors.primary[500] }]}>
-          <Text style={[styles.accountTitle, { color: theme.colors.text.inverse }]}>{accountData.bankName} (대표계좌)</Text>
-          <Text style={[styles.balance, { color: theme.colors.text.inverse }]}>{accountData.balance.toLocaleString()}원</Text>
-          <Text style={[styles.uncategorized, { color: theme.colors.text.inverse }]}>미분류: {accountData.uncategorized.toLocaleString()}원</Text>
+        <View style={styles.section}>
+          <Text style={[styles.sectionTitle, { color: theme.colors.text.primary }]}>
+            내 계좌
+          </Text>
+
+          <AccountCard
+            bankCode={accountCardData.bankCode as keyof typeof BANK_CODES}
+            accountName={accountCardData.accountName}
+            accountNumber={accountCardData.accountNumber}
+            balanceFormatted={accountCardData.balanceFormatted}
+            style={{ alignSelf: 'center'}}
+          />
         </View>
 
         {/* 슬롯 현황 */}
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: theme.colors.text.primary }]}>이번 달 슬롯 현황</Text>
-          
+
           {/* 원형 그래프 영역 (추후 구현) */}
           <View style={[styles.chartPlaceholder, { backgroundColor: theme.colors.gray[100] }]}>
             <Text style={[styles.placeholderText, { color: theme.colors.text.secondary }]}>원형 그래프 영역</Text>
@@ -105,10 +118,10 @@ export default function DashboardScreen() {
         {/* 슬롯 리스트 */}
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: theme.colors.text.primary }]}>슬롯 목록</Text>
-          
+
           {/* 샘플 슬롯 카드들 */}
           {sampleSlots.map((slot) => (
-            <View key={slot.slotId} style={[styles.slotCard, { 
+            <View key={slot.slotId} style={[styles.slotCard, {
               backgroundColor: theme.colors.background.primary,
               borderColor: theme.colors.border.light,
             }]}>
@@ -121,31 +134,31 @@ export default function DashboardScreen() {
                   {slot.currentAmount.toLocaleString()}원 / {slot.budget.toLocaleString()}원
                 </Text>
               </View>
-              
+
               {/* 진행률 바 */}
               <View style={[styles.progressContainer, { backgroundColor: theme.colors.gray[200] }]}>
-                <View 
+                <View
                   style={[
-                    styles.progressBar, 
-                    { 
+                    styles.progressBar,
+                    {
                       width: `${Math.min((slot.currentAmount / slot.budget) * 100, 100)}%`,
                       backgroundColor: slot.currentAmount > slot.budget ? theme.colors.error : theme.colors.primary[500]
                     }
-                  ]} 
+                  ]}
                 />
               </View>
-              
+
               <View style={styles.slotActions}>
-                <Button 
-                  title="수정" 
-                  variant="outline" 
-                  size="sm" 
+                <Button
+                  title="수정"
+                  variant="outline"
+                  size="sm"
                   onPress={() => console.log('수정', slot.slotId)}
                 />
-                <Button 
-                  title="내역" 
-                  variant="ghost" 
-                  size="sm" 
+                <Button
+                  title="내역"
+                  variant="ghost"
+                  size="sm"
                   onPress={() => console.log('내역', slot.slotId)}
                 />
               </View>
