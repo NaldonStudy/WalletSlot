@@ -1,8 +1,8 @@
 {
     "mcpServers": {
       "TalkToFigma": {
-        "command": "bun",
-        "args": ["C:/Users/SSAFY/Desktop/S13P21B108/Frontend/dist/server.js"]
+        "command": "node",
+        "args": ["C:/Users/SSAFY/Desktop/S13P21B108/mcp-server/server.js"]
       }
     }
   }

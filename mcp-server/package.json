@@ -1,0 +1,21 @@
+{
+  "name": "mcp-server",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "socket": "node socket.cjs"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.13.1",
+    "uuid": "^9.0.1",
+    "ws": "^8.18.0",
+    "zod": "^3.25.6"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
+
+
