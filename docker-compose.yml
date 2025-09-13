@@ -16,7 +16,7 @@ services:
 
   backend-app:
     container_name: backend-app
-    image: registry.gitlab.com/s13p21b108/backend-app-image:latest
+    image: registry.gitlab.com/s13-fintech-finance-sub1/s13p21b108/backend-app-image:latest
     depends_on:
       - mysql-db
     networks:
