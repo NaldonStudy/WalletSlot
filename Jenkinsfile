@@ -6,7 +6,7 @@ pipeline {
             steps {
                 sshagent(['ec2-pem-key']) {
                     withCredentials([usernamePassword(
-                        credentialsId: 'gitlab-token',   // Jenkins에 저장해둔 GitLab 레지스트리 계정
+                        credentialsId: 'gitlab-registry',   // Jenkins에 저장해둔 GitLab 레지스트리 계정
                         usernameVariable: 'REG_USER',
                         passwordVariable: 'REG_PASS'
                     )]) {
