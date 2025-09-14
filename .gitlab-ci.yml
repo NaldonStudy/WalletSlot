@@ -3,7 +3,7 @@ stages:
   - deploy
 
 variables:
-  IMAGE_TAG: $CI_REGISTRY_IMAGE/backend-app-image:latest
+  IMAGE_TAG: $DOCKER_REGISTRY_IMAGE/backend-app-image:latest
 
 build:
   stage: build
@@ -15,7 +15,7 @@ build:
     DOCKER_TLS_CERTDIR: ""
   script:
     - echo "🔑 Logging in to GitLab Registry"
-    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" $CI_REGISTRY --password-stdin
+    - echo "$DOCKER_REGISTRY_PASSWORD" | docker login -u "$DOCKER_REGISTRY_USER" $DOCKER_REGISTRY --password-stdin
     - echo "📦 Building Docker image"
     - docker build -t "$IMAGE_TAG" ./walletslot-backend
     - echo "🚀 Pushing Docker image"
