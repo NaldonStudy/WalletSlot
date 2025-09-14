@@ -7,7 +7,7 @@ variables:
 
 build:
   stage: build
-  tags: [docker]   # Runner 등록 시 사용한 tag
+  tags: [cicd]   # Runner 등록 시 사용한 tag
   image: docker:24.0
   services:
     - docker:24.0-dind
@@ -23,7 +23,7 @@ build:
 
 deploy:
   stage: deploy
-  tags: [docker]
+  tags: [cicd]
   image: alpine:3.19
   before_script:
     - apk add --no-cache openssh-client docker-cli
