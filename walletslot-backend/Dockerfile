@@ -3,13 +3,16 @@ FROM gradle:8-jdk21 AS builder
 
 WORKDIR /app
 
+COPY gradlew ./
+COPY gradle ./gradle
 COPY build.gradle settings.gradle ./
 
-RUN gradle dependencies
+RUN chmod +x ./gradlew
+RUN ./gradlew dependencies --no-daemon
 
 COPY src ./src
 
-RUN gradle build -x test
+RUN ./gradlew build -x test --no-daemon
 
 # --- 2. Run Stage ---
 # run stage이므로 jre만
