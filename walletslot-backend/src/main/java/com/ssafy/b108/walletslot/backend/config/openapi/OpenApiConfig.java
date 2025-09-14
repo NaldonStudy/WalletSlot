@@ -6,8 +6,8 @@ import org.springframework.context.annotation.Configuration;
 
 @OpenAPIDefinition(
         info = @Info(
-                title = "WalletSlot API 명세서",
-                description = "SSAFY 13기 특화 프로젝트 WalletSlot API 명세서입니다.",
+                title = "WalletSlot API Docs",
+                description = "SSAFY 13기 특화 프로젝트 WalletSlot API Docs 입니다.",
                 version = "v1.0.0"
         )
 )
