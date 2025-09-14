@@ -25,7 +25,8 @@ public class SecurityConfig {
                         ).permitAll()
                         .anyRequest().authenticated()
                 )
-                .csrf(csrf -> csrf.disable()); // 개발용: CSRF 보호 비활성화
+                .csrf(csrf -> csrf.disable())
+		.cors(cors -> {});
 
         return http.build();
     }
