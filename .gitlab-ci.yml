@@ -3,7 +3,7 @@ stages:
   - deploy
 
 variables:
-  IMAGE_TAG: $DOCKER_REGISTRY_IMAGE/:latest
+  IMAGE_TAG: $DOCKER_REGISTRY_IMAGE:latest
 
 build:
   stage: build
