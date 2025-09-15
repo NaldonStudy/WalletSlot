@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, useColorScheme } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { faker } from '@faker-js/faker';
@@ -6,7 +6,8 @@ import { Button } from '@/src/components';
 import { themes, Spacing, Typography } from '@/src/constants/theme';
 import AccountCarousel from '@/src/components/account/AccountCarousel';
 import { BANK_CODES } from '@/src/constants/banks';
-
+import { SAMPLE_ACCOUNTS } from '@/src/constants/sampleData';
+import AccountDonutChart from '@/src/components/chart/AccountDonutChart';
 
 // 현실적인 샘플 데이터 생성
 const generateUserData = () => {
@@ -78,10 +79,20 @@ const generateSampleSlots = () => {
 export default function DashboardScreen() {
   const colorScheme = useColorScheme() ?? 'light';
   const theme = themes[colorScheme];
+  
+  // index state 관리
+  const [selectedIndex, setSelectedIndex] = useState(0);
 
   // 컴포넌트 렌더링 시마다 새로운 데이터 생성 (실제로는 API에서 가져올 데이터)
   const userData = generateUserData();
-  const accountCardsData = generateAccountCards(4);
+
+  // SAMPLE_ACCOUNTS에서 계좌 카드 데이터만 추출 (슬롯 데이터 제외)
+  const accountCardsData = SAMPLE_ACCOUNTS.map(account => ({
+    bankCode: account.bankCode as keyof typeof BANK_CODES,
+    accountName: account.accountName,
+    accountNumber: account.accountNumber,
+    balanceFormatted: account.balanceFormatted,
+  }));
   const sampleSlots = generateSampleSlots();
 
   return (
@@ -99,18 +110,20 @@ export default function DashboardScreen() {
             내 계좌
           </Text>
         </View>
-        <AccountCarousel accounts={accountCardsData} />
+        <AccountCarousel
+          accounts={accountCardsData}
+          onIndexChange={setSelectedIndex}
+        />
 
 
 
         {/* 슬롯 현황 */}
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: theme.colors.text.primary }]}>이번 달 슬롯 현황</Text>
-
-          {/* 원형 그래프 영역 (추후 구현) */}
-          <View style={[styles.chartPlaceholder, { backgroundColor: theme.colors.gray[100] }]}>
-            <Text style={[styles.placeholderText, { color: theme.colors.text.secondary }]}>원형 그래프 영역</Text>
-            <Text style={[styles.placeholderSubtext, { color: theme.colors.text.tertiary }]}>슬롯별 지출 현황</Text>
+          {/* 원형 그래프 */}
+          <View style={styles.chartPlaceholder}>
+            <Text style={[styles.dateText, { color: theme.colors.text.primary }]}>2025.09.01 ~ 2025.09.30</Text>
+            <AccountDonutChart data={SAMPLE_ACCOUNTS[selectedIndex].slots} />
           </View>
         </View>
 
@@ -189,8 +202,8 @@ const styles = StyleSheet.create({
     fontSize: Typography.fontSize.base,
   },
   accountCard: {
-    margin: Spacing.base,
-    padding: Spacing.lg,
+    margin: Spacing.sm,
+    padding: Spacing.base,
     borderRadius: 16,
   },
   accountTitle: {
@@ -215,11 +228,27 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.base,
   },
   chartPlaceholder: {
-    height: 200,
+    width: '100%',
+    minHeight: 280, 
     borderRadius: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: 'flex-start',
     marginBottom: Spacing.base,
+    backgroundColor: '#F3F4F6', // 연한 회색 배경
+    borderWidth: 1,
+    borderColor: '#E5E7EB', // 테두리 추가
+    padding: 20,
+    elevation: 2, // Android 그림자
+    shadowColor: '#000', // iOS 그림자
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  dateText:{
+    fontSize: Typography.fontSize.sm,
+    fontWeight: Typography.fontWeight.medium,
+    marginTop: Spacing.sm,
+    textAlign: 'center',
+    alignSelf: 'center', 
   },
   placeholderText: {
     fontSize: Typography.fontSize.lg,
