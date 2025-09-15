@@ -98,9 +98,10 @@ export default function DashboardScreen() {
           <Text style={[styles.sectionTitle, { color: theme.colors.text.primary }]}>
             내 계좌
           </Text>
-
-          <AccountCarousel accounts={accountCardsData} />
         </View>
+        <AccountCarousel accounts={accountCardsData} />
+
+
 
         {/* 슬롯 현황 */}
         <View style={styles.section}>
