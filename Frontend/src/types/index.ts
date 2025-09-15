@@ -334,18 +334,31 @@ export interface NotificationItem {
   };
 }
 
+// ===== 푸시 알림 관련 =====
 /**
- * 푸시 토큰 등록 요청
+ * 최초 토큰 등록 요청 (알림 권한 허용시)
  */
-export interface PushTokenRequest {
-  deviceId: string;
-  token: string;
-  platform: 'android' | 'ios';
-  tokenType: 'expo' | 'fcm';         // 토큰 타입 구분
-  environment: 'development' | 'production'; // 환경 구분
-  appVersion: string;                // 앱 버전
-  userId?: number;
+export interface InitialTokenRequest {
+  token: string;     // FCM/APNS 푸시 토큰
+  platform: 'ios' | 'android';  // 플랫폼 정보
 }
+
+/**
+ * 최초 토큰 등록 응답
+ */
+export interface InitialTokenResponse extends BaseResponse {
+  deviceId: string;  // 서버에서 생성한 디바이스 고유 식별자
+}
+
+/**
+ * 토큰 갱신 요청 (앱 실행시 토큰이 변경된 경우)
+ */
+export interface UpdateTokenRequest {
+  token: string;     // 새로운 FCM/APNS 푸시 토큰
+  deviceId: string;  // 기존에 등록된 디바이스 ID
+}
+
+
 
 /**
  * 푸시 알림 설정
