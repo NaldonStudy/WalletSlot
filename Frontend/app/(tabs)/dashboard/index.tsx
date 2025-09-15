@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { faker } from '@faker-js/faker';
 import { Button } from '@/src/components';
 import { themes, Spacing, Typography } from '@/src/constants/theme';
-import AccountCard from '@/src/components/account/AccountCard';
+import AccountCarousel from '@/src/components/account/AccountCarousel';
 import { BANK_CODES } from '@/src/constants/banks';
 
 
@@ -20,7 +20,7 @@ const generateUserData = () => {
 
 const generateAccountCardData = () => {
   const bankCodes = ['004', '088', '020', '001', '002', '003', '011', '023', '027', '031', '034', '035', '037', '039', '045', '081', '090', '999'];
-  const bankCode = faker.helpers.arrayElement(bankCodes);
+  const bankCode = faker.helpers.arrayElement(bankCodes) as keyof typeof BANK_CODES;
   const balance = faker.number.int({ min: 500000, max: 5000000 });
   const accountName = faker.helpers.arrayElement(['주거래계좌', '급여계좌', '저축계좌', '주택금융', '자유적금']);
   const accountNumber = faker.finance.accountNumber(12).replace(/(\d{4})(\d{2})(\d{6})/, '$1-$2-$3');
@@ -32,8 +32,12 @@ const generateAccountCardData = () => {
   };
 };
 
+const generateAccountCards = (count = 3) => {
+  return Array.from({ length: count }).map(() => generateAccountCardData());
+};
 
-  const generateSampleSlots = () => {
+
+const generateSampleSlots = () => {
   const slotTypes = [
     { name: '식비', emoji: '🍽️', avgBudget: 400000 },
     { name: '교통비', emoji: '🚗', avgBudget: 150000 },
@@ -77,7 +81,7 @@ export default function DashboardScreen() {
 
   // 컴포넌트 렌더링 시마다 새로운 데이터 생성 (실제로는 API에서 가져올 데이터)
   const userData = generateUserData();
-  const accountCardData = generateAccountCardData();
+  const accountCardsData = generateAccountCards(4);
   const sampleSlots = generateSampleSlots();
 
   return (
@@ -95,13 +99,7 @@ export default function DashboardScreen() {
             내 계좌
           </Text>
 
-          <AccountCard
-            bankCode={accountCardData.bankCode as keyof typeof BANK_CODES}
-            accountName={accountCardData.accountName}
-            accountNumber={accountCardData.accountNumber}
-            balanceFormatted={accountCardData.balanceFormatted}
-            style={{ alignSelf: 'center'}}
-          />
+          <AccountCarousel accounts={accountCardsData} />
         </View>
 
         {/* 슬롯 현황 */}

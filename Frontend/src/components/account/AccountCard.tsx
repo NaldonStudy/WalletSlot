@@ -69,7 +69,6 @@ const styles = StyleSheet.create({
         marginHorizontal: Spacing.base,
         elevation: 3,
         height: 200,
-        width: 300,
         justifyContent: 'space-between', // 세로 공간 분배
     },
     topContent: {
@@ -100,13 +99,13 @@ const styles = StyleSheet.create({
     },
     accountName: {
         marginTop: Spacing.lg,
-        marginLeft: Spacing.base,
+        marginLeft: Spacing.sm,
         fontSize: Typography.fontSize.lg,
         fontWeight: Typography.fontWeight.bold,
     },
     accountNumber: {
         marginTop: Spacing.sm,
-        marginLeft: Spacing.base,
+        marginLeft: Spacing.sm,
         fontSize: Typography.fontSize.lg,
         textDecorationLine: 'underline',
     },
