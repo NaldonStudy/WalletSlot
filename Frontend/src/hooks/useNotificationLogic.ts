@@ -26,9 +26,9 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Alert, InteractionManager } from 'react-native';
 
 import { BACKEND_AVAILABLE } from '@/src/constants/api';
-import { useDeleteNotification, useMarkNotificationAsRead, useNotifications } from '@/src/hooks';
 import { monitoringService } from '@/src/services';
 import type { NotificationItem } from '@/src/types';
+import { useDeleteNotification, useMarkNotificationAsRead, useNotifications } from './useNotifications';
 
 export const useNotificationLogic = () => {
   // API 훅

@@ -67,7 +67,7 @@ export const NotificationFilters: React.FC<NotificationFiltersProps> = ({
   };
 
   return (
-    <>
+    <ThemedView style={styles.wrapper}>
       {/* 기본 필터 버튼 */}
       <ThemedView style={styles.filterSection}>
         <TouchableOpacity
@@ -213,7 +213,7 @@ export const NotificationFilters: React.FC<NotificationFiltersProps> = ({
           </ThemedText>
         </ThemedView>
       )}
-    </>
+    </ThemedView>
   );
 };
 
@@ -222,6 +222,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 8,
     marginBottom: 12,
+  },
+  wrapper: {
+    // wrapper allows safe top-level styling and prevents Fragment prop warnings
+    width: '100%',
   },
   filterButton: {
     paddingHorizontal: 16,

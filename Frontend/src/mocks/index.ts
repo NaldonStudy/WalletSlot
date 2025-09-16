@@ -8,7 +8,8 @@
 // React Native URL 폴리필 (MSW 사용을 위해 필수)
 import 'react-native-url-polyfill/auto';
 
-import { server, startMSWServer, stopMSWServer } from './server';
+// Do not statically import './server' here — it pulls in msw/native at bundle-time and
+// can trigger MessageEvent/WebSocket code during app initialization.
 import { runBasicTests, showAvailableAPIs, testMSWConnection } from './test';
 
 // MSW 설정 옵션
@@ -28,47 +29,67 @@ const mswConfig: MSWConfig = {
 // MSW 초기화 함수
 export const initializeMSW = async (config?: Partial<MSWConfig>) => {
   const finalConfig = { ...mswConfig, ...config };
-  
+
   if (!finalConfig.enabled) {
     console.log('🎭 MSW가 비활성화되어 있습니다');
     return;
   }
 
   try {
-    // MSW 서버 시작
-    startMSWServer();
-    
+  // MSW 서버 시작 (동적 import — 앱 번들/렌더링을 차단하지 않음)
+  const serverModule = await import('./server');
+  serverModule.startMSWServer();
+
     // 응답 지연 설정 (개발 중 네트워크 지연 시뮬레이션)
     if (finalConfig.delay && finalConfig.delay > 0) {
       console.log(`⏱️ MSW 응답 지연: ${finalConfig.delay}ms`);
     }
-    
+
     if (finalConfig.logging) {
       console.log('✅ MSW 초기화 완료');
-      
-      // MSW 연결 테스트 실행
+
+      // MSW 연결 테스트 실행 (비동기로 실행하여 초기화 지연 방지)
       setTimeout(async () => {
-        const isWorking = await testMSWConnection();
-        if (isWorking) {
-          await showAvailableAPIs();
+        try {
+          // 'runBasicTests' 함수 하나만 호출하여 테스트를 위임합니다.
+          const { runBasicTests } = await import('./test');
+          await runBasicTests(); 
+        } catch (error) {
+          console.warn('⚠️ MSW 테스트 실행 중 오류 발생:', error);
         }
-      }, 1000); // 1초 후 테스트 실행
+      }, 1000);
     }
-    
+
   } catch (error) {
     console.error('❌ MSW 초기화 실패:', error);
+    console.warn('⚠️ MSW가 비활성화된 상태로 앱이 계속 실행됩니다');
   }
 };
 
 // MSW 종료 함수
-export const shutdownMSW = () => {
-  if (mswConfig.enabled) {
-    stopMSWServer();
+// MSW 종료 함수 (동적 호출)
+export const shutdownMSW = async () => {
+  if (!mswConfig.enabled) return;
+  try {
+    const serverModule = await import('./server');
+    serverModule.stopMSWServer();
+  } catch (e) {
+    // ignore
   }
 };
 
-// MSW 서버 인스턴스 export (테스트에서 사용)
-export { server };
+// MSW 서버 인스턴스 접근 함수 (동적 import 필요 시 사용)
+export const getServer = async () => {
+  try {
+    const m: any = await import('./server');
+    // server.ts exposes server via internal getter; try common patterns
+    if (typeof m.getServerInstance === 'function') return m.getServerInstance();
+    if (m.server) return m.server;
+    return null;
+  } catch (e) {
+    return null;
+  }
+};
 
 // 개발 도구용 함수들
 export const mswUtils = {
