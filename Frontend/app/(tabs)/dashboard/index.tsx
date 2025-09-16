@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useMemo, useCallback, memo } from 'react';
 import { View, Text, StyleSheet, ScrollView, useColorScheme, Animated, Dimensions } from 'react-native';
 import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -10,6 +10,19 @@ import { BANK_CODES } from '@/src/constants/banks';
 import { SAMPLE_ACCOUNTS } from '@/src/constants/sampleData';
 import AccountDonutChart from '@/src/components/chart/AccountDonutChart';
 import AccountCarousel from '@/src/components/account/AccountCarousel';
+import { UncategorizedSlotCard } from '@/src/components/slot/UncategorizedSlotCard';
+
+// 헤더 컴포넌트 분리 (메모이제이션)
+const DashboardHeader = memo(({ userData, theme }: { userData: any, theme: any }) => (
+  <View style={styles.header}>
+    <Text style={[styles.greeting, { color: theme.colors.text.primary }]}>
+      안녕하세요, {userData.userName}님!
+    </Text>
+    <Text style={[styles.subtitle, { color: theme.colors.text.secondary }]}>
+      오늘의 지출 현황을 확인해보세요
+    </Text>
+  </View>
+));
 
 // 현실적인 샘플 데이터 생성
 const generateUserData = () => {
@@ -65,7 +78,7 @@ export default function DashboardScreen() {
 
   // index state 관리
   const [selectedIndex, setSelectedIndex] = useState(0);
-  
+
   // 즉시 업데이트를 위한 콜백
   const handleIndexChange = useCallback((index: number) => {
     setSelectedIndex(index);
@@ -76,10 +89,9 @@ export default function DashboardScreen() {
   const accountCarouselRef = useRef<View>(null);
   const [accountCarouselY, setAccountCarouselY] = useState(0);
 
-  // 컴포넌트 렌더링 시마다 새로운 데이터 생성 (실제로는 API에서 가져올 데이터)
-  const userData = generateUserData();
-
-  const sampleSlots = generateSampleSlots();
+  // 사용자 데이터와 슬롯 데이터를 한 번만 생성 (메모이제이션)
+  const userData = useMemo(() => generateUserData(), []);
+  const sampleSlots = useMemo(() => generateSampleSlots(), []);
 
   // 현재 선택된 계좌 데이터 - 직접 참조로 최적화
   const currentAccount = SAMPLE_ACCOUNTS[selectedIndex];
@@ -110,7 +122,12 @@ export default function DashboardScreen() {
         opacity: summaryOpacity,
         backgroundColor: theme.colors.background.primary,
       }]}>
-        <AccountSummary account={currentAccount} />
+        <View style={{ position: 'relative' }}>
+          <View style={{ position: 'absolute', bottom: -50, width: '90%' }}>
+            <UncategorizedSlotCard remain={200000} unreadCount={3} />
+          </View>
+          <AccountSummary account={currentAccount} />
+        </View>
       </Animated.View>
 
       <Animated.ScrollView
@@ -122,14 +139,7 @@ export default function DashboardScreen() {
         )}
       >
         {/* 헤더 */}
-        <View style={styles.header}>
-          <Text style={[styles.greeting, { color: theme.colors.text.primary }]}>
-            안녕하세요, {userData.userName}님!
-          </Text>
-          <Text style={[styles.subtitle, { color: theme.colors.text.secondary }]}>
-            오늘의 지출 현황을 확인해보세요
-          </Text>
-        </View>
+        <DashboardHeader userData={userData} theme={theme} />
 
         {/* 캐러셀 */}
         <Animated.View
@@ -249,7 +259,7 @@ const styles = StyleSheet.create({
   },
   fixedAccountSummary: {
     marginTop: Spacing.sm,
-    borderWidth: 1, 
+    borderWidth: 1,
     borderRadius: 16,
     padding: Spacing.base,
   },

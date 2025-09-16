@@ -97,8 +97,8 @@ const styles = StyleSheet.create({
         position: 'absolute',
     },
     logo: {
-        width: 28,
-        height: 28,
+        width: Spacing.lg,
+        height: Spacing.lg,
         resizeMode: 'contain',
     },
     bankName: {
