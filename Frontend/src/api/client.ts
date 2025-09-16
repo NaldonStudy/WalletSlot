@@ -1,6 +1,6 @@
-import axios, { AxiosInstance, AxiosResponse, AxiosError } from 'axios';
 import { API_CONFIG } from '@/src/constants';
-import { BaseResponse, ApiError } from '@/src/types';
+import { ApiError, BaseResponse } from '@/src/types';
+import axios, { AxiosError, AxiosInstance, AxiosResponse } from 'axios';
 
 /**
  * API 클라이언트 클래스
@@ -15,8 +15,13 @@ class ApiClient {
   }> = [];
 
   constructor() {
+    // MSW 사용 시에는 MSW가 가로챌 수 있는 실제 도메인 사용
+    // 개발환경: MSW가 모든 요청을 가로채는 도메인
+    // 배포환경: 실제 서버 URL
+    const baseURL = __DEV__ ? 'https://api.walletslot.com' : API_CONFIG.BASE_URL;
+    
     this.client = axios.create({
-      baseURL: API_CONFIG.BASE_URL,
+      baseURL,
       timeout: API_CONFIG.TIMEOUT,
       headers: {
         'Content-Type': 'application/json',
@@ -33,6 +38,15 @@ class ApiClient {
         const token = await this.getAccessToken();
         if (token) {
           config.headers.Authorization = `Bearer ${token}`;
+        }
+        try {
+          const method = (config.method || 'get').toUpperCase();
+          const fullUrl = `${config.baseURL || ''}${config.url}`;
+          // Friendly debug log to see outgoing requests and params
+          // eslint-disable-next-line no-console
+          console.log(`[API] Request -> ${method} ${fullUrl}`, config.params || config.data || {});
+        } catch (e) {
+          // ignore logging errors
         }
         return config;
       },
@@ -136,6 +150,15 @@ class ApiClient {
   // 공통 API 메서드들
   async get<T>(url: string, params?: any): Promise<BaseResponse<T>> {
     const response = await this.client.get(url, { params });
+    try {
+      console.log('[API][raw axios response] status:', response.status, 'keys:', Object.keys(response || {}));
+      console.log('[API][raw axios response] data type:', typeof response.data, Array.isArray(response.data) ? 'array' : 'not-array');
+      if (response.data && typeof response.data === 'object') {
+        console.log('[API][raw axios response] data keys:', Object.keys(response.data));
+      } else {
+        console.log('[API][raw axios response] data value preview:', String(response.data).slice(0, 120));
+      }
+    } catch {}
     return response.data;
   }
 
