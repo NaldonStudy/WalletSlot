@@ -10,6 +10,8 @@ config.resolver.alias = {
   'node:buffer': require.resolve('buffer'),
   'node:stream': require.resolve('stream-browserify'),
   'node:util': require.resolve('util'),
+  'node:events': require.resolve('events'),
+  'node:process': require.resolve('process/browser'),
 };
 
 // 플랫폼 확장자 우선순위 설정
@@ -19,6 +21,17 @@ config.resolver.platforms = ['native', 'web', 'ios', 'android'];
 config.resolver.sourceExts = [
   ...config.resolver.sourceExts,
   'mjs', // ES 모듈 지원
+  'cjs', // CommonJS 모듈 지원
 ];
+
+// MSW 관련 모듈을 위한 추가 설정
+config.resolver.extraNodeModules = {
+  ...config.resolver.extraNodeModules,
+  'buffer': require.resolve('buffer'),
+  'stream': require.resolve('stream-browserify'),
+  'util': require.resolve('util'),
+  'events': require.resolve('events'),
+  'process': require.resolve('process/browser'),
+};
 
 module.exports = config;
