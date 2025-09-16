@@ -3,6 +3,13 @@ import React from 'react';
 import { View, Text, Image, StyleSheet, StyleProp, ViewStyle } from 'react-native';
 import { Spacing, Typography } from '@/src/constants/theme';
 
+export type AccountCardData = {
+    bankCode: keyof typeof BANK_CODES;
+    accountName: string;
+    accountNumber: string;
+    balanceFormatted: string;
+};
+
 // 배경색의 밝기에 따라 글자색 결정하는 함수
 const getTextColor = (backgroundColor: string): string => {
     // hex 색상을 RGB로 변환
@@ -18,11 +25,7 @@ const getTextColor = (backgroundColor: string): string => {
     return brightness < 128 ? '#FFFFFF' : '#000000';
 };
 
-type AccountCardProps = {
-    bankCode: keyof typeof BANK_CODES; // 은행코드 ex: 004
-    accountName: string; // 계좌명 ex: 주택금융
-    accountNumber: string; // 계좌번호 ex: 123-45-67890
-    balanceFormatted: string; // 잔액 ex: 1,000,000원
+type AccountCardProps = AccountCardData & {
     style?: StyleProp<ViewStyle>;
 }
 
@@ -66,9 +69,9 @@ const styles = StyleSheet.create({
         borderRadius: Spacing.sm,
         padding: Spacing.base,
         marginBottom: Spacing.sm,
-        marginHorizontal: Spacing.base,
+        marginHorizontal: Spacing.sm,
         elevation: 3,
-        height: 200,
+        height: 180,
         justifyContent: 'space-between', // 세로 공간 분배
     },
     topContent: {
@@ -80,8 +83,8 @@ const styles = StyleSheet.create({
         marginBottom: Spacing.sm,
     },
     logoWrapper: {
-        width: 30,
-        height: 30,
+        width: Spacing.lg,
+        height: Spacing.lg,
         borderRadius: 15,
         backgroundColor: 'rgba(255,255,255,0.8)', // 흰색 배경
         justifyContent: 'center',

@@ -247,6 +247,7 @@ const lightTheme = {
     ...Colors,
     background: Colors.background.light,
     text: Colors.text.light,
+    shadow: Colors.shadow.light,
   },
   typography: Typography,
   spacing: Spacing,
@@ -262,6 +263,7 @@ const darkTheme = {
     ...lightTheme.colors,
     background: Colors.background.dark,
     text: Colors.text.dark,
+    shadow: Colors.shadow.dark,
   },
 } as const;
 
