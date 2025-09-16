@@ -1,4 +1,4 @@
-package com.ssafy.b108.walletslot.backend.domain.device;
+package com.ssafy.b108.walletslot.backend.domain.notification;
 
 import com.ssafy.b108.walletslot.backend.domain.user.User;
 import jakarta.persistence.*;
@@ -25,19 +25,20 @@ public class PushEndpoint {
     @JoinColumn(name = "user_id")
     private User user;
 
-    @Column(length = 64, nullable = false, updatable = false)
+    @Column(length = 64, nullable = false)
     private String deviceId;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, updatable = false)
+    @Column(nullable = false)
     private Platform platform;
 
-    @Column(length = 255, nullable = false)
+    @Column(length = 255)
     private String token;
 
     @Enumerated(EnumType.STRING)
-    private Status status = Status.ACTIVE;
+    @Column(nullable = false)
+    private Status status;
 
     @Column(nullable = false)
-    private boolean isPushEnabled = true;
+    private boolean isPushEnabled;
 }
