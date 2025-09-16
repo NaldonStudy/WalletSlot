@@ -13,10 +13,9 @@ public class AppException extends RuntimeException {
         this.location = location;
     }
 
-    private static String buildMessage(ErrorCode code, String location) {
+    public static String buildMessage(ErrorCode code, String location) {
         return (location == null || location.isBlank())
                 ? code.getMessage()
                 : "[" + location + "] " + code.getMessage();
     }
 }
-
