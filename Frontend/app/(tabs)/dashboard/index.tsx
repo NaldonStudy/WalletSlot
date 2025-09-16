@@ -1,13 +1,15 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, useColorScheme } from 'react-native';
+import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
+import { View, Text, StyleSheet, ScrollView, useColorScheme, Animated, Dimensions } from 'react-native';
+import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { faker } from '@faker-js/faker';
 import { Button } from '@/src/components';
 import { themes, Spacing, Typography } from '@/src/constants/theme';
-import AccountCarousel from '@/src/components/account/AccountCarousel';
+import { AccountSummary } from '@/src/components/account/AccountSummary';
 import { BANK_CODES } from '@/src/constants/banks';
 import { SAMPLE_ACCOUNTS } from '@/src/constants/sampleData';
 import AccountDonutChart from '@/src/components/chart/AccountDonutChart';
+import AccountCarousel from '@/src/components/account/AccountCarousel';
 
 // 현실적인 샘플 데이터 생성
 const generateUserData = () => {
@@ -18,25 +20,6 @@ const generateUserData = () => {
   const firstName = faker.helpers.arrayElement(koreanFirstNames);
   return { userName: lastName + firstName };
 };
-
-const generateAccountCardData = () => {
-  const bankCodes = ['004', '088', '020', '001', '002', '003', '011', '023', '027', '031', '034', '035', '037', '039', '045', '081', '090', '999'];
-  const bankCode = faker.helpers.arrayElement(bankCodes) as keyof typeof BANK_CODES;
-  const balance = faker.number.int({ min: 500000, max: 5000000 });
-  const accountName = faker.helpers.arrayElement(['주거래계좌', '급여계좌', '저축계좌', '주택금융', '자유적금']);
-  const accountNumber = faker.finance.accountNumber(12).replace(/(\d{4})(\d{2})(\d{6})/, '$1-$2-$3');
-  return {
-    bankCode,
-    accountName,
-    accountNumber,
-    balanceFormatted: `${balance.toLocaleString()}원`
-  };
-};
-
-const generateAccountCards = (count = 3) => {
-  return Array.from({ length: count }).map(() => generateAccountCardData());
-};
-
 
 const generateSampleSlots = () => {
   const slotTypes = [
@@ -79,41 +62,98 @@ const generateSampleSlots = () => {
 export default function DashboardScreen() {
   const colorScheme = useColorScheme() ?? 'light';
   const theme = themes[colorScheme];
-  
+
   // index state 관리
   const [selectedIndex, setSelectedIndex] = useState(0);
+  
+  // 즉시 업데이트를 위한 콜백
+  const handleIndexChange = useCallback((index: number) => {
+    setSelectedIndex(index);
+  }, []);
+
+  // 스크롤 관련
+  const scrollY = useRef(new Animated.Value(0)).current;
+  const accountCarouselRef = useRef<View>(null);
+  const [accountCarouselY, setAccountCarouselY] = useState(0);
 
   // 컴포넌트 렌더링 시마다 새로운 데이터 생성 (실제로는 API에서 가져올 데이터)
   const userData = generateUserData();
 
-  // SAMPLE_ACCOUNTS에서 계좌 카드 데이터만 추출 (슬롯 데이터 제외)
-  const accountCardsData = SAMPLE_ACCOUNTS.map(account => ({
-    bankCode: account.bankCode as keyof typeof BANK_CODES,
-    accountName: account.accountName,
-    accountNumber: account.accountNumber,
-    balanceFormatted: account.balanceFormatted,
-  }));
   const sampleSlots = generateSampleSlots();
+
+  // 현재 선택된 계좌 데이터 - 직접 참조로 최적화
+  const currentAccount = SAMPLE_ACCOUNTS[selectedIndex];
+  const currentAccountSlots = currentAccount.slots;
+
+  // require()로 로드된 이미지는 prefetch가 불필요함
+  // Expo Image가 자동으로 캐싱하므로 별도 프리로딩 제거
+
+
+  // 두 컴포넌트의 opacity는 하나의 scrollY를 interpolate해서 제어
+  const summaryOpacity = scrollY.interpolate({
+    inputRange: [accountCarouselY - 50, accountCarouselY + 50],
+    outputRange: [0, 1],
+    extrapolate: 'clamp',
+  });
+
+  const carouselOpacity = scrollY.interpolate({
+    inputRange: [accountCarouselY - 50, accountCarouselY + 50],
+    outputRange: [1, 0],
+    extrapolate: 'clamp',
+  });
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background.primary }]}>
-      <ScrollView showsVerticalScrollIndicator={false}>
+      {/* 요약은 항상 렌더링해두고 opacity로만 표시 */}
+      <Animated.View style={[styles.fixedHeader,
+      {
+        opacity: summaryOpacity,
+        backgroundColor: theme.colors.background.primary,
+      }]}>
+        <AccountSummary account={currentAccount} />
+      </Animated.View>
+
+      <Animated.ScrollView
+        showsVerticalScrollIndicator={false}
+        scrollEventThrottle={16}
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+          { useNativeDriver: true }
+        )}
+      >
         {/* 헤더 */}
         <View style={styles.header}>
-          <Text style={[styles.greeting, { color: theme.colors.text.primary }]}>안녕하세요, {userData.userName}님!</Text>
-          <Text style={[styles.subtitle, { color: theme.colors.text.secondary }]}>오늘의 지출 현황을 확인해보세요</Text>
-        </View>
-
-        {/* 계좌 정보 */}
-        <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: theme.colors.text.primary }]}>
-            내 계좌
+          <Text style={[styles.greeting, { color: theme.colors.text.primary }]}>
+            안녕하세요, {userData.userName}님!
+          </Text>
+          <Text style={[styles.subtitle, { color: theme.colors.text.secondary }]}>
+            오늘의 지출 현황을 확인해보세요
           </Text>
         </View>
-        <AccountCarousel
-          accounts={accountCardsData}
-          onIndexChange={setSelectedIndex}
-        />
+
+        {/* 캐러셀 */}
+        <Animated.View
+          ref={accountCarouselRef}
+          onLayout={(event) => {
+            const { y } = event.nativeEvent.layout;
+            setAccountCarouselY(y);
+          }}
+          style={
+            {
+              opacity: carouselOpacity,
+            }
+          }
+        >
+          <AccountCarousel
+            accounts={SAMPLE_ACCOUNTS.map(acc => ({
+              bankCode: acc.bankCode as keyof typeof BANK_CODES, // 타입 캐스팅
+              accountName: acc.accountName,
+              accountNumber: acc.accountNumber,
+              balanceFormatted: acc.balanceFormatted,
+            }))}
+            onIndexChange={handleIndexChange}
+          />
+        </Animated.View>
 
 
 
@@ -121,13 +161,12 @@ export default function DashboardScreen() {
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: theme.colors.text.primary }]}>이번 달 슬롯 현황</Text>
           {/* 원형 그래프 */}
-          <View style={[styles.chartPlaceholder, { 
+          <View style={[styles.chartPlaceholder, theme.shadows.base, {
             backgroundColor: theme.colors.background.tertiary,
             borderColor: theme.colors.border.light,
-            shadowColor: theme.colors.shadow,
           }]}>
             <Text style={[styles.dateText, { color: theme.colors.text.primary }]}>2025.09.01 ~ 2025.09.30</Text>
-            <AccountDonutChart data={SAMPLE_ACCOUNTS[selectedIndex].slots} />
+            <AccountDonutChart data={currentAccountSlots} />
           </View>
         </View>
 
@@ -183,7 +222,7 @@ export default function DashboardScreen() {
 
         {/* 하단 여백 */}
         <View style={styles.bottomSpacer} />
-      </ScrollView>
+      </Animated.ScrollView>
     </SafeAreaView>
   );
 }
@@ -191,6 +230,28 @@ export default function DashboardScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  fixedHeader: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 1000,
+    paddingTop: 60,
+    paddingHorizontal: Spacing.base,
+    // paddingBottom: Spacing.sm,
+    transformOrigin: 'top center',
+  },
+  fixedGreeting: {
+    fontSize: Typography.fontSize.lg,
+    fontWeight: Typography.fontWeight.bold,
+    marginBottom: Spacing.sm,
+  },
+  fixedAccountSummary: {
+    marginTop: Spacing.sm,
+    borderWidth: 1, 
+    borderRadius: 16,
+    padding: Spacing.base,
   },
   header: {
     padding: Spacing.base,
@@ -203,20 +264,6 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: Typography.fontSize.base,
-  },
-  accountCard: {
-    margin: Spacing.sm,
-    padding: Spacing.base,
-    borderRadius: 16,
-  },
-  accountTitle: {
-    fontSize: Typography.fontSize.base,
-    marginBottom: Spacing.xs,
-  },
-  balance: {
-    fontSize: Typography.fontSize['3xl'],
-    fontWeight: Typography.fontWeight.bold,
-    marginBottom: Spacing.xs,
   },
   uncategorized: {
     fontSize: Typography.fontSize.sm,
@@ -232,22 +279,19 @@ const styles = StyleSheet.create({
   },
   chartPlaceholder: {
     width: '100%',
-    minHeight: 280, 
+    minHeight: 280,
     borderRadius: 16,
     justifyContent: 'flex-start',
     marginBottom: Spacing.base,
     padding: 20,
     elevation: 2, // Android 그림자
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
   },
-  dateText:{
+  dateText: {
     fontSize: Typography.fontSize.sm,
     fontWeight: Typography.fontWeight.medium,
     marginTop: Spacing.sm,
     textAlign: 'center',
-    alignSelf: 'center', 
+    alignSelf: 'center',
   },
   placeholderText: {
     fontSize: Typography.fontSize.lg,
