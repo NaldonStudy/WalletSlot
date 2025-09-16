@@ -13,10 +13,11 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(AppException.class)
     public ResponseEntity<ErrorResponse> handleAppException(AppException ex) {
+
         ErrorCode errorCode = ex.getErrorCode();
 
         ErrorResponse errorResponse = ErrorResponse.builder()
-                .message(errorCode.getMessage())
+                .message(ex.getMessage())
                 .build();
 
         return ResponseEntity.status(errorCode.getStatus()).body(errorResponse);
