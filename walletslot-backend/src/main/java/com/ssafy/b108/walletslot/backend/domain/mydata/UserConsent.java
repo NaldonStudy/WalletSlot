@@ -1,22 +1,20 @@
-package com.ssafy.b108.walletslot.backend.domain.notification;
+package com.ssafy.b108.walletslot.backend.domain.mydata;
 
 import com.ssafy.b108.walletslot.backend.domain.user.User;
 import jakarta.persistence.*;
 import lombok.*;
+
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "notification")
+@Table(name = "user_consent")
 @Getter @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Notification {
+public class UserConsent {
 
-    public enum Type {
-        // ENUM('') 이라 아직 값 미정 → 필요 시 채우세요
-        SYSTEM, EVENT, ALERT
-    }
+    public enum Status { ACTIVE, EXPIRED, REVOKED }
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -27,15 +25,17 @@ public class Notification {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    private String title;
-    private String content;
+    // FK → consent_form
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "consent_form_id", nullable = false)
+    private ConsentForm consentForm;
 
-    private Boolean isDelivered;
-    private LocalDateTime deliveredAt;
-
-    private boolean isRead;
-    private LocalDateTime readAt;
+    private LocalDateTime agreedAt;
 
     @Enumerated(EnumType.STRING)
-    private Type type;
+    private Status status;
+
+    private LocalDateTime expiredAt;
+
+    private LocalDateTime revokedAt;
 }
