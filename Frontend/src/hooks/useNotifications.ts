@@ -147,13 +147,34 @@ export const useMarkNotificationAsUnread = () => {
  */
 export const useMarkAllNotificationsAsRead = () => {
   const queryClient = useQueryClient();
-
   return useMutation({
     mutationFn: () => notificationApi.markAllAsRead(),
-    onSuccess: () => {
-      // 알림 목록과 읽지 않은 개수 갱신
-      queryClient.invalidateQueries({ queryKey: queryKeys.notifications.all });
+    onMutate: async () => {
+      const listQueries = queryClient.getQueryCache().findAll({ queryKey: queryKeys.notifications.all });
+      const previous: Array<{ queryKey: readonly unknown[]; data: any }> = [];
+      listQueries.forEach(q => {
+        const data: any = q.state.data;
+        previous.push({ queryKey: q.queryKey, data });
+        if (data && Array.isArray(data.data)) {
+          const updated = { ...data, data: data.data.map((n: any) => ({ ...n, isRead: true })) };
+          queryClient.setQueryData(q.queryKey, updated);
+        }
+      });
+      // unreadCount 0으로 세팅
+      const unreadKey = queryKeys.notifications.unreadCount();
+      const unreadPrev = queryClient.getQueryData<any>(unreadKey);
+      if (unreadPrev) {
+        queryClient.setQueryData(unreadKey, { ...unreadPrev, data: { count: 0 } });
+      }
+      return { previous, unreadPrev };
     },
+    onError: (_err, _vars, ctx) => {
+      ctx?.previous?.forEach(p => queryClient.setQueryData(p.queryKey, p.data));
+      if (ctx?.unreadPrev) queryClient.setQueryData(queryKeys.notifications.unreadCount(), ctx.unreadPrev);
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.notifications.unreadCount(), refetchType: 'inactive' });
+    }
   });
 };
 

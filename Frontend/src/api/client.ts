@@ -1,4 +1,5 @@
 import { API_CONFIG } from '@/src/constants';
+import { USE_MSW } from '@/src/constants/api';
 import { ApiError, BaseResponse } from '@/src/types';
 import axios, { AxiosError, AxiosInstance, AxiosResponse } from 'axios';
 
@@ -18,7 +19,9 @@ class ApiClient {
     // MSW 사용 시에는 MSW가 가로챌 수 있는 실제 도메인 사용
     // 개발환경: MSW가 모든 요청을 가로채는 도메인
     // 배포환경: 실제 서버 URL
-    const baseURL = __DEV__ ? 'https://api.walletslot.com' : API_CONFIG.BASE_URL;
+  // MSW 활성화 시 실제 네트워크 호출을 피하기 위해 상대 경로 사용
+  // (절대 도메인 기반 핸들러 제거했으므로 상대 경로가 필수)
+  const baseURL = USE_MSW ? '' : API_CONFIG.BASE_URL;
     
     this.client = axios.create({
       baseURL,

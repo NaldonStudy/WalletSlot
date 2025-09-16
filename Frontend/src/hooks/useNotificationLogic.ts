@@ -27,7 +27,7 @@ import { Alert } from 'react-native';
 
 import { monitoringService } from '@/src/services';
 import type { NotificationItem } from '@/src/types';
-import { useDeleteNotification, useMarkNotificationAsRead, useMarkNotificationAsUnread, useNotifications } from './useNotifications';
+import { useDeleteNotification, useMarkNotificationAsRead, useMarkNotificationAsUnread, useMarkAllNotificationsAsRead, useNotifications } from './useNotifications';
 
 /**
  * @hook useNotificationLogic
@@ -41,6 +41,7 @@ export const useNotificationLogic = () => {
   const markAsReadMutation = useMarkNotificationAsRead();
   const markAsUnreadMutation = useMarkNotificationAsUnread();
   const deleteNotificationMutation = useDeleteNotification();
+  const markAllMutation = useMarkAllNotificationsAsRead();
 
   // 서버/캐시 데이터 (없으면 빈 배열)
   const notifications: NotificationItem[] = notificationsResponse?.data || [];
@@ -126,10 +127,15 @@ export const useNotificationLogic = () => {
   // 페이지네이션된 알림 목록
   const paginatedNotifications = useMemo(() => {
     const endIndex = currentPage * ITEMS_PER_PAGE;
-    const slice = filteredNotifications.slice(0, endIndex);
-    setHasNextPage(endIndex < filteredNotifications.length);
-    return slice;
+    return filteredNotifications.slice(0, endIndex);
   }, [filteredNotifications, currentPage]);
+
+  // hasNextPage 계산 (렌더 사이드 이펙트 분리)
+  useEffect(() => {
+    const endIndex = currentPage * ITEMS_PER_PAGE;
+    const next = endIndex < filteredNotifications.length;
+    if (hasNextPage !== next) setHasNextPage(next);
+  }, [filteredNotifications, currentPage, hasNextPage]);
 
   // 필터 변경 시 페이지 리셋
   useEffect(() => {
@@ -182,14 +188,12 @@ export const useNotificationLogic = () => {
         {
           text: '확인',
           onPress: () => {
-            // TODO: markAll mutation 도입 후 optimistic 한 번에 적용
-            // MSW 또는 실제 API 호출
-            // TODO: useMarkAllNotificationsAsRead 뮤테이션 도입 시 처리
+            markAllMutation.mutate();
           }
         }
       ]
     );
-  }, []);
+  }, [markAllMutation]);
 
   return {
     // 상태

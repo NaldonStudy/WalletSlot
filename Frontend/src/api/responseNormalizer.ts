@@ -101,7 +101,7 @@ export async function fetchNotificationsFallback(params?: { page?: number; limit
       return normalizeNotificationList(json, params);
     }
   } catch (e) {
-    console.log('[Normalizer] fallback fetch 실패:', e);
+  console.log('[NOTIF_NORMALIZER] fallback fetch 실패:', e);
   }
   return null;
 }

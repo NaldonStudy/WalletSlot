@@ -103,7 +103,7 @@ const mockNotificationSettings: NotificationSettings = {
 };
 
 export const notificationHandlers = [
-  // 알림 조회 (GET /api/notifications)
+  // 알림 조회 (GET /api/notifications) - 상대 경로만 유지 (절대 경로 중복 제거)
   http.get('/api/notifications', ({ request }) => {
     console.log('[MSW] GET /api/notifications called with', request.url);
     const url = new URL(request.url);
@@ -150,51 +150,11 @@ export const notificationHandlers = [
       }
     });
   }),
-  http.get('https://api.walletslot.com/api/notifications', ({ request }) => {
-    // 도메인 명시 패턴 (양쪽 모두 유지)
-    console.log('[MSW][abs] GET /api/notifications', request.url);
-    const url = new URL(request.url);
-    const page = parseInt(url.searchParams.get('page') || '1');
-    const limit = parseInt(url.searchParams.get('limit') || '20');
-    const unreadOnly = url.searchParams.get('unreadOnly') === 'true';
-    const type = url.searchParams.get('type');
-    let filteredNotifications = [...mockNotifications];
-    if (unreadOnly) filteredNotifications = filteredNotifications.filter(n => !n.isRead);
-    if (type && type !== 'all') filteredNotifications = filteredNotifications.filter(n => n.type === type);
-    const startIndex = (page - 1) * limit;
-    const endIndex = startIndex + limit;
-    const paginatedData = filteredNotifications.slice(startIndex, endIndex);
-    const pagination = {
-      currentPage: page,
-      totalPages: Math.ceil(filteredNotifications.length / limit),
-      totalItems: filteredNotifications.length,
-      hasNextPage: endIndex < filteredNotifications.length,
-      hasPreviousPage: page > 1
-    };
-    console.log(`[MSW][abs] Returning ${paginatedData.length} notifications (total filtered: ${filteredNotifications.length})`);
-    return HttpResponse.json({
-      success: true,
-      message: '알림 목록 조회 성공',
-      data: paginatedData,
-      pagination,
-      meta: {
-        page,
-        limit,
-        total: pagination.totalItems,
-        hasNext: pagination.hasNextPage
-      }
-    });
-  }),
 
   // 읽지 않은 알림 개수 조회
   http.get('/api/notifications/unread-count', () => {
     const unreadCount = mockNotifications.filter(n => !n.isRead).length;
     console.log('[MSW] GET /api/notifications/unread-count ->', unreadCount);
-    return HttpResponse.json({ count: unreadCount });
-  }),
-  http.get('https://api.walletslot.com/api/notifications/unread-count', () => {
-    const unreadCount = mockNotifications.filter(n => !n.isRead).length;
-    console.log('[MSW][abs] GET /api/notifications/unread-count ->', unreadCount);
     return HttpResponse.json({ count: unreadCount });
   }),
 
@@ -222,15 +182,6 @@ export const notificationHandlers = [
       data: notification
     });
   }),
-  http.patch('https://api.walletslot.com/api/notifications/:notificationId/read', async ({ params, request }) => {
-    const { notificationId } = params;
-    const body = await request.json() as { isRead: boolean; readAt?: string };
-    const notification = mockNotifications.find(n => n.id === notificationId);
-    if (!notification) return HttpResponse.json({ error: '알림을 찾을 수 없습니다.' }, { status: 404 });
-    notification.isRead = body.isRead;
-    if (body.isRead && body.readAt) (notification as any).readAt = body.readAt;
-    return HttpResponse.json({ success: true, data: notification });
-  }),
 
   // 내 알림 전체 읽음 처리 (POST /api/notifications/read-all)
   http.post('/api/notifications/read-all', () => {
@@ -242,10 +193,6 @@ export const notificationHandlers = [
       success: true,
       message: '모든 알림이 읽음으로 표시되었습니다.'
     });
-  }),
-  http.post('https://api.walletslot.com/api/notifications/read-all', () => {
-    mockNotifications.forEach(n => (n.isRead = true));
-    return HttpResponse.json({ success: true, message: '모든 알림이 읽음으로 표시되었습니다.' });
   }),
 
   // 알림 삭제 (DELETE /api/notifications/{notificationId})
@@ -267,22 +214,12 @@ export const notificationHandlers = [
       message: '알림이 삭제되었습니다.'
     });
   }),
-  http.delete('https://api.walletslot.com/api/notifications/:notificationId', ({ params }) => {
-    const { notificationId } = params;
-    const index = mockNotifications.findIndex(n => n.id === notificationId);
-    if (index === -1) return HttpResponse.json({ error: '알림을 찾을 수 없습니다.' }, { status: 404 });
-    mockNotifications.splice(index, 1);
-    return HttpResponse.json({ success: true, message: '알림이 삭제되었습니다.' });
-  }),
 
   // 알림 설정 조회
   http.get('/api/notifications/settings', () => {
     return HttpResponse.json({
       data: mockNotificationSettings
     });
-  }),
-  http.get('https://api.walletslot.com/api/notifications/settings', () => {
-    return HttpResponse.json({ data: mockNotificationSettings });
   }),
 
   // 알림 설정 업데이트
@@ -295,11 +232,6 @@ export const notificationHandlers = [
       success: true,
       data: mockNotificationSettings
     });
-  }),
-  http.put('https://api.walletslot.com/api/notifications/settings', async ({ request }) => {
-    const updates = await request.json() as Partial<NotificationSettings>;
-    Object.assign(mockNotificationSettings, updates);
-    return HttpResponse.json({ success: true, data: mockNotificationSettings });
   }),
 
   // 특정 사용자에게 알림 생성 (POST /api/notifications)
@@ -330,22 +262,6 @@ export const notificationHandlers = [
       message: '알림이 생성되었습니다.'
     });
   }),
-  http.post('https://api.walletslot.com/api/notifications', async ({ request }) => {
-    const notificationData = await request.json() as any;
-    const newNotification: NotificationItem = {
-      id: `notification_${Date.now()}`,
-      title: notificationData.title || '새 알림',
-      message: notificationData.message || '알림 메시지',
-      type: notificationData.type || 'system',
-      isRead: false,
-      createdAt: new Date().toISOString(),
-      slotId: notificationData.slotId,
-      accountId: notificationData.accountId,
-      pushData: notificationData.pushData || { targetScreen: '/(tabs)/notifications' }
-    };
-    mockNotifications.unshift(newNotification);
-    return HttpResponse.json({ success: true, data: newNotification, message: '알림이 생성되었습니다.' });
-  }),
 
   // 앱 접속 시 "미접속 알림" 일괄 조회 후 전송 처리 (POST /api/notifications/pull)
   http.post('/api/notifications/pull', () => {
@@ -357,10 +273,6 @@ export const notificationHandlers = [
       data: undeliveredNotifications,
       message: '미접속 알림을 성공적으로 조회했습니다.'
     });
-  }),
-  http.post('https://api.walletslot.com/api/notifications/pull', () => {
-    const undeliveredNotifications = mockNotifications.filter(n => !n.isRead);
-    return HttpResponse.json({ success: true, data: undeliveredNotifications, message: '미접속 알림을 성공적으로 조회했습니다.' });
   }),
 
   // 알림 하나 전송 처리 (PATCH /api/notifications/{notificationId}/delivered)
@@ -384,14 +296,6 @@ export const notificationHandlers = [
       data: notification
     });
   }),
-  http.patch('https://api.walletslot.com/api/notifications/:notificationId/delivered', ({ params }) => {
-    const { notificationId } = params;
-    const notification = mockNotifications.find(n => n.id === notificationId);
-    if (!notification) return HttpResponse.json({ error: '알림을 찾을 수 없습니다.' }, { status: 404 });
-    (notification as any).delivered = true;
-    (notification as any).deliveredAt = new Date().toISOString();
-    return HttpResponse.json({ success: true, data: notification });
-  }),
 
   // 알림 상태 토글 (읽음/안읽음) - 기존 기능 유지
   http.patch('/api/notifications/:id/toggle-read', ({ params }) => {
@@ -411,13 +315,6 @@ export const notificationHandlers = [
       success: true,
       data: notification
     });
-  }),
-  http.patch('https://api.walletslot.com/api/notifications/:id/toggle-read', ({ params }) => {
-    const { id } = params;
-    const notification = mockNotifications.find(n => n.id === id);
-    if (!notification) return HttpResponse.json({ error: '알림을 찾을 수 없습니다.' }, { status: 404 });
-    notification.isRead = !notification.isRead;
-    return HttpResponse.json({ success: true, data: notification });
   }),
   
 ];

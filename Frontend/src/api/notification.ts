@@ -8,6 +8,8 @@ import type {
 } from '@/src/types';
 import { apiClient } from './client';
 import { fetchNotificationsFallback, isAmbiguousAxiosBody, normalizeNotificationList } from './responseNormalizer';
+import { ENABLE_NOTIFICATION_FALLBACK } from '@/src/constants/api';
+import { featureFlags } from '@/src/config/featureFlags';
 
 /**
  * 푸시 알림 관련 API 함수들
@@ -27,7 +29,7 @@ export const notificationApi = {
     try {
       return await apiClient.post('/api/notifications', data);
     } catch (error) {
-      console.error('알림 생성 실패:', error);
+      console.error('[NOTIF_API] 알림 생성 실패:', error);
       return {
         success: false,
         data: {} as NotificationItem,
@@ -43,7 +45,7 @@ export const notificationApi = {
     try {
       return await apiClient.post('/api/notifications/pull');
     } catch (error) {
-      console.error('미접속 알림 조회 실패:', error);
+      console.error('[NOTIF_API] 미접속 알림 조회 실패:', error);
       return {
         success: false,
         data: [],
@@ -59,7 +61,7 @@ export const notificationApi = {
     try {
       return await apiClient.patch(`/api/notifications/${notificationId}/delivered`);
     } catch (error) {
-      console.error('알림 전송 처리 실패:', error);
+      console.error('[NOTIF_API] 알림 전송 처리 실패:', error);
       return {
         success: false,
         data: undefined,
@@ -75,7 +77,7 @@ export const notificationApi = {
     try {
       return await apiClient.put('/notifications/update-token', data);
     } catch (error) {
-      console.error('푸시 토큰 갱신 실패:', error);
+      console.error('[NOTIF_API] 푸시 토큰 갱신 실패:', error);
       throw error;
     }
   },
@@ -99,11 +101,13 @@ export const notificationApi = {
      */
     try {
       const raw: any = await apiClient.get('/api/notifications', params);
-      console.log('[API] getNotifications raw(type, keys)=', typeof raw, raw && typeof raw === 'object' ? Object.keys(raw) : 'n/a');
+  console.log('[NOTIF_API] getNotifications raw(type, keys)=', typeof raw, raw && typeof raw === 'object' ? Object.keys(raw) : 'n/a');
 
       // 모호한 응답이면 fallback fetch 시도
-      if (isAmbiguousAxiosBody(raw)) {
-        console.log('[API] 감지: 모호한 axios body -> fallback fetch 시도');
+        // 런타임 토글 가능한 feature flag 우선 사용, 없으면 빌드타임 상수
+        const enableFallback = featureFlags.isNotificationFallbackEnabled() ?? ENABLE_NOTIFICATION_FALLBACK;
+        if (enableFallback && isAmbiguousAxiosBody(raw)) {
+  console.log('[NOTIF_API] ambiguous axios body detected -> fallback fetch');
         const fallback = await fetchNotificationsFallback(params as any);
         if (fallback) return fallback;
       }
@@ -111,7 +115,7 @@ export const notificationApi = {
       // 정상 경로: 정규화
       return normalizeNotificationList(raw, params);
     } catch (error) {
-      console.error('알림 목록 조회 실패:', error);
+  console.error('[NOTIF_API] 알림 목록 조회 실패:', error);
       return {
         success: false,
         data: [],
@@ -136,7 +140,7 @@ export const notificationApi = {
         readAt: new Date().toISOString()
       });
     } catch (error) {
-      console.error('알림 읽음 처리 실패:', error);
+  console.error('[NOTIF_API] 알림 읽음 처리 실패:', error);
       return {
         success: false,
         data: undefined,
@@ -155,7 +159,7 @@ export const notificationApi = {
         readAt: null
       });
     } catch (error) {
-      console.error('알림 안읽음 처리 실패:', error);
+  console.error('[NOTIF_API] 알림 안읽음 처리 실패:', error);
       return {
         success: false,
         data: undefined,
@@ -171,7 +175,7 @@ export const notificationApi = {
     try {
       return await apiClient.post('/api/notifications/read-all');
     } catch (error) {
-      console.error('전체 알림 읽음 처리 실패:', error);
+  console.error('[NOTIF_API] 전체 알림 읽음 처리 실패:', error);
       return {
         success: false,
         data: undefined,
@@ -187,7 +191,7 @@ export const notificationApi = {
     try {
       return await apiClient.get('/api/notifications/settings');
     } catch (error) {
-      console.error('알림 설정 조회 실패:', error);
+  console.error('[NOTIF_API] 알림 설정 조회 실패:', error);
       return {
         success: false,
         data: {
@@ -209,7 +213,7 @@ export const notificationApi = {
     try {
       return await apiClient.put('/api/notifications/settings', settings);
     } catch (error) {
-      console.error('알림 설정 업데이트 실패:', error);
+  console.error('[NOTIF_API] 알림 설정 업데이트 실패:', error);
       return {
         success: false,
         data: {
@@ -232,7 +236,7 @@ export const notificationApi = {
     try {
       return await apiClient.post('/notifications/send-test', data);
     } catch (error) {
-      console.error('테스트 알림 전송 실패:', error);
+      console.error('[NOTIF_API] 테스트 알림 전송 실패:', error);
       // TODO: 실제 API 구현 전까지 임시 응답
       return {
         success: true,
@@ -249,7 +253,7 @@ export const notificationApi = {
     try {
       return await apiClient.delete(`/api/notifications/${notificationId}`);
     } catch (error) {
-      console.error('알림 삭제 실패:', error);
+  console.error('[NOTIF_API] 알림 삭제 실패:', error);
       return {
         success: false,
         data: undefined,
@@ -264,7 +268,7 @@ export const notificationApi = {
   getUnreadCount: async (): Promise<BaseResponse<{ count: number }>> => {
     try {
       const response = await apiClient.get('/api/notifications/unread-count') as any;
-      console.log('[API] notificationApi.getUnreadCount response:', response);
+  console.log('[NOTIF_API] getUnreadCount response:', response);
       // MSW에서 직접 { count: number } 형태로 반환
       return {
         success: true,
@@ -272,7 +276,7 @@ export const notificationApi = {
         message: '읽지 않은 알림 개수 조회 완료'
       };
     } catch (error) {
-      console.error('읽지 않은 알림 개수 조회 실패:', error);
+  console.error('[NOTIF_API] 읽지 않은 알림 개수 조회 실패:', error);
       return {
         success: false,
         data: { count: 0 },
