@@ -45,24 +45,19 @@ export default function RootLayout() {
   //   };
   // }, [colorScheme]);
 
-  if (!loaded) {
-    // 폰트가 아직 준비되지 않음 → 일시적으로 렌더링 지연
-    return null;
+  if (!loaded || onboardingDone === null) {
+    return null; // 폰트나 온보딩 상태가 로딩 중일 때는 아무것도 렌더링하지 않습니다.
   }
 
-  // if (!onboardingDone) {
-  //   // 온보딩 미완료 시 온보딩 스택으로 리다이렉트
-  //   return <Redirect href="/(onboarding)/onboarding" />;
-  // }
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <QueryClientProvider client={queryClient}>
         <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
           {/* 🚩 루트 스택의 초기 라우트를 명시하고 싶다면 아래처럼 사용합니다.*/}
-          <Stack initialRouteName="(onboarding)">
-            <Stack.Screen name="(onboarding)" options={{ headerShown: false }} />
+          <Stack initialRouteName={onboardingDone ? "(tabs)" : "(onboarding)"}>
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen name="(onboarding)" options={{ headerShown: false }} />
             {/* 공통 컴포넌트 테스트
             <Stack.Screen name="(dev)" options={{ headerShown: false }} /> */}
             <Stack.Screen name="+not-found" />
