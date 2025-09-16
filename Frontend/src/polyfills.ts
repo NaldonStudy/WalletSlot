@@ -66,3 +66,19 @@ define('EventTarget', class {
         return !e.defaultPrevented;
     }
 });
+
+// MSW의 WebSocket 모킹이 BroadcastChannel을 사용하려고 시도합니다.
+// React Native에는 이 기능이 없으므로, 충돌을 방지하기 위해 최소한의 모조(mock) 객체를 만들어줍니다.
+if (typeof (global as any).BroadcastChannel === 'undefined') {
+  (global as any).BroadcastChannel = class BroadcastChannel {
+    constructor(name: string) {
+      // 생성자만 있어도 대부분의 참조 오류를 막을 수 있습니다.
+    }
+    postMessage(message: any) {
+      // 메서드가 호출될 때 아무 작업도 하지 않도록 비워둡니다.
+    }
+    close() {}
+    // onmessage 속성도 null로 할당해줍니다.
+    onmessage: ((event: any) => void) | null = null;
+  };
+}
