@@ -7,8 +7,8 @@
 
 import { http, HttpResponse, passthrough } from 'msw';
 
-// 각 도메인별 핸들러 import 예시
-// import { notificationHandlers } from './notifications';
+// 각 도메인별 핸들러 import
+import { notificationHandlers } from './notifications';
 
 // ✅ 1. Expo 개발 서버의 내부 통신을 통과시키는 핸들러
 const internalHandlers = [
@@ -21,7 +21,7 @@ const internalHandlers = [
 // 기본 상태 확인 핸들러
 const baseHandlers = [
   // MSW 서버 상태 확인용 엔드포인트
-  http.get('/api/health', () => {
+  http.get('https://api.walletslot.com/api/health', () => {
     return HttpResponse.json({
       status: 'ok',
       message: 'MSW 서버가 정상 작동 중입니다',
@@ -31,16 +31,13 @@ const baseHandlers = [
   }),
 
   // 기본 API 정보
-  http.get('/api', () => {
+  http.get('https://api.walletslot.com/api', () => {
     return HttpResponse.json({
       name: 'WalletSlot Mock API',
       version: '1.0.0',
       description: 'MSW를 사용한 Mock API 서버',
       endpoints: {
-        auth: '/api/auth/*',
-        accounts: '/api/accounts/*',
-        notifications: '/api/notifications/*',
-        slots: '/api/slots/*',
+        notifications: '/api/notifications/*'
       },
     });
   }),
@@ -50,5 +47,5 @@ const baseHandlers = [
 export const handlers = [
   ...internalHandlers, // ✅ 2. 통과 핸들러를 가장 위에 추가
   ...baseHandlers,
-  // ...notificationHandlers,
+  ...notificationHandlers,
 ];

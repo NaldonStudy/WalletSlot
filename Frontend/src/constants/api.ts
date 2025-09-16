@@ -18,3 +18,6 @@ export const BACKEND_AVAILABLE = (() => {
   if (url.includes('localhost') || url.includes('127.0.0.1')) return false;
   return true;
 })();
+
+// 알림 목록 axios 모호 응답 시 fetch fallback 사용 여부 (원인 해결 후 false 권장)
+export const ENABLE_NOTIFICATION_FALLBACK = (process.env.EXPO_PUBLIC_ENABLE_NOTIFICATION_FALLBACK ?? 'true') === 'true';

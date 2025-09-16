@@ -82,3 +82,79 @@ if (typeof (global as any).BroadcastChannel === 'undefined') {
     onmessage: ((event: any) => void) | null = null;
   };
 }
+
+// Minimal XMLHttpRequestUpload polyfill for MSW interceptors
+if (typeof (global as any).XMLHttpRequestUpload === 'undefined') {
+    (global as any).XMLHttpRequestUpload = class XMLHttpRequestUpload {
+        onprogress: ((e: any) => void) | null = null;
+        onload: ((e: any) => void) | null = null;
+        onerror: ((e: any) => void) | null = null;
+        onabort: ((e: any) => void) | null = null;
+    };
+}
+
+// Ensure XMLHttpRequest.prototype.upload exists (some RN environments lack it)
+try {
+    if (typeof (global as any).XMLHttpRequest !== 'undefined') {
+        const xhrProto = (global as any).XMLHttpRequest.prototype;
+        if (!xhrProto.upload) {
+            Object.defineProperty(xhrProto, 'upload', {
+                configurable: true,
+                enumerable: true,
+                get() {
+                    if (!(this as any).__upload) {
+                        (this as any).__upload = new (global as any).XMLHttpRequestUpload();
+                    }
+                    return (this as any).__upload;
+                },
+                set(value: any) {
+                    try {
+                        // allow assigning a value to upload (some libs do xhr.upload = {} )
+                        (this as any).__upload = value;
+                    } catch (e) {
+                        // swallow to avoid crashes; fallback to getter-created upload
+                        if (!(this as any).__upload) {
+                            (this as any).__upload = new (global as any).XMLHttpRequestUpload();
+                        }
+                    }
+                }
+            });
+        }
+    }
+} catch (e) {
+    // best-effort polyfill; swallow errors to avoid crashing app startup
+}
+
+// Ensure getAllResponseHeaders/getResponseHeader behave safely in RN environments
+try {
+    if (typeof (global as any).XMLHttpRequest !== 'undefined') {
+        const xhrProto = (global as any).XMLHttpRequest.prototype;
+
+        // Wrap existing getAllResponseHeaders to always return a string
+        if (typeof xhrProto.getAllResponseHeaders === 'function') {
+            const orig = xhrProto.getAllResponseHeaders;
+            xhrProto.getAllResponseHeaders = function () {
+                try {
+                    const result = orig.call(this);
+                    return result == null ? '' : result;
+                } catch (e) {
+                    return '';
+                }
+            };
+        } else {
+            // Define fallback
+            xhrProto.getAllResponseHeaders = function () {
+                return '';
+            };
+        }
+
+        // Ensure getResponseHeader returns null rather than throwing
+        if (typeof xhrProto.getResponseHeader !== 'function') {
+            xhrProto.getResponseHeader = function (_name: string) {
+                return null;
+            };
+        }
+    }
+} catch (e) {
+    // swallow
+}
