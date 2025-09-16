@@ -13,14 +13,14 @@ CREATE TABLE `user` (
 	`created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 	`updated_at` DATETIME NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 	`base_day` TINYINT UNSIGNED COMMENT '기준일 입력받는 시점이 회원가입 이후인 것 같아서 NULLABLE',
-	`job` ENUM('학생', '주부', '직장인', '군인', '자영업', '프리랜서', '기타', '무직')
+	`job` ENUM('STUDENT', 'HOMEMAKER', 'OFFICE_WORKER', 'SOLDIER', 'SELF_EMPLOYED', 'FREELANCER', 'UNEMPLOYED', 'OTHER')
 );
 
 DROP TABLE IF EXISTS `pepper_keys`;
 CREATE TABLE `pepper_keys` (
 	`id` INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
 	`key_alias` VARCHAR(64) UNIQUE NOT NULL COMMENT '키 본문은 KMS/HSM보관',
-	`status` ENUM('activate', 'retired', 'revoked') NOT NULL,
+	`status` ENUM('ACTIVATE', 'RETIRED', 'REVOKED') NOT NULL,
 	`created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 	`rotated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
@@ -97,7 +97,6 @@ CREATE TABLE `slot` (
 	`uuid` VARCHAR(64) NOT NULL,
 	`name` VARCHAR(128) NOT NULL,
 	`is_saving_slot` BOOLEAN NOT NULL DEFAULT FALSE,
-	`account_id` INT UNSIGNED COMMENT '커스텀 슬롯일 때만 중복 데이터로 저장',
 	`icon` TEXT,
 	`color` VARCHAR(64) NOT NULL,
 	`slot_rank` INT UNSIGNED COMMENT '사람들이 많이 사용하는 순위'
