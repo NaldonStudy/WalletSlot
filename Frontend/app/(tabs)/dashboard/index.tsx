@@ -121,7 +121,11 @@ export default function DashboardScreen() {
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: theme.colors.text.primary }]}>이번 달 슬롯 현황</Text>
           {/* 원형 그래프 */}
-          <View style={styles.chartPlaceholder}>
+          <View style={[styles.chartPlaceholder, { 
+            backgroundColor: theme.colors.background.tertiary,
+            borderColor: theme.colors.border.light,
+            shadowColor: theme.colors.shadow,
+          }]}>
             <Text style={[styles.dateText, { color: theme.colors.text.primary }]}>2025.09.01 ~ 2025.09.30</Text>
             <AccountDonutChart data={SAMPLE_ACCOUNTS[selectedIndex].slots} />
           </View>
@@ -135,7 +139,6 @@ export default function DashboardScreen() {
           {sampleSlots.map((slot) => (
             <View key={slot.slotId} style={[styles.slotCard, {
               backgroundColor: theme.colors.background.primary,
-              borderColor: theme.colors.border.light,
             }]}>
               <View style={styles.slotHeader}>
                 <View style={styles.slotInfo}>
@@ -233,12 +236,8 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     justifyContent: 'flex-start',
     marginBottom: Spacing.base,
-    backgroundColor: '#F3F4F6', // 연한 회색 배경
-    borderWidth: 1,
-    borderColor: '#E5E7EB', // 테두리 추가
     padding: 20,
     elevation: 2, // Android 그림자
-    shadowColor: '#000', // iOS 그림자
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,

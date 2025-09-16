@@ -83,8 +83,8 @@ const styles = StyleSheet.create({
         marginBottom: Spacing.sm,
     },
     logoWrapper: {
-        width: 30,
-        height: 30,
+        width: Spacing.lg,
+        height: Spacing.lg,
         borderRadius: 15,
         backgroundColor: 'rgba(255,255,255,0.8)', // 흰색 배경
         justifyContent: 'center',
