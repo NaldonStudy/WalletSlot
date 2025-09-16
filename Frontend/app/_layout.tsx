@@ -19,6 +19,36 @@ export default function RootLayout() {
   // 온보딩 완료 여부: null은 아직 로딩 중을 의미
   const [onboardingDone, setOnboardingDone] = useState<boolean | null>(null);
 
+  // 🐛 디버그용 함수: 온보딩을 다시 보기 위해 false로 설정
+  const resetOnboarding = async () => {
+    console.log('🔄 온보딩 리셋 시작');
+    await settingsUtils.setOnboardingCompleted(false);
+    setOnboardingDone(false);
+    console.log('✅ 온보딩 리셋 완료 - onboardingDone:', false);
+  };
+
+  // 🐛 디버그용 함수: 온보딩 완료 상태로 설정
+  const completeOnboarding = async () => {
+    console.log('✅ 온보딩 완료 설정');
+    await settingsUtils.setOnboardingCompleted(true);
+    setOnboardingDone(true);
+    console.log('✅ 온보딩 완료 설정됨 - onboardingDone:', true);
+  };
+
+  // 🐛 디버그용 함수: 현재 상태 확인
+  const checkOnboardingStatus = async () => {
+    const status = await settingsUtils.getOnboardingCompleted();
+    console.log('📊 현재 온보딩 상태:', status);
+    console.log('📊 현재 onboardingDone state:', onboardingDone);
+  };
+
+  // 전역 객체에 디버그 함수 등록 (개발 환경에서만)
+  if (__DEV__) {
+    (global as any).resetOnboarding = resetOnboarding;
+    (global as any).completeOnboarding = completeOnboarding;
+    (global as any).checkOnboardingStatus = checkOnboardingStatus;
+  }
+
   useEffect(() => {
     // 앱 시작 시 1회: 온보딩 완료 여부를 비동기로 조회
     (async () => {
