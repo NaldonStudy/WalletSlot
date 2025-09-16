@@ -8,6 +8,7 @@ import org.hibernate.annotations.Type;
 
 import java.time.LocalDateTime;
 import java.util.Map;
+import java.util.UUID;
 
 @Entity
 @Table(name = "ai_report")
@@ -17,11 +18,13 @@ import java.util.Map;
 @Builder
 public class AiReport {
 
+    // Field
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String uuid;
+    @Column(nullable = false, unique = true, length = 64)
+    private String uuid =  UUID.randomUUID().toString();
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "account_id", nullable = false)
@@ -29,7 +32,8 @@ public class AiReport {
 
     @Type(JsonType.class)
     @Column(columnDefinition = "json", nullable = false)
-    private Map<String, Object> content; // JSON → String 매핑
+    private Map<String, Object> content;
 
+    @Column(nullable = false, insertable = false, updatable = false)
     private LocalDateTime createdAt;
 }

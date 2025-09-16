@@ -14,10 +14,11 @@ import java.util.List;
 @Builder
 public class User {
 
-    public enum Gender {
-        FEMALE, MAN
-    }
+    // Enum
+    public enum Gender { FEMALE, MAN }
+    public enum Job { STUDENT, HOMEMAKER, OFFICE_WORKER, SOLDIER, SELF_EMPLOYED, FREELANCER, UNEMPLOYED, OTHER }
 
+    // Field
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -35,15 +36,18 @@ public class User {
     @Column(nullable = false)
     private LocalDateTime birthDate;
 
-    @Column(nullable = false, updatable = false)
+    @Column(nullable = false, insertable = false, updatable = false)
     private LocalDateTime createdAt;
 
+    @Column(insertable = false, updatable = false)
     private LocalDateTime updatedAt;
 
+    @Column(nullable = false)
     private Short baseDay;
 
+    @Enumerated(EnumType.STRING)
     @Column(length = 20)
-    private String job; // ENUM 한글값이라 우선 String 처리
+    private Job job;
 
     // Relations
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)

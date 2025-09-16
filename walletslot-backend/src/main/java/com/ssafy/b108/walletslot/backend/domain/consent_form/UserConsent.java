@@ -1,4 +1,4 @@
-package com.ssafy.b108.walletslot.backend.domain.mydata;
+package com.ssafy.b108.walletslot.backend.domain.consent_form;
 
 import com.ssafy.b108.walletslot.backend.domain.user.User;
 import jakarta.persistence.*;
@@ -14,28 +14,32 @@ import java.time.LocalDateTime;
 @Builder
 public class UserConsent {
 
+    // Enum
     public enum Status { ACTIVE, EXPIRED, REVOKED }
 
+    // Field
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // FK → user
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    // FK → consent_form
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "consent_form_id", nullable = false)
     private ConsentForm consentForm;
 
-    private LocalDateTime agreedAt;
-
     @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
     private Status status;
 
+    @Column(nullable = false, insertable = false, updatable = false)
+    private LocalDateTime agreedAt;
+
+    @Column(nullable = false)
     private LocalDateTime expiredAt;
 
+    @Column(updatable = false)
     private LocalDateTime revokedAt;
 }

@@ -12,20 +12,24 @@ import java.time.LocalDateTime;
 @Builder
 public class PepperKey {
 
-    public enum Status {
-        ACTIVATE, RETIRED, REVOKED
-    }
+    // Enum
+    public enum Status { ACTIVATE, RETIRED, REVOKED }
 
+    // Field
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(nullable = false, length = 64, unique = true)
     private String keyAlias;
 
+    @Column(nullable = false)
     @Enumerated(EnumType.STRING)
     private Status status;
 
+    @Column(nullable = false, insertable = false, updatable = false)
     private LocalDateTime createdAt;
 
+    @Column(nullable = false, insertable = false, updatable = false)
     private LocalDateTime rotatedAt;
 }

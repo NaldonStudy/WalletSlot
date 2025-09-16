@@ -1,6 +1,5 @@
 package com.ssafy.b108.walletslot.backend.domain.slot;
 
-import com.ssafy.b108.walletslot.backend.domain.account.Account;
 import jakarta.persistence.*;
 import lombok.*;
 import java.util.*;
@@ -13,25 +12,30 @@ import java.util.*;
 @Builder
 public class Slot {
 
+    // Field
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String uuid;
+    @Column(nullable = false, unique = true, length = 64)
+    @Builder.Default
+    private String uuid = UUID.randomUUID().toString();
 
+    @Column(nullable = false, length = 128)
     private String name;
 
-    private boolean isSavingSlot;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "account_id")
-    private Account account; // 커스텀 슬롯일 경우만 연결
+    @Column(nullable = false)
+    @Builder.Default
+    private boolean isSavingSlot = false;
 
     @Lob
+    @Column(columnDefinition = "TEXT", nullable = false)
     private String icon;
 
+    @Column(nullable = false, length = 64)
     private String color;
 
+    @Column(nullable = false)
     private Integer slotRank;
 
     @OneToMany(mappedBy = "slot", cascade = CascadeType.ALL, orphanRemoval = true)

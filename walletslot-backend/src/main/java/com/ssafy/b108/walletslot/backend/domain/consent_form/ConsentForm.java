@@ -1,8 +1,7 @@
-package com.ssafy.b108.walletslot.backend.domain.mydata;
+package com.ssafy.b108.walletslot.backend.domain.consent_form;
 
 import jakarta.persistence.*;
 import lombok.*;
-
 import java.util.List;
 
 @Entity
@@ -13,11 +12,13 @@ import java.util.List;
 @Builder
 public class ConsentForm {
 
+    // Field
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @Lob
+    @Column(columnDefinition= "TEXT")
     private String title;
 
     @OneToMany(mappedBy = "consentForm", cascade = CascadeType.ALL, orphanRemoval = true)
