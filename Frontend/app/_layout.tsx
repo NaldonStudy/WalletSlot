@@ -9,6 +9,7 @@ import 'react-native-reanimated';
 
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { queryClient } from '@/src/api/queryClient';
+import { initializeMSW } from '@/src/mocks';
 import { monitoringService } from '@/src/services';
 
 export default function RootLayout() {
@@ -17,17 +18,28 @@ export default function RootLayout() {
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
   });
 
-  // 앱 시작 시 모니터링 시스템 초기화
+  // 앱 시작 시 초기화
   useEffect(() => {
-    // TODO: 실제 사용자 ID를 받아온 후 설정
-    // monitoringService.setUserId('user_123');
-    
-    // 앱 시작 이벤트 로깅
-    monitoringService.logUserInteraction('navigation', {
-      screen: 'app_root',
-      colorScheme,
-      timestamp: new Date().toISOString()
-    });
+    const initializeApp = async () => {
+      // MSW 초기화 (개발 환경에서만)
+      await initializeMSW({
+        enabled: __DEV__,
+        logging: true,
+        delay: 0 // 응답 지연 없음
+      });
+      
+      // TODO: 실제 사용자 ID를 받아온 후 설정
+      // monitoringService.setUserId('user_123');
+      
+      // 앱 시작 이벤트 로깅
+      monitoringService.logUserInteraction('navigation', {
+        screen: 'app_root',
+        colorScheme,
+        timestamp: new Date().toISOString()
+      });
+    };
+
+    initializeApp();
     
     // 앱 종료 시 정리 작업
     return () => {
