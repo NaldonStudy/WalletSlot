@@ -1,20 +1,33 @@
+// ✅ 1. 폴리필을 다른 어떤 코드보다 먼저 import 합니다.
+import '@/src/polyfills';
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { useFonts } from 'expo-font';
-import { Redirect, Stack } from 'expo-router';
+import { SplashScreen, Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import 'react-native-reanimated';
+
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { queryClient } from '@/src/api/queryClient';
+import { initializeMSW } from '@/src/mocks';
 import { settingsUtils } from '@/src/store';
-import { monitoringService } from '@/src/services';
+// import { monitoringService } from '@/src/services';
+
+// ✅ 개발 모드에서만 MSW를 초기화합니다.
+if (__DEV__) {
+  initializeMSW();
+}
+
+// 리소스(폰트, 온보딩 상태)를 가져오는 동안 스플래시 화면을 유지합니다.
+SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
-  const [loaded] = useFonts({
+  const [loaded, error] = useFonts({
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
+    // ... (다른 폰트 추가 가능)
   });
   // 온보딩 완료 여부: null은 아직 로딩 중을 의미
   const [onboardingDone, setOnboardingDone] = useState<boolean | null>(null);
@@ -48,51 +61,51 @@ export default function RootLayout() {
     (global as any).completeOnboarding = completeOnboarding;
     (global as any).checkOnboardingStatus = checkOnboardingStatus;
   }
-
+  
+  // Expo Router는 Error Boundary를 사용해 네비게이션 트리의 에러를 처리합니다.
   useEffect(() => {
-    // 앱 시작 시 1회: 온보딩 완료 여부를 비동기로 조회
+    if (error) throw error;
+  }, [error]);
+
+  // 앱 시작 시 1회: 온보딩 완료 여부를 비동기로 조회
+  useEffect(() => {
     (async () => {
       const done = await settingsUtils.getOnboardingCompleted();
       setOnboardingDone(done);
     })();
   }, []);
 
-  // 앱 시작 시 모니터링 시스템 초기화
-  // useEffect(() => {
-  //   // TODO: 실제 사용자 ID를 받아온 후 설정
-  //   // monitoringService.setUserId('user_123');
-    
-  //   // 앱 시작 이벤트 로깅
-  //   monitoringService.logUserInteraction('navigation', {
-  //     screen: 'app_root',
-  //     colorScheme,
-  //     timestamp: new Date().toISOString()
-  //   });
-    
-  //   // 앱 종료 시 정리 작업
-  //   return () => {
-  //     monitoringService.cleanup();
-  //   };
-  // }, [colorScheme]);
+  // 폰트 로딩과 온보딩 상태 확인이 모두 완료되면 스플래시 화면을 숨깁니다.
+  useEffect(() => {
+    if (loaded && onboardingDone !== null) {
+      SplashScreen.hideAsync();
+    }
+  }, [loaded, onboardingDone]);
+  
+  // 앱 시작 시 기타 초기화 로직
+  useEffect(() => {
+    // TODO: 실제 사용자 ID를 받아온 후 설정
+    // monitoringService.setUserId('user_123');
+  }, []);
 
+  // 폰트나 온보딩 상태가 로딩 중일 때는 아무것도 렌더링하지 않습니다.
   if (!loaded || onboardingDone === null) {
-    return null; // 폰트나 온보딩 상태가 로딩 중일 때는 아무것도 렌더링하지 않습니다.
+    return null;
   }
-
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <QueryClientProvider client={queryClient}>
         <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-          {/* 🚩 루트 스택의 초기 라우트를 명시하고 싶다면 아래처럼 사용합니다.*/}
+          {/* 온보딩 완료 여부에 따라 초기 라우트를 동적으로 설정합니다. */}
           <Stack initialRouteName={onboardingDone ? "(tabs)" : "(onboarding)"}>
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
             <Stack.Screen name="(onboarding)" options={{ headerShown: false }} />
+            <Stack.Screen name="+not-found" />
             {/* 공통 컴포넌트 테스트
             <Stack.Screen name="(dev)" options={{ headerShown: false }} /> */}
-            <Stack.Screen name="+not-found" />
           </Stack>
-          <StatusBar style="auto" />
+          <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
         </ThemeProvider>
       </QueryClientProvider>
     </GestureHandlerRootView>

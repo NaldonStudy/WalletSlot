@@ -1,7 +1,19 @@
 import Constants from 'expo-constants';
 import * as Device from 'expo-device';
-import * as Notifications from 'expo-notifications';
+import type * as NotificationsType from 'expo-notifications';
 import { Platform } from 'react-native';
+
+async function getNotifications(): Promise<typeof NotificationsType | null> {
+  try {
+    // dynamic import prevents Metro from resolving native module at bundle-time
+    // on unsupported platforms
+    // eslint-disable-next-line @typescript-eslint/no-var-requires, global-require
+    const mod = await import('expo-notifications');
+    return mod as typeof NotificationsType;
+  } catch (e) {
+    return null;
+  }
+}
 
 import type { InitialTokenRequest, UpdateTokenRequest } from '@/src/types';
 // TODO: 실제 API 연동시 주석 해제
@@ -9,14 +21,7 @@ import type { InitialTokenRequest, UpdateTokenRequest } from '@/src/types';
 
 const isExpoGo = Constants.executionEnvironment === 'storeClient';
 
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowBanner: true,
-    shouldShowList: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-  }),
-});
+// We'll set notification handler lazily when Notifications is available.
 
 /**
  * 푸시 알림 서비스 (Singleton)
@@ -45,6 +50,9 @@ export class NotificationService {
    */
   public async registerInitialToken(): Promise<{ success: boolean; deviceId?: string }> {
     try {
+      const Notifications = await getNotifications();
+      if (!Notifications) return { success: false };
+
       const permission = await Notifications.requestPermissionsAsync();
       if (permission.status !== 'granted') {
         return { success: false };
@@ -84,6 +92,9 @@ export class NotificationService {
         return false;
       }
 
+      const Notifications = await getNotifications();
+      if (!Notifications) return false;
+
       const permission = await Notifications.getPermissionsAsync();
       if (permission.status !== 'granted') {
         return false;
@@ -122,6 +133,9 @@ export class NotificationService {
         return null;
       }
 
+      const Notifications = await getNotifications();
+      if (!Notifications) return null;
+
       const tokenResponse = await Notifications.getExpoPushTokenAsync();
       return tokenResponse.data;
     } catch (error) {
@@ -131,35 +145,41 @@ export class NotificationService {
   }
 
   private setupNotificationListeners(): void {
-    const foregroundSubscription = Notifications.addNotificationReceivedListener(
-      (notification) => {
-        const data = notification.request.content.data;
-        if (data?.action === 'refresh_data') {
-          // TODO: 실제 데이터 새로고침 로직
+    // lazy setup: attempt to load Notifications and attach listeners if available
+    (async () => {
+      const Notifications = await getNotifications();
+      if (!Notifications) return;
+
+      const foregroundSubscription = Notifications.addNotificationReceivedListener(
+        (notification: any) => {
+          const data = notification.request.content.data;
+          if (data?.action === 'refresh_data') {
+            // TODO: 실제 데이터 새로고침 로직
+          }
         }
-      }
-    );
+      );
 
-    const responseSubscription = Notifications.addNotificationResponseReceivedListener(
-      (response) => {
-        this.handleNotificationResponse(response);
-      }
-    );
-
-    Notifications.getLastNotificationResponseAsync()
-      .then((response) => {
-        if (response) {
+      const responseSubscription = Notifications.addNotificationResponseReceivedListener(
+        (response: any) => {
           this.handleNotificationResponse(response);
         }
-      });
+      );
 
-    this.listeners.push(() => {
-      foregroundSubscription.remove();
-      responseSubscription.remove();
-    });
+      try {
+        const response = await Notifications.getLastNotificationResponseAsync();
+        if (response) this.handleNotificationResponse(response);
+      } catch (e) {
+        // ignore unavailable
+      }
+
+      this.listeners.push(() => {
+        foregroundSubscription.remove();
+        responseSubscription.remove();
+      });
+    })();
   }
 
-  private handleNotificationResponse(response: Notifications.NotificationResponse): void {
+  private handleNotificationResponse(response: NotificationsType.NotificationResponse): void {
     const data = response.notification.request.content.data;
     
     // TODO: 실제 네비게이션 로직
@@ -177,7 +197,15 @@ export class NotificationService {
   }
 
   private setupBackgroundNotificationHandler(): void {
-    Notifications.setBadgeCountAsync(0);
+    (async () => {
+      const Notifications = await getNotifications();
+      if (!Notifications) return;
+      try {
+        await Notifications.setBadgeCountAsync(0);
+      } catch (e) {
+        // ignore
+      }
+    })();
   }
 
   /**
@@ -188,6 +216,8 @@ export class NotificationService {
     body: string, 
     data?: any
   ): Promise<void> {
+    const Notifications = await getNotifications();
+    if (!Notifications) return;
     await Notifications.scheduleNotificationAsync({
       content: {
         title,
@@ -209,6 +239,8 @@ export class NotificationService {
     delaySeconds: number,
     data?: any
   ): Promise<void> {
+    const Notifications = await getNotifications();
+    if (!Notifications) return;
     await Notifications.scheduleNotificationAsync({
       content: {
         title,
@@ -217,10 +249,11 @@ export class NotificationService {
         badge: 1,
         data,
       },
-      trigger: { 
-        type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
-        seconds: delaySeconds 
-      },
+      trigger: {
+        // runtime enum
+        type: (Notifications as any).SchedulableTriggerInputTypes?.TIME_INTERVAL ?? 'timeInterval',
+        seconds: delaySeconds,
+      } as any,
     });
   }
 
@@ -304,6 +337,9 @@ export class NotificationService {
 
   private async ensureValidToken(): Promise<boolean> {
     try {
+      const Notifications = await getNotifications();
+      if (!Notifications) return false;
+
       const permission = await Notifications.getPermissionsAsync();
       if (permission.status !== 'granted') {
         const newPermission = await Notifications.requestPermissionsAsync();
@@ -341,10 +377,14 @@ export class NotificationService {
 
 
   public async setBadgeCount(count: number): Promise<void> {
+    const Notifications = await getNotifications();
+    if (!Notifications) return;
     await Notifications.setBadgeCountAsync(count);
   }
 
-  public async getPermissionStatus(): Promise<Notifications.NotificationPermissionsStatus> {
+  public async getPermissionStatus(): Promise<NotificationsType.NotificationPermissionsStatus | null> {
+    const Notifications = await getNotifications();
+    if (!Notifications) return null;
     return await Notifications.getPermissionsAsync();
   }
 
@@ -355,4 +395,24 @@ export class NotificationService {
 }
 
 // 싱글톤 인스턴스 export
-export const notificationService = NotificationService.getInstance();
+// Export a lazy proxy that will create the NotificationService singleton only when
+// a method/property is first accessed. This prevents the module from eagerly
+// instantiating NotificationService (which calls expo-notifications APIs) during
+// app startup or on unsupported platforms (web / Expo Go).
+const _notificationServiceProxy: any = new Proxy({}, {
+  get(_target, prop: string) {
+    const inst = NotificationService.getInstance();
+    // @ts-ignore
+    const val = (inst as any)[prop];
+    if (typeof val === 'function') return val.bind(inst);
+    return val;
+  },
+  set(_target, prop: string, value) {
+    const inst = NotificationService.getInstance();
+    // @ts-ignore
+    (inst as any)[prop] = value;
+    return true;
+  }
+});
+
+export const notificationService = _notificationServiceProxy;
