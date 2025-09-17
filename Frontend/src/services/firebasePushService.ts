@@ -4,8 +4,9 @@ import Constants from 'expo-constants';
 import * as Device from 'expo-device';
 import { Platform } from 'react-native';
 
-// Firebase 모듈을 안전하게 import (Expo Go에서는 null 반환)
+// Firebase v23 호환 import 방식
 let messaging: any = null;
+let firebase: any = null;
 
 try {
   // Expo Go 환경 체크 (expo-constants의 appOwnership이 'expo'인 경우 Expo Go)
@@ -13,14 +14,32 @@ try {
   
   if (!isExpoGo) {
     // Development Build나 실제 앱에서만 Firebase 로딩
-    messaging = require('@react-native-firebase/messaging').default;
+    const firebaseApp = require('@react-native-firebase/app');
+    firebase = firebaseApp.getApp ? firebaseApp : firebaseApp.default;
+    
+    // Firebase v23에서는 messaging을 함수로 호출해야 함
+    const messagingModule = require('@react-native-firebase/messaging');
+    if (typeof messagingModule === 'function') {
+      messaging = messagingModule(); // v23: messaging() 호출
+    } else if (messagingModule.default && typeof messagingModule.default === 'function') {
+      messaging = messagingModule.default(); // v23: default() 호출
+    } else if (messagingModule.default) {
+      messaging = messagingModule.default; // 기존: default 직접 사용
+    } else {
+      messaging = messagingModule; // 최후: 모듈 직접 사용
+    }
+    
     console.log('[FIREBASE_PUSH] Firebase 모듈 로딩 성공');
+    console.log('[FIREBASE_PUSH] firebase app:', !!firebase);
+    console.log('[FIREBASE_PUSH] messaging 타입:', typeof messaging);
+    console.log('[FIREBASE_PUSH] messaging 메서드들:', messaging ? Object.keys(messaging).slice(0, 10) : []);
   } else {
     console.log('[FIREBASE_PUSH] Expo Go 환경에서는 Firebase를 사용할 수 없습니다');
   }
 } catch (error) {
   console.log('[FIREBASE_PUSH] Firebase 모듈을 사용할 수 없습니다:', error);
   messaging = null;
+  firebase = null;
 }
 
 /**
@@ -49,39 +68,92 @@ export class FirebasePushService {
     try {
       console.log('[FIREBASE_PUSH] 초기화 시작...');
 
-      // Firebase 모듈이 없으면 Mock 모드로 동작
+      // Firebase 모듈이 없으면 완전히 실패로 처리 (Mock 토큰 생성하지 않음)
       if (!messaging) {
-        console.log('[FIREBASE_PUSH] Firebase 모듈이 없습니다. Mock 모드로 동작합니다.');
-        return await this.initializeMockMode();
+        console.error('[FIREBASE_PUSH] Firebase 모듈을 찾을 수 없습니다.');
+        return { success: false };
       }
 
-      // 1. iOS 추가 설정
-      if (Platform.OS === 'ios') {
-        // iOS에서 APNs 등록 (Firebase에서 자동으로 처리되지만 명시적으로 호출)
-        await messaging().registerDeviceForRemoteMessages();
-        console.log('[FIREBASE_PUSH] iOS APNs 등록 완료');
-      }
-
-      // 2. 권한 요청 (플랫폼별 권한 설정)
-      const authStatus = await messaging().requestPermission(
-        Platform.OS === 'ios' ? {
-          sound: true,
-          announcement: true,
-          badge: true,
-          carPlay: true,
-          criticalAlert: true,
-          provisional: false,
-          alert: true,
-        } : {
-          sound: true,
-          badge: true,
-          alert: true,
+      // Firebase 준비 상태 확인
+      try {
+        if (!messaging) {
+          console.error('[FIREBASE_PUSH] Firebase messaging 객체가 없습니다.');
+          return { success: false };
         }
-      );
+        
+        // Firebase v23에서는 messaging이 객체이고 메서드들이 있는지 확인
+        const hasRequiredMethods = messaging.requestPermission && 
+                                 messaging.getToken && 
+                                 messaging.onMessage;
+        
+        if (!hasRequiredMethods) {
+          console.error('[FIREBASE_PUSH] Firebase messaging 필수 메서드가 없습니다.');
+          console.error('[FIREBASE_PUSH] 사용 가능한 메서드들:', Object.keys(messaging));
+          return { success: false };
+        }
+        
+        console.log('[FIREBASE_PUSH] Firebase messaging 준비 완료');
+      } catch (error) {
+        console.error('[FIREBASE_PUSH] Firebase messaging 확인 실패:', error);
+        return { success: false };
+      }
+
+      // 1. iOS 추가 설정 (Firebase v23에서는 자동으로 처리됨)
+      if (Platform.OS === 'ios') {
+        console.log('[FIREBASE_PUSH] iOS 환경 - Firebase가 자동으로 APNs를 처리합니다');
+      }
+
+      // 2. 권한 요청 (Expo Notifications와 Firebase 함께 사용)
+      let authStatus: number;
+      try {
+        // 먼저 Expo Notifications로 사용자에게 친화적인 권한 요청
+        const Notifications = await import('expo-notifications');
+        const expoPermission = await Notifications.requestPermissionsAsync({
+          ios: {
+            allowAlert: true,
+            allowBadge: true,
+            allowSound: true,
+            allowDisplayInCarPlay: true,
+            allowCriticalAlerts: true,
+            provideAppNotificationSettings: true,
+            allowProvisional: false,
+          },
+          android: {
+            allowAlert: true,
+            allowBadge: true,
+            allowSound: true,
+          },
+        });
+        
+        console.log('[FIREBASE_PUSH] Expo 알림 권한 요청 결과:', expoPermission);
+        
+        if (expoPermission.status !== 'granted') {
+          console.warn('[FIREBASE_PUSH] 알림 권한이 거부되었습니다.');
+          console.warn('[FIREBASE_PUSH] 설정에서 알림을 허용해주세요.');
+          return { success: false };
+        }
+
+        // Firebase 권한 요청 (플랫폼별 최적화)
+        if (Platform.OS === 'ios') {
+          authStatus = await messaging.requestPermission({
+            alert: true,
+            badge: true,
+            sound: true,
+            // Firebase v23에서 지원되는 옵션들만 사용
+          });
+        } else {
+          // Android는 기본 권한 요청
+          authStatus = await messaging.requestPermission();
+        }
+      } catch (permissionError) {
+        console.error('[FIREBASE_PUSH] 권한 요청 실패:', permissionError);
+        authStatus = 0; // DENIED
+      }
       
+      // Firebase v22 호환 권한 체크
       const enabled = 
-        authStatus === messaging().AuthorizationStatus.AUTHORIZED ||
-        authStatus === messaging().AuthorizationStatus.PROVISIONAL;
+        authStatus === 1 || // AUTHORIZED
+        authStatus === 2;   // PROVISIONAL
 
       if (!enabled) {
         console.log('[FIREBASE_PUSH] 푸시 알림 권한이 거부되었습니다.');
@@ -90,24 +162,20 @@ export class FirebasePushService {
 
       console.log(`[FIREBASE_PUSH] ${Platform.OS} 권한 승인됨:`, authStatus);
 
-      // 3. FCM 토큰 발급 (iOS에서는 APNs 토큰이 필요할 수 있음)
-      if (Platform.OS === 'ios') {
-        // iOS에서는 APNs 토큰을 먼저 확인
-        const apnsToken = await messaging().getAPNSToken();
-        if (apnsToken) {
-          console.log('[FIREBASE_PUSH] iOS APNs 토큰 확인됨');
-        } else {
-          console.warn('[FIREBASE_PUSH] iOS APNs 토큰이 없습니다. FCM 토큰 발급에 영향을 줄 수 있습니다.');
-        }
-      }
+      // 3. FCM 토큰 발급 (Firebase v23에서는 자동으로 APNs 처리)
 
-      this.fcmToken = await messaging().getToken();
-      if (!this.fcmToken) {
-        console.error('[FIREBASE_PUSH] FCM 토큰 발급 실패');
+      // FCM 토큰 발급
+      try {
+        this.fcmToken = await messaging.getToken();
+        if (!this.fcmToken) {
+          console.error('[FIREBASE_PUSH] FCM 토큰 발급 실패');
+          return { success: false };
+        }
+        console.log('[FIREBASE_PUSH] FCM 토큰 발급 완료:', this.fcmToken.substring(0, 20) + '...');
+      } catch (tokenError) {
+        console.error('[FIREBASE_PUSH] FCM 토큰 발급 에러:', tokenError);
         return { success: false };
       }
-
-      console.log('[FIREBASE_PUSH] FCM 토큰 발급 완료:', this.fcmToken.substring(0, 20) + '...');
 
       // 4. 디바이스 정보 수집
       const deviceInfo = await this.getDeviceInfo();
@@ -121,14 +189,7 @@ export class FirebasePushService {
         osVersion: deviceInfo.osVersion,
       };
 
-      // iOS에서는 APNs 토큰도 함께 전송 (Firebase 모듈이 있을 때만)
-      if (Platform.OS === 'ios' && messaging) {
-        const apnsToken = await messaging().getAPNSToken();
-        if (apnsToken) {
-          tokenRequest.apnsToken = apnsToken;
-          console.log('[FIREBASE_PUSH] APNs 토큰 포함하여 서버 등록');
-        }
-      }
+      // iOS APNs 토큰은 Firebase v23에서 자동으로 관리됨
 
       const response = await this.registerTokenToServer(tokenRequest);
       if (response.success) {
@@ -151,32 +212,7 @@ export class FirebasePushService {
     }
   }
 
-  /**
-   * Mock 모드 초기화 (Expo Go 환경용)
-   */
-  private async initializeMockMode(): Promise<{ success: boolean; deviceId?: string }> {
-    try {
-      // Mock FCM 토큰 생성
-      this.fcmToken = `mock_fcm_token_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-      
-      // 디바이스 정보 수집
-      const deviceInfo = await this.getDeviceInfo();
-      this.deviceId = deviceInfo.deviceId;
-      this.isInitialized = true;
 
-      console.log('[FIREBASE_PUSH] Mock 모드 초기화 완료');
-      console.log('[FIREBASE_PUSH] Mock FCM 토큰:', this.fcmToken.substring(0, 20) + '...');
-      console.log('[FIREBASE_PUSH] DeviceId:', this.deviceId);
-
-      return { 
-        success: true, 
-        deviceId: this.deviceId 
-      };
-    } catch (error) {
-      console.error('[FIREBASE_PUSH] Mock 모드 초기화 실패:', error);
-      return { success: false };
-    }
-  }
 
   /**
    * 디바이스 정보 수집
@@ -234,14 +270,14 @@ export class FirebasePushService {
    * Firebase 메시지 리스너 설정
    */
   private setupMessageListeners(): void {
-    // Firebase 모듈이 없으면 Mock 리스너 설정
+    // Firebase 모듈이 없으면 리스너 설정 불가
     if (!messaging) {
-      console.log('[FIREBASE_PUSH] Mock 메시지 리스너 설정 완료');
+      console.error('[FIREBASE_PUSH] Firebase 모듈이 없어 메시지 리스너를 설정할 수 없습니다.');
       return;
     }
 
     // 포그라운드 메시지 수신
-    messaging().onMessage(async (remoteMessage: any) => {
+    messaging.onMessage(async (remoteMessage: any) => {
       console.log('[FIREBASE_PUSH] 포그라운드 메시지 수신:', remoteMessage);
       
       // 로컬 알림으로 표시 (포그라운드에서는 자동 표시되지 않음)
@@ -254,13 +290,13 @@ export class FirebasePushService {
     });
 
     // 백그라운드/종료 상태에서 알림 클릭
-    messaging().onNotificationOpenedApp((remoteMessage: any) => {
+    messaging.onNotificationOpenedApp((remoteMessage: any) => {
       console.log('[FIREBASE_PUSH] 백그라운드 알림 클릭:', remoteMessage);
       this.handleNotificationClick(remoteMessage);
     });
 
     // 앱이 종료된 상태에서 알림을 통해 앱 실행
-    messaging()
+    messaging
       .getInitialNotification()
       .then((remoteMessage: any) => {
         if (remoteMessage) {
@@ -270,7 +306,7 @@ export class FirebasePushService {
       });
 
     // 토큰 갱신 리스너
-    messaging().onTokenRefresh((token: string) => {
+    messaging.onTokenRefresh((token: string) => {
       console.log('[FIREBASE_PUSH] FCM 토큰 갱신:', token.substring(0, 20) + '...');
       this.fcmToken = token;
       // 서버에 새 토큰 업데이트
@@ -284,26 +320,47 @@ export class FirebasePushService {
   private async showLocalNotification(remoteMessage: any): Promise<void> {
     try {
       // expo-notifications를 사용한 로컬 알림 표시
-      const { scheduleNotificationAsync } = await import('expo-notifications');
+      const Notifications = await import('expo-notifications');
       
-      const notificationContent = {
-        title: remoteMessage.notification?.title || '새 알림',
-        body: remoteMessage.notification?.body || '',
-        sound: Platform.OS === 'ios' ? 'default' : 'default',
-        badge: Platform.OS === 'ios' ? 1 : undefined,
+      console.log('[FIREBASE_PUSH] 로컬 알림 표시 시도:', remoteMessage.notification?.title);
+
+      // 안드로이드에서 확실히 표시되도록 강화된 설정
+      const notificationContent: any = {
+        title: remoteMessage.notification?.title || remoteMessage.data?.title || '새 알림',
+        body: remoteMessage.notification?.body || remoteMessage.data?.body || '',
         data: remoteMessage.data || {},
+        sound: 'default',
+        badge: Platform.OS === 'ios' ? 1 : undefined,
       };
 
-      // iOS 특화 설정
+      // 안드로이드 특화 설정 - 간소화된 필수 옵션만
+      if (Platform.OS === 'android') {
+        notificationContent.android = {
+          channelId: 'firebase',
+          importance: Notifications.AndroidImportance.HIGH,
+          priority: Notifications.AndroidNotificationPriority.HIGH,
+          vibrationPattern: [0, 250, 250, 250],
+          color: '#FF0000',
+          autoCancel: true,
+          showWhen: true,
+        };
+      }
+
+      // iOS 특화 설정 - 기본 옵션만
       if (Platform.OS === 'ios') {
-        (notificationContent as any).categoryIdentifier = 'GENERAL';
-        (notificationContent as any).launchImageName = 'splash-icon';
+        notificationContent.ios = {
+          sound: 'default',
+          badge: 1,
+        };
       }
       
-      await scheduleNotificationAsync({
+      // 즉시 알림 표시
+      const identifier = await Notifications.scheduleNotificationAsync({
         content: notificationContent,
         trigger: null, // 즉시 표시
       });
+      
+      console.log('[FIREBASE_PUSH] 로컬 알림 표시 완료, ID:', identifier);
     } catch (error) {
       console.error('[FIREBASE_PUSH] 로컬 알림 표시 실패:', error);
     }
@@ -402,31 +459,7 @@ export class FirebasePushService {
     }
   }
 
-  /**
-   * 테스트 푸시 알림 전송 (개발용)
-   */
-  public async sendTestPush(payload: {
-    title: string;
-    body: string;
-    type: string;
-    data?: any;
-  }): Promise<{ success: boolean; message: string }> {
-    try {
-      if (!this.fcmToken) {
-        return { success: false, message: 'FCM 토큰이 없습니다.' };
-      }
 
-      const response = await apiClient.post('/api/notifications/send-test-push', {
-        token: this.fcmToken,
-        payload,
-      });
-
-      return { success: true, message: '테스트 푸시 알림이 전송되었습니다.' };
-    } catch (error) {
-      console.error('[FIREBASE_PUSH] 테스트 푸시 전송 실패:', error);
-      return { success: false, message: '테스트 푸시 전송에 실패했습니다.' };
-    }
-  }
 
   /**
    * 현재 FCM 토큰 반환

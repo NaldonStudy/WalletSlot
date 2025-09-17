@@ -91,6 +91,11 @@ export const getServer = async () => {
   }
 };
 
+// MSW 활성화 상태 확인 함수
+export const isMSWEnabled = (): boolean => {
+  return mswConfig.enabled;
+};
+
 // 개발 도구용 함수들
 export const mswUtils = {
   // 특정 핸들러만 활성화

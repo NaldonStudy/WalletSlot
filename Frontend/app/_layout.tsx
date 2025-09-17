@@ -69,12 +69,7 @@ export default function RootLayout() {
     }
   };
 
-  // 🚀 디버그용 함수: 테스트 푸시 전송
-  const sendTestPush = async () => {
-    console.log('🚀 테스트 푸시 전송');
-    const result = await unifiedPushService.testScenarios.budgetExceeded('생활비', 50000);
-    console.log('📨 테스트 푸시 결과:', result);
-  };
+
 
   // 전역 객체에 디버그 함수 등록 (개발 환경에서만)
   if (__DEV__) {
@@ -82,7 +77,6 @@ export default function RootLayout() {
     (global as any).completeOnboarding = completeOnboarding;
     (global as any).checkOnboardingStatus = checkOnboardingStatus;
     (global as any).initializePushService = initializePushService;
-    (global as any).sendTestPush = sendTestPush;
     (global as any).getPushStatus = () => unifiedPushService.getStatus();
   }
   
@@ -111,29 +105,50 @@ export default function RootLayout() {
     // TODO: 실제 사용자 ID를 받아온 후 설정
     // monitoringService.setUserId('user_123');
     
-    // iOS 전용 알림 설정
-    if (Platform.OS === 'ios') {
-      (async () => {
-        try {
-          const { setNotificationHandler } = await import('expo-notifications');
+    // 플랫폼별 알림 설정
+    (async () => {
+      try {
+        const { setNotificationHandler } = await import('expo-notifications');
+        
+        // 포그라운드 알림 표시 방식 설정 (iOS, Android 공통)
+        setNotificationHandler({
+          handleNotification: async () => ({
+            shouldShowBanner: true,
+            shouldShowList: true,
+            shouldPlaySound: true,
+            shouldSetBadge: Platform.OS === 'ios',
+          }),
+        });
+        
+        // 안드로이드 알림 채널 설정
+        if (Platform.OS === 'android') {
+          const Notifications = await import('expo-notifications');
           
-          // iOS에서 포그라운드 알림 표시 방식 설정
-          setNotificationHandler({
-            handleNotification: async () => ({
-              shouldShowAlert: true,
-              shouldPlaySound: true,
-              shouldSetBadge: true,
-              shouldShowBanner: true,
-              shouldShowList: true,
-            }),
+          await Notifications.setNotificationChannelAsync('default', {
+            name: 'WalletSlot 알림',
+            importance: Notifications.AndroidImportance.HIGH,
+            vibrationPattern: [0, 250, 250, 250],
+            sound: 'default',
+            showBadge: true,
+          });
+
+          // Firebase 전용 채널
+          await Notifications.setNotificationChannelAsync('firebase', {
+            name: 'Firebase 푸시 알림',
+            importance: Notifications.AndroidImportance.HIGH,
+            vibrationPattern: [0, 250, 250, 250],
+            sound: 'default',
+            showBadge: true,
           });
           
-          console.log('✅ iOS 알림 핸들러 설정 완료');
-        } catch (error) {
-          console.error('❌ iOS 알림 핸들러 설정 실패:', error);
+          console.log('✅ 안드로이드 알림 채널 설정 완료');
         }
-      })();
-    }
+        
+        console.log(`✅ ${Platform.OS} 알림 핸들러 설정 완료`);
+      } catch (error) {
+        console.error(`❌ ${Platform.OS} 알림 핸들러 설정 실패:`, error);
+      }
+    })();
     
     // 푸시 서비스 자동 초기화 (온보딩 완료 후)
     if (onboardingDone) {
@@ -158,8 +173,7 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <QueryClientProvider client={queryClient}>
         <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-          {/* 온보딩 완료 여부에 따라 초기 라우트를 동적으로 설정합니다. */}
-          <Stack initialRouteName={onboardingDone ? "(tabs)" : "(onboarding)"}>
+          <Stack>
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
             <Stack.Screen name="(onboarding)" options={{ headerShown: false }} />
             <Stack.Screen name="+not-found" />
