@@ -6,7 +6,13 @@
       "@/*": [
         "./*"
       ]
-    }
+    },
+    "types": [
+      "react",
+      "react-native",
+      "jest",
+      "fast-text-encoding"
+    ]
   },
   "include": [
     "**/*.ts",

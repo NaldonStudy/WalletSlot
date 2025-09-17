@@ -1,4 +1,4 @@
-import React from "react";
+import React, { memo } from "react";
 import { View, StyleSheet, Text, useColorScheme } from "react-native";
 import Svg, { Circle, G, Text as SvgText, Path } from "react-native-svg";
 import { SlotData } from '@/src/types';
@@ -8,7 +8,7 @@ type AccountDonutChartProps = {
     data: SlotData[];
 };
 
-const AccountDonutChart = ({ data }: AccountDonutChartProps) => {
+const AccountDonutChart = memo(({ data }: AccountDonutChartProps) => {
     const colorScheme = useColorScheme() ?? 'light';
     const theme = themes[colorScheme];
     
@@ -155,7 +155,19 @@ const AccountDonutChart = ({ data }: AccountDonutChartProps) => {
             </View>
         </View>
     );
-};
+}, (prevProps, nextProps) => {
+    // 슬롯 데이터가 같으면 리렌더링하지 않음
+    if (prevProps.data.length !== nextProps.data.length) return false;
+    
+    return prevProps.data.every((slot, index) => {
+        const nextSlot = nextProps.data[index];
+        return slot.slotId === nextSlot.slotId &&
+               slot.name === nextSlot.name &&
+               slot.budget === nextSlot.budget &&
+               slot.remain === nextSlot.remain &&
+               slot.color === nextSlot.color;
+    });
+});
 
 export default AccountDonutChart;
 

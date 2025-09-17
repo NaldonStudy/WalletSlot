@@ -19,8 +19,10 @@
 - **expo-device**: ~8.0.6 (기기 정보 및 권한 관리)
 - **expo-constants**: ~18.0.8 (앱 및 환경 설정 정보)
 - **@faker-js/faker**: ^10.0.0 (개발용 Mock 데이터 생성)
-- **react-hook-form**: ^7.62.0 (폼 상태 관리)
+- **react-hook-form**: ^7.62.0 (폼 상태 관리)  
 - **zod**: ^4.1.5 (스키마 검증)
+- **MSW (Mock Service Worker)**: ^2.11.2 (API 모킹 시스템)
+- **react-native-url-polyfill**: ^2.0.0 (React Native MSW 지원)
 
 ---
 
@@ -51,6 +53,12 @@
 │
 ├── src/                 # 핵심 소스 코드 
 │   ├── api/             # API 관련 로직
+│   ├── mocks/           # MSW Mock API 시스템 (개발 중 백엔드 대체용)
+│   │   ├── index.ts     # MSW 초기화 및 설정 관리
+│   │   ├── server.ts    # React Native용 MSW 서버 설정
+│   │   ├── test.ts      # MSW 테스트 유틸리티 함수들
+│   │   └── handlers/    # 도메인별 API Mock 핸들러
+│   │       ├── index.ts # 모든 핸들러 통합 파일
 │   │   ├── client.ts    # Axios 인스턴스 및 인증 토큰 인터셉터 설정
 │   │   ├── queryKeys.ts # TanStack Query 키 중앙 관리
 │   │   ├── queryClient.ts # TanStack Query 클라이언트 설정 및 초기화
@@ -316,6 +324,65 @@ export const useMarkAsRead = () => useMutation({
 })
 ```
 **현재 상태**: TanStack Query 기반으로 완전히 구현됨. Mock 데이터 사용 중이나 실제 API 연동 준비 완료
+
+### 🎭 MSW (Mock Service Worker) 시스템
+**`src/mocks/` - ✅ 완전 구현됨**
+> **역할**: 백엔드 API가 준비되지 않은 상황에서 실제 네트워크 요청을 가로채서 Mock 응답을 제공하는 시스템
+
+**MSW 핵심 구성요소**:
+```typescript
+// src/mocks/index.ts - MSW 초기화 및 설정 관리
+export const initializeMSW = async (config?: Partial<MSWConfig>) => {
+  // 개발 환경에서만 자동 활성화
+  // React Native 폴리필 적용
+  // 자동 연결 테스트 및 API 목록 표시
+}
+
+// src/mocks/server.ts - React Native용 MSW 서버
+export const server = setupServer(...handlers);
+// TextEncoder/TextDecoder 폴리필 적용
+// 개발 환경 전용 로깅 및 에러 처리
+
+// src/mocks/handlers/index.ts - 핸들러 통합 관리
+export const handlers = [
+  ...baseHandlers,          // 기본 상태 확인용 (/api/health, /api)
+  // ...authHandlers,       // 각 기능별 개발 브랜치에서 주석 해제
+  // ...accountHandlers,    // 필요한 API만 선택적 활성화
+  // ...notificationHandlers,
+  // ...slotHandlers,
+];
+```
+
+**MSW 활용 방법**:
+```typescript
+// 1. 기존 API 호출 코드는 변경 없음
+const response = await fetch('/api/notifications');
+const data = await response.json();
+// ↑ MSW가 자동으로 가로채서 Mock 데이터 반환
+
+// 2. 개발 중 필요한 핸들러만 활성화
+// src/mocks/handlers/index.ts의 예시 참고
+import { notificationHandlers } from './notifications';
+export const handlers = [...baseHandlers, ...notificationHandlers];
+
+// 3. 개발 도구로 MSW 상태 확인
+import { mswUtils } from '@/src/mocks';
+await mswUtils.test.connection();    // MSW 연결 테스트
+await mswUtils.test.allAPIs();       // 모든 API 테스트
+```
+
+**장점**:
+- **실제 네트워크 호출 방식**: fetch, axios 등 기존 API 코드 변경 없이 사용
+- **Faker.js 연동**: 실제와 유사한 한국어 Mock 데이터 자동 생성
+- **개발 환경 격리**: `__DEV__` 조건으로 프로덕션에는 영향 없음
+- **브랜치별 선택적 활성화**: 필요한 API만 Mock 처리 가능
+- **자동 테스트 지원**: Jest 테스트에서도 동일한 Mock 데이터 사용
+
+**현재 상태**: 
+- ✅ React Native 환경 완전 구성 (폴리필, Metro 설정 등)
+- ✅ 모든 도메인 핸들러 구현 완료 (주석 처리 상태)
+- ✅ 자동 초기화 및 테스트 시스템 완비
+- ✅ 앱 시작 시 MSW 연결 상태 자동 확인
 
 **`src/store/index.ts` - 📝 함수 틀만 완성**
 > **역할**: 민감한 데이터(토큰)와 일반 설정을 안전하게 저장하고 관리하는 유틸리티 제공
