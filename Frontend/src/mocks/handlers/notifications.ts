@@ -103,7 +103,7 @@ const mockNotificationSettings: NotificationSettings = {
 };
 
 export const notificationHandlers = [
-  // 알림 조회 (GET /api/notifications) - 상대 경로만 유지 (절대 경로 중복 제거)
+  // 알림 조회 (GET /api/notifications)
   http.get('/api/notifications', ({ request }) => {
     console.log('[MSW] GET /api/notifications called with', request.url);
     const url = new URL(request.url);

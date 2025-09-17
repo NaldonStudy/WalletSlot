@@ -1,3 +1,5 @@
+import { featureFlags } from '@/src/config/featureFlags';
+import { ENABLE_NOTIFICATION_FALLBACK } from '@/src/constants/api';
 import type {
   BaseResponse,
   NotificationItem,
@@ -8,8 +10,6 @@ import type {
 } from '@/src/types';
 import { apiClient } from './client';
 import { fetchNotificationsFallback, isAmbiguousAxiosBody, normalizeNotificationList } from './responseNormalizer';
-import { ENABLE_NOTIFICATION_FALLBACK } from '@/src/constants/api';
-import { featureFlags } from '@/src/config/featureFlags';
 
 /**
  * 푸시 알림 관련 API 함수들

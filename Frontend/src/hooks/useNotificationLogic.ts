@@ -27,7 +27,7 @@ import { Alert } from 'react-native';
 
 import { monitoringService } from '@/src/services';
 import type { NotificationItem } from '@/src/types';
-import { useDeleteNotification, useMarkNotificationAsRead, useMarkNotificationAsUnread, useMarkAllNotificationsAsRead, useNotifications } from './useNotifications';
+import { useDeleteNotification, useMarkAllNotificationsAsRead, useMarkNotificationAsRead, useMarkNotificationAsUnread, useNotifications } from './useNotifications';
 
 /**
  * @hook useNotificationLogic
