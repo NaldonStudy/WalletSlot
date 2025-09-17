@@ -406,3 +406,114 @@ export interface SendNotificationRequest {
   type: NotificationItem['type'];
   data?: any;
 }
+
+// ===== Firebase 푸시 알림 관련 =====
+
+/**
+ * FCM 토큰 등록 요청
+ */
+export interface FCMTokenRequest {
+  fcmToken: string;
+  deviceId: string;
+  platform: 'ios' | 'android';
+  appVersion: string;
+  osVersion: string;
+  apnsToken?: string; // iOS APNs 토큰 (옵션)
+}
+
+/**
+ * FCM 푸시 알림 페이로드
+ */
+export interface FCMPushPayload {
+  notification: {
+    title: string;
+    body: string;
+    icon?: string;
+    sound?: string;
+    badge?: string;
+  };
+  data: {
+    notificationId: string;
+    type: NotificationItem['type'];
+    action?: string;
+    targetScreen?: string;
+    slotId?: string;
+    accountId?: string;
+    [key: string]: string | undefined;
+  };
+  android?: {
+    priority: 'high' | 'normal';
+    notification: {
+      channel_id: string;
+      color?: string;
+      sound?: string;
+    };
+  };
+  apns?: {
+    payload: {
+      aps: {
+        alert: {
+          title: string;
+          body: string;
+          subtitle?: string;
+        };
+        sound: string;
+        badge?: number;
+        'content-available'?: 1; // 백그라운드 업데이트용
+        'mutable-content'?: 1; // 미디어 첨부 지원
+        category?: string; // 알림 카테고리
+      };
+      customData?: {
+        [key: string]: any;
+      };
+    };
+    headers?: {
+      'apns-priority'?: '5' | '10';
+      'apns-expiration'?: string;
+      'apns-topic'?: string;
+    };
+  };
+}
+
+/**
+ * Firebase Admin SDK를 통한 알림 전송 요청
+ */
+export interface FirebasePushRequest {
+  tokens: string[];  // FCM 토큰 배열 (멀티캐스트)
+  payload: FCMPushPayload;
+  options?: {
+    priority?: 'high' | 'normal';
+    timeToLive?: number;
+    collapseKey?: string;
+  };
+}
+
+/**
+ * iOS 전용 푸시 알림 옵션
+ */
+export interface IOSNotificationOptions {
+  sound?: 'default' | string | null;
+  badge?: number;
+  subtitle?: string;
+  categoryIdentifier?: string;
+  launchImageName?: string;
+  threadIdentifier?: string;
+  targetContentIdentifier?: string;
+}
+
+/**
+ * 플랫폼별 푸시 알림 설정
+ */
+export interface PlatformPushConfig {
+  ios?: {
+    apnsKeyId: string;
+    apnsTeamId: string;
+    apnsBundleId: string;
+    apnsProduction: boolean;
+  };
+  android?: {
+    fcmProjectId: string;
+    fcmPrivateKey: string;
+    defaultChannelId: string;
+  };
+}

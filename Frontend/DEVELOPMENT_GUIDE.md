@@ -651,6 +651,59 @@ export interface ApiResponse<T> {
 
 ### 🔔 푸시 알림 시스템 (최신 완성)
 
+### 🔥 Firebase 푸시 알림 시스템 (신규 완성)
+
+**`src/services/firebasePushService.ts` - ✅ 완전 구현됨**
+> **역할**: Firebase Cloud Messaging(FCM)을 활용한 실제 푸시 알림 서비스
+```typescript
+class FirebasePushService {
+  // FCM 토큰 발급 및 서버 등록
+  public async initialize(): Promise<{ success: boolean; deviceId?: string }>
+  
+  // 포그라운드/백그라운드/종료 상태 메시지 리스너
+  private setupMessageListeners(): void
+  
+  // 알림 클릭 시 화면 이동 처리
+  private handleNotificationClick(remoteMessage): void
+  
+  // 테스트 푸시 전송 (MSW 통합)
+  public async sendTestPush(payload): Promise<{ success: boolean; message: string }>
+}
+```
+
+**주요 특징**:
+- **MSW 통합**: 개발 환경에서 Mock API로 동작, 실제 백엔드 구현 시 자동 전환
+- **토큰 관리**: FCM 토큰 발급, 갱신, 서버 등록 자동화
+- **크로스 플랫폼**: Android/iOS 통합 처리
+- **알림 처리**: 포그라운드 로컬 표시, 백그라운드 클릭 처리, 데이터 기반 화면 이동
+- **에러 복구**: 토큰 발급 실패 시 Graceful Degradation
+
+**`src/services/unifiedPushService.ts` - ✅ 완전 구현됨**
+> **역할**: Firebase와 Expo Notifications를 통합하는 단일 인터페이스
+```typescript
+class UnifiedPushService {
+  // Firebase + Expo 동시 초기화
+  public async initialize(): Promise<{ firebase: boolean; expo: boolean }>
+  
+  // 사용자별 푸시 설정 연결/해제
+  public async initializeForUser(userId): Promise<boolean>
+  
+  // 테스트 시나리오 모음
+  public testScenarios = {
+    budgetExceeded: async (slotName, amount) => { ... },
+    goalAchieved: async (slotName) => { ... },
+    accountSync: async (bankName) => { ... },
+    spendingPattern: async (category, changePercent) => { ... }
+  }
+}
+```
+
+**통합 전략**:
+- **우선순위**: Firebase → Expo 로컬 알림 순으로 시도
+- **Fallback**: Firebase 실패 시 Expo 로컬 알림으로 자동 대체
+- **상태 관리**: 각 서비스별 초기화 상태 및 토큰 정보 통합 관리
+- **테스트 용이성**: 개발 환경에서 다양한 시나리오 테스트 지원
+
 **`src/services/notificationService.ts` - ✅ 완전 구현됨**
 > **역할**: 푸시 알림의 전체 생명주기를 관리하는 싱글톤 서비스 클래스
 ```typescript
@@ -685,11 +738,14 @@ class NotificationService {
 - **즉시 알림**: `testNotifications.immediate()` - 알림 권한 및 표시 테스트
 - **지연 알림**: `testNotifications.delayed(5)` - 백그라운드 알림 테스트
 - **시나리오 알림**: 예산 초과, 목표 달성, 계좌 동기화 등 실제 사용 케이스 시뮬레이션
+- **Firebase 테스트**: 알림 화면의 🚀 버튼으로 Firebase/Expo 통합 푸시 테스트 (개발 모드)
 
 **현재 상태**: 
 - ✅ 로컬 알림 완전 구현 및 테스트 완료
 - ✅ 환경별 토큰 발급 로직 구현 완료
-- ⚠️ 실제 서버 푸시 발송은 백엔드 FCM 연동 필요
+- ✅ Firebase 푸시 알림 시스템 완전 구현 (MSW 통합)
+- ✅ 통합 푸시 서비스로 Firebase + Expo 동시 지원
+- ⚠️ 실제 서버 푸시 발송은 백엔드 FCM 연동 및 Firebase 프로젝트 설정 필요
 
 ---
 
@@ -867,7 +923,101 @@ console.log(featureFlags.snapshot());
 
 ---
 
-## 15. 2025-09-16 이후 주요 신규 기능 요약 (ver.2.1 추가사항)
+## 15. Firebase 푸시 알림 구현 가이드 (NEW)
+
+### 📋 단계별 구현 방법
+
+**Phase 1: Firebase 프로젝트 설정 (외부 작업)**
+1. Firebase Console에서 새 프로젝트 생성
+2. Android 앱 등록 → `google-services.json` 다운로드 후 `android/app/` 폴더에 배치
+3. iOS 앱 등록 → `GoogleService-Info.plist` 다운로드 후 `ios/[ProjectName]/` 폴더에 배치
+4. iOS APNs 키 설정 (Apple Developer Console에서 생성한 .p8 키를 Firebase에 업로드)
+
+**Phase 2: 개발 환경 테스트 (즉시 가능)**
+```typescript
+// 앱 시작 시 자동 초기화됨 (app/_layout.tsx)
+// 수동 테스트 방법:
+
+// 1. 콘솔에서 초기화
+await initializePushService();
+
+// 2. 푸시 상태 확인
+getPushStatus();
+
+// 3. 테스트 푸시 전송
+await sendTestPush();
+
+// 4. 알림 화면의 🚀 버튼 클릭
+```
+
+**Phase 3: MSW 통합으로 백엔드 없이 개발**
+- FCM 토큰 등록: `POST /api/notifications/register-fcm-token`
+- 토큰 갱신: `PUT /api/notifications/update-fcm-token`
+- 테스트 푸시: `POST /api/notifications/send-test-push`
+- 알림 수신 확인: `PATCH /api/notifications/{id}/received`
+
+**Phase 4: 실제 백엔드 연동**
+1. MSW 비활성화 (`__DEV__ = false` 또는 설정 변경)
+2. 백엔드에서 위 API 엔드포인트 구현
+3. Firebase Admin SDK로 실제 푸시 전송
+4. 코드 변경 없이 자동 전환 완료
+
+### 🧪 테스트 방법
+
+**개발 콘솔 명령어**:
+```javascript
+// Firebase + Expo 통합 푸시 초기화
+await initializePushService();
+
+// 예산 초과 시나리오 테스트
+await sendTestPush();
+
+// 서비스 상태 확인
+getPushStatus();
+```
+
+**알림 화면 UI 테스트**:
+- 🚀 버튼: Firebase 푸시 테스트 (개발 모드에서만 표시)
+- 테스트 성공/실패를 로컬 알림으로 피드백
+
+**플랫폼별 특화 기능**:
+- **Android**: FCM 토큰 기반 푸시 알림
+- **iOS**: APNs 통합, 포그라운드 알림 자동 표시, 배지 카운트 지원
+- **Cross-Platform**: 통합 서비스로 플랫폼 차이 자동 처리
+
+**지원하는 시나리오**:
+```typescript
+// 1. 예산 초과 알림 (iOS에서 배지 카운트 자동 증가)
+unifiedPushService.testScenarios.budgetExceeded('생활비', 50000);
+
+// 2. 목표 달성 알림 (iOS에서 축하 사운드 재생)
+unifiedPushService.testScenarios.goalAchieved('여행 적금');
+
+// 3. 계좌 동기화 알림 (iOS에서 크리티컬 알림 지원)
+unifiedPushService.testScenarios.accountSync('국민은행');
+
+// 4. 지출 패턴 분석 알림 (iOS에서 미리보기 지원)
+unifiedPushService.testScenarios.spendingPattern('카페', 30);
+```
+
+### 🍎 iOS 특화 설정
+
+**필수 iOS 설정**:
+1. `GoogleService-Info.plist` 파일을 `ios/[ProjectName]/` 폴더에 배치
+2. Xcode에서 Push Notifications Capability 활성화
+3. Apple Developer Console에서 APNs 키 생성 및 Firebase에 등록
+4. `Info.plist`에 Firebase 관련 설정 추가
+
+**iOS 전용 기능**:
+- APNs 토큰 자동 등록 및 갱신
+- 포그라운드에서도 알림 배너 표시
+- 배지 카운트 자동 관리
+- 크리티컬 알림 지원 (중요한 금융 알림용)
+- 알림 카테고리 및 액션 버튼 지원
+
+---
+
+## 16. 2025-09-16 이후 주요 신규 기능 요약 (ver.2.1 추가사항)
 
 ### 🎯 온보딩 시스템 (신규 완성)
 - **완전한 앱 첫 실행 경험**: 4단계 슬라이드로 앱 핵심 가치 전달

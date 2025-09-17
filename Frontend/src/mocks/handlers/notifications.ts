@@ -316,5 +316,100 @@ export const notificationHandlers = [
       data: notification
     });
   }),
+
+  // ===== Firebase 푸시 알림 관련 API =====
+
+  // FCM 토큰 등록 (POST /api/notifications/register-fcm-token)
+  http.post('/api/notifications/register-fcm-token', async ({ request }) => {
+    const tokenData = await request.json() as any;
+    console.log('[MSW] FCM 토큰 등록 요청:', {
+      platform: tokenData.platform,
+      tokenLength: tokenData.fcmToken?.length,
+      deviceId: tokenData.deviceId,
+      apnsToken: tokenData.apnsToken ? 'Present' : 'None'
+    });
+    
+    // iOS APNs 토큰 처리
+    if (tokenData.platform === 'ios' && tokenData.apnsToken) {
+      console.log('[MSW] iOS APNs 토큰 확인됨');
+    }
+    
+    // Mock 디바이스 ID 생성 (실제로는 서버에서 생성)
+    const deviceId = tokenData.deviceId || `device_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    
+    return HttpResponse.json({
+      success: true,
+      deviceId,
+      message: `${tokenData.platform} FCM 토큰이 성공적으로 등록되었습니다.`
+    });
+  }),
+
+  // FCM 토큰 업데이트 (PUT /api/notifications/update-fcm-token)
+  http.put('/api/notifications/update-fcm-token', async ({ request }) => {
+    const updateData = await request.json() as any;
+    console.log('[MSW] FCM 토큰 업데이트 요청:', {
+      deviceId: updateData.deviceId,
+      tokenLength: updateData.fcmToken?.length
+    });
+    
+    return HttpResponse.json({
+      success: true,
+      message: 'FCM 토큰이 성공적으로 업데이트되었습니다.'
+    });
+  }),
+
+  // 알림 수신 확인 (PATCH /api/notifications/{notificationId}/received)
+  http.patch('/api/notifications/:notificationId/received', ({ params }) => {
+    const { notificationId } = params;
+    console.log('[MSW] 알림 수신 확인:', notificationId);
+    
+    const notification = mockNotifications.find(n => n.id === notificationId);
+    if (notification) {
+      (notification as any).received = true;
+      (notification as any).receivedAt = new Date().toISOString();
+    }
+    
+    return HttpResponse.json({
+      success: true,
+      message: '알림 수신이 확인되었습니다.'
+    });
+  }),
+
+  // 테스트 푸시 알림 전송 (POST /api/notifications/send-test-push)
+  http.post('/api/notifications/send-test-push', async ({ request }) => {
+    const pushData = await request.json() as any;
+    console.log('[MSW] 테스트 푸시 알림 전송 요청:', {
+      token: pushData.token?.substring(0, 20) + '...',
+      payload: pushData.payload
+    });
+    
+    // 실제 환경에서는 Firebase Admin SDK를 통해 푸시 전송
+    // MSW 환경에서는 성공 응답만 반환
+    
+    return HttpResponse.json({
+      success: true,
+      message: '테스트 푸시 알림이 전송되었습니다.',
+      mockResponse: true
+    });
+  }),
+
+  // 푸시 알림 전송 (POST /api/notifications/send-push) - 백엔드용
+  http.post('/api/notifications/send-push', async ({ request }) => {
+    const pushRequest = await request.json() as any;
+    console.log('[MSW] 푸시 알림 전송 요청:', {
+      recipientCount: pushRequest.tokens?.length || 0,
+      title: pushRequest.payload?.notification?.title
+    });
+    
+    // 실제로는 Firebase Admin SDK 또는 FCM HTTP API 호출
+    // MSW에서는 Mock 응답 반환
+    
+    return HttpResponse.json({
+      success: true,
+      sent: pushRequest.tokens?.length || 1,
+      failed: 0,
+      message: '푸시 알림이 성공적으로 전송되었습니다.'
+    });
+  }),
   
 ];

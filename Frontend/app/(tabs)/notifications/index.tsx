@@ -159,6 +159,42 @@ export default function NotificationsScreen() {
             알림 {unreadCount > 0 && `(${unreadCount})`}
           </ThemedText>
           <ThemedView style={styles.headerActions}>
+            {/* Firebase 푸시 테스트 버튼 (개발 모드에서만) */}
+            {__DEV__ && (
+              <TouchableOpacity 
+                onPress={async () => {
+                  try {
+                    const { unifiedPushService } = await import('@/src/services/unifiedPushService');
+                    const result = await unifiedPushService.testScenarios.budgetExceeded('생활비', 25000);
+                    console.log('🚀 Firebase 푸시 테스트 결과:', result);
+                    
+                    // 성공/실패 피드백을 로컬 알림으로 표시
+                    if (result.success) {
+                      await unifiedPushService.sendLocalNotification(
+                        '테스트 성공',
+                        `Firebase 푸시가 ${result.method} 방식으로 전송되었습니다`
+                      );
+                    } else {
+                      await unifiedPushService.sendLocalNotification(
+                        '테스트 실패',
+                        result.message
+                      );
+                    }
+                  } catch (error) {
+                    console.error('❌ Firebase 푸시 테스트 실패:', error);
+                  }
+                }}
+                style={styles.settingsButton}
+              >
+                <ThemedText style={[
+                  styles.settingsButtonText,
+                  { color: theme.colors.primary[600] }
+                ]}>
+                  🚀
+                </ThemedText>
+              </TouchableOpacity>
+            )}
+            
             {/* 알림 설정 버튼 */}
             <TouchableOpacity 
               onPress={navigateToSettings}
