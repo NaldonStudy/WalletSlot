@@ -5,9 +5,9 @@ import {
   StyleSheet,
   FlatList,
   Dimensions,
-  TouchableOpacity,
-  SafeAreaView,
+  TouchableOpacity
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { settingsUtils } from '@/src/store';
 
@@ -63,8 +63,8 @@ export default function OnboardingScreen() {
   const handleComplete = async () => {
     // 온보딩 완료 플래그 저장
     await settingsUtils.setOnboardingCompleted(true);
-    // 메인 탭으로 이동
-    router.replace('/(tabs)/dashboard');
+    // 회원가입 이름 입력 화면으로 이동
+    router.replace('/(auth)/(signup)/name');
   };
 
   const renderSlide = ({ item }: { item: typeof onboardingData[0] }) => (
