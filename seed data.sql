@@ -1,253 +1,101 @@
-# DROP DATABASE IF EXISTS walletslotdb;
-# CREATE DATABASE walletslotdb;
-
 USE walletslotdb;
 
-DROP TABLE IF EXISTS `user`;
-CREATE TABLE `user` (
-	`id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-	`name` VARCHAR(64) NOT NULL,
-	`phone_number` VARCHAR(64) NOT NULL,
-	`gender` ENUM('FEMALE', 'MAN') NOT NULL,
-	`birth_date` DATETIME NOT NULL,
-	`created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-	`updated_at` DATETIME NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-	`base_day` TINYINT UNSIGNED COMMENT '기준일 입력받는 시점이 회원가입 이후인 것 같아서 NULLABLE',
-	`job` ENUM('STUDENT', 'HOMEMAKER', 'OFFICE_WORKER', 'SOLDIER', 'SELF_EMPLOYED', 'FREELANCER', 'UNEMPLOYED', 'OTHER')
-);
+-- USER
+INSERT INTO `user` (name, phone_number, gender, birth_date, base_day, job)
+VALUES
+('홍길동', '010-1234-5678', 'MAN', '1995-05-20', 25, 'OFFICE_WORKER'),
+('김영희', '010-9876-5432', 'FEMALE', '1998-07-15', NULL, 'STUDENT');
 
-DROP TABLE IF EXISTS `pepper_keys`;
-CREATE TABLE `pepper_keys` (
-	`id` INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
-	`key_alias` VARCHAR(64) UNIQUE NOT NULL COMMENT '키 본문은 KMS/HSM보관',
-	`status` ENUM('ACTIVATE', 'RETIRED', 'REVOKED') NOT NULL,
-	`created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-	`rotated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-);
+-- PEPPER_KEYS
+INSERT INTO `pepper_keys` (key_alias, status)
+VALUES
+('pepper_v1', 'ACTIVATE'),
+('pepper_v0', 'RETIRED');
 
-DROP TABLE IF EXISTS `user_pin`;
-CREATE TABLE `user_pin` (
-	`id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-	`user_id` INT UNSIGNED NOT NULL,
-	`pepper_id` INT UNSIGNED NOT NULL,
-	`bcrypted_pin` VARCHAR(64) NOT NULL,
-	`cost` TINYINT UNSIGNED NOT NULL COMMENT '$2b$12$...에서 12를 추출해 정수로 저장',
-	`failed_count` TINYINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '5번 넘게 틀리면 잠김같은 기능',
-	`locked_until` DATETIME COMMENT '비밀번호 자주 틀리면 잠금',
-	`last_changed_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '비밀번호 변경안한지 얼마나 됐어요',
-	`last_verified_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '휴면계정 확인',
-    
-    CONSTRAINT `fk_user_pin_user_id`
-	FOREIGN KEY (`user_id`) REFERENCES user(`id`)
-		ON DELETE CASCADE
-        ON UPDATE CASCADE,
-        
-	CONSTRAINT `fk_user_pin_pepper_keys_id`
-	FOREIGN KEY (`pepper_id`) REFERENCES pepper_keys(`id`)
-		ON DELETE CASCADE
-        ON UPDATE CASCADE
-);
+-- USER_PIN
+INSERT INTO `user_pin` (user_id, pepper_id, bcrypted_pin, cost)
+VALUES
+(1, 1, '$2b$12$abcdefghijklmnopqrstuv1234567890abcd', 12),
+(2, 1, '$2b$10$zyxwvutsrqponmlkjihgfedcba0987654321', 10);
 
-DROP TABLE IF EXISTS `push_endpoint`;
-CREATE TABLE `push_endpoint` (
-	`id` INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
-	`user_id` INT UNSIGNED,
-	`device_id` VARCHAR(64) NOT NULL,
-	`platform` ENUM('ANDROID', 'IOS') NOT NULL,
-	`token` VARCHAR(255) NULL,
-	`status` ENUM('ACTIVE', 'LOGGED_OUT', 'ACCOUNT_LOCKED', 'USER_WITHDRAW') NOT NULL DEFAULT 'ACTIVE',
-	`is_push_enabled` BOOLEAN NOT NULL DEFAULT TRUE,
-    
-	CONSTRAINT `fk_push_endpoint_user_id`
-	FOREIGN KEY (`user_id`) REFERENCES user(`id`)
-		ON DELETE CASCADE
-        ON UPDATE CASCADE
-);
+-- BANK
+INSERT INTO `bank` (name, code, color)
+VALUES
+('KB국민은행', '004', '#FFD700'),
+('신한은행', '088', '#003399');
 
-DROP TABLE IF EXISTS `consent_form`;
-CREATE TABLE `consent_form` (
-	`id` INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
-	`title` TEXT NOT NULL
-);
+-- ACCOUNT
+INSERT INTO `account` (user_id, bank_id, alias, encrypted_account_no, balance, is_primary)
+VALUES
+(1, 1, '내 월급통장', 'enc_acc_no_123', 5000000, TRUE),
+(1, 2, '비상금통장', 'enc_acc_no_456', 2000000, FALSE),
+(2, 1, '생활비통장', 'enc_acc_no_789', 1000000, TRUE);
 
-DROP TABLE IF EXISTS `user_consent`;
-CREATE TABLE `user_consent` (
-	`id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-	`user_id` INT UNSIGNED NOT NULL,
-	`consent_form_id` INT UNSIGNED NOT NULL,
-	`agreed_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-	`status` ENUM('ACTIVE', 'EXPIRED', 'REVOKED') NOT NULL DEFAULT 'ACTIVE',
-	`expired_at` DATETIME NOT NULL,
-	`revoked_at` DATETIME NULL,
-    
-    CONSTRAINT `fk_user_consent_user_id`
-	FOREIGN KEY (`user_id`) REFERENCES user(`id`)
-		ON DELETE CASCADE
-        ON UPDATE CASCADE,
-        
-	CONSTRAINT `fk_consent_form_id`
-	FOREIGN KEY (`consent_form_id`) REFERENCES consent_form(`id`)
-		ON DELETE CASCADE
-        ON UPDATE CASCADE
-);
+-- SLOT
+INSERT INTO `slot` (uuid, name, is_saving_slot, color, slot_rank)
+VALUES
+(UUID(), '식비', FALSE, '#FF6666', 1),
+(UUID(), '교통비', FALSE, '#66CCFF', 2),
+(UUID(), '저축', TRUE, '#33CC33', 3);
 
-DROP TABLE IF EXISTS `slot`;
-CREATE TABLE `slot` (
-	`id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-	`uuid` VARCHAR(64) NOT NULL,
-	`name` VARCHAR(128) NOT NULL,
-	`is_saving_slot` BOOLEAN NOT NULL DEFAULT FALSE,
-	`icon` TEXT,
-	`color` VARCHAR(64) NOT NULL,
-	`slot_rank` INT UNSIGNED COMMENT '사람들이 많이 사용하는 순위'
-);
+-- ACCOUNT_SLOT
+INSERT INTO `account_slot` (account_id, slot_id, initial_budget, current_budget, spent, is_custom)
+VALUES
+(1, 1, 300000, 300000, 0, FALSE),
+(1, 2, 100000, 100000, 0, FALSE),
+(1, 3, 500000, 500000, 0, FALSE);
 
-DROP TABLE IF EXISTS `bank`;
-CREATE TABLE `bank` (
-	`id` INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
-	`name` VARCHAR(64) NOT NULL,
-	`code` VARCHAR(64) NOT NULL,
-	`color` VARCHAR(64) NOT NULL
-);
+-- SLOT_HISTORY
+INSERT INTO `slot_history` (account_slot_id, old_budget, new_budget)
+VALUES
+(1, 300000, 350000),
+(2, 100000, 120000);
 
-DROP TABLE IF EXISTS `account`;
-CREATE TABLE `account` (
-	`id` INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
-	`user_id` INT UNSIGNED NOT NULL,
-	`bank_id` INT UNSIGNED NOT NULL,
-	`alias` VARCHAR(128),
-	`encrypted_account_no` VARCHAR(255) NOT NULL,
-	`balance` BIGINT UNSIGNED NOT NULL DEFAULT 0,
-	`is_primary` BOOLEAN NOT NULL DEFAULT FALSE,
-	`last_synced_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    
-	CONSTRAINT `fk_account_user_id`
-	FOREIGN KEY (`user_id`) REFERENCES user(`id`)
-		ON DELETE CASCADE
-        ON UPDATE CASCADE,
-        
-	CONSTRAINT `fk_account_bank_id`
-	FOREIGN KEY (`bank_id`) REFERENCES bank(`id`)
-		ON DELETE CASCADE
-        ON UPDATE CASCADE
-);
+-- TRANSACTION
+INSERT INTO `transaction` (account_id, account_slot_id, uuid, unique_no, type, opponent_account_no, counter_party, amount, balance, transaction_at)
+VALUES
+(1, 1, UUID(), 10001, 'DEPOSIT', 111122223333, '스타벅스', 4500, 4995500, '2025-09-10 12:30:00'),
+(1, 2, UUID(), 10002, 'WITHDRAW', 444433332222, '버스', 1250, 4994250, '2025-09-11 08:10:00');
 
-DROP TABLE IF EXISTS `account_slot`;
-CREATE TABLE `account_slot` (
-	`id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-	`account_id` INT UNSIGNED NOT NULL,
-	`slot_id` INT UNSIGNED NOT NULL,
-	`initial_budget` BIGINT UNSIGNED NOT NULL DEFAULT 0,
-	`current_budget` BIGINT UNSIGNED NOT NULL DEFAULT 0,
-	`spent` BIGINT UNSIGNED NOT NULL DEFAULT 0,
-	`budget_change_count` INT UNSIGNED NOT NULL DEFAULT 0,
-	`created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-	`updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-	`is_budget_exceeded` BOOLEAN NOT NULL DEFAULT FALSE,
-	`is_custom` BOOLEAN NOT NULL DEFAULT FALSE,
-	`custom_name` VARCHAR(64),
-	`is_alert_sent`	BOOLEAN NOT NULL DEFAULT FALSE,
-    
-	CONSTRAINT `fk_account_slot_account_id`
-	FOREIGN KEY (`account_id`) REFERENCES account(`id`)
-		ON DELETE CASCADE
-        ON UPDATE CASCADE,
-        
-	CONSTRAINT `fk_account_slot_slot_id`
-	FOREIGN KEY (`slot_id`) REFERENCES slot(`id`)
-		ON DELETE CASCADE
-        ON UPDATE CASCADE
-);
+-- CONSENT_FORM
+INSERT INTO `consent_form` (title)
+VALUES
+('개인정보 수집 및 이용 동의'),
+('서비스 이용 약관');
 
-DROP TABLE IF EXISTS `slot_history`;
-CREATE TABLE `slot_history` (
-	`id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-	`account_slot_id` INT UNSIGNED NOT NULL,
-	`changed_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-	`old_budget` BIGINT UNSIGNED NOT NULL DEFAULT 0,
-	`new_budget` BIGINT UNSIGNED NOT NULL DEFAULT 0,
-    
-    CONSTRAINT `fk_slot_history_account_slot_id`
-	FOREIGN KEY (`account_slot_id`) REFERENCES account_slot(`id`)
-		ON DELETE CASCADE
-        ON UPDATE CASCADE
-);
+-- USER_CONSENT
+INSERT INTO `user_consent` (user_id, consent_form_id, expired_at)
+VALUES
+(1, 1, '2026-09-17'),
+(1, 2, '2026-09-17'),
+(2, 1, '2026-09-17');
 
-DROP TABLE IF EXISTS `transaction`;
-CREATE TABLE `transaction` (
-	`id` INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
-	`account_id` INT UNSIGNED NOT NULL,
-	`account_slot_id` INT UNSIGNED NOT NULL,
-	`uuid` VARCHAR(64) NOT NULL,
-	`unique_no` BIGINT UNSIGNED NOT NULL COMMENT 'transactionUniqueNo',
-	`type` VARCHAR(64) NOT NULL COMMENT 'transactionType, transactionTypeName',
-	`opponent_account_no` BIGINT UNSIGNED COMMENT 'transactionAccountNo',
-	`counter_party` VARCHAR(255) NOT NULL COMMENT 'transactionSummary',
-	`amount` BIGINT UNSIGNED NOT NULL COMMENT 'transactionBalance',
-	`balance` BIGINT UNSIGNED NOT NULL,
-	`transaction_at` VARCHAR(64) NOT NULL COMMENT 'transactionDate, transactionTime',
-    
-    CONSTRAINT `fk_transaction_account_id`
-	FOREIGN KEY (`account_id`) REFERENCES account(`id`)
-		ON DELETE CASCADE
-        ON UPDATE CASCADE,
-        
-    CONSTRAINT `fk_transaction_account_slot_id`
-	FOREIGN KEY (`account_slot_id`) REFERENCES account_slot(`id`)
-		ON DELETE CASCADE
-        ON UPDATE CASCADE
-);
+-- PUSH_ENDPOINT
+INSERT INTO `push_endpoint` (user_id, device_id, platform, token)
+VALUES
+(1, 'device-abc-123', 'ANDROID', 'fcm_token_abc123'),
+(2, 'device-def-456', 'IOS', 'fcm_token_def456');
 
-DROP TABLE IF EXISTS `ai_report`;
-CREATE TABLE `ai_report` (
-	`id` INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
-	`uuid` VARCHAR(64) NOT NULL,
-	`account_id` INT UNSIGNED NOT NULL,
-	`content` JSON NOT NULL,
-	`created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
-);
+-- AI_REPORT
+INSERT INTO `ai_report` (uuid, account_id, content)
+VALUES
+(UUID(), 1, JSON_OBJECT('summary', '이번 달 식비가 예산을 초과했습니다.')),
+(UUID(), 2, JSON_OBJECT('summary', '교통비가 예산보다 20% 적게 사용되었습니다.'));
 
-DROP TABLE IF EXISTS `notification`;
-CREATE TABLE `notification` (
-	`id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-	`user_id` INT UNSIGNED NOT NULL,
-	`title` VARCHAR(255) NOT NULL,
-	`content` TINYTEXT,
-	`is_delivered` BOOLEAN,
-	`delivered_at` DATETIME,
-	`is_read` BOOLEAN DEFAULT FALSE NOT NULL,
-	`read_at` DATETIME,
-	`type` ENUM('') NOT NULL,
-    
-	CONSTRAINT `fk_notification_user_id`
-	FOREIGN KEY (`user_id`) REFERENCES user(`id`)
-		ON DELETE CASCADE
-        ON UPDATE CASCADE
-);
+-- NOTIFICATION
+INSERT INTO `notification` (user_id, title, content, is_delivered, type)
+VALUES
+(1, '예산 초과 알림', '식비 예산을 초과했습니다.', TRUE, ''),
+(2, '로그인 알림', '새로운 기기에서 로그인되었습니다.', TRUE, '');
 
-DROP TABLE IF EXISTS `wish_list`;
-CREATE TABLE `wish list` (
-	`id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-	`user_id` INT UNSIGNED NOT NULL,
-	`name` VARCHAR(64) NOT NULL,
-	`price` BIGINT UNSIGNED NOT NULL DEFAULT 0,
-	`image` BLOB NULL,
-    
-    CONSTRAINT `fk_wish_list_user_id`
-	FOREIGN KEY (`user_id`) REFERENCES user(`id`)
-		ON DELETE CASCADE
-        ON UPDATE CASCADE
-);
+-- WISH_LIST
+INSERT INTO `wish_list` (user_id, name, price)
+VALUES
+(1, '아이패드', 1200000),
+(2, '에어팟', 250000);
 
-DROP TABLE IF EXISTS `email`;
-CREATE TABLE `email` (
-	`id` INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
-	`user_id` INT UNSIGNED NOT NULL,
-	`name` VARCHAR(64) NOT NULL,
-	`email` VARCHAR(128) NOT NULL,
-    
-    CONSTRAINT `fk_email_user_id`
-	FOREIGN KEY (`user_id`) REFERENCES user(`id`)
-		ON DELETE CASCADE
-        ON UPDATE CASCADE
-);
+-- EMAIL
+INSERT INTO `email` (user_id, name, email)
+VALUES
+(1, '개인 이메일', 'hong@test.com'),
+(2, '학교 이메일', 'kim@student.com');
