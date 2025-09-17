@@ -6,8 +6,16 @@
  */
 
 // React Native의 보안 저장소 관련
-// import * as SecureStore from 'expo-secure-store';
+import * as SecureStore from 'expo-secure-store';
+// 일반 설정은 민감하지 않으므로 AsyncStorage 사용
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
+
+
+
+/** 
+ * 인증 토큰 관리 -> Secure-Storage 사용용
+ */
 export const storageUtils = {
   /**
    * 토큰 저장 (보안 저장소 사용)
@@ -49,8 +57,66 @@ export const storageUtils = {
 
 /**
  * 앱 설정 관련 유틸리티
+ * 일반 설정은 민감하지 않으므로 AsyncStorage 사용
+ * onboardingCompleted 여부
  */
 export const settingsUtils = {
-  // 테마, 언어 등 일반 설정은 AsyncStorage 사용
-  // 민감하지 않은 데이터
+  /**
+   * 내부적으로 사용하는 저장 키
+   */
+  _keys: {
+    settings: 'app_settings',
+  },
+
+  /**
+   * 전체 설정을 저장합니다.
+   */
+  saveSettings: async (settings: Record<string, unknown>) => {
+    try {
+      const json = JSON.stringify(settings);
+      await AsyncStorage.setItem(settingsUtils._keys.settings, json);
+    } catch (error) {
+      console.error('Failed to save settings:', error);
+    }
+  },
+
+  /**
+   * 전체 설정을 가져옵니다. 없으면 빈 객체를 반환합니다.
+   */
+  getSettings: async <T extends Record<string, unknown> = Record<string, unknown>>() => {
+    try {
+      const json = await AsyncStorage.getItem(settingsUtils._keys.settings);
+      if (!json) return {} as T;
+      return JSON.parse(json) as T;
+    } catch (error) {
+      console.error('Failed to get settings:', error);
+      return {} as T;
+    }
+  },
+
+  /**
+   * 온보딩 완료 여부 저장
+   */
+  setOnboardingCompleted: async (completed: boolean) => {
+    try {
+      const current = await settingsUtils.getSettings<Record<string, unknown>>();
+      const next = { ...current, onboardingCompleted: completed, onboardingCompletedAt: new Date().toISOString() };
+      await settingsUtils.saveSettings(next);
+    } catch (error) {
+      console.error('Failed to set onboarding flag:', error);
+    }
+  },
+
+  /**
+   * 온보딩 완료 여부 조회 (기본값 false)
+   */
+  getOnboardingCompleted: async () => {
+    try {
+      const settings = await settingsUtils.getSettings<Record<string, unknown>>();
+      return Boolean(settings.onboardingCompleted);
+    } catch (error) {
+      console.error('Failed to get onboarding flag:', error);
+      return false;
+    }
+  },
 };

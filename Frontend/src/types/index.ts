@@ -1,4 +1,29 @@
 // ===== 공통 타입 =====
+
+// ===== UI 컴포넌트용 타입들 =====
+
+/**
+ * 슬롯 데이터 (원형 그래프용)
+ */
+export interface SlotData {
+  slotId: string;
+  name: string;
+  budget: number;
+  remain: number;
+  color: string;
+}
+
+/**
+ * 계좌 데이터 (슬롯 포함)
+ */
+export interface AccountData {
+  bankCode: string;
+  accountName: string;
+  accountNumber: string;
+  balanceFormatted: string;
+  slots: SlotData[];
+}
+
 export interface BaseResponse<T = any> {
   success: boolean;
   data: T;

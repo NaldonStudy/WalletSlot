@@ -251,7 +251,9 @@ const lightTheme = {
   typography: Typography,
   spacing: Spacing,
   borderRadius: BorderRadius,
-  shadows: Shadows,
+  shadows: {
+    ...Shadows,
+  },
   easing: Easing,
   breakpoints: Breakpoints,
 } as const;

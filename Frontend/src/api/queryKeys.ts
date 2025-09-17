@@ -32,7 +32,15 @@ export const queryKeys = {
   // 알림 관련
   notifications: {
     all: ['notifications'] as const,
-    list: (params?: any) => [...queryKeys.notifications.all, 'list', params] as const,
+    list: (params?: any) => {
+      if (!params) return [...queryKeys.notifications.all, 'list'] as const; // 안정적인 기본 키
+      const norm: Record<string, any> = {};
+      if (params.page != null) norm.page = params.page;
+      if (params.limit != null) norm.limit = params.limit;
+      if (params.unreadOnly) norm.unreadOnly = true;
+      if (params.type && params.type !== 'all') norm.type = params.type;
+      return [...queryKeys.notifications.all, 'list', norm] as const;
+    },
     detail: (id: string) => [...queryKeys.notifications.all, 'detail', id] as const,
     unreadCount: () => [...queryKeys.notifications.all, 'unreadCount'] as const,
     settings: () => [...queryKeys.notifications.all, 'settings'] as const,
