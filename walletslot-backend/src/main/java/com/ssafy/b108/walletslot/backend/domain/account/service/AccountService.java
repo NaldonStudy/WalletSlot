@@ -28,6 +28,7 @@ import org.springframework.web.client.RestTemplate;
 
 import javax.crypto.SecretKey;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -134,6 +135,7 @@ public class AccountService {
                 .map(account -> {
                     try{
                         return AccountDto.builder()
+                                .accountId(account.getUuid())
                                 .accountNo(AESUtil.decrypt(account.getEncryptedAccountNo(), encryptionKey))
                                 .bankName(account.getBank().getName())
                                 .bankCode(account.getBank().getCode())
@@ -168,6 +170,7 @@ public class AccountService {
         AccountDto accountDto;
         try{
             accountDto = AccountDto.builder()
+                    .accountId(account.getUuid())
                     .accountNo(AESUtil.decrypt(account.getEncryptedAccountNo(), encryptionKey))
                     .bankName(account.getBank().getName())
                     .bankCode(account.getBank().getCode())
@@ -199,6 +202,7 @@ public class AccountService {
         AccountDto accountDto;
         try {
             accountDto = AccountDto.builder()
+                    .accountId(account.getUuid())
                     .accountNo(AESUtil.decrypt(account.getEncryptedAccountNo(), encryptionKey))
                     .bankName(account.getBank().getName())
                     .bankCode(account.getBank().getCode())
@@ -234,6 +238,7 @@ public class AccountService {
         AccountDto accountDto;
         try {
             accountDto = AccountDto.builder()
+                    .accountId(account.getUuid())
                     .accountNo(AESUtil.decrypt(account.getEncryptedAccountNo(), encryptionKey))
                     .bankCode(account.getBank().getCode())
                     .bankName(account.getBank().getName())
@@ -392,6 +397,7 @@ public class AccountService {
         // accounts 배열 돌면서 그때그때 Account 객체 만들고, save.
         // 그 와중에 userId의 이름 != 등록할 계좌의 예금주 이름인 account 있으면 403
 
+        List<com.ssafy.b108.walletslot.backend.domain.account.dto.AccountDto> accountDtoList = new ArrayList<>();
         for(AddAccountRequestDto.AccountDto accountDto : accounts) {
 
             // 싸피 금융 api에 예금주 조회
@@ -400,7 +406,7 @@ public class AccountService {
             // 현재 로그인된 사용자의 userId 획득 -> DB에서 이 userId를 가지는 사용자의 이메일 조회 -> 싸피 금융 api에 userKey 요청 -> 획득 후 헤더에 userKey 포함해서 요청보내야함
             // 지금은 더미데이터 v1의 userKey로 사용
 
-            // 요청보낼 url
+            // 요청보낼 url (예금주 조회)
             String url = "https://finopenapi.ssafy.io/ssafy/api/v1/edu/demandDeposit/inquireDemandDepositAccountHolderName";
             Map<String, String> formattedDateTime = LocalDateTimeFormatter.formatter(LocalDateTime.now());
             Header header = Header.builder()
@@ -453,12 +459,28 @@ public class AccountService {
 
             // Account 객체 저장
             accountRepository.save(account);
+
+            // dto 조립하기
+            // dto > data > accounts
+            com.ssafy.b108.walletslot.backend.domain.account.dto.AccountDto accountDto2;
+            try {
+                accountDto2 = AccountDto.builder()
+                        .accountId(account.getUuid())
+                        .bankCode(account.getBank().getCode())
+                        .bankName(account.getBank().getName())
+                        .accountNo(AESUtil.decrypt(account.getEncryptedAccountNo(), encryptionKey))
+                        .build();
+            } catch(Exception e) {
+                throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "[AccountService - 000]");
+            }
+            accountDtoList.add(accountDto2);
         }
 
         // dto 조립하기
         AddAccountResponseDto addAccountResponseDto = AddAccountResponseDto.builder()
                 .success(true)
                 .message("[AccountService - 000] 계좌연동 성공")
+                .data(AddAccountResponseDto.Data.builder().accounts(accountDtoList).build())
                 .build();
 
         return addAccountResponseDto;
@@ -481,14 +503,28 @@ public class AccountService {
             account.updateIsPrimary(request.getIsPrimary());
         }
 
-        // dto 조립 후 응답
+        // dto 조립
+        // dto > data
+        AccountDto accountDto;
+        try {
+            accountDto = AccountDto.builder()
+                    .accountId(account.getUuid())
+                    .bankCode(account.getBank().getCode())
+                    .bankName(account.getBank().getName())
+                    .accountNo(AESUtil.decrypt(account.getEncryptedAccountNo(), encryptionKey))
+                    .build();
+        } catch(Exception e) {
+            throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "[AccountService - 000]");
+        }
+
+        // dto
         ModifyAccountResponseDto modifyAccountResponseDto = ModifyAccountResponseDto.builder()
                 .success(true)
                 .message("[AccountService - 000] 계좌정보 수정 성공")
+                .data(accountDto)
                 .build();
 
         // 응답
         return modifyAccountResponseDto;
->>>>>>> walletslot-backend/src/main/java/com/ssafy/b108/walletslot/backend/domain/account/service/AccountService.java
     }
 }

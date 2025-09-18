@@ -10,6 +10,7 @@ import lombok.*;
 public class AccountDto {
 
     // Field
+    private String accountId;
     private String bankCode;
     private String bankName;
     private String accountNo;
