@@ -16,7 +16,7 @@ export default function PhoneScreen() {
   const residentIdFieldTranslateY = useState(new Animated.Value(0))[0];
   const nameFieldTranslateY = useState(new Animated.Value(0))[0];
   const phoneFieldOpacity = useState(new Animated.Value(0))[0];
-  const phoneFieldTranslateY = useState(new Animated.Value(50))[0];
+  const phoneFieldTranslateY = useState(new Animated.Value(0))[0];
   
   // 드롭다운 열림/닫힘에 따른 애니메이션
   const dropdownOffset = useState(new Animated.Value(0))[0];
@@ -84,6 +84,12 @@ export default function PhoneScreen() {
   const handleCarrierSelect = (carrier: string) => {
     setSelectedCarrier(carrier);
     setIsDropdownOpen(false);
+    // 드롭다운 닫힘 애니메이션: 아래 입력칸들이 위로 올라오도록
+    Animated.timing(dropdownOffset, {
+      toValue: 0,
+      duration: 300,
+      useNativeDriver: true,
+    }).start();
     // 통신사 선택 시 스토어에 저장
     if (phone && phone !== '010-') {
       const numbers = phone.replace(/[^0-9]/g, '');
@@ -94,10 +100,9 @@ export default function PhoneScreen() {
   const toggleDropdown = () => {
     const newState = !isDropdownOpen;
     setIsDropdownOpen(newState);
-    
-    // 드롭다운 열림/닫힘에 따른 애니메이션
+    // 드롭다운 열림/닫힘에 따라 아래 입력칸들이 부드럽게 이동
     Animated.timing(dropdownOffset, {
-      toValue: newState ? 150 : 0, // 드롭다운 높이에 맞춰 조정
+      toValue: newState ? 150 : 0,
       duration: 300,
       useNativeDriver: true,
     }).start();
@@ -108,8 +113,7 @@ export default function PhoneScreen() {
       alert('통신사와 휴대폰 번호를 모두 입력해주세요!');
       return;
     }
-    // 본인 인증 로직
-    alert('본인 인증을 진행합니다!');
+    
   };
 
   return (
@@ -158,9 +162,9 @@ export default function PhoneScreen() {
               />
             </View>
 
-            {/* 통신사 드롭다운 */}
+            {/* 통신사 드롭다운: 입력칸 바로 아래에 표시 */}
             {isDropdownOpen && (
-              <View style={styles.dropdown}>
+              <View style={styles.dropdownInline}>
                 {carriers.map((carrier) => (
                   <TouchableOpacity
                     key={carrier}
@@ -182,7 +186,7 @@ export default function PhoneScreen() {
             )}
           </Animated.View>
 
-          {/* 주민등록번호 표시 (아래로 슬라이드) */}
+          {/* 주민등록번호 표시 (아래로 슬라이드 + 드롭다운 오프셋) */}
           <Animated.View 
             style={[
               styles.fieldBlock,
@@ -210,7 +214,7 @@ export default function PhoneScreen() {
             </View>
           </Animated.View>
 
-          {/* 이름 표시 (아래로 슬라이드) */}
+          {/* 이름 표시 (아래로 슬라이드 + 드롭다운 오프셋) */}
           <Animated.View 
             style={[
               styles.fieldBlock,
@@ -230,7 +234,8 @@ export default function PhoneScreen() {
             />
           </Animated.View>
 
-          {/* 본인 인증하기 버튼 - 유효한 입력이 있을 때만 표시 */}
+          {/* 하단 고정 영역으로 버튼 이동 */}
+          <View style={styles.spacer} />
           {isPhoneValid() && (
             <TouchableOpacity
               style={styles.verifyButton}
@@ -249,7 +254,8 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: '#FFFFFF',
-  },
+  },//버그 테두리
+  debugRed: {borderWidth: 1, borderColor: 'red'},
   flex: { flex: 1 },
   container: {
     flex: 1,
@@ -264,7 +270,7 @@ const styles = StyleSheet.create({
     color: '#111827',
   },
   fieldBlock: {
-    marginTop: 16,
+    marginTop: 8,
   },
   label: {
     fontSize: 12,
@@ -307,21 +313,15 @@ const styles = StyleSheet.create({
     fontSize: 16,
     backgroundColor: '#FFFFFF',
   },
-  dropdown: {
-    position: 'absolute',
-    top: 50,
-    left: 0,
+  // 인라인 드롭다운: 입력칸 바로 아래에 자연스럽게 렌더링
+  dropdownInline: {
+    marginTop: 3,
     width: 80,
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
     borderColor: '#94A3B8',
     borderRadius: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-    zIndex: 1000,
+    overflow: 'hidden',
   },
   dropdownItem: {
     paddingHorizontal: 8,
@@ -369,11 +369,16 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
+  // 화면의 아래쪽 공간 확보용 스페이서 (버튼 위 여백)
+  spacer: {
+    flexGrow: 1,
+  },
   residentIdContainer: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   residentIdInput: {
+    flex: 1,
     height: 44,
     borderWidth: 1,
     borderColor: '#94A3B8',
@@ -382,7 +387,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     backgroundColor: '#F9FAFB',
     textAlign: 'center',
-    minWidth: 60,
+    minWidth: 0,
   },
   hyphen: {
     fontSize: 16,

@@ -12,13 +12,13 @@ export default function SignupLayout() {
             <Stack.Screen 
                 name="resident-id" 
                 options={{ 
-                    animation: 'fade' // 페이드 인/아웃
+                    animation: 'fade'
                 }} 
             />
             <Stack.Screen 
                 name="phone" 
                 options={{ 
-                    animation: 'slide_from_bottom' // 아래에서 슬라이드
+                    animation: 'fade'
                 }} 
             />
         </Stack>
