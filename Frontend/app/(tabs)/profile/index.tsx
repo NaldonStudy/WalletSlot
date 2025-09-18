@@ -1,4 +1,5 @@
 import { ThemedView } from '@/components/ThemedView';
+import { queryKeys } from '@/src/api';
 import {
   useConfirmEmailVerification,
   useConfirmPhoneVerification,
@@ -12,6 +13,7 @@ import {
   useUserProfile
 } from '@/src/hooks';
 import { Ionicons } from '@expo/vector-icons';
+import { useQueryClient } from '@tanstack/react-query';
 import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useState } from 'react';
@@ -258,6 +260,7 @@ export default function ProfileScreen() {
     type: 'phone',
     value: '',
   });
+  const queryClient = useQueryClient();
 
   const openEditModal = (
     field: string,
@@ -388,20 +391,41 @@ export default function ProfileScreen() {
                           Alert.alert('권한 필요', '갤러리 접근 권한이 필요합니다.');
                           return;
                         }
-                        const result = await ImagePicker.launchImageLibraryAsync({
+                        const result: any = await ImagePicker.launchImageLibraryAsync({
                           mediaTypes: ImagePicker.MediaTypeOptions.Images,
                           allowsEditing: true,
                           quality: 0.7,
                           base64: true,
                         });
-                        if (result.cancelled) return;
-                        // result.base64가 있으면 data URI로 변환
-                        const base64 = result.base64 ? `data:image/jpeg;base64,${result.base64}` : null;
-                        if (!base64) {
-                          Alert.alert('오류', '이미지 처리에 실패했습니다.');
+
+                        // 여러 버전의 결과 형태를 모두 지원
+                        // 1) 이전: { cancelled: boolean, base64?: string }
+                        // 2) 새 버전: { canceled: boolean, assets: [{ uri, base64?, type }] }
+                        if ((result.cancelled && result.cancelled === true) || (result.canceled && result.canceled === true)) return;
+
+                        let base64: string | null = null;
+                        let fileUri: string | null = null;
+
+                        if (result.base64) {
+                          base64 = `data:image/jpeg;base64,${result.base64}`;
+                        } else if (Array.isArray(result.assets) && result.assets[0]) {
+                          const asset = result.assets[0];
+                          fileUri = asset.uri || null;
+                          if (asset.base64) {
+                            const mime = asset.type || 'image/jpeg';
+                            base64 = `data:${mime};base64,${asset.base64}`;
+                          }
+                        }
+
+                        if (fileUri) {
+                          // 로컬 URI가 있으면 업로드 함수에서 FormData 경로를 시도합니다.
+                          await updateAvatarMutation.mutateAsync(fileUri);
+                        } else if (base64) {
+                          await updateAvatarMutation.mutateAsync(base64);
+                        } else {
+                          Alert.alert('오류', '선택한 이미지에서 데이터를 얻을 수 없습니다.');
                           return;
                         }
-                        await updateAvatarMutation.mutateAsync(base64);
                         Alert.alert('성공', '프로필 사진이 업데이트되었습니다.');
                       } catch (e) {
                         console.error('Avatar upload failed', e);
@@ -602,6 +626,7 @@ export default function ProfileScreen() {
         onSuccess={() => {
           // 성공 시 프로필 다시 로드
           setVerificationModal({ ...verificationModal, visible: false });
+          queryClient.invalidateQueries({ queryKey: queryKeys.user.profile() });
         }}
       />
     </ThemedView>

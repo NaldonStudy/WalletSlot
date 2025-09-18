@@ -129,7 +129,19 @@ class ApiClient {
     if (typeof data === 'string') {
       if (data.trim() === '') {
         console.warn(`[API] ${method} 메서드에서 빈 문자열 응답 감지.`);
-        return { success: true, data: {} };
+        // 시도: axios가 내부에 raw response를 남겼을 수 있음
+        const raw = (response as any).request?._response || (response as any).request?._body || (response as any).request?.responseText;
+        if (raw && typeof raw === 'string' && raw.trim() !== '') {
+          try {
+            const parsed = JSON.parse(raw);
+            console.log(`[API] ${method} - 내부 raw 텍스트에서 JSON 파싱 성공`);
+            data = parsed;
+          } catch (e) {
+            console.warn(`[API] ${method} - 내부 raw 텍스트 JSON 파싱 실패`);
+          }
+        }
+        // 여전히 비어있다면 안전 래핑
+        if (typeof data === 'string' && data.trim() === '') return { success: true, data: {} };
       }
       try {
         data = JSON.parse(data);
@@ -151,32 +163,92 @@ class ApiClient {
     return { success: true, data };
   }
   
+  private async fetchViaNative<T>(method: string, url: string, data?: any, headers?: Record<string, string>): Promise<any> {
+    const token = await this.getAccessToken();
+    const finalHeaders: Record<string, string> = {
+      'Content-Type': 'application/json',
+      ...(headers || {}),
+    };
+    if (token) finalHeaders.Authorization = `Bearer ${token}`;
+
+    const opts: any = { method, headers: finalHeaders };
+    if (data !== undefined) {
+      if (data instanceof FormData) {
+        // Let fetch set the multipart boundary header automatically
+        delete finalHeaders['Content-Type'];
+        opts.body = data as any;
+      } else {
+        opts.body = JSON.stringify(data);
+      }
+    }
+
+    try {
+      console.log(`[API][fetch] ${method} ${url}`, data || {});
+      const res = await fetch(url, opts as RequestInit);
+      const text = await res.text();
+      if (!text || text.trim() === '') {
+        console.warn(`[API][fetch] ${method} 메서드에서 빈 문자열 응답 감지.`);
+        return { success: true, data: {} };
+      }
+      try {
+        const json = JSON.parse(text);
+        return json;
+      } catch (e) {
+        console.warn(`[API][fetch] ${method} 응답 JSON 파싱 실패, 원본 텍스트 반환`);
+        return { success: true, data: text };
+      }
+    } catch (e) {
+      console.error(`[API][fetch] ${method} ${url} 실패:`, e);
+      throw e;
+    }
+  }
+  
   async get<T>(url: string, params?: any): Promise<BaseResponse<T>> {
+    if (USE_MSW) {
+      // When using MSW/native, fetch tends to return proper body in RN environments.
+      const query = params ? '?' + new URLSearchParams(params).toString() : '';
+      return this.fetchViaNative('GET', `${url}${query}`);
+    }
     const response = await this.client.get(url, { params });
     return this.parseOrReturn('GET', response);
   }
 
   async post<T>(url: string, data?: any): Promise<BaseResponse<T>> {
+    if (USE_MSW) {
+      return this.fetchViaNative('POST', url, data);
+    }
     const response = await this.client.post(url, data);
     return this.parseOrReturn('POST', response);
   }
 
   async put<T>(url: string, data?: any): Promise<BaseResponse<T>> {
+    if (USE_MSW) {
+      return this.fetchViaNative('PUT', url, data);
+    }
     const response = await this.client.put(url, data);
     return this.parseOrReturn('PUT', response);
   }
 
   async patch<T>(url: string, data?: any): Promise<BaseResponse<T>> {
+    if (USE_MSW) {
+      return this.fetchViaNative('PATCH', url, data);
+    }
     const response = await this.client.patch(url, data);
     return this.parseOrReturn('PATCH', response);
   }
 
   async delete<T>(url: string): Promise<BaseResponse<T>> {
+    if (USE_MSW) {
+      return this.fetchViaNative('DELETE', url);
+    }
     const response = await this.client.delete(url);
     return this.parseOrReturn('DELETE', response);
   }
 
   async upload<T>(url: string, formData: FormData): Promise<BaseResponse<T>> {
+    if (USE_MSW) {
+      return this.fetchViaNative('POST', url, formData, { 'Content-Type': 'multipart/form-data' });
+    }
     const response = await this.client.post(url, formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });

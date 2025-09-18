@@ -84,14 +84,23 @@ export const updateMonthlyIncome = async (monthlyIncome: number): Promise<{ mont
 };
 
 export const updateAvatar = async (avatar: string): Promise<{ avatar: string }> => {
-  // 기본적으로 base64 문자열(또는 이미지 URL)을 패치하는 기존 엔드포인트 사용
-  const response = await apiClient.patch<{ avatar: string }>('/api/users/me/avatar', { avatar });
-  return response.data;
+  // 입력이 data URI(base64)인 경우 기존 PATCH 경로를 사용
+  if (typeof avatar === 'string' && avatar.startsWith('data:')) {
+    const response = await apiClient.patch<{ avatar: string }>('/api/users/me/avatar', { avatar });
+    return response.data;
+  }
 
-  // 만약 실제 파일 업로드(FormData)가 필요한 경우 아래와 같이 구현 가능:
-  // const form = new FormData();
-  // form.append('avatar', { uri: localUri, name: 'avatar.jpg', type: 'image/jpeg' } as any);
-  // return await apiClient.upload<{ avatar: string }>('/api/users/me/avatar', form);
+  // 그 외(예: 로컬 파일 URI)를 받는 경우 FormData 업로드 시도
+  try {
+    const form = new FormData();
+    form.append('avatar', { uri: avatar, name: 'avatar.jpg', type: 'image/jpeg' } as any);
+    const res = await apiClient.upload<{ avatar: string }>('/api/users/me/avatar', form);
+    return res.data;
+  } catch (e) {
+    // 마지막으로 폴백: 기존 PATCH 시도
+    const response = await apiClient.patch<{ avatar: string }>('/api/users/me/avatar', { avatar });
+    return response.data;
+  }
 };
 
 export const removeAvatar = async (): Promise<null> => {
