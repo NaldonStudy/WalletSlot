@@ -3,9 +3,9 @@
  */
 
 import {
-    BaseResponse,
-    UpdateProfileRequest,
-    UserProfile
+  BaseResponse,
+  UpdateProfileRequest,
+  UserProfile
 } from '@/src/types';
 import { faker } from '@faker-js/faker';
 import { http, HttpResponse } from 'msw';
@@ -135,6 +135,21 @@ export const profileHandlers = [
     console.log('[MSW] 인증 코드 확인:', body);
     
     // Mock에서는 항상 성공으로 처리
+    const response: BaseResponse<{ phone: string }> = {
+      success: true,
+      data: { phone: body.phone },
+      message: '휴대폰 번호가 성공적으로 변경되었습니다.',
+    };
+
+    return HttpResponse.json(response);
+  }),
+
+  // 휴대폰 번호 직접 수정 (인증 없이)
+  http.patch('/api/users/me/phone-number', async ({ request }) => {
+    console.log('[MSW] PATCH /api/users/me/phone-number - 휴대폰 번호 직접 수정');
+    
+    const body = await request.json() as { phone: string };
+    
     const response: BaseResponse<{ phone: string }> = {
       success: true,
       data: { phone: body.phone },

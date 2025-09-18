@@ -90,6 +90,7 @@ export interface UserProfile {
   job: string | null;
   monthlyIncome: number | null; // 원 단위
   avatar: string | null; // 프로필 이미지 URL
+  baseDay?: number; // 기준일 (1-31)
 }
 
 /**
@@ -101,6 +102,7 @@ export interface UpdateProfileRequest {
   job?: string;
   monthlyIncome?: number;
   avatar?: string; // base64 이미지 또는 파일 URL
+  baseDay?: number; // 기준일 (1-31)
 }
 
 /**

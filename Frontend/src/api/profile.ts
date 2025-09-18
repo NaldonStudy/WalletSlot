@@ -1,154 +1,104 @@
-/*
- * 사용자 프로필 관련 API 함수들
- */
-
-import {
-    BaseResponse,
-    UpdateProfileRequest,
-    UserProfile,
-} from '@/src/types';
+import type { UpdateProfileRequest, UserProfile } from '@/src/types';
 import { apiClient } from './client';
 
-/**
- * 현재 사용자 프로필 정보 조회
- * MSW의 빈 문자열 응답에 대응하기 위한 방어 로직이 포함되어 있습니다.
- */
-export const getUserProfile = async (): Promise<BaseResponse<UserProfile>> => {
-  console.log('[PROFILE_API] getUserProfile - 프로필 정보 조회');
-  try {
-    // ✅ CHANGED: 제네릭 타입을 BaseResponse<UserProfile>에서 UserProfile로 수정
-    const response = await apiClient.get<UserProfile>('/api/users/me');
-
-    // 비정상적인 응답(문자열, 빈 객체 등)을 받았을 때의 처리
-    if (!response || typeof response.success === 'undefined') {
-      console.warn('[PROFILE_API] getUserProfile - 비정상 응답 수신, Mock 데이터로 대체합니다.');
-      // MSW 핸들러와 동일한 Mock 데이터를 반환하여 앱 흐름 유지
-      return {
-        success: true,
-        data: {
-          name: '김싸피 (Fallback)',
-          phone: '010-1234-5678',
-          gender: 'M',
-          dateOfBirth: '1995-03-15',
-          email: 'kim.ssafy@example.com',
-          job: '개발자',
-          monthlyIncome: 4500000,
-          avatar: null,
-        },
-        message: '프로필 정보를 성공적으로 조회했습니다 (Fallback).',
-      };
-    }
-
-    return response;
-  } catch (error) {
-    console.error('[PROFILE_API] getUserProfile 에러:', error);
-    // apiClient의 인터셉터가 에러를 처리하지만,
-    // QueryFunction에서는 에러를 throw해야 React Query가 에러 상태를 감지합니다.
-    throw error;
+export const getUserProfile = async (): Promise<UserProfile> => {
+  const response = await apiClient.get<UserProfile>('/api/users/me');
+  // apiClient.parseOrReturn는 항상 { success, data } 형태를 반환하도록 보장합니다.
+  if (!response || !response.success || !response.data) {
+    console.warn('[PROFILE_API] getUserProfile - 비정상 응답 수신, Fallback 데이터를 반환합니다.');
+    return {
+      name: '김싸피 (Fallback)',
+      phone: '010-1234-5678',
+      gender: 'M',
+      dateOfBirth: '1995-03-15',
+      email: 'kim.ssafy@example.com',
+      job: '개발자',
+      monthlyIncome: 4500000,
+      avatar: null,
+    };
   }
+  return response.data as unknown as UserProfile;
 };
 
-/**
- * 프로필 정보 수정 (여러 필드 동시)
- */
-export const updateProfile = (data: UpdateProfileRequest): Promise<BaseResponse<UserProfile>> => {
-  return apiClient.patch('/api/users/me', data);
+export const updateProfile = async (data: UpdateProfileRequest): Promise<UserProfile> => {
+  const response = await apiClient.patch<UserProfile>('/api/users/me', data);
+  return response.data;
 };
 
-/**
- * 이름 수정
- */
-export const updateName = (name: string): Promise<BaseResponse<{ name: string }>> => {
-  return apiClient.patch('/api/users/me/name', { name });
+export const updateName = async (name: string): Promise<{ name: string }> => {
+  const response = await apiClient.patch<{ name: string }>('/api/users/me/name', { name });
+  return response.data;
 };
 
-/**
- * 생년월일 수정
- */
-export const updateDateOfBirth = (dateOfBirth: string): Promise<BaseResponse<{ dateOfBirth: string }>> => {
-  return apiClient.patch('/api/users/me/birth', { dateOfBirth });
+export const updateDateOfBirth = async (dateOfBirth: string): Promise<{ dateOfBirth: string }> => {
+  const response = await apiClient.patch<{ dateOfBirth: string }>('/api/users/me/birth', { dateOfBirth });
+  return response.data;
 };
 
-/**
- * 성별 수정
- */
-export const updateGender = (gender: 'M' | 'F' | 'O'): Promise<BaseResponse<{ gender: string }>> => {
-  return apiClient.patch('/api/users/me/gender', { gender });
+export const updateGender = async (gender: 'M' | 'F' | 'O'): Promise<{ gender: string }> => {
+  const response = await apiClient.patch<{ gender: string }>('/api/users/me/gender', { gender });
+  return response.data;
 };
 
-/**
- * 휴대폰 번호 인증 코드 발송
- */
-export const sendPhoneVerification = (phone: string): Promise<BaseResponse<{ verificationId: string }>> => {
-  return apiClient.post('/api/users/me/phone-number/verification', { phone });
+export const sendPhoneVerification = async (phone: string): Promise<{ verificationId: string }> => {
+  const response = await apiClient.post<{ verificationId: string }>('/api/users/me/phone-number/verification', { phone });
+  return response.data;
 };
 
-/**
- * 휴대폰 번호 인증 코드 확인 및 번호 변경
- */
-export const confirmPhoneVerification = (
+export const confirmPhoneVerification = async (
   verificationId: string,
   code: string,
   phone: string
-): Promise<BaseResponse<{ phone:string }>> => {
-  return apiClient.post('/api/users/me/phone-number/verification/confirm', { verificationId, code, phone });
+): Promise<{ phone: string }> => {
+  const response = await apiClient.post<{ phone: string }>('/api/users/me/phone-number/verification/confirm', { verificationId, code, phone });
+  return response.data;
 };
 
-/**
- * 이메일 주소 수정
- */
-export const updateEmail = (email: string): Promise<BaseResponse<{ email: string }>> => {
-  return apiClient.patch('/api/users/me/email', { email });
+export const updateEmail = async (email: string): Promise<{ email: string }> => {
+  const response = await apiClient.patch<{ email: string }>('/api/users/me/email', { email });
+  return response.data;
 };
 
-/**
- * 이메일 인증 코드 발송
- */
-export const sendEmailVerification = (email: string): Promise<BaseResponse<{ verificationId: string }>> => {
-  return apiClient.post('/api/users/me/email/verification', { email });
+export const sendEmailVerification = async (email: string): Promise<{ verificationId: string }> => {
+  const response = await apiClient.post<{ verificationId: string }>('/api/users/me/email/verification', { email });
+  return response.data;
 };
 
-/**
- * 이메일 인증 코드 확인 및 이메일 변경
- */
-export const confirmEmailVerification = (
+export const confirmEmailVerification = async (
   verificationId: string,
   code: string,
   email: string
-): Promise<BaseResponse<{ email: string }>> => {
-  return apiClient.post('/api/users/me/email/verification/confirm', { verificationId, code, email });
+): Promise<{ email: string }> => {
+  const response = await apiClient.post<{ email: string }>('/api/users/me/email/verification/confirm', { verificationId, code, email });
+  return response.data;
 };
 
-/**
- * 직업 수정
- */
-export const updateJob = (job: string): Promise<BaseResponse<{ job: string }>> => {
-  return apiClient.patch('/api/users/me/job', { job });
+export const updateJob = async (job: string): Promise<{ job: string }> => {
+  const response = await apiClient.patch<{ job: string }>('/api/users/me/job', { job });
+  return response.data;
 };
 
-/**
- * 월 수입 수정
- */
-export const updateMonthlyIncome = (monthlyIncome: number): Promise<BaseResponse<{ monthlyIncome: number }>> => {
-  return apiClient.patch('/api/users/me/monthly-income', { monthlyIncome });
+export const updateMonthlyIncome = async (monthlyIncome: number): Promise<{ monthlyIncome: number }> => {
+  const response = await apiClient.patch<{ monthlyIncome: number }>('/api/users/me/monthly-income', { monthlyIncome });
+  return response.data;
 };
 
-/**
- * 프로필 이미지 업로드
- */
-export const updateAvatar = (avatar: string): Promise<BaseResponse<{ avatar: string }>> => {
-  return apiClient.patch('/api/users/me/avatar', { avatar });
+export const updateAvatar = async (avatar: string): Promise<{ avatar: string }> => {
+  // 기본적으로 base64 문자열(또는 이미지 URL)을 패치하는 기존 엔드포인트 사용
+  const response = await apiClient.patch<{ avatar: string }>('/api/users/me/avatar', { avatar });
+  return response.data;
+
+  // 만약 실제 파일 업로드(FormData)가 필요한 경우 아래와 같이 구현 가능:
+  // const form = new FormData();
+  // form.append('avatar', { uri: localUri, name: 'avatar.jpg', type: 'image/jpeg' } as any);
+  // return await apiClient.upload<{ avatar: string }>('/api/users/me/avatar', form);
 };
 
-/**
- * 프로필 이미지 제거
- */
-export const removeAvatar = (): Promise<BaseResponse<null>> => {
-  return apiClient.delete('/api/users/me/avatar');
+export const removeAvatar = async (): Promise<null> => {
+  const response = await apiClient.delete<null>('/api/users/me/avatar');
+  return response.data;
 };
 
-
-// 모든 API 함수를 profileApi 객체로 묶어서 export
 export const profileApi = {
   getUserProfile,
   updateProfile,
