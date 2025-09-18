@@ -8,7 +8,7 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class GetAccountListRequest {
+public class GetAccountListRequestDto {
 
     // Field
     private Header Header;

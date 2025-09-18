@@ -35,7 +35,7 @@ public class PasswordUpgrader {
         }
 
         // 3) 저장된 pepper(alias)의 secret로 재검증
-        String savedSecret = pepperSecrets.getSecret(pin.getPepper().getKeyAlias());
+        String savedSecret = pepperSecrets.getSecret(pin.getPepperKey().getKeyAlias());
         if (!pin.matches(rawPin, savedSecret, verifier)) {
             return false; // 업그레이드 대상 아님
         }

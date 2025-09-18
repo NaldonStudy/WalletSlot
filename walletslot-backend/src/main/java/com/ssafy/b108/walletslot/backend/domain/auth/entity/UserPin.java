@@ -3,46 +3,51 @@ package com.ssafy.b108.walletslot.backend.domain.auth.entity;
 import com.ssafy.b108.walletslot.backend.domain.user.entity.User;
 import jakarta.persistence.*;
 import lombok.*;
+
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 import java.time.Duration;
 import java.time.Instant;
 
+
+import java.time.LocalDateTime;
+
 @Entity
-@Table(name = "user_pin", indexes = @Index(name = "ux_user_pin_user", columnList = "user_id", unique = true))
-@Getter
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
-@AllArgsConstructor(access = AccessLevel.PRIVATE)
+@Table(name = "user_pin")
+@Getter @Setter
+@NoArgsConstructor
+@AllArgsConstructor
 @Builder
 public class UserPin {
 
-    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    // Field
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @OneToOne(optional = false, fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id")
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    @ManyToOne(optional = false, fetch = FetchType.LAZY)
-    @JoinColumn(name = "pepper_id")
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "pepper_id", nullable = false)
     private PepperKey pepper;
 
-    @Column(name = "bcrypted_pin", nullable = false, length = 64)
+    @Column(nullable = false)
     private String bcryptedPin;
 
-    @Column(name = "cost", nullable = false)
-    private Integer cost;
+    @Column(columnDefinition = "TINYINT", nullable = false)
+    private int cost;
 
-    @Column(name = "failed_count", nullable = false)
+    @Column(columnDefinition = "TINYINT", nullable = false)
     private Integer failedCount;
 
-    @Column(name = "locked_until")
     private Instant lockedUntil;
 
-    @Column(name = "last_changed_at", nullable = false)
+    @Column(nullable = false, insertable = false, updatable = false)
     private Instant lastChangedAt;
 
-    @Column(name = "last_verified_at", nullable = false)
+    @Column(nullable = false, insertable = false, updatable = false)
     private Instant lastVerifiedAt;
 
     /* ===== 도메인 규칙 메서드 ===== */
@@ -79,4 +84,5 @@ public class UserPin {
         this.cost          = newCost;
         this.lastChangedAt = now;
     }
+
 }

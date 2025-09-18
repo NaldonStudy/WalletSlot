@@ -63,7 +63,7 @@ public class AuthService {
         }
 
         // 1) 현재 저장된 pepper(alias)로 검증
-        String secret = pepperSecrets.getSecret(up.getPepper().getKeyAlias());
+        String secret = pepperSecrets.getSecret(up.getPepperKey().getKeyAlias());
         if (!up.matches(rawPin, secret, bcrypt)) {
             up.markFail(MAX_FAILS, LOCK_DURATION, now); // 더티체킹으로 update
             throw new IllegalArgumentException("PIN이 올바르지 않습니다.");
