@@ -1,4 +1,4 @@
-package com.ssafy.b108.walletslot.backend.domain.account.dto.external;
+package com.ssafy.b108.walletslot.backend.domain.account.dto;
 
 import lombok.*;
 
@@ -7,10 +7,12 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class SSAFYRequestVerificationResponseDto {
+public class VerifyAccountResponseDto {
 
     // Field
-    private Rec REC;
+    private boolean success;
+    private String message;
+    private Data data;
 
     // Nested Class
     @Getter
@@ -18,10 +20,9 @@ public class SSAFYRequestVerificationResponseDto {
     @NoArgsConstructor
     @AllArgsConstructor
     @Builder
-    public static class Rec {
+    public static class Data {
 
         // Field
-        private String transactionUniqueNo;
         private String accountNo;
     }
 }

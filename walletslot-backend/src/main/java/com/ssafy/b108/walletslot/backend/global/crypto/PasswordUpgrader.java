@@ -25,7 +25,7 @@ public class PasswordUpgrader {
     public boolean upgradeIfNeeded(UserPin pin, String rawPin, int targetCost) {
         // 1) 활성 pepper 및 secret
         PepperKey active = pepperKeyRepository
-                .findFirstByStatusOrderByCreatedAtDesc(PepperKey.Status.ACTIVE) // <-- ACTIVE 로 수정
+                .findFirstByStatusOrderByCreatedAtDesc(PepperKey.Status.ACTIVATE) // <-- ACTIVE 로 수정
                 .orElseThrow(() -> new IllegalStateException("활성 pepper가 없습니다."));
         String currentSecret = pepperSecrets.getSecret(active.getKeyAlias());
 
