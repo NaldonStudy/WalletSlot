@@ -126,7 +126,13 @@ EXPO_PUBLIC_MSW_ENABLED=true
 ├── index.js            # ✅ Firebase v23 백그라운드 핸들러 등록
 ├── app/                 # Expo 라우터 기반 화면 구성
 │   ├── _dev/            # 🧪 개발용 컴포넌트 테스트 화면 그룹
-│   ├── (auth)/          # 🔐 인증(로그인, 회원가입) 관련 화면 그룹 
+│   ├── (auth)/          # 🔐 인증(로그인, 회원가입) 관련 화면 그룹
+│   │   ├── _layout.tsx  # auth 레이아웃
+│   │   └── (signup)/    # 회원가입 화면들
+│   │       ├── _layout.tsx          # signup 레이아웃
+│   │       ├── name.tsx             # ✅ 이름 입력 화면 (완전 구현)
+│   │       ├── phone.tsx            # ✅ 전화번호 입력 화면 (완전 구현)
+│   │       └── resident-id.tsx      # ✅ 주민등록 번호 입력 화면 (완전 구현)
 │   ├── (linking)/       # 🔗 딥링킹, 외부 연동 관련 화면 그룹
 │   ├── (onboarding)/    # 👋 온보딩(앱 최초 실행 시 안내) 화면 그룹
 │   │   ├── _layout.tsx  # 온보딩 레이아웃
