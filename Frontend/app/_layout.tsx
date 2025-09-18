@@ -6,11 +6,8 @@ import { useFonts } from 'expo-font';
 import { SplashScreen, Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
-<<<<<<< HEAD
 import AsyncStorage from '@react-native-async-storage/async-storage'; //개발 디버그 함수용
-=======
 import { Platform } from 'react-native';
->>>>>>> 85207623c94759ae1601de2b6dddc604f5880321
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import 'react-native-reanimated';
 
@@ -100,13 +97,10 @@ export default function RootLayout() {
     (global as any).resetOnboarding = resetOnboarding;
     (global as any).completeOnboarding = completeOnboarding;
     (global as any).checkOnboardingStatus = checkOnboardingStatus;
-<<<<<<< HEAD
     (global as any).clearSignupName = clearSignupName;
     (global as any).clearAsyncStorage = clearAsyncStorage;
-=======
     (global as any).initializePushService = initializePushService;
     (global as any).getPushStatus = () => unifiedPushService.getStatus();
->>>>>>> 85207623c94759ae1601de2b6dddc604f5880321
   }
   
   // Expo Router는 Error Boundary를 사용해 네비게이션 트리의 에러를 처리합니다.
