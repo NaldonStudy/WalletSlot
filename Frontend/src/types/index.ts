@@ -1,12 +1,16 @@
-// ===== 공통 타입 =====
+import { SLOT_CATEGORIES } from "../constants/slots";
 
+// ===== 공통 타입 =====
 // ===== UI 컴포넌트용 타입들 =====
 
 /**
  * 슬롯 데이터 (원형 그래프용)
  */
+
+export type SlotId = keyof typeof SLOT_CATEGORIES;
+
 export interface SlotData {
-  slotId: string;
+  slotId: SlotId;
   name: string;
   budget: number;
   remain: number;
