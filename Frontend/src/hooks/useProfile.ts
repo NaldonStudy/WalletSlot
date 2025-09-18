@@ -14,7 +14,23 @@ export const useUpdateProfile = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: profileApi.updateProfile,
-    onSuccess: () => {
+    onMutate: async (newProfile: any) => {
+      const key = queryKeys.user.profile();
+      await queryClient.cancelQueries({ queryKey: key });
+      const previous = queryClient.getQueryData(key);
+      queryClient.setQueryData(key, (old: any) => {
+        if (!old) return old;
+        return { ...old, data: { ...old.data, ...newProfile } };
+      });
+      return { previous };
+    },
+    onError: (_err, _newProfile, context: any) => {
+      const key = queryKeys.user.profile();
+      if (context?.previous) {
+        queryClient.setQueryData(key, context.previous);
+      }
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.user.profile() });
     },
   });
@@ -24,7 +40,23 @@ export const useUpdateName = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: profileApi.updateName,
-    onSuccess: () => {
+    onMutate: async (newName: string) => {
+      const key = queryKeys.user.profile();
+      await queryClient.cancelQueries({ queryKey: key });
+      const previous = queryClient.getQueryData(key);
+      queryClient.setQueryData(key, (old: any) => {
+        if (!old) return old;
+        return { ...old, data: { ...old.data, name: newName } };
+      });
+      return { previous };
+    },
+    onError: (_err, _newName, context: any) => {
+      const key = queryKeys.user.profile();
+      if (context?.previous) {
+        queryClient.setQueryData(key, context.previous);
+      }
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.user.profile() });
     },
   });
@@ -34,7 +66,23 @@ export const useUpdateDateOfBirth = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: profileApi.updateDateOfBirth,
-    onSuccess: () => {
+    onMutate: async (dob: string) => {
+      const key = queryKeys.user.profile();
+      await queryClient.cancelQueries({ queryKey: key });
+      const previous = queryClient.getQueryData(key);
+      queryClient.setQueryData(key, (old: any) => {
+        if (!old) return old;
+        return { ...old, data: { ...old.data, dateOfBirth: dob } };
+      });
+      return { previous };
+    },
+    onError: (_err, _dob, context: any) => {
+      const key = queryKeys.user.profile();
+      if (context?.previous) {
+        queryClient.setQueryData(key, context.previous);
+      }
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.user.profile() });
     },
   });
@@ -44,7 +92,23 @@ export const useUpdateGender = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: profileApi.updateGender,
-    onSuccess: () => {
+    onMutate: async (gender: string) => {
+      const key = queryKeys.user.profile();
+      await queryClient.cancelQueries({ queryKey: key });
+      const previous = queryClient.getQueryData(key);
+      queryClient.setQueryData(key, (old: any) => {
+        if (!old) return old;
+        return { ...old, data: { ...old.data, gender } };
+      });
+      return { previous };
+    },
+    onError: (_err, _gender, context: any) => {
+      const key = queryKeys.user.profile();
+      if (context?.previous) {
+        queryClient.setQueryData(key, context.previous);
+      }
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.user.profile() });
     },
   });
@@ -61,7 +125,23 @@ export const useConfirmPhoneVerification = () => {
   return useMutation({
     mutationFn: (data: { verificationId: string; code: string; phone: string }) =>
       profileApi.confirmPhoneVerification(data.verificationId, data.code, data.phone),
-    onSuccess: () => {
+    onMutate: async (vars: { verificationId: string; code: string; phone: string }) => {
+      const key = queryKeys.user.profile();
+      await queryClient.cancelQueries({ queryKey: key });
+      const previous = queryClient.getQueryData(key);
+      queryClient.setQueryData(key, (old: any) => {
+        if (!old) return old;
+        return { ...old, data: { ...old.data, phone: vars.phone } };
+      });
+      return { previous };
+    },
+    onError: (_err, _vars, context: any) => {
+      const key = queryKeys.user.profile();
+      if (context?.previous) {
+        queryClient.setQueryData(key, context.previous);
+      }
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.user.profile() });
     },
   });
@@ -71,7 +151,23 @@ export const useUpdateEmail = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: profileApi.updateEmail,
-    onSuccess: () => {
+    onMutate: async (email: string) => {
+      const key = queryKeys.user.profile();
+      await queryClient.cancelQueries({ queryKey: key });
+      const previous = queryClient.getQueryData(key);
+      queryClient.setQueryData(key, (old: any) => {
+        if (!old) return old;
+        return { ...old, data: { ...old.data, email } };
+      });
+      return { previous };
+    },
+    onError: (_err, _email, context: any) => {
+      const key = queryKeys.user.profile();
+      if (context?.previous) {
+        queryClient.setQueryData(key, context.previous);
+      }
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.user.profile() });
     },
   });
@@ -88,7 +184,23 @@ export const useConfirmEmailVerification = () => {
   return useMutation({
     mutationFn: (data: { verificationId: string; code: string; email: string }) =>
       profileApi.confirmEmailVerification(data.verificationId, data.code, data.email),
-    onSuccess: () => {
+    onMutate: async (vars: { verificationId: string; code: string; email: string }) => {
+      const key = queryKeys.user.profile();
+      await queryClient.cancelQueries({ queryKey: key });
+      const previous = queryClient.getQueryData(key);
+      queryClient.setQueryData(key, (old: any) => {
+        if (!old) return old;
+        return { ...old, data: { ...old.data, email: vars.email } };
+      });
+      return { previous };
+    },
+    onError: (_err, _vars, context: any) => {
+      const key = queryKeys.user.profile();
+      if (context?.previous) {
+        queryClient.setQueryData(key, context.previous);
+      }
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.user.profile() });
     },
   });
@@ -98,7 +210,23 @@ export const useUpdateJob = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: profileApi.updateJob,
-    onSuccess: () => {
+    onMutate: async (job: string) => {
+      const key = queryKeys.user.profile();
+      await queryClient.cancelQueries({ queryKey: key });
+      const previous = queryClient.getQueryData(key);
+      queryClient.setQueryData(key, (old: any) => {
+        if (!old) return old;
+        return { ...old, data: { ...old.data, job } };
+      });
+      return { previous };
+    },
+    onError: (_err, _job, context: any) => {
+      const key = queryKeys.user.profile();
+      if (context?.previous) {
+        queryClient.setQueryData(key, context.previous);
+      }
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.user.profile() });
     },
   });
@@ -108,7 +236,23 @@ export const useUpdateMonthlyIncome = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: profileApi.updateMonthlyIncome,
-    onSuccess: () => {
+    onMutate: async (income: number) => {
+      const key = queryKeys.user.profile();
+      await queryClient.cancelQueries({ queryKey: key });
+      const previous = queryClient.getQueryData(key);
+      queryClient.setQueryData(key, (old: any) => {
+        if (!old) return old;
+        return { ...old, data: { ...old.data, monthlyIncome: income } };
+      });
+      return { previous };
+    },
+    onError: (_err, _income, context: any) => {
+      const key = queryKeys.user.profile();
+      if (context?.previous) {
+        queryClient.setQueryData(key, context.previous);
+      }
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.user.profile() });
     },
   });
@@ -118,7 +262,27 @@ export const useUpdateAvatar = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: profileApi.updateAvatar,
-    onSuccess: () => {
+    onMutate: async (avatarPayload: any) => {
+      const key = queryKeys.user.profile();
+      await queryClient.cancelQueries({ queryKey: key });
+      const previous = queryClient.getQueryData(key);
+      const preview =
+        typeof avatarPayload === 'string'
+          ? avatarPayload
+          : avatarPayload?.uri || (avatarPayload && avatarPayload[0]?.uri);
+      queryClient.setQueryData(key, (old: any) => {
+        if (!old) return old;
+        return { ...old, data: { ...old.data, avatar: preview } };
+      });
+      return { previous };
+    },
+    onError: (_err, _payload, context: any) => {
+      const key = queryKeys.user.profile();
+      if (context?.previous) {
+        queryClient.setQueryData(key, context.previous);
+      }
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.user.profile() });
     },
   });
@@ -128,7 +292,23 @@ export const useRemoveAvatar = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: profileApi.removeAvatar,
-    onSuccess: () => {
+    onMutate: async () => {
+      const key = queryKeys.user.profile();
+      await queryClient.cancelQueries({ queryKey: key });
+      const previous = queryClient.getQueryData(key);
+      queryClient.setQueryData(key, (old: any) => {
+        if (!old) return old;
+        return { ...old, data: { ...old.data, avatar: null } };
+      });
+      return { previous };
+    },
+    onError: (_err, _vars, context: any) => {
+      const key = queryKeys.user.profile();
+      if (context?.previous) {
+        queryClient.setQueryData(key, context.previous);
+      }
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.user.profile() });
     },
   });

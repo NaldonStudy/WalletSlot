@@ -1,18 +1,15 @@
-import React, { useState, useRef, useEffect, useMemo, useCallback, memo } from 'react';
-import { View, Text, StyleSheet, ScrollView, useColorScheme, Animated, Dimensions } from 'react-native';
-import { Image } from 'expo-image';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { faker } from '@faker-js/faker';
-import { Button } from '@/src/components';
-import { themes, Spacing, Typography } from '@/src/constants/theme';
+import AccountCarousel from '@/src/components/account/AccountCarousel';
 import { AccountSummary } from '@/src/components/account/AccountSummary';
+import AccountDonutChart from '@/src/components/chart/AccountDonutChart';
+import SlotList from '@/src/components/slot/SlotList';
+import { UncategorizedSlotCard } from '@/src/components/slot/UncategorizedSlotCard';
 import { BANK_CODES } from '@/src/constants/banks';
 import { SAMPLE_ACCOUNTS } from '@/src/constants/sampleData';
-import AccountDonutChart from '@/src/components/chart/AccountDonutChart';
-import AccountCarousel from '@/src/components/account/AccountCarousel';
-import { UncategorizedSlotCard } from '@/src/components/slot/UncategorizedSlotCard';
-import { SLOT_CATEGORIES } from '@/src/constants/slots';
-import SlotList from '@/src/components/slot/SlotList';
+import { Spacing, themes, Typography } from '@/src/constants/theme';
+import { faker } from '@faker-js/faker';
+import React, { memo, useCallback, useMemo, useRef, useState } from 'react';
+import { Animated, StyleSheet, Text, useColorScheme, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 // 헤더 컴포넌트 분리 (메모이제이션)
 const DashboardHeader = memo(({ userData, theme }: { userData: any, theme: any }) => (
@@ -25,6 +22,8 @@ const DashboardHeader = memo(({ userData, theme }: { userData: any, theme: any }
     </Text>
   </View>
 ));
+
+DashboardHeader.displayName = 'DashboardHeader';
 
 // 현실적인 샘플 데이터 생성
 const generateUserData = () => {

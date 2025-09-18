@@ -55,6 +55,9 @@ export const profileHandlers = [
       ...body,
     };
 
+    // 상태를 갱신하여 이후 GET 호출에서 반영되도록 함
+    Object.assign(SAMPLE_USER_PROFILE, updatedProfile);
+
     const response: BaseResponse<UserProfile> = {
       success: true,
       data: updatedProfile,
@@ -70,6 +73,9 @@ export const profileHandlers = [
     
     const body = await request.json() as { name: string };
     
+    // 반영
+    SAMPLE_USER_PROFILE.name = body.name;
+
     const response: BaseResponse<{ name: string }> = {
       success: true,
       data: { name: body.name },
@@ -85,6 +91,8 @@ export const profileHandlers = [
     
     const body = await request.json() as { dateOfBirth: string };
     
+    SAMPLE_USER_PROFILE.dateOfBirth = body.dateOfBirth;
+
     const response: BaseResponse<{ dateOfBirth: string }> = {
       success: true,
       data: { dateOfBirth: body.dateOfBirth },
@@ -100,6 +108,8 @@ export const profileHandlers = [
     
     const body = await request.json() as { gender: 'M' | 'F' | 'O' };
     
+    SAMPLE_USER_PROFILE.gender = body.gender;
+
     const response: BaseResponse<{ gender: string }> = {
       success: true,
       data: { gender: body.gender },
@@ -135,6 +145,9 @@ export const profileHandlers = [
     console.log('[MSW] 인증 코드 확인:', body);
     
     // Mock에서는 항상 성공으로 처리
+    // 반영
+    SAMPLE_USER_PROFILE.phone = body.phone;
+
     const response: BaseResponse<{ phone: string }> = {
       success: true,
       data: { phone: body.phone },
@@ -150,6 +163,8 @@ export const profileHandlers = [
     
     const body = await request.json() as { phone: string };
     
+    SAMPLE_USER_PROFILE.phone = body.phone;
+
     const response: BaseResponse<{ phone: string }> = {
       success: true,
       data: { phone: body.phone },
@@ -165,6 +180,8 @@ export const profileHandlers = [
     
     const body = await request.json() as { email: string };
     
+    SAMPLE_USER_PROFILE.email = body.email;
+
     const response: BaseResponse<{ email: string }> = {
       success: true,
       data: { email: body.email },
@@ -200,6 +217,8 @@ export const profileHandlers = [
     console.log('[MSW] 이메일 인증 코드 확인:', body);
     
     // Mock에서는 항상 성공으로 처리
+    SAMPLE_USER_PROFILE.email = body.email;
+
     const response: BaseResponse<{ email: string }> = {
       success: true,
       data: { email: body.email },
@@ -215,6 +234,8 @@ export const profileHandlers = [
     
     const body = await request.json() as { job: string };
     
+    SAMPLE_USER_PROFILE.job = body.job;
+
     const response: BaseResponse<{ job: string }> = {
       success: true,
       data: { job: body.job },
@@ -245,6 +266,8 @@ export const profileHandlers = [
     
     const body = await request.json() as { monthlyIncome: number };
     
+    SAMPLE_USER_PROFILE.monthlyIncome = body.monthlyIncome;
+
     const response: BaseResponse<{ monthlyIncome: number }> = {
       success: true,
       data: { monthlyIncome: body.monthlyIncome },
@@ -260,6 +283,8 @@ export const profileHandlers = [
     
     const body = await request.json() as { avatar: string };
     
+    SAMPLE_USER_PROFILE.avatar = body.avatar;
+
     const response: BaseResponse<{ avatar: string }> = {
       success: true,
       data: { avatar: body.avatar },

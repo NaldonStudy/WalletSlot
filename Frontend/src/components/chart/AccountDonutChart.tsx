@@ -1,8 +1,8 @@
-import React, { memo } from "react";
-import { View, StyleSheet, Text, useColorScheme } from "react-native";
-import Svg, { Circle, G, Text as SvgText, Path } from "react-native-svg";
-import { SlotData } from '@/src/types';
 import { themes } from '@/src/constants/theme';
+import { SlotData } from '@/src/types';
+import React, { memo } from "react";
+import { StyleSheet, Text, useColorScheme, View } from "react-native";
+import Svg, { G, Path, Text as SvgText } from "react-native-svg";
 
 type AccountDonutChartProps = {
     data: SlotData[];
@@ -168,6 +168,8 @@ const AccountDonutChart = memo(({ data }: AccountDonutChartProps) => {
                slot.color === nextSlot.color;
     });
 });
+
+AccountDonutChart.displayName = 'AccountDonutChart';
 
 export default AccountDonutChart;
 

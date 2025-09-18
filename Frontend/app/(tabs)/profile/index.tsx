@@ -10,28 +10,25 @@ import {
   useUpdateJob,
   useUpdateMonthlyIncome,
   useUpdateName,
-  useUserProfile
+  useUserProfile,
 } from '@/src/hooks';
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useQueryClient } from '@tanstack/react-query';
 import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Alert,
-  Dimensions,
+  Image,
   Modal,
   ScrollView,
   StatusBar,
-  StyleSheet,
-  Text,
+  StyleSheet, Switch, Text,
   TextInput,
   TouchableOpacity,
-  View,
+  View
 } from 'react-native';
-
-const { width } = Dimensions.get('window');
-
 interface EditModalProps {
   visible: boolean;
   title: string;
@@ -50,84 +47,164 @@ interface VerificationModalProps {
   onSuccess: () => void;
 }
 
-const EditModal: React.FC<EditModalProps> = ({
-  visible,
-  title,
-  value,
-  onSave,
-  onCancel,
-  placeholder,
-  keyboardType = 'default',
-}) => {
+const JOB_LIST = [
+  '개발자',
+  '디자이너',
+  '기획자',
+  '마케팅',
+  '영업',
+  '교사',
+  '의사',
+  '간호사',
+  '자영업',
+  '학생',
+  '무직',
+  '기타',
+];
+
+const JobPicker: React.FC<{
+  visible: boolean;
+  value: string;
+  onCancel: () => void;
+  onSelect: (job: string) => void;
+}> = ({ visible, value, onCancel, onSelect }) => {
+  const [selected, setSelected] = useState(value);
+
+  useEffect(() => setSelected(value), [value, visible]);
+
+  return (
+    <Modal visible={visible} animationType="slide" transparent onRequestClose={onCancel}>
+      <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={onCancel}>
+        <View style={styles.modalContent}>
+          <View style={styles.modalHeader}>
+            <TouchableOpacity onPress={onCancel}>
+              <Ionicons name="close" size={24} color="#666" />
+            </TouchableOpacity>
+            <Text style={styles.modalTitle}>직업 선택</Text>
+            <TouchableOpacity onPress={() => { onSelect(selected); onCancel(); }}>
+              <Text style={styles.saveText}>선택</Text>
+            </TouchableOpacity>
+          </View>
+          <View style={{ padding: 16 }}>
+            {JOB_LIST.map((job) => (
+              <TouchableOpacity key={job} style={[styles.menuItem, selected === job && { borderColor: '#667eea', borderWidth: 1 }]} onPress={() => setSelected(job)}>
+                <Text style={styles.menuLabel}>{job}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+      </TouchableOpacity>
+    </Modal>
+  );
+};
+
+const formatNumberWithCommas = (numStr: string) => {
+  const digits = numStr.replace(/[^0-9]/g, '');
+  if (digits === '') return '';
+  return digits.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+};
+
+const EditModal: React.FC<EditModalProps> = ({ visible, title, value, onSave, onCancel, placeholder, keyboardType = 'default' }) => {
   const [inputValue, setInputValue] = useState(value);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  useEffect(() => setInputValue(value), [value]);
+
+  useEffect(() => {
+    if (keyboardType === 'numeric') {
+      const numeric = inputValue.replace(/,/g, '').trim();
+      if (numeric === '') setErrorMessage('값을 입력해주세요.');
+      else if (!/^[0-9]+$/.test(numeric)) setErrorMessage('숫자만 입력해주세요.');
+      else setErrorMessage(null);
+    } else {
+      if (inputValue.trim() === '') setErrorMessage('값을 입력해주세요.');
+      else setErrorMessage(null);
+    }
+  }, [inputValue, keyboardType]);
+
+  const hasChanged = inputValue !== value;
 
   const handleSave = () => {
+    if (errorMessage) return;
     onSave(inputValue);
     onCancel();
   };
 
   return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      transparent
-      onRequestClose={onCancel}
-    >
-      <View style={styles.modalOverlay}>
+    <Modal visible={visible} animationType="slide" transparent onRequestClose={onCancel}>
+      <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={onCancel}>
         <View style={styles.modalContent}>
           <View style={styles.modalHeader}>
             <TouchableOpacity onPress={onCancel}>
               <Ionicons name="close" size={24} color="#666" />
             </TouchableOpacity>
             <Text style={styles.modalTitle}>{title}</Text>
-            <TouchableOpacity onPress={handleSave}>
-              <Text style={styles.saveText}>저장</Text>
+            <TouchableOpacity onPress={handleSave} disabled={!!errorMessage || !hasChanged}>
+              <Text style={[styles.saveText, (!!errorMessage || !hasChanged) && { color: '#ccc' }]}>저장</Text>
             </TouchableOpacity>
           </View>
-          
           <TextInput
             style={styles.modalInput}
             value={inputValue}
-            onChangeText={setInputValue}
+            onChangeText={(text) => {
+              if (keyboardType === 'numeric') setInputValue(formatNumberWithCommas(text));
+              else setInputValue(text);
+            }}
             placeholder={placeholder}
             keyboardType={keyboardType}
             autoFocus
           />
+          {errorMessage ? <Text style={styles.inlineError}>{errorMessage}</Text> : null}
         </View>
-      </View>
+      </TouchableOpacity>
     </Modal>
   );
 };
 
-const VerificationModal: React.FC<VerificationModalProps> = ({
-  visible,
-  type,
-  value,
-  onCancel,
-  onSuccess,
-}) => {
+const VerificationModal: React.FC<VerificationModalProps> = ({ visible, type, value, onCancel, onSuccess }) => {
   const [step, setStep] = useState<'input' | 'verify'>('input');
   const [inputValue, setInputValue] = useState(value);
   const [verificationCode, setVerificationCode] = useState('');
   const [verificationId, setVerificationId] = useState('');
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    setInputValue(value);
+    setStep('input');
+    setVerificationCode('');
+    setVerificationId('');
+    setErrorMessage(null);
+  }, [visible, value]);
 
   const sendPhoneVerification = useSendPhoneVerification();
   const confirmPhoneVerification = useConfirmPhoneVerification();
   const sendEmailVerification = useSendEmailVerification();
   const confirmEmailVerification = useConfirmEmailVerification();
+  const queryClient = useQueryClient();
+
+  const isValidEmail = (email: string) => {
+    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return re.test(email);
+  };
 
   const handleSendVerification = async () => {
     try {
+      if (type === 'email' && !isValidEmail(inputValue.trim())) {
+        setErrorMessage('유효한 이메일 주소를 입력하세요.');
+        return;
+      }
+
       if (type === 'phone') {
-        const response = await sendPhoneVerification.mutateAsync(inputValue);
-        setVerificationId(response.verificationId);
+        const response: any = await sendPhoneVerification.mutateAsync(inputValue);
+        setVerificationId(response?.verificationId || '');
       } else {
-        const response = await sendEmailVerification.mutateAsync(inputValue);
-        setVerificationId(response.verificationId);
+        const response: any = await sendEmailVerification.mutateAsync(inputValue);
+        setVerificationId(response?.verificationId || '');
       }
       setStep('verify');
+      setErrorMessage(null);
       Alert.alert('인증번호 발송', `${inputValue}로 인증번호를 발송했습니다.`);
-    } catch (error) {
+    } catch (err) {
       Alert.alert('오류', '인증번호 발송에 실패했습니다.');
     }
   };
@@ -135,25 +212,15 @@ const VerificationModal: React.FC<VerificationModalProps> = ({
   const handleConfirmVerification = async () => {
     try {
       if (type === 'phone') {
-        await confirmPhoneVerification.mutateAsync({
-          verificationId,
-          code: verificationCode,
-          phone: inputValue,
-        });
+        await confirmPhoneVerification.mutateAsync({ verificationId, code: verificationCode, phone: inputValue });
       } else {
-        await confirmEmailVerification.mutateAsync({
-          verificationId,
-          code: verificationCode,
-          email: inputValue,
-        });
+        await confirmEmailVerification.mutateAsync({ verificationId, code: verificationCode, email: inputValue });
       }
       Alert.alert('성공', `${type === 'phone' ? '휴대폰 번호' : '이메일'}가 변경되었습니다.`);
       onSuccess();
       onCancel();
-      setStep('input');
-      setVerificationCode('');
-      setVerificationId('');
-    } catch (error) {
+      queryClient.invalidateQueries({ queryKey: queryKeys.user.profile() });
+    } catch (err) {
       Alert.alert('오류', '인증에 실패했습니다. 인증번호를 확인해주세요.');
     }
   };
@@ -166,62 +233,61 @@ const VerificationModal: React.FC<VerificationModalProps> = ({
   };
 
   return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      transparent
-      onRequestClose={handleCancel}
-    >
-      <View style={styles.modalOverlay}>
-        <View style={styles.modalContent}>
-          <View style={styles.modalHeader}>
-            <TouchableOpacity onPress={handleCancel}>
-              <Ionicons name="close" size={24} color="#666" />
-            </TouchableOpacity>
-            <Text style={styles.modalTitle}>
-              {type === 'phone' ? '휴대폰 번호 변경' : '이메일 변경'}
+    <Modal visible={visible} animationType="slide" transparent={false} onRequestClose={handleCancel}>
+      <View style={{ flex: 1, backgroundColor: '#fff' }}>
+        <View style={styles.modalHeader}>
+          <TouchableOpacity onPress={handleCancel}>
+            <Ionicons name="close" size={24} color="#666" />
+          </TouchableOpacity>
+          <Text style={styles.modalTitle}>{type === 'phone' ? '휴대폰 번호 변경' : '이메일 변경'}</Text>
+          <TouchableOpacity onPress={step === 'input' ? handleSendVerification : handleConfirmVerification} disabled={step === 'input' ? !!errorMessage || !inputValue.trim() : !verificationCode.trim()}>
+            <Text style={[styles.saveText, (step === 'input' ? !!errorMessage || !inputValue.trim() : !verificationCode.trim()) && { color: '#ccc' }]}>
+              {step === 'input' ? '인증번호 발송' : '확인'}
             </Text>
-            <TouchableOpacity 
-              onPress={step === 'input' ? handleSendVerification : handleConfirmVerification}
-              disabled={step === 'input' ? !inputValue.trim() : !verificationCode.trim()}
-            >
-              <Text style={[
-                styles.saveText, 
-                (!inputValue.trim() || (step === 'verify' && !verificationCode.trim())) && { color: '#ccc' }
-              ]}>
-                {step === 'input' ? '인증번호 발송' : '확인'}
-              </Text>
-            </TouchableOpacity>
-          </View>
-          
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.verificationStep}>
           {step === 'input' ? (
-            <View style={styles.verificationStep}>
-              <Text style={styles.verificationLabel}>
-                새로운 {type === 'phone' ? '휴대폰 번호' : '이메일 주소'}를 입력하세요
-              </Text>
+            <View>
+              <Text style={styles.verificationLabel}>새로운 {type === 'phone' ? '휴대폰 번호' : '이메일 주소'}를 입력하세요</Text>
               <TextInput
                 style={styles.modalInput}
                 value={inputValue}
-                onChangeText={setInputValue}
+                onChangeText={(text) => {
+                  if (type === 'phone') {
+                    const digits = text.replace(/[^0-9]/g, '');
+                    let formatted = digits;
+                    if (digits.length <= 3) formatted = digits;
+                    else if (digits.length <= 7) formatted = `${digits.slice(0, 3)}-${digits.slice(3)}`;
+                    else formatted = `${digits.slice(0, 3)}-${digits.slice(3, 7)}-${digits.slice(7, 11)}`;
+                    setInputValue(formatted);
+                    // 실시간 휴대폰 검증: 최소 10자리(국내) 권장
+                    const plain = digits;
+                    if (plain.length === 0) setErrorMessage('값을 입력해주세요.');
+                    else if (plain.length < 10) setErrorMessage('유효한 휴대폰 번호를 입력하세요.');
+                    else setErrorMessage(null);
+                  } else {
+                    setInputValue(text);
+                    const email = text.trim();
+                    if (email === '') setErrorMessage('값을 입력해주세요.');
+                    else {
+                      const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                      if (!re.test(email)) setErrorMessage('유효한 이메일 주소를 입력하세요.');
+                      else setErrorMessage(null);
+                    }
+                  }
+                }}
                 placeholder={type === 'phone' ? '010-1234-5678' : 'example@email.com'}
                 keyboardType={type === 'phone' ? 'numeric' : 'email-address'}
                 autoFocus
               />
+              {errorMessage ? <Text style={styles.inlineError}>{errorMessage}</Text> : null}
             </View>
           ) : (
-            <View style={styles.verificationStep}>
-              <Text style={styles.verificationLabel}>
-                {inputValue}로 발송된 인증번호를 입력하세요
-              </Text>
-              <TextInput
-                style={styles.modalInput}
-                value={verificationCode}
-                onChangeText={setVerificationCode}
-                placeholder="인증번호 6자리"
-                keyboardType="numeric"
-                maxLength={6}
-                autoFocus
-              />
+            <View>
+              <Text style={styles.verificationLabel}>{inputValue}로 발송된 인증번호를 입력하세요</Text>
+              <TextInput style={styles.modalInput} value={verificationCode} onChangeText={setVerificationCode} placeholder="인증번호 6자리" keyboardType="numeric" maxLength={6} autoFocus />
             </View>
           )}
         </View>
@@ -260,7 +326,22 @@ export default function ProfileScreen() {
     type: 'phone',
     value: '',
   });
+  const [jobPicker, setJobPicker] = useState<{ visible: boolean; value: string }>({ visible: false, value: '' });
+  const [settingsModalVisible, setSettingsModalVisible] = useState(false);
+  const [settingsState, setSettingsState] = useState<{ push?: boolean; marketing?: boolean } | null>(null);
   const queryClient = useQueryClient();
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const raw = await AsyncStorage.getItem('settings');
+        if (raw) setSettingsState(JSON.parse(raw));
+        else setSettingsState({ push: true, marketing: false });
+      } catch (e) {
+        console.error('Load settings failed', e);
+      }
+    })();
+  }, []);
 
   const openEditModal = (
     field: string,
@@ -366,15 +447,14 @@ export default function ProfileScreen() {
       <StatusBar barStyle="light-content" />
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {/* 프로필 헤더 */}
-        <LinearGradient
-          colors={['#667eea', '#764ba2']}
-          style={styles.header}
-        >
+        <LinearGradient colors={['#667eea', '#764ba2']} style={styles.header}>
           <View style={styles.avatarContainer}>
             <View style={styles.avatarWrapper}>
-              <Text style={styles.avatarPlaceholder}>
-                {profile.name?.charAt(0) || '?'}
-              </Text>
+              {profile.avatar ? (
+                <Image source={{ uri: profile.avatar }} style={styles.avatarImage} />
+              ) : (
+                <Text style={styles.avatarPlaceholder}>{profile.name?.charAt(0) || '?'}</Text>
+              )}
             </View>
             <TouchableOpacity
               style={styles.cameraButton}
@@ -395,12 +475,9 @@ export default function ProfileScreen() {
                           mediaTypes: ImagePicker.MediaTypeOptions.Images,
                           allowsEditing: true,
                           quality: 0.7,
-                          base64: true,
+                          base64: false,
                         });
 
-                        // 여러 버전의 결과 형태를 모두 지원
-                        // 1) 이전: { cancelled: boolean, base64?: string }
-                        // 2) 새 버전: { canceled: boolean, assets: [{ uri, base64?, type }] }
                         if ((result.cancelled && result.cancelled === true) || (result.canceled && result.canceled === true)) return;
 
                         let base64: string | null = null;
@@ -439,9 +516,15 @@ export default function ProfileScreen() {
               <Ionicons name="camera" size={18} color="#fff" />
             </TouchableOpacity>
           </View>
-          
-          <Text style={styles.headerName}>{profile.name || '이름 없음'}</Text>
-          <Text style={styles.headerEmail}>{profile.email || '이메일 없음'}</Text>
+          <View style={styles.headerMeta}>
+            <View>
+              <Text style={styles.headerName}>{profile.name || '이름 없음'}</Text>
+              <Text style={styles.headerEmail}>{profile.email || '이메일 없음'}</Text>
+            </View>
+            <TouchableOpacity style={styles.settingsButton} onPress={() => setSettingsModalVisible(true)}>
+              <Ionicons name="settings-outline" size={22} color="#fff" />
+            </TouchableOpacity>
+          </View>
         </LinearGradient>
 
         {/* 개인정보 섹션 */}
@@ -529,10 +612,7 @@ export default function ProfileScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>직업정보</Text>
           
-          <TouchableOpacity
-            style={styles.menuItem}
-            onPress={() => openEditModal('job', '직업 수정', profile.job || '')}
-          >
+          <TouchableOpacity style={styles.menuItem} onPress={() => setJobPicker({ visible: true, value: profile.job || '' })}>
             <View style={styles.menuLeft}>
               <View style={[styles.iconContainer, { backgroundColor: '#e1f5fe' }]}>
                 <Ionicons name="briefcase" size={20} color="#0277bd" />
@@ -562,48 +642,7 @@ export default function ProfileScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* 설정 섹션 */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>설정</Text>
-          
-          <TouchableOpacity style={styles.menuItem}>
-            <View style={styles.menuLeft}>
-              <View style={[styles.iconContainer, { backgroundColor: '#f3e5f5' }]}>
-                <Ionicons name="notifications" size={20} color="#7b1fa2" />
-              </View>
-              <View style={styles.menuInfo}>
-                <Text style={styles.menuLabel}>알림 설정</Text>
-              </View>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color="#ccc" />
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.menuItem}>
-            <View style={styles.menuLeft}>
-              <View style={[styles.iconContainer, { backgroundColor: '#e8f5e8' }]}>
-                <Ionicons name="shield-checkmark" size={20} color="#388e3c" />
-              </View>
-              <View style={styles.menuInfo}>
-                <Text style={styles.menuLabel}>개인정보 처리방침</Text>
-              </View>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color="#ccc" />
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.menuItem}>
-            <View style={styles.menuLeft}>
-              <View style={[styles.iconContainer, { backgroundColor: '#e1f5fe' }]}>
-                <Ionicons name="document-text" size={20} color="#0277bd" />
-              </View>
-              <View style={styles.menuInfo}>
-                <Text style={styles.menuLabel}>서비스 이용약관</Text>
-              </View>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color="#ccc" />
-          </TouchableOpacity>
-
-
-        </View>
+        {/* '설정' 섹션 제거 — 설정 진입은 우측 상단 톱니버튼으로 이동 */}
 
         <View style={styles.bottomSpacing} />
       </ScrollView>
@@ -618,7 +657,186 @@ export default function ProfileScreen() {
         placeholder={`${editModal.title.replace(' 수정', '')}을(를) 입력하세요`}
       />
 
+      <JobPicker
+        visible={jobPicker.visible}
+        value={jobPicker.value}
+        onCancel={() => setJobPicker({ ...jobPicker, visible: false })}
+        onSelect={async (job) => {
+          try {
+            await updateJobMutation.mutateAsync(job);
+            Alert.alert('성공', '직업이 변경되었습니다.');
+          } catch (e) {
+            Alert.alert('오류', '직업 변경에 실패했습니다.');
+          }
+        }}
+      />
+
+      {/* Settings Modal - full screen per Figma */}
+      <Modal visible={settingsModalVisible} animationType="slide" transparent={false} onRequestClose={() => setSettingsModalVisible(false)}>
+        <View style={[styles.container, { backgroundColor: '#fff' }]}> 
+          <View style={[styles.modalHeader, { borderBottomWidth: 0 }]}> 
+            <TouchableOpacity onPress={() => setSettingsModalVisible(false)}>
+              <Ionicons name="chevron-back" size={24} color="#222" />
+            </TouchableOpacity>
+            <Text style={[styles.modalTitle, { flex: 1, textAlign: 'center' }]}>환경설정</Text>
+            <View style={{ width: 36 }} />
+          </View>
+
+          <ScrollView>
+            {/* 알림 설정 */}
+            <View style={styles.settingsSection}>
+              <Text style={styles.settingsSectionTitle}>알림 설정</Text>
+              <View style={styles.settingsRow}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.menuLabel}>푸시알림 설정</Text>
+                  <Text style={styles.menuValue}>앱 푸시 알림 수신</Text>
+                </View>
+                <Switch
+                  value={!!settingsState?.push}
+                  onValueChange={async (v) => {
+                    const next = { ...(settingsState || {}), push: v };
+                    setSettingsState(next);
+                    await AsyncStorage.setItem('settings', JSON.stringify(next));
+                  }}
+                />
+              </View>
+
+              <View style={styles.settingsRow}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.menuLabel}>마케팅 알림 설정</Text>
+                  <Text style={styles.menuValue}>프로모션 및 맞춤형 광고 수신</Text>
+                </View>
+                <Switch
+                  value={!!settingsState?.marketing}
+                  onValueChange={async (v) => {
+                    const next = { ...(settingsState || {}), marketing: v };
+                    setSettingsState(next);
+                    await AsyncStorage.setItem('settings', JSON.stringify(next));
+                  }}
+                />
+              </View>
+            </View>
+
+            <View style={styles.divider} />
+
+            {/* 인증/보안 */}
+            <View style={styles.settingsSection}>
+              <Text style={styles.settingsSectionTitle}>인증/보안</Text>
+              <TouchableOpacity style={styles.menuItem} onPress={() => Alert.alert('비밀번호 변경', '비밀번호 변경 화면으로 이동(예시)')}>
+                <View style={styles.menuLeft}>
+                  <View style={[styles.iconContainer, { backgroundColor: '#fff3e0' }]}>
+                    <Ionicons name="key" size={20} color="#f57f17" />
+                  </View>
+                  <View style={styles.menuInfo}>
+                    <Text style={styles.menuLabel}>비밀번호 변경</Text>
+                  </View>
+                </View>
+                <Ionicons name="chevron-forward" size={20} color="#ccc" />
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.menuItem} onPress={() => Alert.alert('생체 인증', '생체 인증 설정(예시)')}>
+                <View style={styles.menuLeft}>
+                  <View style={[styles.iconContainer, { backgroundColor: '#e8f5e8' }]}>
+                    <Ionicons name="finger-print" size={20} color="#388e3c" />
+                  </View>
+                  <View style={styles.menuInfo}>
+                    <Text style={styles.menuLabel}>생체 인증</Text>
+                  </View>
+                </View>
+                <Ionicons name="chevron-forward" size={20} color="#ccc" />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.divider} />
+
+            {/* 마이데이터 관리 */}
+            <View style={styles.settingsSection}>
+              <Text style={styles.settingsSectionTitle}>마이데이터 관리</Text>
+              <TouchableOpacity style={styles.menuItem} onPress={() => Alert.alert('연결 금융사 관리', '연결 금융사 관리(예시)')}>
+                <View style={styles.menuLeft}>
+                  <View style={[styles.iconContainer, { backgroundColor: '#e1f5fe' }]}>
+                    <Ionicons name="link" size={20} color="#0277bd" />
+                  </View>
+                  <View style={styles.menuInfo}>
+                    <Text style={styles.menuLabel}>연결 금융사 관리</Text>
+                  </View>
+                </View>
+                <Ionicons name="chevron-forward" size={20} color="#ccc" />
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.menuItem} onPress={() => Alert.alert('마이데이터 재연동', '재연동(예시)')}>
+                <View style={styles.menuLeft}>
+                  <View style={[styles.iconContainer, { backgroundColor: '#fff8e1' }]}>
+                    <Ionicons name="refresh" size={20} color="#f9a825" />
+                  </View>
+                  <View style={styles.menuInfo}>
+                    <Text style={styles.menuLabel}>마이데이터 재연동</Text>
+                  </View>
+                </View>
+                <Ionicons name="chevron-forward" size={20} color="#ccc" />
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.menuItem} onPress={() => Alert.alert('서비스 해지', '서비스 해지(예시)')}>
+                <View style={styles.menuLeft}>
+                  <View style={[styles.iconContainer, { backgroundColor: '#fce4ec' }]}>
+                    <Ionicons name="close-circle" size={20} color="#c2185b" />
+                  </View>
+                  <View style={styles.menuInfo}>
+                    <Text style={styles.menuLabel}>마이데이터 서비스 해지</Text>
+                  </View>
+                </View>
+                <Ionicons name="chevron-forward" size={20} color="#ccc" />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.divider} />
+
+            {/* 기타 설정 */}
+            <View style={styles.settingsSection}>
+              <TouchableOpacity style={styles.menuItem} onPress={() => Alert.alert('개인정보 처리방침', '약관 보기(예시)')}>
+                <View style={styles.menuLeft}>
+                  <View style={[styles.iconContainer, { backgroundColor: '#fff3e0' }]}>
+                    <Ionicons name="document-text" size={20} color="#f57f17" />
+                  </View>
+                  <View style={styles.menuInfo}>
+                    <Text style={styles.menuLabel}>개인정보 처리방침</Text>
+                  </View>
+                </View>
+                <Ionicons name="chevron-forward" size={20} color="#ccc" />
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.menuItem} onPress={() => Alert.alert('이용약관', '약관 보기(예시)')}>
+                <View style={styles.menuLeft}>
+                  <View style={[styles.iconContainer, { backgroundColor: '#e8f5e8' }]}>
+                    <Ionicons name="documents" size={20} color="#388e3c" />
+                  </View>
+                  <View style={styles.menuInfo}>
+                    <Text style={styles.menuLabel}>이용약관</Text>
+                  </View>
+                </View>
+                <Ionicons name="chevron-forward" size={20} color="#ccc" />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.divider} />
+
+            {/* 회원 탈퇴 */}
+            <View style={styles.settingsSection}>
+              <TouchableOpacity style={[styles.menuItem, { justifyContent: 'center' }]} onPress={() => Alert.alert('회원 탈퇴', '정말 회원 탈퇴를 진행하시겠습니까?', [
+                { text: '취소', style: 'cancel' },
+                { text: '탈퇴', style: 'destructive', onPress: () => { Alert.alert('탈퇴 완료', '예시: 회원 탈퇴가 처리되었습니다.'); setSettingsModalVisible(false); } }
+              ])}>
+                <Text style={styles.dangerText}>회원 탈퇴</Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={{ height: 60 }} />
+          </ScrollView>
+        </View>
+      </Modal>
+
       <VerificationModal
+        key={`${verificationModal.type}-${verificationModal.visible}-${verificationModal.value}`}
         visible={verificationModal.visible}
         type={verificationModal.type}
         value={verificationModal.value}
@@ -684,6 +902,11 @@ const styles = StyleSheet.create({
     borderWidth: 3,
     borderColor: 'rgba(255,255,255,0.3)',
   },
+  avatarImage: {
+    width: 94,
+    height: 94,
+    borderRadius: 47,
+  },
   avatarPlaceholder: {
     fontSize: 36,
     fontWeight: 'bold',
@@ -709,6 +932,18 @@ const styles = StyleSheet.create({
   headerEmail: {
     fontSize: 16,
     color: 'rgba(255,255,255,0.8)',
+  },
+  headerMeta: {
+    width: '100%',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+  },
+  settingsButton: {
+    padding: 8,
+    borderRadius: 20,
+    backgroundColor: 'transparent',
   },
   
   // 섹션 스타일
@@ -811,6 +1046,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
     backgroundColor: '#f8f9fa',
   },
+  inlineError: {
+    marginHorizontal: 20,
+    color: '#d32f2f',
+    fontSize: 13,
+    marginTop: 6,
+  },
   
   // 바텀 스페이싱
   bottomSpacing: {
@@ -826,5 +1067,34 @@ const styles = StyleSheet.create({
     color: '#333',
     marginBottom: 16,
     textAlign: 'center',
+  },
+  settingsSection: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  settingsSectionTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#444',
+    marginBottom: 8,
+  },
+  settingsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#fff',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 12,
+    marginBottom: 8,
+  },
+  divider: {
+    height: 8,
+    backgroundColor: '#f0f0f0',
+    marginVertical: 8,
+  },
+  dangerText: {
+    color: '#d32f2f',
+    fontWeight: '600',
   },
 });
