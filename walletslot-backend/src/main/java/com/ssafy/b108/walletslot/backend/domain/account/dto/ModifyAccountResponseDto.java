@@ -12,5 +12,5 @@ public class ModifyAccountResponseDto {
     // Field
     private boolean success;
     private String message;
-    private Void data;
+    private AccountDto data;
 }
