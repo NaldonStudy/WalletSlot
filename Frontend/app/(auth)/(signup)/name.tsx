@@ -2,14 +2,21 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { useSinupStore } from '@/src/store/signupStore';
+import { useSignupStore } from '@/src/store/signupStore';
 
 export default function NameScreen() {
-  const [name, setName] = useState('');
-  const setNameStore = useSignupStore((s) => s.setName)
+  const [inputName, setLocalName] = useState('');
+  const { setName, isNameValid } = useSignupStore();
 
   const goNext = () => {
-    // TODO: 이름 유효성 검증 필요 시 추가
+    // 스토어에 저장
+    setName(inputName);
+
+    if (!isNameValid()) {
+        alert('이름을 입력해주세요!');
+        return;
+    }
+
     router.replace('/(auth)/(signup)/resident-id');
   };
 
@@ -22,8 +29,8 @@ export default function NameScreen() {
           <View style={styles.fieldBlock}>
             <Text style={styles.label}>이름</Text>
             <TextInput
-              value={name}
-              onChangeText={setName}
+              value={inputName}
+              onChangeText={setLocalName}
               placeholder="이름"
               returnKeyType="done"
               onSubmitEditing={goNext}

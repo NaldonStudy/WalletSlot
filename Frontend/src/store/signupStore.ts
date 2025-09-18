@@ -2,13 +2,17 @@ import { create } from 'zustand';
 
 type Carrier = 'SK' | 'KT' | 'LG' | '알뜰폰';
 
-type SignupStore = {
+// 상태 타입 정의
+type SignupState = {
     name: string | null;
     residentFront6: string | null;
     residentBack1: string | null;
     phone: string | null;
-    carrier: Carrier | null
+    carrier: Carrier | null;
+};
 
+// 액션 타입 정의
+type SignupActions = {
     setName: (v: string) => void;
     setResidentId: (front6: string, back1: string) => void;
     setPhone: (carrier: Carrier, phone: string) => void;
@@ -18,9 +22,18 @@ type SignupStore = {
     clearPhone: () => void;
 
     reset: () => void;
+
+    // 유틸리티 함수들
+    isNameValid: () => boolean;
+    isResidentIdValid: () => boolean;
+    isPhoneValid: () => boolean;
 };
 
-const initial: Omit<SignupStore, 'setName' | 'setResidentId' | 'setPhone' | 'clearName' | 'clearResidentId' | 'clearPhone' | 'reset'> = {
+// 전체 스토어 타입
+type SignupStore = SignupState & SignupActions;
+
+// 초기 상태
+const initial: SignupState = {
     name: null,
     residentFront6: null,
     residentBack1: null,
