@@ -11,6 +11,8 @@ import { SAMPLE_ACCOUNTS } from '@/src/constants/sampleData';
 import AccountDonutChart from '@/src/components/chart/AccountDonutChart';
 import AccountCarousel from '@/src/components/account/AccountCarousel';
 import { UncategorizedSlotCard } from '@/src/components/slot/UncategorizedSlotCard';
+import { SLOT_CATEGORIES } from '@/src/constants/slots';
+import SlotList from '@/src/components/slot/SlotList';
 
 // 헤더 컴포넌트 분리 (메모이제이션)
 const DashboardHeader = memo(({ userData, theme }: { userData: any, theme: any }) => (
@@ -34,44 +36,6 @@ const generateUserData = () => {
   return { userName: lastName + firstName };
 };
 
-const generateSampleSlots = () => {
-  const slotTypes = [
-    { name: '식비', emoji: '🍽️', avgBudget: 400000 },
-    { name: '교통비', emoji: '🚗', avgBudget: 150000 },
-    { name: '쇼핑', emoji: '🛍️', avgBudget: 300000 },
-    { name: '엔터테인먼트', emoji: '🎮', avgBudget: 200000 },
-    { name: '카페/음료', emoji: '☕', avgBudget: 100000 },
-    { name: '의료/건강', emoji: '🏥', avgBudget: 150000 },
-    { name: '저축', emoji: '💰', avgBudget: 500000 },
-    { name: '생활용품', emoji: '🧴', avgBudget: 200000 },
-  ];
-
-  // 5-7개의 랜덤한 슬롯 생성
-  const numSlots = faker.number.int({ min: 5, max: 7 });
-  const selectedSlots = faker.helpers.arrayElements(slotTypes, numSlots);
-
-  return selectedSlots.map((slotType, index) => {
-    const budget = faker.number.int({
-      min: slotType.avgBudget * 0.7,
-      max: slotType.avgBudget * 1.3
-    });
-
-    // 일부 슬롯은 예산 초과하도록 설정
-    const shouldExceed = faker.datatype.boolean(0.2); // 20% 확률로 예산 초과
-    const currentAmount = shouldExceed
-      ? faker.number.int({ min: budget * 1.1, max: budget * 1.4 })
-      : faker.number.int({ min: 0, max: budget * 0.9 });
-
-    return {
-      slotId: index + 1,
-      slotName: slotType.name,
-      emoji: slotType.emoji,
-      budget,
-      currentAmount: Math.round(currentAmount / 1000) * 1000, // 천원 단위로 반올림
-    };
-  });
-};
-
 export default function DashboardScreen() {
   const colorScheme = useColorScheme() ?? 'light';
   const theme = themes[colorScheme];
@@ -91,7 +55,6 @@ export default function DashboardScreen() {
 
   // 사용자 데이터와 슬롯 데이터를 한 번만 생성 (메모이제이션)
   const userData = useMemo(() => generateUserData(), []);
-  const sampleSlots = useMemo(() => generateSampleSlots(), []);
 
   // 현재 선택된 계좌 데이터 - 직접 참조로 최적화
   const currentAccount = SAMPLE_ACCOUNTS[selectedIndex];
@@ -103,13 +66,13 @@ export default function DashboardScreen() {
 
   // 두 컴포넌트의 opacity는 하나의 scrollY를 interpolate해서 제어
   const summaryOpacity = scrollY.interpolate({
-    inputRange: [accountCarouselY - 50, accountCarouselY + 50],
+    inputRange: [accountCarouselY - 20, accountCarouselY + 20],
     outputRange: [0, 1],
     extrapolate: 'clamp',
   });
 
   const carouselOpacity = scrollY.interpolate({
-    inputRange: [accountCarouselY - 50, accountCarouselY + 50],
+    inputRange: [accountCarouselY - 20, accountCarouselY + 20],
     outputRange: [1, 0],
     extrapolate: 'clamp',
   });
@@ -183,51 +146,7 @@ export default function DashboardScreen() {
         {/* 슬롯 리스트 */}
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: theme.colors.text.primary }]}>슬롯 목록</Text>
-
-          {/* 샘플 슬롯 카드들 */}
-          {sampleSlots.map((slot) => (
-            <View key={slot.slotId} style={[styles.slotCard, {
-              backgroundColor: theme.colors.background.primary,
-            }]}>
-              <View style={styles.slotHeader}>
-                <View style={styles.slotInfo}>
-                  <Text style={styles.slotEmoji}>{slot.emoji}</Text>
-                  <Text style={[styles.slotName, { color: theme.colors.text.primary }]}>{slot.slotName}</Text>
-                </View>
-                <Text style={[styles.slotAmount, { color: theme.colors.text.secondary }]}>
-                  {slot.currentAmount.toLocaleString()}원 / {slot.budget.toLocaleString()}원
-                </Text>
-              </View>
-
-              {/* 진행률 바 */}
-              <View style={[styles.progressContainer, { backgroundColor: theme.colors.gray[200] }]}>
-                <View
-                  style={[
-                    styles.progressBar,
-                    {
-                      width: `${Math.min((slot.currentAmount / slot.budget) * 100, 100)}%`,
-                      backgroundColor: slot.currentAmount > slot.budget ? theme.colors.error : theme.colors.primary[500]
-                    }
-                  ]}
-                />
-              </View>
-
-              <View style={styles.slotActions}>
-                <Button
-                  title="수정"
-                  variant="outline"
-                  size="sm"
-                  onPress={() => console.log('수정', slot.slotId)}
-                />
-                <Button
-                  title="내역"
-                  variant="ghost"
-                  size="sm"
-                  onPress={() => console.log('내역', slot.slotId)}
-                />
-              </View>
-            </View>
-          ))}
+          <SlotList slots={currentAccountSlots} />
         </View>
 
         {/* 하단 여백 */}
@@ -249,7 +168,7 @@ const styles = StyleSheet.create({
     zIndex: 1000,
     paddingTop: 60,
     paddingHorizontal: Spacing.base,
-    // paddingBottom: Spacing.sm,
+    paddingBottom: Spacing.sm, // UncategorizedSlotCard까지 커버하도록 늘림
     transformOrigin: 'top center',
   },
   fixedGreeting: {
@@ -310,42 +229,6 @@ const styles = StyleSheet.create({
   placeholderSubtext: {
     fontSize: Typography.fontSize.sm,
     marginTop: Spacing.xs,
-  },
-  slotCard: {
-    borderWidth: 1,
-    borderRadius: 12,
-    padding: Spacing.base,
-    marginBottom: Spacing.base,
-  },
-  slotHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: Spacing.sm,
-  },
-  slotInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  slotEmoji: {
-    fontSize: Typography.fontSize.lg,
-    marginRight: Spacing.sm,
-  },
-  slotName: {
-    fontSize: Typography.fontSize.base,
-    fontWeight: Typography.fontWeight.medium,
-  },
-  slotAmount: {
-    fontSize: Typography.fontSize.sm,
-  },
-  progressContainer: {
-    height: 8,
-    borderRadius: 4,
-    marginBottom: Spacing.sm,
-  },
-  progressBar: {
-    height: '100%',
-    borderRadius: 4,
   },
   slotActions: {
     flexDirection: 'row',
