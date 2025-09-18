@@ -49,8 +49,10 @@ public class GlobalExceptionHandler {
     // 기타 예상 못한 오류는 500으로 숨김
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleEtc(Exception ex) {
-        log.error("Unexpected error", ex);
-        return ResponseEntity.status(ErrorCode.INTERNAL_ERROR.getStatus())
-                .body(ErrorResponse.builder().message(ErrorCode.INTERNAL_ERROR.getMessage()).build());
+        ErrorResponse body = ErrorResponse.builder()
+                .message(ErrorCode.INTERNAL_SERVER_ERROR.getMessage()) // 내부 메시지 노출 X
+                .build();
+
+        return ResponseEntity.status(ErrorCode.INTERNAL_SERVER_ERROR.getStatus()).body(body);
     }
 }

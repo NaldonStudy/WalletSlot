@@ -7,21 +7,20 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class SSAFYRequestVerificationResponseDto {
+public class SSAFYGetAccountHolderNameResponseDto {
 
     // Field
     private Rec REC;
 
-    // Nested Class
     @Getter
     @Setter
     @NoArgsConstructor
     @AllArgsConstructor
     @Builder
+    // Nested Class
     public static class Rec {
 
         // Field
-        private String transactionUniqueNo;
-        private String accountNo;
+        private String userName;
     }
 }

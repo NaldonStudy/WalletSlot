@@ -12,7 +12,6 @@ import java.util.UUID;
 @Entity
 @Table(name = "account")
 @Getter
-@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -53,4 +52,17 @@ public class Account {
 
     @OneToMany(mappedBy = "account", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<AccountSlot> accountSlots;
+
+    // Method
+    public void updateAlias(String alias) {
+        this.alias = alias;
+    }
+
+    public void updateBalance(long balance) {
+        this.balance = balance;
+    }
+
+    public void updateIsPrimary(Boolean isPrimary) {
+        this.isPrimary = isPrimary;
+    }
 }

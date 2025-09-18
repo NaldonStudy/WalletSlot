@@ -233,7 +233,7 @@ CREATE TABLE `wishlist` (
 	`price` BIGINT UNSIGNED NOT NULL DEFAULT 0,
 	`image` BLOB NULL,
     
-    CONSTRAINT `fk_wish_list_user_id`
+    CONSTRAINT `fk_wishlist_user_id`
 	FOREIGN KEY (`user_id`) REFERENCES user(`id`)
 		ON DELETE CASCADE
         ON UPDATE CASCADE
