@@ -21,6 +21,7 @@ public class Transaction {
     private Long id;
 
     @Column(nullable = false, unique = true, length = 64, updatable = false)
+    @Builder.Default
     private String uuid = UUID.randomUUID().toString();
 
     @ManyToOne(fetch = FetchType.LAZY)

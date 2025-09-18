@@ -9,5 +9,5 @@ import java.util.Optional;
 public interface AccountRepository extends JpaRepository<Account, Long> {
     List<Account> findByUserId(Long userId);
     Optional<Account> findByUserIdAndIsPrimaryTrue(long userId);
-    Optional<Account> findByAccountNo(String accountNo);
+    Optional<Account> findByEncryptedAccountNo(String encryptedAccountNo);
 }

@@ -3,8 +3,8 @@ USE walletslotdb;
 -- USER
 INSERT INTO `user` (name, phone_number, gender, birth_date, base_day, job)
 VALUES
-('홍길동', '010-1234-5678', 'MAN', '1995-05-20', 25, 'OFFICE_WORKER'),
-('김영희', '010-9876-5432', 'FEMALE', '1998-07-15', NULL, 'STUDENT');
+('홍길동', '01012345678', 'MAN', '1995-05-20', 25, 'OFFICE_WORKER'), -- 1234
+('김영희', '01098765432', 'FEMALE', '1998-07-15', NULL, 'STUDENT'); -- 4321
 
 -- PEPPER_KEYS
 INSERT INTO `pepper_keys` (key_alias, status)
@@ -15,8 +15,8 @@ VALUES
 -- USER_PIN
 INSERT INTO `user_pin` (user_id, pepper_id, bcrypted_pin, cost)
 VALUES
-(1, 1, '$2b$12$abcdefghijklmnopqrstuv1234567890abcd', 12),
-(2, 1, '$2b$10$zyxwvutsrqponmlkjihgfedcba0987654321', 10);
+(1, 1, '$2a$10$29eKaIwmQ85/C7snMpERROymDrFGDHNObaksoHrjC20x4pxJ6CXF2', 12),
+(2, 1, '$2a$10$t3rGLAGbvSe58op5Dmgk.uKJqjh/2Oxjbjj/f5Rrpc3GrIs30m3ci', 10);
 
 -- BANK
 INSERT INTO `bank` (name, code, color)
@@ -88,8 +88,8 @@ VALUES
 (1, '예산 초과 알림', '식비 예산을 초과했습니다.', TRUE, ''),
 (2, '로그인 알림', '새로운 기기에서 로그인되었습니다.', TRUE, '');
 
--- WISH_LIST
-INSERT INTO `wish_list` (user_id, name, price)
+-- WISHLIST
+INSERT INTO `wishlist` (user_id, name, price)
 VALUES
 (1, '아이패드', 1200000),
 (2, '에어팟', 250000);

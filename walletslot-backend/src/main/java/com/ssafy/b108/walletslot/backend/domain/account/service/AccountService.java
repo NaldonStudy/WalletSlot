@@ -225,7 +225,7 @@ public class AccountService {
 
         // 1원 송금받는 사용자 통장내역에 찍힐 기업명 만들기
         // account에서 account 조회 -> bank 획득해서 bankName 얻기
-        Account account = accountRepository.findByAccountNo(accountNo).orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "[AccountService - 000]"));
+        Account account = accountRepository.findByEncryptedAccountNo(accountNo).orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "[AccountService - 000]"));
         String authText = account.getBank().getName();
 
         // 싸피 금융 API에 요청보낼 바디 만들기
@@ -267,5 +267,6 @@ public class AccountService {
                 .message("[AccountService - 000] 1원인증 요청 성공")
                 .build();
 
+        return null; // 추후 수정
     }
 }

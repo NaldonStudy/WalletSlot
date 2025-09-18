@@ -20,6 +20,7 @@ public class AccountSlot {
     private Long id;
 
     @Column(nullable = false, unique = true, length = 64)
+    @Builder.Default
     private String uuid = UUID.randomUUID().toString();
 
     @ManyToOne(fetch = FetchType.LAZY)

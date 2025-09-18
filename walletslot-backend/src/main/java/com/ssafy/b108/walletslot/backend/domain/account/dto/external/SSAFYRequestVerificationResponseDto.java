@@ -18,7 +18,7 @@ public class SSAFYRequestVerificationResponseDto {
     @NoArgsConstructor
     @AllArgsConstructor
     @Builder
-    public class Rec {
+    public static class Rec {
 
         // Field
         private String transactionUniqueNo;

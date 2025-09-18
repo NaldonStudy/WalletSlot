@@ -1,6 +1,5 @@
-package com.ssafy.b108.walletslot.backend.domain.consent_form;
+package com.ssafy.b108.walletslot.backend.domain.consent_form.entity;
 
-import com.ssafy.b108.walletslot.backend.domain.consent_form.entity.UserConsent;
 import jakarta.persistence.*;
 import lombok.*;
 import java.util.List;

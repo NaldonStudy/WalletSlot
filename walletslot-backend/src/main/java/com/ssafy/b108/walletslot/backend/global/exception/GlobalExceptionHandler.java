@@ -3,56 +3,54 @@ package com.ssafy.b108.walletslot.backend.global.exception;
 import com.ssafy.b108.walletslot.backend.global.dto.ErrorResponse;
 import com.ssafy.b108.walletslot.backend.global.error.AppException;
 import com.ssafy.b108.walletslot.backend.global.error.ErrorCode;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-
+@Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
     @ExceptionHandler(AppException.class)
     public ResponseEntity<ErrorResponse> handleAppException(AppException ex) {
-        ErrorCode errorCode = ex.getErrorCode();
-
-        ErrorResponse errorResponse = ErrorResponse.builder()
-                .message(ex.getMessage())
-                .build();
-
-        return ResponseEntity.status(errorCode.getStatus()).body(errorResponse);
+        ErrorCode code = ex.getErrorCode();
+        log.warn("AppException at {} -> {} {}", ex.getLocation(), code, ex.getMessage());
+        return ResponseEntity.status(code.getStatus())
+                .body(ErrorResponse.builder().message(code.getMessage()).build());
     }
 
-    // @Valid 실패(@RequestBody) 대응
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponse> handleValidation(MethodArgumentNotValidException ex) {
         String msg = ex.getBindingResult().getFieldErrors().stream()
                 .findFirst()
                 .map(fe -> fe.getField() + ": " + fe.getDefaultMessage())
                 .orElse(ErrorCode.VALIDATION_FAILED.getMessage());
-
-        ErrorResponse body = ErrorResponse.builder()
-                .message(msg) // message만 사용 (1번 포맷 유지)
-                .build();
-
-        return ResponseEntity.status(ErrorCode.VALIDATION_FAILED.getStatus()).body(body);
+        return ResponseEntity.status(ErrorCode.VALIDATION_FAILED.getStatus())
+                .body(ErrorResponse.builder().message(msg).build());
     }
 
+    // 🔴 비즈니스 오류를 400으로
     @ExceptionHandler(IllegalArgumentException.class)
-    public org.springframework.http.ResponseEntity<java.util.Map<String,String>> handleIllegalArgument(IllegalArgumentException ex){
-        return org.springframework.http.ResponseEntity.badRequest()
-                .body(java.util.Map.of("message", ex.getMessage()));
+    public ResponseEntity<ErrorResponse> handleIllegalArgument(IllegalArgumentException ex) {
+        log.warn("Bad request: {}", ex.getMessage());
+        return ResponseEntity.badRequest()
+                .body(ErrorResponse.builder().message(ex.getMessage()).build());
     }
 
-    // 예측 못한 기타 예외 대응(메시지 노출 최소화)
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<ErrorResponse> handleIllegalState(IllegalStateException ex) {
+        log.warn("Bad state: {}", ex.getMessage());
+        return ResponseEntity.badRequest()
+                .body(ErrorResponse.builder().message(ex.getMessage()).build());
+    }
+
+    // 기타 예상 못한 오류는 500으로 숨김
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleEtc(Exception ex) {
-        ErrorResponse body = ErrorResponse.builder()
-                .message(ErrorCode.INTERNAL_ERROR.getMessage()) // 내부 메시지 노출 X
-                .build();
-
-        return ResponseEntity.status(ErrorCode.INTERNAL_ERROR.getStatus()).body(body);
+        log.error("Unexpected error", ex);
+        return ResponseEntity.status(ErrorCode.INTERNAL_ERROR.getStatus())
+                .body(ErrorResponse.builder().message(ErrorCode.INTERNAL_ERROR.getMessage()).build());
     }
-
-
 }

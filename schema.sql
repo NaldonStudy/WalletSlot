@@ -225,8 +225,8 @@ CREATE TABLE `notification` (
         ON UPDATE CASCADE
 );
 
-DROP TABLE IF EXISTS `wish_list`;
-CREATE TABLE `wish list` (
+DROP TABLE IF EXISTS `wishlist`;
+CREATE TABLE `wishlist` (
 	`id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
 	`user_id` INT UNSIGNED NOT NULL,
 	`name` VARCHAR(64) NOT NULL,

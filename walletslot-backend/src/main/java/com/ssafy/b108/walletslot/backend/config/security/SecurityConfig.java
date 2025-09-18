@@ -40,6 +40,10 @@ public class SecurityConfig {
                 // CORS 설정
                 .cors(c -> c.configurationSource(corsConfigurationSource()))
 
+                // 기본 로그인/베이직 인증 비활성화 (이 두 줄 추가)
+                .httpBasic(b -> b.disable())
+                .formLogin(f -> f.disable())
+
                 // 세션 정책 설정
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 
@@ -47,6 +51,8 @@ public class SecurityConfig {
                         // Swagger & 문서
                         .requestMatchers(
                                 "/swagger-ui/**",
+                                //"/swagger-ui",
+                                //"/swagger-ui.html",
                                 "/v3/api-docs/**",
                                 "/v3/api-docs",
                                 "/api-docs/**",
@@ -59,7 +65,8 @@ public class SecurityConfig {
                         // 헬스체크 & 인증 엔드포인트
                         .requestMatchers(
                                 "/actuator/health",
-                                "/api/auth/**"
+                                "/api/auth/**",
+                                "/api/ping/public"
                         ).permitAll()
 
                         // CORS Preflight 허용
@@ -134,8 +141,8 @@ public class SecurityConfig {
         // 노출할 헤더
         c.setExposedHeaders(List.of("Authorization"));
 
-        // 쿠키 허용 (HttpOnly 쿠키 지원을 위해 필수)
-        c.setAllowCredentials(true);
+        // 쿠키 허용 X
+        c.setAllowCredentials(false);
 
         UrlBasedCorsConfigurationSource src = new UrlBasedCorsConfigurationSource();
         src.registerCorsConfiguration("/**", c);
