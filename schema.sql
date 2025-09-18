@@ -225,15 +225,15 @@ CREATE TABLE `notification` (
         ON UPDATE CASCADE
 );
 
-DROP TABLE IF EXISTS `wish_list`;
-CREATE TABLE `wish list` (
+DROP TABLE IF EXISTS `wishlist`;
+CREATE TABLE `wishlist` (
 	`id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
 	`user_id` INT UNSIGNED NOT NULL,
 	`name` VARCHAR(64) NOT NULL,
 	`price` BIGINT UNSIGNED NOT NULL DEFAULT 0,
 	`image` BLOB NULL,
     
-    CONSTRAINT `fk_wish_list_user_id`
+    CONSTRAINT `fk_wishlist_user_id`
 	FOREIGN KEY (`user_id`) REFERENCES user(`id`)
 		ON DELETE CASCADE
         ON UPDATE CASCADE

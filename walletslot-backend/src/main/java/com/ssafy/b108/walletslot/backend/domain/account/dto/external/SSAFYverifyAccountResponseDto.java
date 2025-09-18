@@ -2,12 +2,12 @@ package com.ssafy.b108.walletslot.backend.domain.account.dto.external;
 
 import lombok.*;
 
-@Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
-public class SSAFYRequestVerificationResponseDto {
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+public class SSAFYverifyAccountResponseDto {
 
     // Field
     private Rec REC;
@@ -21,7 +21,7 @@ public class SSAFYRequestVerificationResponseDto {
     public static class Rec {
 
         // Field
-        private String transactionUniqueNo;
-        private String accountNo;
+        public String status;
+        public String accountNo;
     }
 }

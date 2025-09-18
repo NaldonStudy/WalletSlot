@@ -31,7 +31,7 @@ public class UserPin {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "pepper_id", nullable = false)
-    private PepperKey pepper;
+    private PepperKey pepperKey;
 
     @Column(nullable = false)
     private String bcryptedPin;
@@ -77,10 +77,10 @@ public class UserPin {
     }
 
     public void upgrade(String rawPin,
-                        PepperKey newPepper, String newPepperSecret, int newCost,
+                        PepperKey newPepperKey, String newPepperSecret, int newCost,
                         BCryptPasswordEncoder bcrypt, Instant now) {
         this.bcryptedPin   = bcrypt.encode(newPepperSecret + rawPin);
-        this.pepper        = newPepper;
+        this.pepperKey        = newPepperKey;
         this.cost          = newCost;
         this.lastChangedAt = now;
     }

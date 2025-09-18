@@ -48,10 +48,10 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleEtc(Exception ex) {
         ErrorResponse body = ErrorResponse.builder()
-                .message(ErrorCode.INTERNAL_ERROR.getMessage()) // 내부 메시지 노출 X
+                .message(ErrorCode.INTERNAL_SERVER_ERROR.getMessage()) // 내부 메시지 노출 X
                 .build();
 
-        return ResponseEntity.status(ErrorCode.INTERNAL_ERROR.getStatus()).body(body);
+        return ResponseEntity.status(ErrorCode.INTERNAL_SERVER_ERROR.getStatus()).body(body);
     }
 
 

@@ -14,7 +14,7 @@ public enum ErrorCode {
     UNAUTHORIZED("로그인이 필요합니다.", HttpStatus.UNAUTHORIZED),
     FORBIDDEN("접근 권한이 없습니다.", HttpStatus.FORBIDDEN),
     NOT_FOUND("리소스를 찾을 수 없습니다.", HttpStatus.NOT_FOUND),
-    INTERNAL_ERROR("서버 오류가 발생했습니다.", HttpStatus.INTERNAL_SERVER_ERROR);
+    INTERNAL_SERVER_ERROR("알 수 없는 오류가 발생했습니다. 서버관리자에게 문의하세요.", HttpStatus.INTERNAL_SERVER_ERROR); // 서버에서 로그확인 필요
 
     // Account
 
