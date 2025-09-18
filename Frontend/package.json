@@ -59,7 +59,8 @@
     "victory-native": "^41.20.1",
     "web-streams-polyfill": "^4.2.0",
     "zod": "^4.1.8",
-    "zustand": "^5.0.8"
+    "zustand": "^5.0.8",
+    "expo-image-picker": "~17.0.8"
   },
   "devDependencies": {
     "@babel/core": "^7.28.4",
