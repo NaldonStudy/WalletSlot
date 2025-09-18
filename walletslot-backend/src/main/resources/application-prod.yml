@@ -26,8 +26,8 @@ app:
 
     pepper:
       cipher:
-        v2025_01: ${PEPPER_CIPHER_V2025_01}   # ACTIVE
-        v2024_12: ${PEPPER_CIPHER_V2024_12}   # PREVIOUS(그레이스 후 제거)
+        pepper_v1: ${PEPPER_CIPHER_V2025_01}   # ACTIVE
+        pepper_v0: ${PEPPER_CIPHER_V2024_12}   # PREVIOUS(그레이스 후 제거)
 
     bcrypt:
       cost: ${BCRYPT_COST:12}

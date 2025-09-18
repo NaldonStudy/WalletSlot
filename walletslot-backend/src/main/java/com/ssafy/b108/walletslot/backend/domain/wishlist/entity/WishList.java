@@ -20,6 +20,7 @@ public class WishList {
     private Long id;
 
     @Column(nullable = false, unique = true, length = 64)
+    @Builder.Default
     private String uuid = UUID.randomUUID().toString();
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -30,6 +31,7 @@ public class WishList {
     private String name;
 
     @Column(nullable = false)
+    @Builder.Default
     private long price = 0L;
 
     @Lob

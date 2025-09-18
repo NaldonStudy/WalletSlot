@@ -23,6 +23,7 @@ public class Account {
     private Long id;
 
     @Column(nullable = false, unique = true, length = 64)
+    @Builder.Default
     private String uuid = UUID.randomUUID().toString();
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -39,9 +40,11 @@ public class Account {
     private String encryptedAccountNo;
 
     @Column(nullable = false)
+    @Builder.Default
     private long balance = 0;
 
     @Column(nullable = false)
+    @Builder.Default
     private boolean isPrimary = false;
 
     @Column(nullable = false, insertable = false, updatable = false)

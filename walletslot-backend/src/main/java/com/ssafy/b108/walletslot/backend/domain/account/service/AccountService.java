@@ -489,5 +489,6 @@ public class AccountService {
 
         // 응답
         return modifyAccountResponseDto;
+>>>>>>> walletslot-backend/src/main/java/com/ssafy/b108/walletslot/backend/domain/account/service/AccountService.java
     }
 }

@@ -9,7 +9,7 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "pepper_key",
+@Table(name = "pepper_keys",
         indexes = { @Index(name = "ux_pepper_key_alias", columnList = "key_alias", unique = true),
                 @Index(name = "ix_pepper_status",   columnList = "status") })
 @EntityListeners(AuditingEntityListener.class)

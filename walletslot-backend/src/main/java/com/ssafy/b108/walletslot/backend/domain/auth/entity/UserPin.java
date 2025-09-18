@@ -80,7 +80,7 @@ public class UserPin {
                         PepperKey newPepperKey, String newPepperSecret, int newCost,
                         BCryptPasswordEncoder bcrypt, Instant now) {
         this.bcryptedPin   = bcrypt.encode(newPepperSecret + rawPin);
-        this.pepperKey        = newPepperKey;
+        this.pepperKey     = newPepperKey;
         this.cost          = newCost;
         this.lastChangedAt = now;
     }

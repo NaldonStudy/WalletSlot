@@ -2,6 +2,9 @@ package com.ssafy.b108.walletslot.backend.config.openapi;
 
 import io.swagger.v3.oas.annotations.OpenAPIDefinition;
 import io.swagger.v3.oas.annotations.info.Info;
+import io.swagger.v3.oas.annotations.security.SecurityScheme;
+import io.swagger.v3.oas.annotations.enums.SecuritySchemeType;
+import io.swagger.v3.oas.annotations.enums.SecuritySchemeIn;
 import org.springframework.context.annotation.Configuration;
 
 @OpenAPIDefinition(
@@ -12,5 +15,19 @@ import org.springframework.context.annotation.Configuration;
         )
 )
 @Configuration
+// JWT Bearer (우상단 Authorize에 뜸)
+@SecurityScheme(
+        name = "bearerAuth",
+        type = SecuritySchemeType.HTTP,
+        scheme = "bearer",
+        bearerFormat = "JWT"
+)
+// X-Device-Id 헤더 (우상단 Authorize에 뜸)
+@SecurityScheme(
+        name = "deviceId",
+        type = SecuritySchemeType.APIKEY,
+        in = SecuritySchemeIn.HEADER,
+        paramName = "X-Device-Id"
+)
 public class OpenApiConfig {
 }
