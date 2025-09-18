@@ -1,60 +1,55 @@
-package com.ssafy.b108.walletslot.backend.domain.user.entity;
+package com.ssafy.b108.walletslot.backend.domain.user;
 
+import com.ssafy.b108.walletslot.backend.domain.account.Account;
 import jakarta.persistence.*;
 import lombok.*;
-import org.springframework.data.annotation.CreatedDate;
-import org.springframework.data.annotation.LastModifiedDate;
-import org.springframework.data.jpa.domain.support.AuditingEntityListener;
-
-import java.time.Instant;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Entity
-@Table(name = "user", indexes = @Index(name = "ix_user_phone", columnList = "phone_number"))
-@EntityListeners(AuditingEntityListener.class)
-@Getter
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
-@AllArgsConstructor(access = AccessLevel.PRIVATE) // Builder 전용
+@Table(name = "user")
+@Getter @Setter
+@NoArgsConstructor
+@AllArgsConstructor
 @Builder
 public class User {
 
+    // Enum
     public enum Gender { FEMALE, MAN }
+    public enum Job { STUDENT, HOMEMAKER, OFFICE_WORKER, SOLDIER, SELF_EMPLOYED, FREELANCER, UNEMPLOYED, OTHER }
 
+    // Field
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "name", nullable = false, length = 64)
+    @Column(length = 64, nullable = false)
     private String name;
 
-    @Column(name = "phone_number", nullable = false, length = 64)
+    @Column(length = 64, nullable = false)
     private String phoneNumber;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "gender", nullable = false, length = 8)
+    @Column(nullable = false, length = 10)
     private Gender gender;
 
-    @Column(name = "birth_date", nullable = false)
+    @Column(nullable = false)
     private LocalDateTime birthDate;
 
-    @CreatedDate
-    @Column(name = "created_at", updatable = false, nullable = false)
-    private Instant createdAt;
+    @Column(nullable = false, insertable = false, updatable = false)
+    private LocalDateTime createdAt;
 
-    @LastModifiedDate
-    @Column(name = "updated_at")
-    private Instant updatedAt;
+    @Column(insertable = false, updatable = false)
+    private LocalDateTime updatedAt;
 
-    @Column(name = "base_day", nullable = false)
-    private Integer baseDay;
+    @Column(nullable = false)
+    private Short baseDay;
 
-    @Column(name = "job", length = 32)
-    private String job;
+    @Enumerated(EnumType.STRING)
+    @Column(length = 20)
+    private Job job;
 
-    /* === 변경 행위 메서드(예시) ===
-    public void changeProfile(String name, String job) {
-        this.name = name;
-        this.job = job;
-    }
-    */
+    // Relations
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Account> accounts;
 }
