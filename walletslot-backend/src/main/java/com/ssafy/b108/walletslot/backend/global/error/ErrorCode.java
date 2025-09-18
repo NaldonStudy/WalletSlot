@@ -15,6 +15,7 @@ public enum ErrorCode {
     NOT_FOUND("리소스를 찾을 수 없습니다.", HttpStatus.NOT_FOUND),
     INTERNAL_ERROR("서버 오류가 발생했습니다.", HttpStatus.INTERNAL_SERVER_ERROR);
 
+
     private final String message;
     private final HttpStatus status;
 }
