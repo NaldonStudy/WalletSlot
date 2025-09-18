@@ -15,8 +15,8 @@ VALUES
 -- USER_PIN
 INSERT INTO `user_pin` (user_id, pepper_id, bcrypted_pin, cost)
 VALUES
-(1, 1, '$2a$10$29eKaIwmQ85/C7snMpERROymDrFGDHNObaksoHrjC20x4pxJ6CXF2', 12),
-(2, 1, '$2a$10$t3rGLAGbvSe58op5Dmgk.uKJqjh/2Oxjbjj/f5Rrpc3GrIs30m3ci', 10);
+(1, 1, '$2a$10$A3RKpRl.p/c0EmIxjDGKBeT5BlLb1/0.b4IPM07oPz2Eu5BtXxjgG', 12),
+(2, 1, '$2a$10$ap5WOdWUPrL2I5z/NGw37Oetg.ZtVAc0F3yGyTH.f7/5kAt7DMGXO', 10);
 
 -- BANK
 INSERT INTO `bank` (name, code, color)

@@ -12,7 +12,11 @@ import org.springframework.context.annotation.Configuration;
                 title = "WalletSlot API Docs",
                 description = "SSAFY 13기 특화 프로젝트 WalletSlot API Docs 입니다.",
                 version = "v1.0.0"
-        )
+        ),
+        security = {
+                @io.swagger.v3.oas.annotations.security.SecurityRequirement(name = "bearerAuth"),
+                @io.swagger.v3.oas.annotations.security.SecurityRequirement(name = "deviceId")
+        }
 )
 @Configuration
 // JWT Bearer (우상단 Authorize에 뜸)
