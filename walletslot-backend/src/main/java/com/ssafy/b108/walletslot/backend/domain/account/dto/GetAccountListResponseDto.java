@@ -9,7 +9,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class GetLinkedAccountListResponse {
+public class GetAccountListResponseDto {
 
     // Field
     private boolean success;

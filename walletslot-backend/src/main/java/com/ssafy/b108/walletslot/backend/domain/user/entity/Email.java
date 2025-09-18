@@ -1,4 +1,4 @@
-package com.ssafy.b108.walletslot.backend.domain.user;
+package com.ssafy.b108.walletslot.backend.domain.user.entity;
 
 import jakarta.persistence.*;
 import lombok.*;

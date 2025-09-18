@@ -1,6 +1,6 @@
 package com.ssafy.b108.walletslot.backend.domain.user;
 
-import com.ssafy.b108.walletslot.backend.domain.account.Account;
+import com.ssafy.b108.walletslot.backend.domain.account.entity.Account;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDateTime;

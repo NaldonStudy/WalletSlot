@@ -1,4 +1,4 @@
-package com.ssafy.b108.walletslot.backend.domain.account.external;
+package com.ssafy.b108.walletslot.backend.domain.account.dto.external;
 
 import com.ssafy.b108.walletslot.backend.domain.account.dto.AccountDto;
 import lombok.*;
@@ -10,7 +10,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class SSAFYGetAccountListResponse {
+public class SSAFYGetAccountListResponseDto {
 
     // Field
     private List<AccountDto> REC;
