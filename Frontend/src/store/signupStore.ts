@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 
-type Carrier = 'SK' | 'KT' | 'LG' | '알뜰폰';
+type Carrier = 'SKT' | 'KT' | 'LG U+' | '알뜰폰';
 
 // 상태 타입 정의
 type SignupState = {
@@ -15,6 +15,8 @@ type SignupState = {
 type SignupActions = {
     setName: (v: string) => void;
     setResidentId: (front6: string, back1: string) => void;
+    setResidentFront6: (front6: string) => void;
+    setResidentBack1: (back1: string) => void;
     setPhone: (carrier: Carrier, phone: string) => void;
     
     clearName: () => void;
@@ -46,6 +48,8 @@ export const useSignupStore = create<SignupStore>((set, get) => ({
 
     setName: (v) => set({ name: v }),
     setResidentId: (front6, back1) => set({ residentFront6: front6, residentBack1: back1}),
+    setResidentFront6: (front6) => set({ residentFront6: front6 }),
+    setResidentBack1: (back1) => set({ residentBack1: back1 }),
     setPhone: (carrier, phone) => {
         // 숫자만 추출해 저장 (하이픈 등 구분자는 UI에서만 표시)
         const digits = phone.replace(/\D/g, '').slice(0, 11);
@@ -61,7 +65,7 @@ export const useSignupStore = create<SignupStore>((set, get) => ({
     // 유틸리티 함수
     isNameValid: () => {
         const { name } = get();
-        return name !== null && name.trim() !== '';
+        return name !== null && name.trim().length >= 2;
     },
 
     isResidentIdValid: () => {

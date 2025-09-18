@@ -5,6 +5,8 @@ app/(auth)/
 │   ├── name.tsx
 │   ├── resident-id.tsx
 │   ├── phone.tsx
+|   ├── terms-agreement.tsx
+|   ├── terms-detail.tsx    
 │   ├── phone-verification.tsx
 │   ├── account-selection.tsx
 │   ├── account-verification.tsx
