@@ -1,6 +1,7 @@
 import { BANK_CODES } from '@/src/constants/banks';
 import React from 'react';
-import { View, Text, Image, StyleSheet, StyleProp, ViewStyle } from 'react-native';
+import { View, Text, StyleSheet, StyleProp, ViewStyle } from 'react-native';
+import { Image } from 'expo-image';
 import { Spacing, Typography } from '@/src/constants/theme';
 
 export type AccountCardData = {
@@ -45,7 +46,12 @@ const AccountCard: React.FC<AccountCardProps> = ({
                 {/* 상단: 은행 로고 + 은행명 */}
                 <View style={styles.row}>
                     <View style={styles.logoWrapper}>
-                        <Image source={bankInfo.logo} style={styles.logo} />
+                        <Image 
+                            source={bankInfo.logo} 
+                            style={styles.logo}
+                            contentFit="contain"
+                            transition={200}
+                        />
                     </View>
                     <Text style={[styles.bankName, { color: textColor }]}>{bankInfo.name}</Text>
                 </View>

@@ -18,7 +18,8 @@
       "supportsTablet": true,
       "infoPlist": {
         "UIBackgroundModes": ["remote-notification"]
-      }
+      },
+      "bundleIdentifier": "com.walletslot.app"
     },
     "android": {
       "adaptiveIcon": {
@@ -26,11 +27,20 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
+      "package": "com.walletslot.app",
+      "versionCode": 1,
+      "compileSdkVersion": 34,
+      "targetSdkVersion": 34,
+      "buildToolsVersion": "34.0.0",
       "permissions": [
         "RECEIVE_BOOT_COMPLETED",
         "VIBRATE",
-        "WAKE_LOCK"
-      ]
+        "WAKE_LOCK",
+        "INTERNET",
+        "ACCESS_NETWORK_STATE",
+        "com.google.android.c2dm.permission.RECEIVE"
+      ],
+      "googleServicesFile": "./google-services.json"
     },
     "web": {
       "bundler": "metro",
@@ -57,7 +67,16 @@
           "sounds": [],
           "mode": "production"
         }
-      ]
+      ],
+      [
+        "@react-native-firebase/app",
+        {
+          "android": {
+            "googleServicesFile": "./google-services.json"
+          }
+        }
+      ],
+      "@react-native-firebase/messaging"
     ],
     "experiments": {
       "typedRoutes": true

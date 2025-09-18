@@ -23,23 +23,32 @@
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert, InteractionManager } from 'react-native';
+import { Alert } from 'react-native';
 
-import { BACKEND_AVAILABLE } from '@/src/constants/api';
-import { useDeleteNotification, useMarkNotificationAsRead, useNotifications } from '@/src/hooks';
 import { monitoringService } from '@/src/services';
 import type { NotificationItem } from '@/src/types';
+import { useDeleteNotification, useMarkAllNotificationsAsRead, useMarkNotificationAsRead, useMarkNotificationAsUnread, useNotifications } from './useNotifications';
+
+/**
+ * @hook useNotificationLogic
+ * @description 알림 화면에서 필요한 파생 상태와 사용자 액션 로직을 제공합니다.
+ * React Query 캐시를 단일 소스로 사용하며, 별도의 중복 로컬 상태(알림 목록/미읽음 개수)를 보관하지 않습니다.
+ * 읽음/안읽음 토글은 optimistic mutation 훅에서 이미 처리하므로 여기서는 UI 중심 로직만 유지합니다.
+ */
 
 export const useNotificationLogic = () => {
-  // API 훅
   const { data: notificationsResponse, isLoading: isNotificationsLoading, refetch } = useNotifications();
   const markAsReadMutation = useMarkNotificationAsRead();
+  const markAsUnreadMutation = useMarkNotificationAsUnread();
   const deleteNotificationMutation = useDeleteNotification();
+  const markAllMutation = useMarkAllNotificationsAsRead();
 
-  // 로컬 상태
-  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+  // 서버/캐시 데이터 (없으면 빈 배열)
+  const notifications: NotificationItem[] = notificationsResponse?.data || [];
+  const unreadCount = notifications.filter(n => !n.isRead).length;
+
+  // 로컬 UI 상태
   const [refreshing, setRefreshing] = useState(false);
-  const [unreadCount, setUnreadCount] = useState(0);
   const [selectedFilter, setSelectedFilter] = useState<'all' | 'unread' | 'read'>('all');
   const [selectedTypeFilter, setSelectedTypeFilter] = useState<string>('all');
   const [selectedDateRange, setSelectedDateRange] = useState<'all' | 'today' | 'week' | 'month'>('all');
@@ -49,51 +58,6 @@ export const useNotificationLogic = () => {
   const [hasNextPage, setHasNextPage] = useState(true);
 
   const ITEMS_PER_PAGE = 20;
-
-  // Mock 데이터 생성 함수
-  const generateMockNotifications = useCallback((): NotificationItem[] => {
-    const mockData = [
-      { type: 'budget_exceeded' as const, title: '예산 초과 알림', message: '생활비 슬롯이 이달 예산을 50,000원 초과했습니다. 지출을 검토해보세요.' },
-      { type: 'goal_achieved' as const, title: '목표 달성!', message: '여행 적금 슬롯이 목표 금액에 도달했습니다! 축하합니다 🎉' },
-      { type: 'spending_pattern' as const, title: '지출 패턴 분석', message: '이번 주 카페 지출이 평소보다 30% 증가했습니다. 확인해보세요.' },
-      { type: 'account_sync' as const, title: '계좌 동기화 완료', message: '국민은행 계좌 정보가 성공적으로 업데이트되었습니다.' },
-      { type: 'system' as const, title: '시스템 업데이트', message: '새로운 기능이 추가되었습니다. 업데이트 내용을 확인해보세요.' },
-    ];
-
-    return Array.from({ length: 12 }, (_, i) => {
-      const template = mockData[i % mockData.length];
-      return {
-        id: `notif_${i}`,
-        title: template.title,
-        message: template.message,
-        type: template.type,
-        isRead: i > 4,
-        createdAt: new Date(Date.now() - i * 3600000 - Math.random() * 1800000).toISOString(),
-        slotId: template.type.includes('budget') || template.type.includes('goal') ? 
-          Math.floor(Math.random() * 10) + 1 : undefined,
-        accountId: template.type === 'account_sync' ? 
-          Math.floor(Math.random() * 5) + 1 : undefined,
-        pushData: {
-          action: 'open_detail',
-          targetScreen: template.type.includes('budget') || template.type.includes('goal') ? 
-            '/dashboard' : '/notifications',
-          params: { notificationId: `notif_${i}` }
-        }
-      };
-    });
-  }, []);
-
-  // 서버 데이터 처리
-  useEffect(() => {
-    if (notificationsResponse?.data && notificationsResponse.data.length > 0) {
-      setNotifications(notificationsResponse.data);
-      setUnreadCount(notificationsResponse.data.filter(n => !n.isRead).length);
-    } else {
-      const mockData = generateMockNotifications();
-      setNotifications(mockData);
-      setUnreadCount(mockData.filter(n => !n.isRead).length);
-    }
-  }, [notificationsResponse, generateMockNotifications]);
 
   // 새로고침
   const onRefresh = useCallback(async () => {
@@ -123,10 +87,7 @@ export const useNotificationLogic = () => {
   }, [isLoadingMore, hasNextPage]);
 
   // 알림 타입 목록
-  const notificationTypes = useMemo(() => {
-    const types = [...new Set(notifications.map(n => n.type))];
-    return types;
-  }, [notifications]);
+  const notificationTypes = useMemo(() => [...new Set(notifications.map(n => n.type))], [notifications]);
 
   // 날짜 필터링
   const filterByDateRange = useCallback((item: NotificationItem) => {
@@ -166,10 +127,15 @@ export const useNotificationLogic = () => {
   // 페이지네이션된 알림 목록
   const paginatedNotifications = useMemo(() => {
     const endIndex = currentPage * ITEMS_PER_PAGE;
-    const paginated = filteredNotifications.slice(0, endIndex);
-    setHasNextPage(endIndex < filteredNotifications.length);
-    return paginated;
-  }, [filteredNotifications, currentPage, ITEMS_PER_PAGE]);
+    return filteredNotifications.slice(0, endIndex);
+  }, [filteredNotifications, currentPage]);
+
+  // hasNextPage 계산 (렌더 사이드 이펙트 분리)
+  useEffect(() => {
+    const endIndex = currentPage * ITEMS_PER_PAGE;
+    const next = endIndex < filteredNotifications.length;
+    if (hasNextPage !== next) setHasNextPage(next);
+  }, [filteredNotifications, currentPage, hasNextPage]);
 
   // 필터 변경 시 페이지 리셋
   useEffect(() => {
@@ -178,55 +144,39 @@ export const useNotificationLogic = () => {
 
   // 읽음 상태 토글
   const toggleReadStatus = useCallback((id: string, newStatus: boolean) => {
-    const item = notifications.find(n => n.id === id);
-    
-    if (item) {
+    const target = notifications.find(n => n.id === id);
+    if (target) {
       monitoringService.logUserInteraction('swipe', {
         component: 'notification_item',
         notificationId: id,
         action: newStatus ? 'mark_as_read' : 'mark_as_unread',
-        notificationType: item.type,
-        previousState: item.isRead
+        notificationType: target.type,
+        previousState: target.isRead
       });
-      
       monitoringService.logNotificationEvent('action_taken', {
         notificationId: id,
-        type: item.type,
+        type: target.type,
         action: newStatus ? 'swipe_mark_read' : 'swipe_mark_unread'
       });
     }
-    
-    // 상태 업데이트는 InteractionManager 후에 실행하여
-    // 스와이프/레이아웃 애니메이션이 끝난 뒤 UI 변경이 이루어지게 함
-    InteractionManager.runAfterInteractions(() => {
-      setNotifications(prevNotifications => {
-        const updated = prevNotifications.map(n => n.id === id ? { ...n, isRead: newStatus } : n);
-        const newUnreadCount = updated.filter(n => !n.isRead).length;
-        setUnreadCount(newUnreadCount);
-        return updated;
-      });
-    });
 
-    if (BACKEND_AVAILABLE) {
-      try {
-        markAsReadMutation.mutate(id, {
-          onError: (error) => {
-            refetch?.();
-            Alert.alert('오류', '알림 상태 업데이트에 실패했습니다. 다시 시도하시겠습니까?', [
-              { text: '아니오', style: 'cancel' },
-              { text: '예', onPress: () => toggleReadStatus(id, newStatus) }
-            ]);
-          },
-          onSettled: () => {
-            refetch?.();
-          }
-        });
-      } catch (e) {
-        refetch?.();
-        Alert.alert('오류', '알림 상태 업데이트 중 문제가 발생했습니다.');
-      }
+    // Optimistic update는 mutation 훅에서 처리; 여기서는 호출만
+    if (newStatus) {
+      markAsReadMutation.mutate(id, {
+        onError: () => {
+          Alert.alert('오류', '알림 읽음 처리 실패. 다시 시도해 주세요.');
+          refetch?.();
+        }
+      });
+    } else {
+      markAsUnreadMutation.mutate(id, {
+        onError: () => {
+          Alert.alert('오류', '알림 안읽음 처리 실패. 다시 시도해 주세요.');
+          refetch?.();
+        }
+      });
     }
-  }, [notifications, markAsReadMutation, refetch]);
+  }, [notifications, markAsReadMutation, markAsUnreadMutation, refetch]);
 
   // 모든 알림 읽음 처리
   const handleMarkAllAsRead = useCallback(() => {
@@ -238,17 +188,12 @@ export const useNotificationLogic = () => {
         {
           text: '확인',
           onPress: () => {
-            setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
-            setUnreadCount(0);
-            
-            if (BACKEND_AVAILABLE) {
-              // TODO: useMarkAllNotificationsAsRead 뮤테이션 도입 시 처리
-            }
+            markAllMutation.mutate();
           }
         }
       ]
     );
-  }, []);
+  }, [markAllMutation]);
 
   return {
     // 상태

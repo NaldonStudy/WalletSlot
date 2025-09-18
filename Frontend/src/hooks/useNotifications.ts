@@ -4,12 +4,8 @@ import { AppState, AppStateStatus } from 'react-native';
 
 import { notificationApi } from '@/src/api';
 import { queryKeys } from '@/src/api/queryKeys';
-import { notificationService } from '@/src/services/notificationService';
-import type {
-  InitialTokenRequest,
-  NotificationItem,
-  NotificationSettings
-} from '@/src/types';
+import { unifiedPushService } from '@/src/services';
+import type { NotificationItem, NotificationSettings } from '@/src/types';
 
 /**
  * 알림 목록 조회 훅
@@ -23,8 +19,8 @@ export const useNotifications = (params?: {
   return useQuery({
     queryKey: queryKeys.notifications.list(params),
     queryFn: () => notificationApi.getNotifications(params),
-    staleTime: 30 * 1000, // 30초간 캐시 유지
-    gcTime: 5 * 60 * 1000, // 5분간 가비지 컬렉션 방지
+    staleTime: 30 * 1000,
+    gcTime: 5 * 60 * 1000,
   });
 };
 
@@ -35,8 +31,8 @@ export const useUnreadNotificationCount = () => {
   return useQuery({
     queryKey: queryKeys.notifications.unreadCount(),
     queryFn: () => notificationApi.getUnreadCount(),
-    staleTime: 10 * 1000, // 10초간 캐시 유지
-    refetchInterval: 30 * 1000, // 30초마다 자동 새로고침
+    staleTime: 10 * 1000,
+    refetchInterval: 30 * 1000,
   });
 };
 
@@ -47,7 +43,7 @@ export const useNotificationSettings = () => {
   return useQuery({
     queryKey: queryKeys.notifications.settings(),
     queryFn: () => notificationApi.getSettings(),
-    staleTime: 5 * 60 * 1000, // 5분간 캐시 유지
+    staleTime: 5 * 60 * 1000,
   });
 };
 
@@ -56,14 +52,100 @@ export const useNotificationSettings = () => {
  */
 export const useMarkNotificationAsRead = () => {
   const queryClient = useQueryClient();
-
   return useMutation({
-    mutationFn: (notificationId: string) => 
-      notificationApi.markAsRead(notificationId),
-    onSuccess: () => {
-      // 알림 목록과 읽지 않은 개수 갱신
-      queryClient.invalidateQueries({ queryKey: queryKeys.notifications.all });
+    mutationFn: (notificationId: string) => notificationApi.markAsRead(notificationId),
+    onMutate: async (notificationId: string) => {
+      await queryClient.cancelQueries({ queryKey: queryKeys.notifications.all });
+      const allQueries = queryClient.getQueryCache().findAll({ queryKey: queryKeys.notifications.all });
+      const previousSnapshots: Array<{ queryHash: string; data: any }> = [];
+      
+      allQueries.forEach(q => {
+        const data: any = q.state.data;
+        if (data && Array.isArray(data.data)) {
+          previousSnapshots.push({ queryHash: q.queryHash, data: JSON.parse(JSON.stringify(data)) });
+          const updated = {
+            ...data,
+            data: data.data.map((n: any) =>
+              n.id === notificationId ? { ...n, isRead: true, readAt: new Date().toISOString() } : n
+            ),
+          };
+          queryClient.setQueryData(q.queryKey, updated);
+        }
+      });
+
+      const unreadKey = queryKeys.notifications.unreadCount();
+      const unread = queryClient.getQueryData<any>(unreadKey);
+      if (unread?.data?.count > 0) {
+        queryClient.setQueryData(unreadKey, { ...unread, data: { count: unread.data.count - 1 } });
+      }
+      return { previousSnapshots, unreadPrevious: unread };
     },
+    onError: (_err, _id, ctx) => {
+      ctx?.previousSnapshots.forEach(s => {
+        const query = queryClient.getQueryCache().get(s.queryHash)
+        if (query) {
+          queryClient.setQueryData(query.queryKey, s.data);
+        }
+      });
+      if (ctx?.unreadPrevious) {
+        queryClient.setQueryData(queryKeys.notifications.unreadCount(), ctx.unreadPrevious);
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.notifications.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.notifications.unreadCount() });
+    }
+  });
+};
+
+/**
+ * 알림 안읽음 처리 뮤테이션
+ */
+export const useMarkNotificationAsUnread = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (notificationId: string) => notificationApi.markAsUnread(notificationId),
+    onMutate: async (notificationId: string) => {
+      await queryClient.cancelQueries({ queryKey: queryKeys.notifications.all });
+      const allQueries = queryClient.getQueryCache().findAll({ queryKey: queryKeys.notifications.all });
+      const previousSnapshots: Array<{ queryHash: string; data: any }> = [];
+
+      allQueries.forEach(q => {
+        const data: any = q.state.data;
+        if (data && Array.isArray(data.data)) {
+          previousSnapshots.push({ queryHash: q.queryHash, data: JSON.parse(JSON.stringify(data)) });
+          const updated = {
+            ...data,
+            data: data.data.map((n: any) =>
+              n.id === notificationId ? { ...n, isRead: false, readAt: null } : n
+            ),
+          };
+          queryClient.setQueryData(q.queryKey, updated);
+        }
+      });
+
+      const unreadKey = queryKeys.notifications.unreadCount();
+      const unread = queryClient.getQueryData<any>(unreadKey);
+      if (unread?.data) {
+        queryClient.setQueryData(unreadKey, { ...unread, data: { count: unread.data.count + 1 } });
+      }
+      return { previousSnapshots, unreadPrevious: unread };
+    },
+    onError: (_err, _id, ctx) => {
+      ctx?.previousSnapshots.forEach(s => {
+        const query = queryClient.getQueryCache().get(s.queryHash)
+        if (query) {
+          queryClient.setQueryData(query.queryKey, s.data);
+        }
+      });
+      if (ctx?.unreadPrevious) {
+        queryClient.setQueryData(queryKeys.notifications.unreadCount(), ctx.unreadPrevious);
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.notifications.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.notifications.unreadCount() });
+    }
   });
 };
 
@@ -72,13 +154,37 @@ export const useMarkNotificationAsRead = () => {
  */
 export const useMarkAllNotificationsAsRead = () => {
   const queryClient = useQueryClient();
-
   return useMutation({
     mutationFn: () => notificationApi.markAllAsRead(),
-    onSuccess: () => {
-      // 알림 목록과 읽지 않은 개수 갱신
-      queryClient.invalidateQueries({ queryKey: queryKeys.notifications.all });
+    onMutate: async () => {
+      await queryClient.cancelQueries({ queryKey: queryKeys.notifications.all });
+      const listQueries = queryClient.getQueryCache().findAll({ queryKey: queryKeys.notifications.all });
+      const previous: Array<{ queryKey: readonly unknown[]; data: any }> = [];
+      
+      listQueries.forEach(q => {
+        const data: any = q.state.data;
+        if (data && Array.isArray(data.data)) {
+          previous.push({ queryKey: q.queryKey, data: JSON.parse(JSON.stringify(data)) });
+          const updated = { ...data, data: data.data.map((n: any) => ({ ...n, isRead: true })) };
+          queryClient.setQueryData(q.queryKey, updated);
+        }
+      });
+
+      const unreadKey = queryKeys.notifications.unreadCount();
+      const unreadPrev = queryClient.getQueryData<any>(unreadKey);
+      if (unreadPrev) {
+        queryClient.setQueryData(unreadKey, { ...unreadPrev, data: { count: 0 } });
+      }
+      return { previous, unreadPrev };
     },
+    onError: (_err, _vars, ctx) => {
+      ctx?.previous?.forEach(p => queryClient.setQueryData(p.queryKey, p.data));
+      if (ctx?.unreadPrev) queryClient.setQueryData(queryKeys.notifications.unreadCount(), ctx.unreadPrev);
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.notifications.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.notifications.unreadCount() });
+    }
   });
 };
 
@@ -87,29 +193,11 @@ export const useMarkAllNotificationsAsRead = () => {
  */
 export const useUpdateNotificationSettings = () => {
   const queryClient = useQueryClient();
-
   return useMutation({
-    mutationFn: (settings: Partial<NotificationSettings>) => 
+    mutationFn: (settings: Partial<NotificationSettings>) =>
       notificationApi.updateSettings(settings),
     onSuccess: () => {
-      // 알림 설정 갱신
       queryClient.invalidateQueries({ queryKey: queryKeys.notifications.settings() });
-    },
-  });
-};
-
-/**
- * 최초 푸시 토큰 등록 뮤테이션
- */
-export const useRegisterInitialPushToken = () => {
-  return useMutation({
-    mutationFn: (data: InitialTokenRequest) => 
-      notificationApi.registerInitialPushToken(data),
-    onSuccess: () => {
-      console.log('최초 푸시 토큰 등록 완료');
-    },
-    onError: (error) => {
-      console.error('최초 푸시 토큰 등록 실패:', error);
     },
   });
 };
@@ -119,60 +207,59 @@ export const useRegisterInitialPushToken = () => {
  */
 export const useDeleteNotification = () => {
   const queryClient = useQueryClient();
-
   return useMutation({
-    mutationFn: (notificationId: string) => 
+    mutationFn: (notificationId: string) =>
       notificationApi.deleteNotification(notificationId),
-    onSuccess: () => {
-      // 알림 목록 갱신
+    onSuccess: (_res, notificationId) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.notifications.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.notifications.unreadCount() });
     },
   });
 };
 
 /**
- * 푸시 알림 시스템 통합 관리 훅
+ * 푸시 알림 시스템 통합 관리 훅 (리팩토링됨)
  */
 export const usePushNotificationSystem = () => {
-  const [pushToken, setPushToken] = useState<string | null>(null);
-  const [appState, setAppState] = useState<AppStateStatus>(AppState.currentState);
   const [isInitialized, setIsInitialized] = useState(false);
+  const [appState, setAppState] = useState<AppStateStatus>(AppState.currentState);
 
   useEffect(() => {
-    const initializePushNotifications = async () => {
+    const initialize = async () => {
       try {
-        // TODO: 로그인 후 토큰 초기화 로직 구현
-        const token = notificationService.getPushToken();
-        setPushToken(token);
-        setIsInitialized(true);
+        console.log('🔄 [HOOK] 푸시 서비스 초기화 시도...');
+        const result = await unifiedPushService.initialize();
+        if (result.success) {
+          setIsInitialized(true);
+          console.log('✅ [HOOK] 푸시 서비스 초기화 성공');
+        } else {
+          setIsInitialized(false);
+          console.warn('⚠️ [HOOK] 푸시 서비스 초기화 실패');
+        }
       } catch (error) {
-        console.error('푸시 알림 초기화 실패:', error);
+        console.error('❌ [HOOK] 푸시 서비스 초기화 중 심각한 오류:', error);
         setIsInitialized(false);
       }
     };
-
-    initializePushNotifications();
-
+    initialize();
     return () => {
-      notificationService.cleanup();
+      unifiedPushService.cleanup();
     };
   }, []);
 
   useEffect(() => {
-    const subscription = AppState.addEventListener('change', (nextAppState) => {
+    const subscription = AppState.addEventListener('change', nextAppState => {
       if (appState.match(/inactive|background/) && nextAppState === 'active') {
-        notificationService.setBadgeCount(0);
+        console.log('[HOOK] 앱이 활성화되어 배지 카운트를 초기화합니다.');
+        unifiedPushService.setBadgeCount(0);
       }
       setAppState(nextAppState);
     });
-
     return () => subscription?.remove();
   }, [appState]);
 
   return {
-    pushToken,
-    appState,
+    unifiedPushService,
     isInitialized,
-    notificationService,
   };
 };
