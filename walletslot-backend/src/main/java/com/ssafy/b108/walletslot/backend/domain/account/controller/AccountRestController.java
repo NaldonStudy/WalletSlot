@@ -1,12 +1,15 @@
 package com.ssafy.b108.walletslot.backend.domain.account.controller;
 
+import com.ssafy.b108.walletslot.backend.config.security.UserPrincipal;
 import com.ssafy.b108.walletslot.backend.domain.account.dto.*;
 import com.ssafy.b108.walletslot.backend.domain.account.service.AccountService;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -19,96 +22,88 @@ public class AccountRestController {
     private final AccountService accountService;
 
     // Method
-    /**
-     * 4-1-1 현재 사용자의 모든 계좌목록 조회 (마이데이터 연동)
-     */
     @GetMapping
-    public ResponseEntity<GetAccountListResponseDto> getAccountList() {
-        // UserPrincipal에서 userId 추출
-        // 지금은 1L로 하드코딩
-        return ResponseEntity.status(HttpStatus.OK).body(accountService.getAccountList(1L));
+    @Operation(
+            summary = "4-1-1 마이데이터 연동",
+            description = "현재 사용자의 마이데이터를 불러옵니다. (from. SSAFY 교육용 금융망 API)"
+    )
+    public ResponseEntity<GetAccountListResponseDto> getAccountList(@AuthenticationPrincipal UserPrincipal principal) {
+        return ResponseEntity.status(HttpStatus.OK).body(accountService.getAccountList(principal.userId()));
     }
 
-    /**
-     * 4-1-2 현재 사용자의 연동 계좌목록 조회 (우리 서비스에 연동된 계좌만)
-     */
     @GetMapping("/link")
-    public ResponseEntity<GetLinkedAccountListResponseDto> getLinkedAccounts() {
-        // UserPrincipal에서 userId 추출
-        // 지금은 1L로 하드코딩
-        return ResponseEntity.status(HttpStatus.OK).body(accountService.getLinkedAccounts(1L));
+    @Operation(
+            summary = "4-1-2 연동 계좌목록 조회",
+            description = "현재 사용자가 우리 서비스에 연동한 계좌목록을 조회합니다."
+    )
+    public ResponseEntity<GetLinkedAccountListResponseDto> getLinkedAccounts(@AuthenticationPrincipal UserPrincipal principal) {
+        return ResponseEntity.status(HttpStatus.OK).body(accountService.getLinkedAccounts(principal.userId()));
     }
 
-    /**
-     * 4-1-3 계좌 상세조회
-     */
     @GetMapping("/{accountId}")
-    public ResponseEntity<GetAccountResponseDto> getAccount(@PathVariable String accountId) {
-        // UserPrincipal에서 userId 추출
-        // 지금은 1L로 하드코딩
-        return ResponseEntity.status(HttpStatus.OK).body(accountService.getAccount(1L, accountId));
+    @Operation(
+            summary = "4-1-3 계좌 상세조회",
+            description = "특정 계좌의 정보를 상세조회합니다."
+    )
+    public ResponseEntity<GetAccountResponseDto> getAccount(@AuthenticationPrincipal UserPrincipal principal, @PathVariable String accountId) {
+        return ResponseEntity.status(HttpStatus.OK).body(accountService.getAccount(principal.userId(), accountId));
     }
 
-    /**
-     * 4-1-4 현재 사용자의 대표계좌 상세조회
-     */
     @GetMapping("/primary")
-    public ResponseEntity<GetPrimaryAccountResponseDto> getPrimaryAccount() {
-        // UserPrincipal에서 userId 추출
-        // 지금은 1L로 하드코딩
-        return ResponseEntity.status(HttpStatus.OK).body(accountService.getPrimaryAccount(1L));
+    @Operation(
+            summary = "4-1-4 대표계좌 상세조회",
+            description = "현재 사용자의 대표 계좌의 정보를 상세조회합니다."
+    )
+    public ResponseEntity<GetPrimaryAccountResponseDto> getPrimaryAccount(@AuthenticationPrincipal UserPrincipal principal) {
+        return ResponseEntity.status(HttpStatus.OK).body(accountService.getPrimaryAccount(principal.userId()));
     }
 
-    /**
-     * 4-1-5 계좌 연동 삭제
-     */
     @DeleteMapping("/{accountId}")
-    public ResponseEntity<DeleteLinkedAccountResponseDto> deleteAccount(@PathVariable String accountId) {
-        // UserPrincipal에서 userId 추출
-        // 지금은 1L로 하드코딩
-        return ResponseEntity.status(HttpStatus.OK).body(accountService.deleteLinkedAccount(1L, accountId));
+    @Operation(
+            summary = "4-1-5 연동된 계좌 삭제",
+            description = "현재 사용자가 우리 서비스에 연동했던 계좌를 연동 해제합니다."
+    )
+    public ResponseEntity<DeleteLinkedAccountResponseDto> deleteAccount(@AuthenticationPrincipal UserPrincipal principal, @PathVariable String accountId) {
+        return ResponseEntity.status(HttpStatus.OK).body(accountService.deleteLinkedAccount(principal.userId(), accountId));
     }
 
-    /**
-     * 4-2-1 1원 송금 요청
-     */
     @PostMapping("/verification/request")
-    public ResponseEntity<RequestVerificationResponseDto> requestVerification(@RequestBody RequestVerificationRequestDto request) {
-        // UserPrincipal에서 userId 추출
-        // 지금은 1L로 하드코딩
-        return ResponseEntity.status(HttpStatus.CREATED).body(accountService.requestVerification(1L, request.getAccountNo()));
+    @Operation(
+            summary = "4-2-1 1원인증 요청",
+            description = "1원인증을 요청합니다."
+    )
+    public ResponseEntity<RequestVerificationResponseDto> requestVerification(@AuthenticationPrincipal UserPrincipal principal, @RequestBody RequestVerificationRequestDto request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(accountService.requestVerification(principal.userId(), request.getAccountNo()));
     }
 
-    /**
-     * 4-2-2 1원 인증
-     */
     @PostMapping("/verification/verify")
-    public ResponseEntity<VerifyAccountResponseDto> verifyAccount(@RequestBody VerifyAccountRequestDto request) {
-        // UserPrincipal에서 userId 추출
-        // 지금은 1L로 하드코딩
+    @Operation(
+            summary = "4-2-2 1원인증",
+            description = "1원 인증을 진행합니다."
+    )
+    public ResponseEntity<VerifyAccountResponseDto> verifyAccount(@AuthenticationPrincipal UserPrincipal principal, @RequestBody VerifyAccountRequestDto request) {
         int indexOfSpace = request.getAuthIdentifier().indexOf(" ");
         String authText = request.getAuthIdentifier().substring(0, indexOfSpace);
         String authCode = request.getAuthIdentifier().substring(indexOfSpace + 1);
 
-        return ResponseEntity.status(HttpStatus.OK).body(accountService.verifyAccount(1L, request.getAccountNo(), authText, authCode));
+        return ResponseEntity.status(HttpStatus.OK).body(accountService.verifyAccount(principal.userId(), request.getAccountNo(), authText, authCode));
     }
 
-    /**
-     * 4-3-1 우리 서비스에 연동할 계좌 등록
-     */
     @PostMapping("/link")
-    public ResponseEntity<AddAccountResponseDto> addAccount(@RequestBody AddAccountRequestDto request) {
-        // UserPrincipal에서 userId 추출
-        // 지금은 1L로 하드코딩
-
-        return ResponseEntity.status(HttpStatus.CREATED).body(accountService.addAccount(1L, request.getAccounts()));
+    @Operation(
+            summary = "4-3-1 계좌연동",
+            description = "현재 사용자의 대표 계좌의 정보를 상세조회합니다."
+    )
+    public ResponseEntity<AddAccountResponseDto> addAccount(@AuthenticationPrincipal UserPrincipal principal, @RequestBody AddAccountRequestDto request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(accountService.addAccount(principal.userId(), request.getAccounts()));
     }
 
-    /**
-     * 4-3-2 계좌 정보 설정
-     */
     @PatchMapping("/{accountId}")
-    public ResponseEntity<ModifyAccountResponseDto> modifyAccount(@PathVariable String accountId, @RequestBody ModifyAccountRequestDto request) {
-        return ResponseEntity.status(HttpStatus.OK).body(accountService.modifyAccount(1L, accountId, request));
+    @Operation(
+            summary = "4-3-2 계좌 정보 설정",
+            description = ""
+    )
+    public ResponseEntity<ModifyAccountResponseDto> modifyAccount(@AuthenticationPrincipal UserPrincipal principal, @PathVariable String accountId, @RequestBody ModifyAccountRequestDto request) {
+        return ResponseEntity.status(HttpStatus.OK).body(accountService.modifyAccount(principal.userId(), accountId, request));
     }
 }
