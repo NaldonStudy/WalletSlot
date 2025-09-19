@@ -1,87 +1,67 @@
-import { useQuery } from '@tanstack/react-query';
-import { slotApi, queryKeys } from '@/src/api';
-import type { Slot } from '@/src/types';
+import { useQuery } from "@tanstack/react-query";
+import { slotApi, queryKeys } from "@/src/api";
+import type { SlotData, SlotsResponse, BaseResponse } from "@/src/types";
 
-interface SlotForm {
-  name: string;
-  targetAmount: number;
-  category: string;
-  description?: string;
-}
+type UseSlotsOptions = {
+  enabled?: boolean;
+};
 
-/**
- * 슬롯 관련 커스텀 훅 (기본 틀)
- * 추후 API 안정화에 따라 확장 예정
- */
-export const useSlots = (accountId?: number) => {
-  // 계좌별 슬롯 목록 조회 (현재 사용 가능한 API)
-  const { 
-    data: slotsData, 
+export const useSlots = (accountId?: string, options: UseSlotsOptions = {}) => {
+  const {
+    data: slots = [],
     isLoading,
+    isError,
     error,
     refetch,
-  } = useQuery({
-    queryKey: accountId ? queryKeys.slots.byAccount(accountId) : ['slots', 'none'],
-    queryFn: () => accountId ? slotApi.getSlotsByAccount(accountId) : null,
-    enabled: !!accountId,
-    staleTime: 2 * 60 * 1000, // 2분간 캐시 유지
+  } = useQuery<BaseResponse<SlotsResponse>, Error, SlotData[]>({
+    queryKey: accountId ? queryKeys.slots.byAccount(accountId) : ['slots', 'byAccount', 'undefined'],
+    queryFn: async () => {
+      const result = await slotApi.getSlotsByAccount(accountId!);
+      return result;
+    },
+    staleTime: 5 * 60 * 1000, // 5분간 캐시 유지
+    gcTime: 10 * 60 * 1000, // 10분간 가비지 컬렉션 방지
+    enabled: !!accountId && options.enabled !== false,
+    select: (res) => {
+      return res.data.slots;
+    },
   });
 
-  const slots = slotsData?.data || [];
-
   return {
-    // 데이터
     slots,
     isLoading,
+    isError,
     error,
-    
-    // 액션 (추후 구현)
-    createSlot: (data: SlotForm) => {
-      console.log('Create slot:', data);
-      // TODO: API 구현 후 활성화
-    },
-    
-    // 유틸리티
     refetch,
-    getTotalAmount: () => slots.reduce((sum: number, slot: Slot) => sum + (slot.targetMinor || 0), 0),
-    getActiveSlots: () => slots.filter((slot: Slot) => slot.isActive),
-    
-    // 포맷팅
-    formatSlotAmount: (amount: number) => 
-      new Intl.NumberFormat('ko-KR').format(amount) + '원',
   };
 };
 
-/**
- * 개별 슬롯 상세 정보 훅 (기본 틀)
- */
-export const useSlot = (slotId: number) => {
-  const { 
-    data: slotData, 
+export const useSlotDetail = (slotId?: string) => {
+  const {
+    data: slot,
     isLoading,
+    isError,
     error,
-  } = useQuery({
-    queryKey: queryKeys.slots.detail(slotId),
-    queryFn: () => slotApi.getSlotDetail(slotId),
+    refetch,
+  } = useQuery<BaseResponse<SlotData>, Error, SlotData>({
+    queryKey: ['slots', 'detail', slotId],
+    queryFn: async () => {
+      const result = await slotApi.getSlotDetail(slotId!);
+      return result;
+    },
+    staleTime: 5 * 60 * 1000, // 5분간 캐시 유지
+    gcTime: 10 * 60 * 1000, // 10분간 가비지 컬렉션 방지
     enabled: !!slotId,
-    staleTime: 2 * 60 * 1000,
+    select: (res) => {
+      return res.data;
+    },
   });
 
   return {
-    slot: slotData?.data,
+    slot,
     isLoading,
+    isError,
     error,
-  };
-};
-
-/**
- * 슬롯 추천 기능 훅 (추후 구현)
- */
-export const useSlotRecommendations = () => {
-  // TODO: API 파라미터 정리 후 구현
-  return {
-    recommendations: [],
-    isLoading: false,
-    refetch: () => {},
+    refetch,
   };
 };

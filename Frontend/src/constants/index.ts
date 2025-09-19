@@ -27,6 +27,3 @@ export * from './messages';
 
 // ===== 테마 관련 상수 재내보내기 =====
 export * from './theme';
-
-// ===== 샘플 데이터 =====
-export * from './sampleData';
