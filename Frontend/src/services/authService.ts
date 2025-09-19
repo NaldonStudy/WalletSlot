@@ -16,32 +16,6 @@ function extractRefreshTokenFromCookie(setCookieHeader: string): string | null {
     }
 }
 
-// JWT 토큰 만료 확인
-function isTokenExpired(token: string): boolean {
-    try {
-        const [, payloadBase64] = token.split('.');
-        if (!payloadBase64) return true;
-    
-
-        // atob이 없을 수 있어 Buffer로 폴백
-        const json = 
-        typeof atob === 'function' ? atob(payloadBase64.replace(/-/g, '+').replace(/_/g, '/')) 
-        : Buffer.from(payloadBase64.replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString('utf8');
-
-        const payload = JSON.parse(json);
-        const exp = Number(payload?.exp);
-        if (!exp) return true;
-
-        // 약간의 여유(예: 30초) 두고 만료 처리
-        const now = Math.floor(Date.now() / 1000);
-        const skewSeconds = 30;
-        return exp <= now + skewSeconds;
-      } catch {
-        return true; // 파싱 실패는 만료로 간주
-    }
-}
-
-
 // ====== 저장소 키 상수 ======
 const STORAGE_KEYS = {
     USER : 'local_user',
