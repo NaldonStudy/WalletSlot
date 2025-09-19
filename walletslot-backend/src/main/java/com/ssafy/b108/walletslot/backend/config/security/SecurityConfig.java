@@ -37,10 +37,10 @@ public class SecurityConfig {
                 // CSRF 비활성화
                 .csrf(csrf -> csrf.disable())
 
-                // CORS 설정
+                // CORS 적용
                 .cors(c -> c.configurationSource(corsConfigurationSource()))
 
-                // 기본 로그인/베이직 인증 비활성화 (이 두 줄 추가)
+                // 기본 로그인/베이직 인증 비활성화
                 .httpBasic(b -> b.disable())
                 .formLogin(f -> f.disable())
 
@@ -51,8 +51,6 @@ public class SecurityConfig {
                         // Swagger & 문서
                         .requestMatchers(
                                 "/swagger-ui/**",
-                                //"/swagger-ui",
-                                //"/swagger-ui.html",
                                 "/v3/api-docs/**",
                                 "/v3/api-docs",
                                 "/api-docs/**",
@@ -62,9 +60,13 @@ public class SecurityConfig {
                                 "/webjars/**"
                         ).permitAll()
 
+                        // devController를 위한
+                        .requestMatchers("/api/dev/**").permitAll()
+
                         // 헬스체크 & 인증 엔드포인트
                         .requestMatchers(
                                 "/actuator/health",
+                                "/actuator/**",
                                 "/api/auth/**",
                                 "/api/ping/public"
                         ).permitAll()
@@ -75,7 +77,7 @@ public class SecurityConfig {
                         .anyRequest().authenticated()
                 )
 
-                // 401/403 JSON 응답
+                // 401/403 JSON 응답 표준화
                 .exceptionHandling(e -> e
                         .authenticationEntryPoint(jsonAuthEntryPoint())
                         .accessDeniedHandler(jsonAccessDeniedHandler())
@@ -84,14 +86,11 @@ public class SecurityConfig {
                 // JWT 필터
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
 
-                // - jwtAuthFilter: Authorization 헤더의 액세스 토큰을 검증하고 SecurityContext에 Authentication 저장.
-                // - deviceBindingFilter: 인증된 요청에 한해, 토큰의 did와 헤더 X-Device-Id가 같은지 검사.
-                //   반드시 jwtAuthFilter "뒤"에 두어 Authentication이 채워진 뒤 실행되도록 addFilterAfter 사용.
+                // 디바이스 바인딩 검증 (JWT 이후)
                 .addFilterAfter(deviceBindingFilter, JwtAuthFilter.class);
 
         return http.build();
     }
-
 
     /* ---------------------- 테스트용 (전부 허용) ---------------------- */
     @Bean
@@ -106,6 +105,8 @@ public class SecurityConfig {
     }
 
     /* ---------------------- 공통 Bean ---------------------- */
+
+    // 401 JSON
     @Bean
     public AuthenticationEntryPoint jsonAuthEntryPoint() {
         return (req, res, ex) -> {
@@ -116,6 +117,7 @@ public class SecurityConfig {
         };
     }
 
+    // 403 JSON
     @Bean
     public AccessDeniedHandler jsonAccessDeniedHandler() {
         return (req, res, ex) -> {
@@ -129,20 +131,40 @@ public class SecurityConfig {
     @Bean
     public PasswordEncoder passwordEncoder() { return new BCryptPasswordEncoder(); }
 
+    // CORS 정책
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration c = new CorsConfiguration();
-        c.setAllowedOriginPatterns(List.of("*")); // 프로덕션에선 화이트리스트 권장
+
+        c.setAllowedOriginPatterns(List.of("*"));
+        /*
+        ===== 배포 시 이걸로 교체 =====
+        // React Native는 CORS 제약이 없지만, Swagger/웹 호출 대비 허용 패턴 정리
+        // - 에뮬레이터(안드로이드): http://10.0.2.2:{port}
+        // - 로컬/사내망 테스트: localhost/127.0.0.1/192.168.x.x
+        // - 운영에서는 "정확한 도메인 화이트리스트"로 교체 권장
+        c.setAllowedOriginPatterns(List.of(
+                "https://j13b108.p.ssafy.io",
+                "http://localhost:*",
+                "http://127.0.0.1:*",
+                "http://10.0.2.2:*",
+                "http://10.0.3.2:*",      // Genymotion
+                "http://192.168.*.*:*"
+        ));
+         */
+
         c.setAllowedMethods(List.of("GET","POST","PUT","PATCH","DELETE","OPTIONS"));
-
-        // 허용할 헤더
-        c.setAllowedHeaders(List.of("Authorization","Content-Type","X-Device-Id"));
-
-        // 노출할 헤더
+        c.setAllowedHeaders(List.of(
+                "Authorization",
+                "Content-Type",
+                "X-Device-Id",
+                "X-Requested-With"
+        ));
         c.setExposedHeaders(List.of("Authorization"));
-
-        // 쿠키 허용 X
+        // Bearer 헤더 기반이므로 크리덴셜은 불필요(쿠키 미사용)
         c.setAllowCredentials(false);
+        // 프리플라이트 캐시 시간(초)
+        c.setMaxAge(3600L);
 
         UrlBasedCorsConfigurationSource src = new UrlBasedCorsConfigurationSource();
         src.registerCorsConfiguration("/**", c);

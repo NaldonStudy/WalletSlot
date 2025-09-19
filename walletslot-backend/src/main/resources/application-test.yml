@@ -11,25 +11,22 @@ spring:
   jpa:
     show-sql: true
     hibernate:
-      ddl-auto: none              # ✅ 테스트도 DDL 미수행(원하면 임시로 update로 바꿔도 됨)
+      ddl-auto: none
 
 springdoc:
   swagger-ui:
     path: /swagger-ui
 
-cloud:
-  aws:
-    region: ap-northeast-2
 
 app:
   security:
     jwt:
-      secret_b64: ${JWT_SECRET_B64:}
+      secret_b64: ${JWT_SECRET_B64:XVRg1iCGNRxGDm8UAx/qtvU27owLRLBS5r2rpyBVVZE=}
 
     pepper:
       cipher:
-        v2025_01: ${PEPPER_CIPHER_V2025_01:}
-        v2024_12: ${PEPPER_CIPHER_V2024_12:}
+        pepper_v1: ${PEPPER_CIPHER_V1}   # ACTIVE
+        pepper_v0: ${PEPPER_CIPHER_V0}   # PREVIOUS(그레이스 후 제거)
 
     bcrypt:
       cost: 12
