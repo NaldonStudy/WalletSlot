@@ -79,6 +79,33 @@ export interface User {
 }
 
 /**
+ * 사용자 프로필 정보 (마이페이지용)
+ */
+export interface UserProfile {
+  name: string;
+  phone: string;
+  gender: 'M' | 'F' | 'O' | 'unknown';
+  dateOfBirth: string; // YYYY-MM-DD 형식
+  email: string | null;
+  job: string | null;
+  monthlyIncome: number | null; // 원 단위
+  avatar: string | null; // 프로필 이미지 URL
+  baseDay?: number; // 기준일 (1-31)
+}
+
+/**
+ * 프로필 수정 요청
+ */
+export interface UpdateProfileRequest {
+  name?: string;
+  email?: string;
+  job?: string;
+  monthlyIncome?: number;
+  avatar?: string; // base64 이미지 또는 파일 URL
+  baseDay?: number; // 기준일 (1-31)
+}
+
+/**
  * 은행 정보 인터페이스 (banks 테이블)
  */
 export interface Bank {

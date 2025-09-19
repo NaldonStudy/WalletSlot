@@ -1,12 +1,13 @@
 import { apiClient } from '@/src/api/client';
-import { 
-  Slot, 
-  SlotCategory, 
-  SlotHistory,
+import {
+  BaseResponse,
   CreateSlotRequest,
-  UpdateSlotBudgetRequest,
-  BaseResponse 
+  Slot,
+  SlotCategory,
+  SlotHistory,
+  UpdateSlotBudgetRequest
 } from '@/src/types';
+import { fetchFallback, isAmbiguousAxiosBody, normalizePaginatedList } from './responseNormalizer';
 
 /**
  * 슬롯 관련 API 서비스
@@ -16,7 +17,12 @@ export const slotApi = {
    * 계좌별 슬롯 목록 조회
    */
   getSlotsByAccount: async (accountId: number): Promise<BaseResponse<Slot[]>> => {
-    return apiClient.get(`/slots?accountId=${accountId}`);
+    const raw = await apiClient.get(`/slots?accountId=${accountId}`) as any;
+    if (isAmbiguousAxiosBody(raw)) {
+      const fallback = await fetchFallback<Slot>('/slots', { accountId });
+      if (fallback) return fallback;
+    }
+    return normalizePaginatedList<Slot>(raw) as unknown as BaseResponse<Slot[]>;
   },
 
   /**
@@ -65,7 +71,12 @@ export const slotApi = {
    * 슬롯 히스토리 조회
    */
   getSlotHistory: async (slotId: number): Promise<BaseResponse<SlotHistory[]>> => {
-    return apiClient.get(`/slots/${slotId}/history`);
+    const raw = await apiClient.get(`/slots/${slotId}/history`) as any;
+    if (isAmbiguousAxiosBody(raw)) {
+      const fallback = await fetchFallback<SlotHistory>(`/slots/${slotId}/history`);
+      if (fallback) return fallback;
+    }
+    return normalizePaginatedList<SlotHistory>(raw) as unknown as BaseResponse<SlotHistory[]>;
   },
 
   /**

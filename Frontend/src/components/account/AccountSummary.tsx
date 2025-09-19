@@ -1,10 +1,9 @@
-import React, { useState, memo } from 'react';
-import { View, Text, StyleSheet, useColorScheme, ActivityIndicator } from 'react-native';
-import { Image } from 'expo-image';
-import { AccountData } from '@/src/types';
 import { BANK_CODES } from '@/src/constants/banks';
-import { Colors, Spacing, Typography } from '@/src/constants/theme';
-import { themes } from '@/src/constants/theme';
+import { Spacing, themes, Typography } from '@/src/constants/theme';
+import { AccountData } from '@/src/types';
+import { Image } from 'expo-image';
+import React, { memo, useState } from 'react';
+import { ActivityIndicator, StyleSheet, Text, useColorScheme, View } from 'react-native';
 
 type AccountSummaryProps = {
     account: AccountData;
@@ -64,6 +63,8 @@ export const AccountSummary = memo(({ account }: AccountSummaryProps) => {
            prevProps.account.accountNumber === nextProps.account.accountNumber &&
            prevProps.account.balanceFormatted === nextProps.account.balanceFormatted;
 });
+
+AccountSummary.displayName = 'AccountSummary';
 
 const styles = StyleSheet.create({
     card: {

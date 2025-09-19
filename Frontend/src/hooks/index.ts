@@ -23,6 +23,24 @@ export {
 export { useNotificationLogic } from './useNotificationLogic';
 export { useNotificationNavigation } from './useNotificationNavigation';
 
+// 프로필 관련
+export {
+  useConfirmEmailVerification,
+  useConfirmPhoneVerification,
+  useRemoveAvatar,
+  useSendEmailVerification,
+  useSendPhoneVerification,
+  useUpdateAvatar,
+  useUpdateDateOfBirth,
+  useUpdateEmail,
+  useUpdateGender,
+  useUpdateJob,
+  useUpdateMonthlyIncome,
+  useUpdateName,
+  useUpdateProfile,
+  useUserProfile
+} from './useProfile';
+
 // 공통 유틸리티 훅
 export const useDebounce = (value: string, delay: number) => {
   const [debouncedValue, setDebouncedValue] = useState(value);
