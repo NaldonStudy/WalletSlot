@@ -1,8 +1,11 @@
-import AccountCarousel from '@/src/components/account/AccountCarousel';
+import React, { useState, useRef, useEffect, useMemo, useCallback, memo } from 'react';
+import { View, Text, StyleSheet, ScrollView, useColorScheme, Animated, Dimensions } from 'react-native';
+import { Image } from 'expo-image';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { faker } from '@faker-js/faker';
+import { Button } from '@/src/components';
+import { themes, Spacing, Typography } from '@/src/constants/theme';
 import { AccountSummary } from '@/src/components/account/AccountSummary';
-import AccountDonutChart from '@/src/components/chart/AccountDonutChart';
-import SlotList from '@/src/components/slot/SlotList';
-import { UncategorizedSlotCard } from '@/src/components/slot/UncategorizedSlotCard';
 import { BANK_CODES } from '@/src/constants/banks';
 import { useAccounts, useSlots } from '@/src/hooks';
 import type { UserAccount } from '@/src/types';
@@ -65,6 +68,7 @@ export default function DashboardScreen() {
   const { linked } = useAccounts();
   const { accounts: rawAccounts, isLoading: isAccountsLoading } = linked;
   
+  
   // 현재 선택된 계좌 데이터
   const currentAccount = rawAccounts?.[selectedIndex];
   
@@ -99,6 +103,7 @@ export default function DashboardScreen() {
     accountNumber: account.accountNo,
     balance: account.balance, // React Query가 자동으로 최신 잔액으로 업데이트
   }));
+  
 
 
   // require()로 로드된 이미지는 prefetch가 불필요함
@@ -107,13 +112,13 @@ export default function DashboardScreen() {
 
   // 두 컴포넌트의 opacity는 하나의 scrollY를 interpolate해서 제어
   const summaryOpacity = scrollY.interpolate({
-    inputRange: [accountCarouselY - 20, accountCarouselY + 20],
+    inputRange: [accountCarouselY - 50, accountCarouselY - 20],
     outputRange: [0, 1],
     extrapolate: 'clamp',
   });
 
   const carouselOpacity = scrollY.interpolate({
-    inputRange: [accountCarouselY - 20, accountCarouselY + 20],
+    inputRange: [accountCarouselY - 50, accountCarouselY - 20],
     outputRange: [1, 0],
     extrapolate: 'clamp',
   });

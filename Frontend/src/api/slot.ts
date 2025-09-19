@@ -14,36 +14,70 @@ export const slotApi = {
    * 계좌별 슬롯 목록 조회
    */
   getSlotsByAccount: async (accountId: string): Promise<BaseResponse<SlotsResponse>> => {
-    const res = await apiClient.get<BaseResponse<SlotsResponse>>(`/api/accounts/${accountId}/slots`);
+    try {
+      // Development Build에서 MSW 문제 해결을 위해 직접 fetch 사용
+      const response = await fetch(`/api/accounts/${accountId}/slots`);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      return data as BaseResponse<SlotsResponse>;
+    } catch (error) {
+      try {
+        // Fallback: 기존 axios 방식
+        const res = await apiClient.get<BaseResponse<SlotsResponse>>(`/api/accounts/${accountId}/slots`);
 
-
-    // MSW-Axios 호환성 문제 감지 및 fallback 처리
-    if (isAmbiguousAxiosBody(res.data)) {
-      const fallbackResult = await fetchSlotsFallback(accountId);
-      if (fallbackResult) {
-        return fallbackResult;
+        // MSW-Axios 호환성 문제 감지 및 fallback 처리
+        if (isAmbiguousAxiosBody(res.data)) {
+          const fallbackResult = await fetchSlotsFallback(accountId);
+          if (fallbackResult) {
+            return fallbackResult;
+          }
+        }
+        
+        return res.data as BaseResponse<SlotsResponse>;
+      } catch (axiosError) {
+        console.error('[getSlotsByAccount] API 호출 실패:', axiosError instanceof Error ? axiosError.message : String(axiosError));
+        throw axiosError;
       }
     }
-    
-    return res.data as BaseResponse<SlotsResponse>;
   },
 
   /**
    * 슬롯 상세 조회
    */
   getSlotDetail: async (slotId: string): Promise<BaseResponse<SlotData>> => {
-    const res = await apiClient.get<BaseResponse<SlotData>>(`/api/slots/${slotId}`);
+    try {
+      // Development Build에서 MSW 문제 해결을 위해 직접 fetch 사용
+      const response = await fetch(`/api/slots/${slotId}`);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      return data as BaseResponse<SlotData>;
+    } catch (error) {
+      try {
+        // Fallback: 기존 axios 방식
+        const res = await apiClient.get<BaseResponse<SlotData>>(`/api/slots/${slotId}`);
 
-
-    // MSW-Axios 호환성 문제 감지 및 fallback 처리
-    if (isAmbiguousAxiosBody(res.data)) {
-      const fallbackResult = await fetchSlotDetailFallback(slotId);
-      if (fallbackResult) {
-        return fallbackResult;
+        // MSW-Axios 호환성 문제 감지 및 fallback 처리
+        if (isAmbiguousAxiosBody(res.data)) {
+          const fallbackResult = await fetchSlotDetailFallback(slotId);
+          if (fallbackResult) {
+            return fallbackResult;
+          }
+        }
+        
+        return res.data as BaseResponse<SlotData>;
+      } catch (axiosError) {
+        console.error('[getSlotDetail] API 호출 실패:', axiosError instanceof Error ? axiosError.message : String(axiosError));
+        throw axiosError;
       }
     }
-    
-    return res.data as BaseResponse<SlotData>;
   },
 
   /**

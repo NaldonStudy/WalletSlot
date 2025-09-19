@@ -6,7 +6,7 @@
  * 격리하여 fallback fetch 로직을 캡슐화합니다.
  */
 
-import type { NotificationItem, PaginatedResponse, UserAccount, BaseResponse, AccountsResponse, SlotsResponse, SlotData } from '@/src/types';
+import type { PaginatedResponse, UserAccount, BaseResponse, AccountsResponse, SlotsResponse, SlotData } from '@/src/types';
 
 /** 알림 목록 응답 형태 후보 타입 (느슨한 any 구조) */
 export type RawNotificationListResponse = any; // 다양한 케이스 수용

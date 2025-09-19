@@ -11,6 +11,7 @@ import { http, HttpResponse, passthrough } from 'msw';
 import { notificationHandlers } from './notifications';
 import { accountHandlers } from './accounts';
 import { slotHandlers } from './slots';
+import { profileHandlers } from './profile';
 
 // ✅ 1. Expo 개발 서버의 내부 통신을 통과시키는 핸들러
 const internalHandlers = [

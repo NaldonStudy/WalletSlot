@@ -5,9 +5,7 @@ import {
   Transaction, 
   TransactionCategory,
   PaginatedResponse,
-  Transaction,
-  TransactionCategory,
-  UserAccount
+  BaseResponse
 } from '@/src/types';
 import { isAmbiguousAxiosBody, fetchAccountsFallback, fetchAccountBalanceFallback } from './responseNormalizer';
 
@@ -36,18 +34,35 @@ export const accountApi = {
    * 계좌 잔액 조회
    */
   getAccountBalance: async (accountId: string): Promise<BaseResponse<{ balance: number }>> => {
-    const res = await apiClient.get<BaseResponse<{ balance: number }>>(`/api/accounts/${accountId}/balance`);
+    try {
+      // Development Build에서 MSW 문제 해결을 위해 직접 fetch 사용
+      const response = await fetch(`/api/accounts/${accountId}/balance`);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      return data as BaseResponse<{ balance: number }>;
+    } catch (error) {
+      try {
+        // Fallback: 기존 axios 방식
+        const res = await apiClient.get<BaseResponse<{ balance: number }>>(`/api/accounts/${accountId}/balance`);
 
-
-    // MSW-Axios 호환성 문제 감지 및 fallback 처리
-    if (isAmbiguousAxiosBody(res.data)) {
-      const fallbackResult = await fetchAccountBalanceFallback(accountId);
-      if (fallbackResult) {
-        return fallbackResult;
+        // MSW-Axios 호환성 문제 감지 및 fallback 처리
+        if (isAmbiguousAxiosBody(res.data)) {
+          const fallbackResult = await fetchAccountBalanceFallback(accountId);
+          if (fallbackResult) {
+            return fallbackResult;
+          }
+        }
+        
+        return res.data as BaseResponse<{ balance: number }>;
+      } catch (axiosError) {
+        console.error('[getAccountBalance] API 호출 실패:', axiosError instanceof Error ? axiosError.message : String(axiosError));
+        throw axiosError;
       }
     }
-    
-    return res.data as BaseResponse<{ balance: number }>;
   },
 
   /**
@@ -95,13 +110,8 @@ export const transactionApi = {
     startDate?: string;
     endDate?: string;
   }) => {
-    const raw = await apiClient.get('/transactions', params) as any;
-    // Ambiguous axios bodies (RN + axios + msw) may return empty string / {}
-    if (isAmbiguousAxiosBody(raw)) {
-      const fallback = await fetchFallback< Transaction >('/transactions', params as any);
-      if (fallback) return fallback as unknown as PaginatedResponse<Transaction>;
-    }
-    return normalizePaginatedList<Transaction>(raw, params) as unknown as PaginatedResponse<Transaction>;
+    const response = await apiClient.get('/transactions', params);
+    return response as unknown as PaginatedResponse<Transaction>;
   },
 
   /**
@@ -112,18 +122,11 @@ export const transactionApi = {
     page?: number;
     limit?: number;
   }) => {
-    const raw = await apiClient.get(`/transactions/slot/${params.slotId}`, {
+    const response = await apiClient.get(`/transactions/slot/${params.slotId}`, {
       page: params.page,
       limit: params.limit,
-    }) as any;
-    if (isAmbiguousAxiosBody(raw)) {
-      const fallback = await fetchFallback<Transaction>(`/transactions/slot/${params.slotId}`, {
-        page: params.page,
-        limit: params.limit,
-      });
-      if (fallback) return fallback as unknown as PaginatedResponse<Transaction>;
-    }
-    return normalizePaginatedList<Transaction>(raw, params) as unknown as PaginatedResponse<Transaction>;
+    });
+    return response as unknown as PaginatedResponse<Transaction>;
   },
 
   /**
