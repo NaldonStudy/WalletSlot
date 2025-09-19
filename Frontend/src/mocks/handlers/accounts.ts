@@ -63,7 +63,6 @@ const mockAccounts: UserAccount[] = [
 export const accountHandlers = [
   // 연동된 계좌 목록 조회 (GET /api/accounts/link)
   http.get('/api/accounts/link', ({ request }) => {
-
     // 계좌번호를 포맷팅해서 응답
     const formattedAccounts = mockAccounts.map(account => ({
       ...account,
@@ -78,13 +77,7 @@ export const accountHandlers = [
       },
     };
     
-    return HttpResponse.json({
-      success: true,
-      message: '연동 계좌 목록 조회 성공',
-      data: {
-        accounts: formattedAccounts,
-      },
-    });
+    return HttpResponse.json(response);
   }),
 
   // 특정 계좌 상세 정보 조회 (GET /api/accounts/:id)

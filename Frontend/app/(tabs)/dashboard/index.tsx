@@ -68,6 +68,7 @@ export default function DashboardScreen() {
   const { linked } = useAccounts();
   const { accounts: rawAccounts, isLoading: isAccountsLoading } = linked;
   
+  
   // 현재 선택된 계좌 데이터
   const currentAccount = rawAccounts?.[selectedIndex];
   
@@ -102,6 +103,7 @@ export default function DashboardScreen() {
     accountNumber: account.accountNo,
     balance: account.balance, // React Query가 자동으로 최신 잔액으로 업데이트
   }));
+  
 
 
   // require()로 로드된 이미지는 prefetch가 불필요함
@@ -110,13 +112,13 @@ export default function DashboardScreen() {
 
   // 두 컴포넌트의 opacity는 하나의 scrollY를 interpolate해서 제어
   const summaryOpacity = scrollY.interpolate({
-    inputRange: [accountCarouselY - 20, accountCarouselY + 20],
+    inputRange: [accountCarouselY - 50, accountCarouselY - 20],
     outputRange: [0, 1],
     extrapolate: 'clamp',
   });
 
   const carouselOpacity = scrollY.interpolate({
-    inputRange: [accountCarouselY - 20, accountCarouselY + 20],
+    inputRange: [accountCarouselY - 50, accountCarouselY - 20],
     outputRange: [1, 0],
     extrapolate: 'clamp',
   });

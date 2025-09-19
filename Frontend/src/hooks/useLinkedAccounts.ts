@@ -11,12 +11,12 @@ type UseLinkedAccountsOptions = {
 
 export const useLinkedAccounts = ({ enabled = true }: UseLinkedAccountsOptions = {}) => {
   const {
-    data: accounts = [],
+    data: accounts,
     isLoading,
     isError,
     error,
     refetch,
-  } = useQuery<BaseResponse<AccountsResponse>, Error, UserAccount[]>({
+  } = useQuery<any, Error, UserAccount[]>({
     queryKey: queryKeys.accounts.linked(),
     queryFn: async () => {
       const result = await accountApi.getLinkedAccounts();
@@ -26,12 +26,33 @@ export const useLinkedAccounts = ({ enabled = true }: UseLinkedAccountsOptions =
     gcTime: Infinity, // 무한으로 캐시 유지
     enabled,
     select: (res) => {
-      return res.data.accounts;
+      // MSW 응답 구조에 따른 유연한 처리
+      let accounts = [];
+      
+      // Case 1: { data: { accounts: [...] } } - 표준 구조
+      if (res && res.data && res.data.accounts) {
+        accounts = res.data.accounts;
+      }
+      // Case 2: { accounts: [...] } - 직접 구조 (MSW에서 직접 보내는 경우)
+      else if (res && res.accounts) {
+        accounts = res.accounts;
+      }
+      // Case 3: 빈 응답 또는 예상하지 못한 구조
+      else {
+        console.warn('[useLinkedAccounts] 예상하지 못한 응답 구조:', res);
+        return [];
+      }
+      
+      return accounts;
     },
   });
 
+  if (isError && error) {
+    console.error('[useLinkedAccounts] 에러 발생:', error.message);
+  }
+
   return {
-    accounts,
+    accounts: accounts || [],
     isLoading,
     isError,
     error,
