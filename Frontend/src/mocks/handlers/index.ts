@@ -9,7 +9,8 @@ import { http, HttpResponse, passthrough } from 'msw';
 
 // 각 도메인별 핸들러 import
 import { notificationHandlers } from './notifications';
-import { profileHandlers } from './profile';
+import { accountHandlers } from './accounts';
+import { slotHandlers } from './slots';
 
 // ✅ 1. Expo 개발 서버의 내부 통신을 통과시키는 핸들러
 const internalHandlers = [
@@ -49,6 +50,8 @@ const baseHandlers = [
 export const handlers = [
   ...internalHandlers, // ✅ 2. 통과 핸들러를 가장 위에 추가
   ...baseHandlers,
+  ...accountHandlers,
+  ...slotHandlers,
   ...notificationHandlers,
   ...profileHandlers,
 ];
