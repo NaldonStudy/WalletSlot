@@ -1,11 +1,19 @@
 import type { UpdateProfileRequest, UserProfile } from '@/src/types';
 import { apiClient } from './client';
+import { fetchJsonFallback, isAmbiguousAxiosBody } from './responseNormalizer';
 
 export const getUserProfile = async (): Promise<UserProfile> => {
   const response = await apiClient.get<UserProfile>('/api/users/me');
-  // apiClient.parseOrReturn는 항상 { success, data } 형태를 반환하도록 보장합니다.
-  if (!response || !response.success || !response.data) {
-    console.warn('[PROFILE_API] getUserProfile - 비정상 응답 수신, Fallback 데이터를 반환합니다.');
+  // apiClient.parseOrReturn는 가능한 한 { success, data } 형태를 반환하도록 보장합니다.
+  if (!response || isAmbiguousAxiosBody(response)) {
+    console.warn('[PROFILE_API] getUserProfile - 비정상 응답 수신, 폴백 fetch 시도');
+    const json = await fetchJsonFallback('/api/users/me');
+    if (json && typeof json === 'object' && (json.data || json.name)) {
+      // json이 BaseResponse 형태이거나 바로 UserProfile인 경우 처리
+      if (json.data) return json.data as UserProfile;
+      return json as UserProfile;
+    }
+    console.warn('[PROFILE_API] getUserProfile - 폴백 실패, 하드코드된 Fallback 데이터 반환');
     return {
       name: '김싸피 (Fallback)',
       phone: '010-1234-5678',

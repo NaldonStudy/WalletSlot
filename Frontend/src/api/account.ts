@@ -1,11 +1,12 @@
 import { apiClient } from '@/src/api/client';
-import { 
-  UserAccount, 
-  Transaction, 
-  TransactionCategory,
+import {
+  BaseResponse,
   PaginatedResponse,
-  BaseResponse 
+  Transaction,
+  TransactionCategory,
+  UserAccount
 } from '@/src/types';
+import { fetchFallback, isAmbiguousAxiosBody, normalizePaginatedList } from './responseNormalizer';
 
 /**
  * 계좌 관련 API 서비스
@@ -68,9 +69,13 @@ export const transactionApi = {
     startDate?: string;
     endDate?: string;
   }) => {
-    const response = await apiClient.get<Transaction[]>('/transactions', params);
-    // 실제로는 서버에서 PaginatedResponse 형태로 응답이 와야 함
-    return response as unknown as PaginatedResponse<Transaction>;
+    const raw = await apiClient.get('/transactions', params) as any;
+    // Ambiguous axios bodies (RN + axios + msw) may return empty string / {}
+    if (isAmbiguousAxiosBody(raw)) {
+      const fallback = await fetchFallback< Transaction >('/transactions', params as any);
+      if (fallback) return fallback as unknown as PaginatedResponse<Transaction>;
+    }
+    return normalizePaginatedList<Transaction>(raw, params) as unknown as PaginatedResponse<Transaction>;
   },
 
   /**
@@ -81,11 +86,18 @@ export const transactionApi = {
     page?: number;
     limit?: number;
   }) => {
-    const response = await apiClient.get<Transaction[]>(`/transactions/slot/${params.slotId}`, {
+    const raw = await apiClient.get(`/transactions/slot/${params.slotId}`, {
       page: params.page,
       limit: params.limit,
-    });
-    return response as unknown as PaginatedResponse<Transaction>;
+    }) as any;
+    if (isAmbiguousAxiosBody(raw)) {
+      const fallback = await fetchFallback<Transaction>(`/transactions/slot/${params.slotId}`, {
+        page: params.page,
+        limit: params.limit,
+      });
+      if (fallback) return fallback as unknown as PaginatedResponse<Transaction>;
+    }
+    return normalizePaginatedList<Transaction>(raw, params) as unknown as PaginatedResponse<Transaction>;
   },
 
   /**
