@@ -6,6 +6,7 @@ import { useFonts } from 'expo-font';
 import { SplashScreen, Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage'; //개발 디버그 함수용
 import { Platform } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import 'react-native-reanimated';
@@ -50,6 +51,26 @@ export default function RootLayout() {
     console.log('✅ 온보딩 완료 설정됨 - onboardingDone:', true);
   };
 
+  // 🧹 디버그용 함수: 회원가입 임시 데이터(예: 이름) 제거
+  const clearSignupName = async () => {
+    try {
+      await AsyncStorage.removeItem('signup:name');
+      console.log('🧹 signup:name cleared');
+    } catch (e) {
+      console.warn('Failed to clear signup:name', e);
+    }
+  };
+
+  // 🧨 디버그용 함수: AsyncStorage 전체 비우기 (주의)
+  const clearAsyncStorage = async () => {
+    try {
+      await AsyncStorage.clear();
+      console.log('🧨 AsyncStorage cleared');
+    } catch (e) {
+      console.warn('Failed to clear AsyncStorage', e);
+    }
+  };
+
   // 🐛 디버그용 함수: 현재 상태 확인
   const checkOnboardingStatus = async () => {
     const status = await settingsUtils.getOnboardingCompleted();
@@ -76,6 +97,8 @@ export default function RootLayout() {
     (global as any).resetOnboarding = resetOnboarding;
     (global as any).completeOnboarding = completeOnboarding;
     (global as any).checkOnboardingStatus = checkOnboardingStatus;
+    (global as any).clearSignupName = clearSignupName;
+    (global as any).clearAsyncStorage = clearAsyncStorage;
     (global as any).initializePushService = initializePushService;
     (global as any).getPushStatus = () => unifiedPushService.getStatus();
   }
@@ -176,6 +199,7 @@ export default function RootLayout() {
           <Stack>
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
             <Stack.Screen name="(onboarding)" options={{ headerShown: false }} />
+            <Stack.Screen name="(auth)" options={{ headerShown: false }} />
             <Stack.Screen name="+not-found" />
             {/* 공통 컴포넌트 테스트
             <Stack.Screen name="(dev)" options={{ headerShown: false }} /> */}

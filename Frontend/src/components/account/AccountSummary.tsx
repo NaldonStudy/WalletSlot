@@ -66,6 +66,8 @@ export const AccountSummary = memo(({ account }: AccountSummaryProps) => {
            prevProps.account.balance === nextProps.account.balance;
 });
 
+AccountSummary.displayName = 'AccountSummary';
+
 const styles = StyleSheet.create({
     card: {
         borderRadius: Spacing.sm,

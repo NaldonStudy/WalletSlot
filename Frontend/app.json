@@ -17,7 +17,9 @@
     "ios": {
       "supportsTablet": true,
       "infoPlist": {
-        "UIBackgroundModes": ["remote-notification"]
+        "UIBackgroundModes": [
+          "remote-notification"
+        ]
       },
       "bundleIdentifier": "com.walletslot.app"
     },
@@ -29,9 +31,6 @@
       "edgeToEdgeEnabled": true,
       "package": "com.walletslot.app",
       "versionCode": 1,
-      "compileSdkVersion": 34,
-      "targetSdkVersion": 34,
-      "buildToolsVersion": "34.0.0",
       "permissions": [
         "RECEIVE_BOOT_COMPLETED",
         "VIBRATE",
@@ -80,6 +79,12 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "5ad0a526-ea05-4611-a7d0-23a44ed158a5"
+      }
     }
   }
 }

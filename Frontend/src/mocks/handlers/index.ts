@@ -39,7 +39,8 @@ const baseHandlers = [
       version: '1.0.0',
       description: 'MSW를 사용한 Mock API 서버',
       endpoints: {
-        notifications: '/api/notifications/*'
+        notifications: '/api/notifications/*',
+        profile: '/api/users/me/*'
       },
     });
   }),
@@ -52,4 +53,5 @@ export const handlers = [
   ...accountHandlers,
   ...slotHandlers,
   ...notificationHandlers,
+  ...profileHandlers,
 ];
