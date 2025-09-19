@@ -31,9 +31,6 @@
       "edgeToEdgeEnabled": true,
       "package": "com.walletslot.app",
       "versionCode": 1,
-      "compileSdkVersion": 34,
-      "targetSdkVersion": 34,
-      "buildToolsVersion": "34.0.0",
       "permissions": [
         "RECEIVE_BOOT_COMPLETED",
         "VIBRATE",
