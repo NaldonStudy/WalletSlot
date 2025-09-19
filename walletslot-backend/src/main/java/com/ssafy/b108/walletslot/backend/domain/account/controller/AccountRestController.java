@@ -43,7 +43,7 @@ public class AccountRestController {
      * 4-1-3 계좌 상세조회
      */
     @GetMapping("/{accountId}")
-    public ResponseEntity<GetAccountResponseDto> getAccount(@PathVariable Long accountId) {
+    public ResponseEntity<GetAccountResponseDto> getAccount(@PathVariable String accountId) {
         // UserPrincipal에서 userId 추출
         // 지금은 1L로 하드코딩
         return ResponseEntity.status(HttpStatus.OK).body(accountService.getAccount(1L, accountId));
@@ -63,7 +63,7 @@ public class AccountRestController {
      * 4-1-5 계좌 연동 삭제
      */
     @DeleteMapping("/{accountId}")
-    public ResponseEntity<DeleteLinkedAccountResponseDto> deleteAccount(@PathVariable Long accountId) {
+    public ResponseEntity<DeleteLinkedAccountResponseDto> deleteAccount(@PathVariable String accountId) {
         // UserPrincipal에서 userId 추출
         // 지금은 1L로 하드코딩
         return ResponseEntity.status(HttpStatus.OK).body(accountService.deleteLinkedAccount(1L, accountId));
@@ -108,7 +108,7 @@ public class AccountRestController {
      * 4-3-2 계좌 정보 설정
      */
     @PatchMapping("/{accountId}")
-    public ResponseEntity<ModifyAccountResponseDto> modifyAccount(@PathVariable Long accountId, @RequestBody ModifyAccountRequestDto request) {
+    public ResponseEntity<ModifyAccountResponseDto> modifyAccount(@PathVariable String accountId, @RequestBody ModifyAccountRequestDto request) {
         return ResponseEntity.status(HttpStatus.OK).body(accountService.modifyAccount(1L, accountId, request));
     }
 }
