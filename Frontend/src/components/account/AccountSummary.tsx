@@ -5,6 +5,7 @@ import { AccountData } from '@/src/types';
 import { BANK_CODES } from '@/src/constants/banks';
 import { Colors, Spacing, Typography } from '@/src/constants/theme';
 import { themes } from '@/src/constants/theme';
+import { format } from '@/src/utils';
 
 type AccountSummaryProps = {
     account: AccountData;
@@ -54,7 +55,7 @@ export const AccountSummary = memo(({ account }: AccountSummaryProps) => {
                 </View>
             </View>
             {/* 잔액 */}
-            <Text style={[styles.balance, { color: textColor.color }]}>{account.balanceFormatted}</Text>
+            <Text style={[styles.balance, { color: textColor.color }]}>{format.currency(account.balance)}</Text>
         </View>
     )
 }, (prevProps, nextProps) => {
@@ -62,7 +63,7 @@ export const AccountSummary = memo(({ account }: AccountSummaryProps) => {
     return prevProps.account.bankCode === nextProps.account.bankCode &&
            prevProps.account.accountName === nextProps.account.accountName &&
            prevProps.account.accountNumber === nextProps.account.accountNumber &&
-           prevProps.account.balanceFormatted === nextProps.account.balanceFormatted;
+           prevProps.account.balance === nextProps.account.balance;
 });
 
 const styles = StyleSheet.create({

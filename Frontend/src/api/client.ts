@@ -29,6 +29,7 @@ class ApiClient {
       headers: {
         'Content-Type': 'application/json',
       },
+      responseType: 'json',
     });
 
     this.setupInterceptors();
@@ -58,7 +59,11 @@ class ApiClient {
 
     // 응답 인터셉터 - 토큰 갱신 및 에러 처리
     this.client.interceptors.response.use(
-      (response: AxiosResponse) => response,
+      (response: AxiosResponse) => {
+        console.log('[API] Response interceptor - response:', response);
+        console.log('[API] Response interceptor - response.data:', response.data);
+        return response;
+      },
       async (error: AxiosError) => {
         const originalRequest = error.config as any;
 

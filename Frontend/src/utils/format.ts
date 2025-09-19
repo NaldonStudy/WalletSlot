@@ -39,6 +39,37 @@ export const format = {
   },
 
   /**
+   * 계좌번호 포맷팅 (하이픈 구분)
+   * @param accountNo 원본 계좌번호 (숫자만)
+   * @param format 포맷 배열 (예: [3, 6, 2] -> 3자리-6자리-2자리)
+   * @returns 포맷된 계좌번호 (예: "123-456789-01")
+   */
+  accountNumberWithFormat(accountNo: string, format: number[]): string {
+    // 숫자만 추출
+    const cleanNumber = accountNo.replace(/\D/g, '');
+    
+    let formatted = '';
+    let startIndex = 0;
+    
+    for (let i = 0; i < format.length; i++) {
+      const segmentLength = format[i];
+      const segment = cleanNumber.slice(startIndex, startIndex + segmentLength);
+      
+      if (segment) {
+        formatted += segment;
+        // 마지막 세그먼트가 아니면 하이픈 추가
+        if (i < format.length - 1) {
+          formatted += '-';
+        }
+      }
+      
+      startIndex += segmentLength;
+    }
+    
+    return formatted;
+  },
+
+  /**
    * 날짜 포맷팅
    */
   date(date: string | Date, format = 'YYYY-MM-DD'): string {

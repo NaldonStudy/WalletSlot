@@ -1,4 +1,5 @@
 import { SLOT_CATEGORIES } from "../constants/slots";
+export * from './account';
 
 // ===== 공통 타입 =====
 // ===== UI 컴포넌트용 타입들 =====
@@ -24,7 +25,7 @@ export interface AccountData {
   bankCode: string;
   accountName: string;
   accountNumber: string;
-  balanceFormatted: string;
+  balance: number;
   slots: SlotData[];
 }
 
@@ -89,20 +90,6 @@ export interface Bank {
   brandColor: string | null;
 }
 
-/**
- * 사용자 계좌 정보 인터페이스 (accounts 테이블)
- */
-export interface UserAccount {
-  accountId: number;
-  userId: number;
-  bankName: string;
-  bankCode: string;
-  accountName: string;
-  accountNumberMasked: string | null;
-  balanceMinor: number;
-  lastSyncedAt: string | null;
-  isPrimary: boolean; // tinyint(1) -> boolean
-}
 
 /**
  * 슬롯(통장 쪼개기) 정보 인터페이스 (slots 테이블)

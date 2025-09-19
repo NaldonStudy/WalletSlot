@@ -7,7 +7,8 @@ import { Button } from '@/src/components';
 import { themes, Spacing, Typography } from '@/src/constants/theme';
 import { AccountSummary } from '@/src/components/account/AccountSummary';
 import { BANK_CODES } from '@/src/constants/banks';
-import { SAMPLE_ACCOUNTS } from '@/src/constants/sampleData';
+import { useAccounts } from '@/src/hooks';
+import type { AccountData, UserAccount } from '@/src/types';
 import AccountDonutChart from '@/src/components/chart/AccountDonutChart';
 import AccountCarousel from '@/src/components/account/AccountCarousel';
 import { UncategorizedSlotCard } from '@/src/components/slot/UncategorizedSlotCard';
@@ -56,9 +57,22 @@ export default function DashboardScreen() {
   // 사용자 데이터와 슬롯 데이터를 한 번만 생성 (메모이제이션)
   const userData = useMemo(() => generateUserData(), []);
 
-  // 현재 선택된 계좌 데이터 - 직접 참조로 최적화
-  const currentAccount = SAMPLE_ACCOUNTS[selectedIndex];
-  const currentAccountSlots = currentAccount.slots;
+  // MSW API를 통한 계좌 데이터 조회
+  const { linked } = useAccounts();
+  const { accounts: rawAccounts, isLoading: isAccountsLoading } = linked;
+  
+  // UserAccount를 AccountData 형태로 변환
+  const linkedAccounts: AccountData[] = rawAccounts.map((account: UserAccount) => ({
+    bankCode: account.bankCode,
+    accountName: account.bankName || '계좌',
+    accountNumber: account.accountNo || '****-****-****',
+    balance: account.balance,
+    slots: [], // TODO: 실제 슬롯 데이터 연동
+  }));
+  
+  // 현재 선택된 계좌 데이터
+  const currentAccount = linkedAccounts[selectedIndex];
+  const currentAccountSlots = currentAccount?.slots || [];
 
   // require()로 로드된 이미지는 prefetch가 불필요함
   // Expo Image가 자동으로 캐싱하므로 별도 프리로딩 제거
@@ -76,6 +90,32 @@ export default function DashboardScreen() {
     outputRange: [1, 0],
     extrapolate: 'clamp',
   });
+
+  // 로딩 상태 처리
+  if (isAccountsLoading) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background.primary }]}>
+        <View style={styles.loadingContainer}>
+          <Text style={[styles.loadingText, { color: theme.colors.text.primary }]}>
+            계좌 정보를 불러오는 중...
+          </Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // 계좌가 없는 경우 처리
+  if (!currentAccount) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background.primary }]}>
+        <View style={styles.errorContainer}>
+          <Text style={[styles.errorText, { color: theme.colors.text.primary }]}>
+            계좌 정보를 찾을 수 없습니다.
+          </Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background.primary }]}>
@@ -118,11 +158,11 @@ export default function DashboardScreen() {
           }
         >
           <AccountCarousel
-            accounts={SAMPLE_ACCOUNTS.map(acc => ({
+            accounts={linkedAccounts.map(acc => ({
               bankCode: acc.bankCode as keyof typeof BANK_CODES, // 타입 캐스팅
               accountName: acc.accountName,
               accountNumber: acc.accountNumber,
-              balanceFormatted: acc.balanceFormatted,
+              balance: acc.balance,
             }))}
             onIndexChange={handleIndexChange}
           />
@@ -236,5 +276,26 @@ const styles = StyleSheet.create({
   },
   bottomSpacer: {
     height: 100, // 탭 바와의 간격
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: Spacing.lg,
+  },
+  loadingText: {
+    fontSize: Typography.fontSize.lg,
+    textAlign: 'center',
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: Spacing.lg,
+  },
+  errorText: {
+    fontSize: Typography.fontSize.lg,
+    textAlign: 'center',
+    color: '#ff6b6b',
   },
 });

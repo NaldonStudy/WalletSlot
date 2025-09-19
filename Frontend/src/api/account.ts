@@ -1,11 +1,13 @@
 import { apiClient } from '@/src/api/client';
 import { 
   UserAccount, 
+  AccountsResponse,
   Transaction, 
   TransactionCategory,
   PaginatedResponse,
   BaseResponse 
 } from '@/src/types';
+import { isAmbiguousAxiosBody, fetchAccountsFallback } from './responseNormalizer';
 
 /**
  * 계좌 관련 API 서비스
@@ -14,8 +16,28 @@ export const accountApi = {
   /**
    * 사용자 연동 계좌 목록 조회
    */
-  getLinkedAccounts: async (): Promise<BaseResponse<UserAccount[]>> => {
-    return apiClient.get('/accounts');
+  getLinkedAccounts: async (): Promise<BaseResponse<AccountsResponse>> => {
+    const res = await apiClient.get('/api/accounts/link');
+
+    // MSW-Axios 호환성 문제 감지 및 fallback 처리
+    if (isAmbiguousAxiosBody(res.data)) {
+      console.log('[API] MSW-Axios 호환성 문제 감지, fallback fetch 시도...');
+      const fallbackResult = await fetchAccountsFallback();
+      if (fallbackResult) {
+        console.log('[API] Fallback fetch 성공:', fallbackResult);
+        return fallbackResult;
+      }
+    }
+    
+    return res.data as BaseResponse<AccountsResponse>;
+  },
+
+  /**
+   * 계좌 잔액 조회
+   */
+  getAccountBalance: async (accountId: string): Promise<BaseResponse<{ balance: number }>> => {
+    const res = await apiClient.get<BaseResponse<{ balance: number }>>(`/api/accounts/${accountId}/balance`);
+    return res.data;
   },
 
   /**
@@ -28,30 +50,25 @@ export const accountApi = {
   /**
    * 계좌 서비스 연동
    */
-  linkAccounts: async (data: { accountIds: number[] }): Promise<BaseResponse<void>> => {
+  linkAccounts: async (data: { accountIds: string[] }): Promise<BaseResponse<void>> => {
     return apiClient.post('/accounts/link', data);
   },
 
   /**
    * 대표계좌 설정
    */
-  setMainAccount: async (accountId: number): Promise<BaseResponse<void>> => {
+  setMainAccount: async (accountId: string): Promise<BaseResponse<void>> => {
     return apiClient.post(`/accounts/${accountId}/set-main`);
   },
 
   /**
    * 계좌 상세 조회
    */
-  getAccountDetail: async (accountId: number): Promise<BaseResponse<UserAccount>> => {
+  getAccountDetail: async (accountId: string): Promise<BaseResponse<UserAccount>> => {
     return apiClient.get(`/accounts/${accountId}`);
   },
 
-  /**
-   * 계좌 잔액 조회
-   */
-  getAccountBalance: async (accountId: number): Promise<BaseResponse<{ balance: number }>> => {
-    return apiClient.get(`/accounts/${accountId}/balance`);
-  },
+
 };
 
 /**

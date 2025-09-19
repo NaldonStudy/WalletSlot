@@ -15,9 +15,9 @@ export const queryKeys = {
     all: ['accounts'] as const,
     linked: () => [...queryKeys.accounts.all, 'linked'] as const,
     available: () => [...queryKeys.accounts.all, 'available'] as const,
-    detail: (accountId: number) => [...queryKeys.accounts.all, 'detail', accountId] as const,
-    balance: (accountId: number) => [...queryKeys.accounts.all, 'balance', accountId] as const,
-    transactions: (accountId: number, filters?: any) => [...queryKeys.accounts.all, 'transactions', accountId, filters] as const,
+    detail: (accountId: string) => [...queryKeys.accounts.all, 'detail', accountId] as const,
+    balance: (accountId: string) => [...queryKeys.accounts.all, 'balance', accountId] as const,
+    transactions: (accountId: string, filters?: any) => [...queryKeys.accounts.all, 'transactions', accountId, filters] as const,
   },
 
   // 슬롯 관련
