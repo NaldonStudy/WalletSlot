@@ -1,6 +1,7 @@
 package com.ssafy.b108.walletslot.backend.domain.auth.controller;
 
 import com.ssafy.b108.walletslot.backend.domain.auth.service.AuthService;
+import com.ssafy.b108.walletslot.backend.global.response.ApiResponse;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
@@ -19,8 +20,9 @@ public class AuthController {
     public record AccessToken(String accessToken) {}
 
     @PostMapping("/login")
-    public AccessToken login(@Valid @RequestBody LoginRequest req) {
+    public ApiResponse<AccessToken> login(@Valid @RequestBody LoginRequest req){
         String at = authService.loginForAccessOnly(req.phone(), req.pin(), req.deviceId());
-        return new AccessToken(at);
+        return ApiResponse.ok(new AccessToken(at));
     }
+
 }
