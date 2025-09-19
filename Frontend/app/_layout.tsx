@@ -15,6 +15,7 @@ import { useColorScheme } from '@/hooks/useColorScheme';
 import { queryClient } from '@/src/api/queryClient';
 import { initializeMSW } from '@/src/mocks';
 import { unifiedPushService } from '@/src/services/unifiedPushService';
+import { getOrCreateDeviceId } from '@/src/services/deviceIdService';
 import { settingsUtils } from '@/src/store';
 // import { monitoringService } from '@/src/services';
 
@@ -78,6 +79,16 @@ export default function RootLayout() {
     console.log('📊 현재 onboardingDone state:', onboardingDone);
   };
 
+  // 🐛 디버그용 함수: deviceId 상태 확인
+  const checkDeviceId = async () => {
+    try {
+      const deviceId = await getOrCreateDeviceId();
+      console.log('📱 현재 DeviceId:', deviceId);
+    } catch (error) {
+      console.error('❌ DeviceId 조회 실패:', error);
+    }
+  };
+
   // 🚀 디버그용 함수: 푸시 알림 서비스 초기화 테스트
   const initializePushService = async () => {
     console.log('🚀 푸시 서비스 초기화 시작');
@@ -97,6 +108,7 @@ export default function RootLayout() {
     (global as any).resetOnboarding = resetOnboarding;
     (global as any).completeOnboarding = completeOnboarding;
     (global as any).checkOnboardingStatus = checkOnboardingStatus;
+    (global as any).checkDeviceId = checkDeviceId;
     (global as any).clearSignupName = clearSignupName;
     (global as any).clearAsyncStorage = clearAsyncStorage;
     (global as any).initializePushService = initializePushService;
@@ -108,11 +120,23 @@ export default function RootLayout() {
     if (error) throw error;
   }, [error]);
 
-  // 앱 시작 시 1회: 온보딩 완료 여부를 비동기로 조회
+  // 앱 시작 시 1회: deviceId 초기화 및 온보딩 완료 여부를 비동기로 조회
   useEffect(() => {
     (async () => {
-      const done = await settingsUtils.getOnboardingCompleted();
-      setOnboardingDone(done);
+      try {
+        // deviceId 초기화 (없으면 생성, 있으면 기존 값 사용)
+        const deviceId = await getOrCreateDeviceId();
+        console.log('✅ DeviceId 초기화 완료:', deviceId);
+        
+        // 온보딩 완료 여부 조회
+        const done = await settingsUtils.getOnboardingCompleted();
+        setOnboardingDone(done);
+      } catch (error) {
+        console.error('❌ 앱 초기화 실패:', error);
+        // deviceId 초기화 실패해도 앱은 계속 실행
+        const done = await settingsUtils.getOnboardingCompleted();
+        setOnboardingDone(done);
+      }
     })();
   }, []);
 

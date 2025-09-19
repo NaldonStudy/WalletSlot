@@ -1,6 +1,7 @@
 import { API_CONFIG } from '@/src/constants';
 import { USE_MSW } from '@/src/constants/api';
 import { ApiError, BaseResponse } from '@/src/types';
+import { getOrCreateDeviceId } from '@/src/services/deviceIdService';
 import axios, { AxiosError, AxiosInstance, AxiosResponse } from 'axios';
 
 /**
@@ -35,19 +36,36 @@ class ApiClient {
   }
 
   private setupInterceptors() {
-    // 요청 인터셉터 - 토큰 자동 첨부
+    // 요청 인터셉터 - X-Device-Id 및 토큰 자동 첨부
     this.client.interceptors.request.use(
       async (config) => {
+        // headers 안전 대입
+        const headers = { ...config.headers } as any;
+        
+        // X-Device-Id 헤더 추가 (모든 요청에 필수)
+        try {
+          headers['X-Device-Id'] = await getOrCreateDeviceId();
+        } catch (error) {
+          console.error('[API] DeviceId 조회 실패:', error);
+          // deviceId 조회 실패 시에도 요청은 계속 진행 (fallback 처리)
+        }
+
+        // Authorization 헤더 추가 (토큰이 있을 때만)
         const token = await this.getAccessToken();
         if (token) {
-          config.headers.Authorization = `Bearer ${token}`;
+          headers.Authorization = `Bearer ${token}`;
         }
+
+        // headers 할당
+        config.headers = headers;
+
+        // 디버그 로그 (NPE 방지)
         try {
-          const method = (config.method || 'get').toUpperCase();
-          const fullUrl = `${config.baseURL || ''}${config.url}`;
+          const method = (config.method ?? 'get').toUpperCase();
+          const url = `${config.baseURL ?? ''}${config.url ?? ''}`;
           // Friendly debug log to see outgoing requests and params
           // eslint-disable-next-line no-console
-          console.log(`[API] Request -> ${method} ${fullUrl}`, config.params || config.data || {});
+          console.log(`[API] Request -> ${method} ${url}`, config.params ?? config.data ?? {});
         } catch (e) {
           // ignore logging errors
         }
@@ -63,6 +81,11 @@ class ApiClient {
         const originalRequest = error.config as any;
 
         if (error.response?.status === 401 && !originalRequest._retry) {
+          // 로그인 전에는 refreshToken이 없으므로 401 재발급 비활성
+          if (!this.canRefresh()) {
+            return Promise.reject(this.handleError(error));
+          }
+
           if (this.isRefreshing) {
             return new Promise((resolve, reject) => {
               this.failedQueue.push({ resolve, reject });
@@ -106,10 +129,19 @@ class ApiClient {
     this.failedQueue = [];
   }
 
-  private async getAccessToken(): Promise<string | null> {
-    // TODO: SecureStore에서 토큰 가져오기
+  private canRefresh(): boolean {
+    // TODO: SecureStore에서 refreshToken 존재 확인
+    // 로그인 전에는 false, 로그인 후에는 true
     // import * as SecureStore from 'expo-secure-store';
-    // return await SecureStore.getItemAsync(STORAGE_KEYS.AUTH_TOKENS);
+    // const refreshToken = await SecureStore.getItemAsync('refresh_token');
+    // return !!refreshToken;
+    return false; // 임시: 로그인 전에는 재발급 비활성
+  }
+
+  private async getAccessToken(): Promise<string | null> {
+    // TODO: Zustand에서 accessToken 가져오기
+    // import { useAuthStore } from '@/src/store/authStore';
+    // return useAuthStore.getState().accessToken;
     return null;
   }
 
