@@ -5,9 +5,7 @@ import {
   Transaction, 
   TransactionCategory,
   PaginatedResponse,
-  Transaction,
-  TransactionCategory,
-  UserAccount
+  BaseResponse
 } from '@/src/types';
 import { isAmbiguousAxiosBody, fetchAccountsFallback, fetchAccountBalanceFallback } from './responseNormalizer';
 
@@ -95,13 +93,8 @@ export const transactionApi = {
     startDate?: string;
     endDate?: string;
   }) => {
-    const raw = await apiClient.get('/transactions', params) as any;
-    // Ambiguous axios bodies (RN + axios + msw) may return empty string / {}
-    if (isAmbiguousAxiosBody(raw)) {
-      const fallback = await fetchFallback< Transaction >('/transactions', params as any);
-      if (fallback) return fallback as unknown as PaginatedResponse<Transaction>;
-    }
-    return normalizePaginatedList<Transaction>(raw, params) as unknown as PaginatedResponse<Transaction>;
+    const response = await apiClient.get('/transactions', params);
+    return response as unknown as PaginatedResponse<Transaction>;
   },
 
   /**
@@ -112,18 +105,11 @@ export const transactionApi = {
     page?: number;
     limit?: number;
   }) => {
-    const raw = await apiClient.get(`/transactions/slot/${params.slotId}`, {
+    const response = await apiClient.get(`/transactions/slot/${params.slotId}`, {
       page: params.page,
       limit: params.limit,
-    }) as any;
-    if (isAmbiguousAxiosBody(raw)) {
-      const fallback = await fetchFallback<Transaction>(`/transactions/slot/${params.slotId}`, {
-        page: params.page,
-        limit: params.limit,
-      });
-      if (fallback) return fallback as unknown as PaginatedResponse<Transaction>;
-    }
-    return normalizePaginatedList<Transaction>(raw, params) as unknown as PaginatedResponse<Transaction>;
+    });
+    return response as unknown as PaginatedResponse<Transaction>;
   },
 
   /**

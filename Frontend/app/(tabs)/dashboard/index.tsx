@@ -1,8 +1,11 @@
-import AccountCarousel from '@/src/components/account/AccountCarousel';
+import React, { useState, useRef, useEffect, useMemo, useCallback, memo } from 'react';
+import { View, Text, StyleSheet, ScrollView, useColorScheme, Animated, Dimensions } from 'react-native';
+import { Image } from 'expo-image';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { faker } from '@faker-js/faker';
+import { Button } from '@/src/components';
+import { themes, Spacing, Typography } from '@/src/constants/theme';
 import { AccountSummary } from '@/src/components/account/AccountSummary';
-import AccountDonutChart from '@/src/components/chart/AccountDonutChart';
-import SlotList from '@/src/components/slot/SlotList';
-import { UncategorizedSlotCard } from '@/src/components/slot/UncategorizedSlotCard';
 import { BANK_CODES } from '@/src/constants/banks';
 import { useAccounts, useSlots } from '@/src/hooks';
 import type { UserAccount } from '@/src/types';
