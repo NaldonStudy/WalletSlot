@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
 import { LocalUser, AuthTokens } from '@/src/types';
 import { getOrCreateDeviceId } from '@/src/services/deviceIdService';
+import { Buffer } from 'buffer';
 
 // ===== 인증 관련 헬퍼 함수들 =====
 // Set-Cookie 헤더에서 refreshToken 추출
@@ -17,7 +18,27 @@ function extractRefreshTokenFromCookie(setCookieHeader: string): string | null {
 
 // JWT 토큰 만료 확인
 function isTokenExpired(token: string): boolean {
+    try {
+        const [, payloadBase64] = token.split('.');
+        if (!payloadBase64) return true;
     
+
+        // atob이 없을 수 있어 Buffer로 폴백
+        const json = 
+        typeof atob === 'function' ? atob(payloadBase64.replace(/-/g, '+').replace(/_/g, '/')) 
+        : Buffer.from(payloadBase64.replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString('utf8');
+
+        const payload = JSON.parse(json);
+        const exp = Number(payload?.exp);
+        if (!exp) return true;
+
+        // 약간의 여유(예: 30초) 두고 만료 처리
+        const now = Math.floor(Date.now() / 1000);
+        const skewSeconds = 30;
+        return exp <= now + skewSeconds;
+      } catch {
+        return true; // 파싱 실패는 만료로 간주
+    }
 }
 
 
