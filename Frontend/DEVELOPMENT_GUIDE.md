@@ -216,11 +216,15 @@ EXPO_PUBLIC_MSW_ENABLED=true
 │   │   ├── firebasePushService.ts # ✅ Firebase v23 푸시 서비스 (완전 구현)
 │   │   ├── unifiedPushService.ts # ✅ 통합 푸시 서비스 (완전 구현)
 │   │   ├── localNotificationService.ts # ✅ 로컬 알림 서비스
+|   |   ├── deviceIdService.ts # ✅ deviceId uuid 생성(완전 구현)
+|   |   ├── authService.ts     # 🚧 계좌 데이터 관리 훅 (구조만 완성)
+|   |   ├── appService.ts      # 🚧 계좌 데이터 관리 훅 (구조만 완성)
 │   │   └── index.ts     # 서비스들 통합 export
 │   │
 │   ├── store/           # 🗄️ 데이터 저장소 및 클라이언트 상태 관리
 │   │   ├── appStore.ts  # 🚧 Zustand 기반 전역 상태 (기본 구조)
-│   │   ├── authStore.ts # 🚧 인증 상태 전용 스토어 (기본 구조)
+│   │   ├── authStore.ts # 🚧 (Z + Async) 인증 상태 전용 스토어 (기본 구조)
+│   │   ├── signupStore.ts  # ✅ Zustand 회원가입 데이터 임시 저장 (완전 구현)
 │   │   └── index.ts     # ✅ SecureStore/AsyncStorage 래퍼 유틸
 │   │
 │   ├── types/           # 📝 전역 타입 정의

@@ -1,5 +1,25 @@
 import { SLOT_CATEGORIES } from "../constants/slots";
 
+// ===== 로컬 저장소용 타입들 =====
+
+/**
+ * AsyncStorage에 저장할 사용자 정보 (간소화)
+ * User 인터페이스에서 민감 정보 제외
+ */
+export interface LocalUser {
+  userId: number;
+  userName: string;
+  isPushEnabled: boolean;
+}
+
+/**
+ * 앱 설정 정보 (AsyncStorage 저장용)
+ */
+export interface LocalSettings {
+  onboardingCompleted: boolean;
+  theme: 'light' | 'dark';
+}
+
 // ===== 공통 타입 =====
 // ===== UI 컴포넌트용 타입들 =====
 

@@ -2,6 +2,7 @@ import { API_CONFIG } from '@/src/constants';
 import { USE_MSW } from '@/src/constants/api';
 import { ApiError, BaseResponse } from '@/src/types';
 import { getOrCreateDeviceId } from '@/src/services/deviceIdService';
+import { authService } from '@/src/services/authService';
 import axios, { AxiosError, AxiosInstance, AxiosResponse } from 'axios';
 
 /**
@@ -56,6 +57,12 @@ class ApiClient {
           headers.Authorization = `Bearer ${token}`;
         }
 
+        // RefreshToken Cookie 헤더 추가 (토큰이 있을 때만)
+        const refreshToken = await authService.getRefreshToken();
+        if (refreshToken) {
+          headers.Cookie = `refreshToken=${refreshToken}`;
+        }
+
         // headers 할당
         config.headers = headers;
 
@@ -82,7 +89,7 @@ class ApiClient {
 
         if (error.response?.status === 401 && !originalRequest._retry) {
           // 로그인 전에는 refreshToken이 없으므로 401 재발급 비활성
-          if (!this.canRefresh()) {
+          if (!(await this.canRefresh())) {
             return Promise.reject(this.handleError(error));
           }
 
@@ -129,25 +136,24 @@ class ApiClient {
     this.failedQueue = [];
   }
 
-  private canRefresh(): boolean {
-    // TODO: SecureStore에서 refreshToken 존재 확인
-    // 로그인 전에는 false, 로그인 후에는 true
-    // import * as SecureStore from 'expo-secure-store';
-    // const refreshToken = await SecureStore.getItemAsync('refresh_token');
-    // return !!refreshToken;
-    return false; // 임시: 로그인 전에는 재발급 비활성
+  private async canRefresh(): Promise<boolean> {
+    // authService를 통해 refreshToken 존재 확인
+    const refreshToken = await authService.getRefreshToken();
+    return !!refreshToken;
   }
 
   private async getAccessToken(): Promise<string | null> {
-    // TODO: Zustand에서 accessToken 가져오기
-    // import { useAuthStore } from '@/src/store/authStore';
-    // return useAuthStore.getState().accessToken;
-    return null;
+    // authService를 통해 accessToken 가져오기
+    return await authService.getAccessToken();
   }
 
   private async refreshToken(): Promise<string> {
-    // TODO: 리프레시 토큰으로 새 액세스 토큰 획득
-    throw new Error('Token refresh not implemented');
+    // authService를 통해 토큰 재발급
+    const newToken = await authService.refreshAccessToken();
+    if (!newToken) {
+      throw new Error('Token refresh failed');
+    }
+    return newToken;
   }
 
   private async redirectToAuthScreen(): Promise<void> {
