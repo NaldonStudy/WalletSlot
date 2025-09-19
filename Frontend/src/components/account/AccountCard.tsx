@@ -3,13 +3,12 @@ import React from 'react';
 import { View, Text, StyleSheet, StyleProp, ViewStyle } from 'react-native';
 import { Image } from 'expo-image';
 import { Spacing, Typography } from '@/src/constants/theme';
-import { format } from '@/src/utils';
 
 export type AccountCardData = {
     bankCode: keyof typeof BANK_CODES;
     accountName: string;
     accountNumber: string;
-    balance: number;
+    balanceFormatted: string;
 };
 
 // 배경색의 밝기에 따라 글자색 결정하는 함수
@@ -35,12 +34,11 @@ const AccountCard: React.FC<AccountCardProps> = ({
     bankCode,
     accountName,
     accountNumber,
-    balance,
+    balanceFormatted,
     style,
 }) => {
     const bankInfo = BANK_CODES[bankCode];
     const textColor = getTextColor(bankInfo.color);
-    const balanceFormatted = format.currency(balance);
 
     return (
         <View style={[styles.card, { backgroundColor: bankInfo.color }, style]}>

@@ -1,14 +1,12 @@
-import React, { useState, memo } from 'react';
-import { View, Text, StyleSheet, useColorScheme, ActivityIndicator } from 'react-native';
-import { Image } from 'expo-image';
-import { UserAccount } from '@/src/types';
 import { BANK_CODES } from '@/src/constants/banks';
-import { Colors, Spacing, Typography } from '@/src/constants/theme';
-import { themes } from '@/src/constants/theme';
-import { format } from '@/src/utils';
+import { Spacing, themes, Typography } from '@/src/constants/theme';
+import { AccountData } from '@/src/types';
+import { Image } from 'expo-image';
+import React, { memo, useState } from 'react';
+import { ActivityIndicator, StyleSheet, Text, useColorScheme, View } from 'react-native';
 
 type AccountSummaryProps = {
-    account: UserAccount;
+    account: AccountData;
 }
 
 export const AccountSummary = memo(({ account }: AccountSummaryProps) => {
@@ -51,19 +49,19 @@ export const AccountSummary = memo(({ account }: AccountSummaryProps) => {
                         />
                     </View>
                     <Text style={[styles.bankName, { color: textColor.color }]}>{bankInfo.name}</Text>
-                    <Text style={[styles.accountNumber, { color: textColor.color }]}>{account.accountNo}</Text>
+                    <Text style={[styles.accountNumber, { color: textColor.color }]}>{account.accountNumber}</Text>
                 </View>
             </View>
             {/* 잔액 */}
-            <Text style={[styles.balance, { color: textColor.color }]}>{format.currency(account.balance)}</Text>
+            <Text style={[styles.balance, { color: textColor.color }]}>{account.balanceFormatted}</Text>
         </View>
     )
 }, (prevProps, nextProps) => {
     // 계좌 정보가 같으면 리렌더링하지 않음
     return prevProps.account.bankCode === nextProps.account.bankCode &&
-           prevProps.account.accountAlias === nextProps.account.accountAlias &&
-           prevProps.account.accountNo === nextProps.account.accountNo &&
-           prevProps.account.balance === nextProps.account.balance;
+           prevProps.account.accountName === nextProps.account.accountName &&
+           prevProps.account.accountNumber === nextProps.account.accountNumber &&
+           prevProps.account.balanceFormatted === nextProps.account.balanceFormatted;
 });
 
 AccountSummary.displayName = 'AccountSummary';
