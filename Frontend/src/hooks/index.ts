@@ -10,9 +10,10 @@ export { useAuth } from './useAuth';
 
 // 계좌 관련 
 export { useAccounts } from './useAccount';
+export { useAccountBalance } from './useAccountBalance';
 
 // 슬롯 관련 (기본 틀)
-export { useSlot, useSlotRecommendations, useSlots } from './useSlots';
+export { useSlots, useSlotDetail } from './useSlots';
 
 // 알림 관련
 export {

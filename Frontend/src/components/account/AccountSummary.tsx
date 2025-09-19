@@ -1,14 +1,14 @@
 import React, { useState, memo } from 'react';
 import { View, Text, StyleSheet, useColorScheme, ActivityIndicator } from 'react-native';
 import { Image } from 'expo-image';
-import { AccountData } from '@/src/types';
+import { UserAccount } from '@/src/types';
 import { BANK_CODES } from '@/src/constants/banks';
 import { Colors, Spacing, Typography } from '@/src/constants/theme';
 import { themes } from '@/src/constants/theme';
 import { format } from '@/src/utils';
 
 type AccountSummaryProps = {
-    account: AccountData;
+    account: UserAccount;
 }
 
 export const AccountSummary = memo(({ account }: AccountSummaryProps) => {
@@ -51,7 +51,7 @@ export const AccountSummary = memo(({ account }: AccountSummaryProps) => {
                         />
                     </View>
                     <Text style={[styles.bankName, { color: textColor.color }]}>{bankInfo.name}</Text>
-                    <Text style={[styles.accountNumber, { color: textColor.color }]}>{account.accountNumber}</Text>
+                    <Text style={[styles.accountNumber, { color: textColor.color }]}>{account.accountNo}</Text>
                 </View>
             </View>
             {/* 잔액 */}
@@ -61,8 +61,8 @@ export const AccountSummary = memo(({ account }: AccountSummaryProps) => {
 }, (prevProps, nextProps) => {
     // 계좌 정보가 같으면 리렌더링하지 않음
     return prevProps.account.bankCode === nextProps.account.bankCode &&
-           prevProps.account.accountName === nextProps.account.accountName &&
-           prevProps.account.accountNumber === nextProps.account.accountNumber &&
+           prevProps.account.accountAlias === nextProps.account.accountAlias &&
+           prevProps.account.accountNo === nextProps.account.accountNo &&
            prevProps.account.balance === nextProps.account.balance;
 });
 

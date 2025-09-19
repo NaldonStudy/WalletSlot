@@ -1,7 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { SlotData } from '@/src/types';
-import { SLOT_CATEGORIES } from '@/src/constants/slots';
 import { themes } from '@/src/constants/theme';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { Spacing } from '@/src/constants';
@@ -14,19 +13,34 @@ type SlotItemProps = {
 const SlotItem = ({ slot }: SlotItemProps) => {
     const colorScheme = useColorScheme() ?? 'light';
     const theme = themes[colorScheme];
-    const category = SLOT_CATEGORIES[slot.slotId];
 
-    const progress = slot.remain / slot.budget;
-    const spent = slot.budget - slot.remain;
+    const progress = slot.remaining / slot.budget;
+    const spent = slot.budget - slot.remaining;
+    const isOverBudget = slot.remaining < 0;
 
     return (
         <View style={[styles.card, theme.shadows.base, {
-            backgroundColor: theme.colors.background.primary,
-            borderColor: theme.colors.border.light,
+            backgroundColor: isOverBudget ? '#FFF5F5' : theme.colors.background.primary,
+            borderColor: isOverBudget ? '#FF4444' : theme.colors.border.light,
+            borderWidth: isOverBudget ? 3 : 1,
+            shadowColor: isOverBudget ? '#FF4444' : 'transparent',
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: isOverBudget ? 0.2 : 0,
+            shadowRadius: isOverBudget ? 4 : 0,
+            elevation: isOverBudget ? 4 : 0,
         }]}>
           {/* 카드 상단: 제목과 옵션 메뉴 */}
           <View style={styles.cardHeader}>
-            <Text style={[styles.name, { color: theme.colors.text.primary }]}>{slot.name}</Text>
+            <Text style={[
+                styles.name, 
+                { 
+                    color: isOverBudget ? '#CC0000' : theme.colors.text.primary,
+                    fontWeight: isOverBudget ? 'bold' : '600',
+                }
+            ]}>
+                {slot.slotName}
+                {isOverBudget && ' ⚠️'}
+            </Text>
             <TouchableOpacity style={styles.menuButton}>
               <View style={styles.menuDots}>
                 <View style={[styles.dot, { backgroundColor: theme.colors.text.secondary }]} />
@@ -39,14 +53,23 @@ const SlotItem = ({ slot }: SlotItemProps) => {
           {/* 카드 하단: 원형 progress bar와 예산 정보 */}
           <View style={styles.cardContent}>
             {/* 왼쪽: 원형 progress bar */}
-            <View style={styles.progressContainer}>
+            <View style={[
+                styles.progressContainer,
+                isOverBudget && {
+                    shadowColor: '#FF4444',
+                    shadowOffset: { width: 0, height: 2 },
+                    shadowOpacity: 0.3,
+                    shadowRadius: 4,
+                    elevation: 4,
+                }
+            ]}>
               <CircularProgress
-                progress={progress}
+                progress={isOverBudget ? 1.0 : progress}
                 size={70}
-                strokeWidth={7}
-                color={category.color}
+                strokeWidth={isOverBudget ? 8 : 7}
+                color={isOverBudget ? '#FF4444' : slot.slotColor}
                 backgroundColor={theme.colors.background.tertiary}
-                icon={category.icon}
+                icon={slot.slotIcon}
                 iconSize={20}
               />
             </View>
@@ -54,7 +77,7 @@ const SlotItem = ({ slot }: SlotItemProps) => {
             {/* 오른쪽: 예산 정보 (이전 버전) */}
             <View style={styles.budgetInfo}>
               <View style={styles.amountContainer}>
-                <Text style={[styles.remain, { color: theme.colors.text.primary }]}>{slot.remain.toLocaleString()}원</Text>
+                <Text style={[styles.remain, { color: isOverBudget ? '#FF4444' : theme.colors.text.primary }]}>{slot.remaining.toLocaleString()}원</Text>
                 <Text style={[styles.budget, { color: theme.colors.text.secondary }]}>/ {slot.budget.toLocaleString()}원</Text>
               </View>
             </View>

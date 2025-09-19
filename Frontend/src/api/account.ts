@@ -7,7 +7,7 @@ import {
   PaginatedResponse,
   BaseResponse 
 } from '@/src/types';
-import { isAmbiguousAxiosBody, fetchAccountsFallback } from './responseNormalizer';
+import { isAmbiguousAxiosBody, fetchAccountsFallback, fetchAccountBalanceFallback } from './responseNormalizer';
 
 /**
  * 계좌 관련 API 서비스
@@ -21,10 +21,8 @@ export const accountApi = {
 
     // MSW-Axios 호환성 문제 감지 및 fallback 처리
     if (isAmbiguousAxiosBody(res.data)) {
-      console.log('[API] MSW-Axios 호환성 문제 감지, fallback fetch 시도...');
       const fallbackResult = await fetchAccountsFallback();
       if (fallbackResult) {
-        console.log('[API] Fallback fetch 성공:', fallbackResult);
         return fallbackResult;
       }
     }
@@ -37,7 +35,17 @@ export const accountApi = {
    */
   getAccountBalance: async (accountId: string): Promise<BaseResponse<{ balance: number }>> => {
     const res = await apiClient.get<BaseResponse<{ balance: number }>>(`/api/accounts/${accountId}/balance`);
-    return res.data;
+
+
+    // MSW-Axios 호환성 문제 감지 및 fallback 처리
+    if (isAmbiguousAxiosBody(res.data)) {
+      const fallbackResult = await fetchAccountBalanceFallback(accountId);
+      if (fallbackResult) {
+        return fallbackResult;
+      }
+    }
+    
+    return res.data as BaseResponse<{ balance: number }>;
   },
 
   /**

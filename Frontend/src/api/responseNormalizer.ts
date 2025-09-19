@@ -6,13 +6,19 @@
  * 격리하여 fallback fetch 로직을 캡슐화합니다.
  */
 
-import type { NotificationItem, PaginatedResponse, UserAccount, BaseResponse, AccountsResponse } from '@/src/types';
+import type { NotificationItem, PaginatedResponse, UserAccount, BaseResponse, AccountsResponse, SlotsResponse, SlotData } from '@/src/types';
 
 /** 알림 목록 응답 형태 후보 타입 (느슨한 any 구조) */
 export type RawNotificationListResponse = any; // 다양한 케이스 수용
 
 /** 계좌 목록 응답 형태 후보 타입 (느슨한 any 구조) */
 export type RawAccountListResponse = any; // 다양한 케이스 수용
+
+/** 계좌 잔액 응답 형태 후보 타입 (느슨한 any 구조) */
+export type RawAccountBalanceResponse = any; // 다양한 케이스 수용
+
+/** 슬롯 목록 응답 형태 후보 타입 (느슨한 any 구조) */
+export type RawSlotsResponse = any; // 다양한 케이스 수용
 
 /**
  * 알림 목록 응답을 표준 형태로 변환합니다.
@@ -170,6 +176,180 @@ export async function fetchAccountsFallback(): Promise<BaseResponse<AccountsResp
     }
   } catch (e) {
     console.log('[ACCOUNT_NORMALIZER] fallback fetch 실패:', e);
+  }
+  return null;
+}
+
+/**
+ * 계좌 잔액 응답을 표준 형태로 변환합니다.
+ * @param raw 서버 또는 MSW, 혹은 fallback fetch로부터 수신한 원본 응답
+ */
+export function normalizeAccountBalance(raw: RawAccountBalanceResponse): BaseResponse<{ balance: number }> {
+  // Case A: { data: { balance: number } } - 표준 구조
+  if (raw && raw.data && typeof raw.data.balance === 'number') {
+    return {
+      success: true,
+      message: raw.message || '계좌 잔액 조회 성공',
+      data: {
+        balance: raw.data.balance,
+      },
+    };
+  }
+
+  // Case B: { balance: number } - 직접 balance
+  if (raw && typeof raw.balance === 'number') {
+    return {
+      success: true,
+      message: raw.message || '계좌 잔액 조회 성공',
+      data: {
+        balance: raw.balance,
+      },
+    };
+  }
+
+  // Case C: 문자열/빈 객체 => 기본값
+  return {
+    success: true,
+    message: '계좌 잔액 조회 성공',
+    data: {
+      balance: 0,
+    },
+  };
+}
+
+/**
+ * Fallback fetch를 수행하여 확실한 JSON을 확보.
+ * 네트워크/파싱 성공 시 정규화된 응답 반환, 실패 시 null 반환.
+ */
+export async function fetchAccountBalanceFallback(accountId: string): Promise<BaseResponse<{ balance: number }> | null> {
+  try {
+    const res = await fetch(`/api/accounts/${accountId}/balance`);
+    const json = await res.json();
+    if (json) {
+      return normalizeAccountBalance(json);
+    }
+  } catch (e) {
+    console.log('[BALANCE_NORMALIZER] fallback fetch 실패:', e);
+  }
+  return null;
+}
+
+/**
+ * 슬롯 목록 응답을 표준 형태로 변환합니다.
+ * @param raw 서버 또는 MSW, 혹은 fallback fetch로부터 수신한 원본 응답
+ */
+export function normalizeSlots(raw: RawSlotsResponse): BaseResponse<SlotsResponse> {
+  // Case A: { data: { slots: [...] } } - 표준 구조
+  if (raw && raw.data && raw.data.slots && Array.isArray(raw.data.slots)) {
+    return {
+      success: true,
+      message: raw.message || '슬롯 목록 조회 성공',
+      data: {
+        slots: raw.data.slots,
+      },
+    };
+  }
+
+  // Case B: { data: [...] } - 직접 배열
+  if (raw && raw.data && Array.isArray(raw.data)) {
+    return {
+      success: true,
+      message: raw.message || '슬롯 목록 조회 성공',
+      data: {
+        slots: raw.data,
+      },
+    };
+  }
+
+  // Case C: 배열 자체가 응답
+  if (Array.isArray(raw)) {
+    return {
+      success: true,
+      message: '슬롯 목록 조회 성공',
+      data: {
+        slots: raw,
+      },
+    };
+  }
+
+  // Case D: 문자열/빈 객체 => 빈 결과
+  return {
+    success: true,
+    message: '슬롯 목록 조회 성공',
+    data: {
+      slots: [],
+    },
+  };
+}
+
+/**
+ * Fallback fetch를 수행하여 확실한 JSON을 확보.
+ * 네트워크/파싱 성공 시 정규화된 응답 반환, 실패 시 null 반환.
+ */
+export async function fetchSlotsFallback(accountId: string): Promise<BaseResponse<SlotsResponse> | null> {
+  try {
+    const res = await fetch(`/api/accounts/${accountId}/slots`);
+    const json = await res.json();
+    if (json) {
+      return normalizeSlots(json);
+    }
+  } catch (e) {
+    console.log('[SLOTS_NORMALIZER] fallback fetch 실패:', e);
+  }
+  return null;
+}
+
+/**
+ * 슬롯 상세 응답을 표준 형태로 변환합니다.
+ * @param raw 서버 또는 MSW, 혹은 fallback fetch로부터 수신한 원본 응답
+ */
+export function normalizeSlotDetail(raw: RawSlotsResponse): BaseResponse<SlotData> {
+  // Case A: { data: { slotId, slotName, ... } } - 표준 구조
+  if (raw && raw.data && raw.data.slotId) {
+    return {
+      success: true,
+      message: raw.message || '슬롯 상세 조회 성공',
+      data: raw.data,
+    };
+  }
+
+  // Case B: 직접 슬롯 객체
+  if (raw && raw.slotId) {
+    return {
+      success: true,
+      message: raw.message || '슬롯 상세 조회 성공',
+      data: raw,
+    };
+  }
+
+  // Case C: 문자열/빈 객체 => 기본값
+  return {
+    success: true,
+    message: '슬롯 상세 조회 성공',
+    data: {
+      slotId: '',
+      slotName: '',
+      slotIcon: '',
+      slotColor: '',
+      budget: 0,
+      remaining: 0,
+    },
+  };
+}
+
+/**
+ * Fallback fetch를 수행하여 확실한 JSON을 확보.
+ * 네트워크/파싱 성공 시 정규화된 응답 반환, 실패 시 null 반환.
+ */
+export async function fetchSlotDetailFallback(slotId: string): Promise<BaseResponse<SlotData> | null> {
+  try {
+    const res = await fetch(`/api/slots/${slotId}`);
+    const json = await res.json();
+    if (json) {
+      return normalizeSlotDetail(json);
+    }
+  } catch (e) {
+    console.log('[SLOT_DETAIL_NORMALIZER] fallback fetch 실패:', e);
   }
   return null;
 }

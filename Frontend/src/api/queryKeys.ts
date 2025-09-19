@@ -26,7 +26,7 @@ export const queryKeys = {
     list: () => [...queryKeys.slots.all, 'list'] as const,
     detail: (id: number) => [...queryKeys.slots.all, 'detail', id] as const,
     recommendations: () => [...queryKeys.slots.all, 'recommendations'] as const,
-    byAccount: (accountId: number) => [...queryKeys.slots.all, 'byAccount', accountId] as const,
+    byAccount: (accountId: string) => [...queryKeys.slots.all, 'byAccount', accountId] as const,
   },
 
   // 알림 관련

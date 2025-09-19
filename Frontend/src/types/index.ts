@@ -1,5 +1,6 @@
 import { SLOT_CATEGORIES } from "../constants/slots";
 export * from './account';
+export * from './slot';
 
 // ===== 공통 타입 =====
 // ===== UI 컴포넌트용 타입들 =====
@@ -10,24 +11,6 @@ export * from './account';
 
 export type SlotId = keyof typeof SLOT_CATEGORIES;
 
-export interface SlotData {
-  slotId: SlotId;
-  name: string;
-  budget: number;
-  remain: number;
-  color: string;
-}
-
-/**
- * 계좌 데이터 (슬롯 포함)
- */
-export interface AccountData {
-  bankCode: string;
-  accountName: string;
-  accountNumber: string;
-  balance: number;
-  slots: SlotData[];
-}
 
 export interface BaseResponse<T = any> {
   success: boolean;
