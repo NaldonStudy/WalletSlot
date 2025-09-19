@@ -62,11 +62,13 @@ public class AccountService {
 
         // 요청보낼 url
         String url = "https://finopenapi.ssafy.io/ssafy/api/v1/edu/demandDeposit/inquireDemandDepositAccountList";
+        
+        // Header 만들기
         Map<String, String> formattedDateTime = LocalDateTimeFormatter.formatter(LocalDateTime.now());
         Header header = Header.builder()
                 .apiName("inquireDemandDepositAccountList")
                 .transmissionDate(formattedDateTime.get("date"))
-                .transmissionDate(formattedDateTime.get("time"))
+                .transmissionTime(formattedDateTime.get("time"))
                 .apiServiceCode("inquireDemandDepositAccountList")
                 .institutionTransactionUniqueNo(formattedDateTime.get("date") + formattedDateTime.get("time") + RandomNumberGenerator.generateRandomNumber())
                 .apiKey(ssafyFinanceApiKey)
@@ -93,6 +95,7 @@ public class AccountService {
                         .accountNo(account.getAccountNo())
                         .bankName(account.getBankName())
                         .bankCode(account.getBankCode())
+                        .accountBalance(account.getAccountBalance())
                         .build())
                 .toList();
 
@@ -139,9 +142,10 @@ public class AccountService {
                                 .accountNo(AESUtil.decrypt(account.getEncryptedAccountNo(), encryptionKey))
                                 .bankName(account.getBank().getName())
                                 .bankCode(account.getBank().getCode())
+                                .accountBalance(String.valueOf(account.getBalance()))
                                 .build();
                     } catch(Exception e) {
-                        throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "[AccountService - 000]");
+                        throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "AccountService - 000");
                     }
                 })
                 .toList();
@@ -158,10 +162,10 @@ public class AccountService {
     }
 
     // 4-1-3
-    public GetAccountResponseDto getAccount(long userId, Long accountId) {
+    public GetAccountResponseDto getAccount(long userId, String accountId) {
 
         // 존재하지 않는 accountId이면 404 응답
-        Account account = accountRepository.findById(accountId).orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "[AccountService - 000]"));
+        Account account = accountRepository.findByUuid(accountId).orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "[AccountService - 000]"));
 
         // 사용자의 userId != 조회한 계좌의 userId 이면 403
 
@@ -174,6 +178,7 @@ public class AccountService {
                     .accountNo(AESUtil.decrypt(account.getEncryptedAccountNo(), encryptionKey))
                     .bankName(account.getBank().getName())
                     .bankCode(account.getBank().getCode())
+                    .accountBalance(String.valueOf(account.getBalance()))
                     .build();
         } catch(Exception e) {
             throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "[AccountService - 000]");
@@ -206,6 +211,7 @@ public class AccountService {
                     .accountNo(AESUtil.decrypt(account.getEncryptedAccountNo(), encryptionKey))
                     .bankName(account.getBank().getName())
                     .bankCode(account.getBank().getCode())
+                    .accountBalance(String.valueOf(account.getBalance()))
                     .build();
         } catch (Exception e) {
             throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "[AccountService - 000]");
@@ -223,15 +229,15 @@ public class AccountService {
     }
 
     // 4-1-5
-    public DeleteLinkedAccountResponseDto deleteLinkedAccount(long userId, Long accountId) {
+    public DeleteLinkedAccountResponseDto deleteLinkedAccount(long userId, String accountId) {
 
         // 조회 결과가 없으면 404
-        Account account = accountRepository.findById(accountId).orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "[AccountService - 000]"));
+        Account account = accountRepository.findByUuid(accountId).orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "[AccountService - 000]"));
         
         // 조회한 계좌가 이 userId꺼가 아니면 403
         
         // account 레포에서 삭제
-        accountRepository.deleteById(accountId);
+        accountRepository.deleteByUuid(accountId);
 
         // dto 조립
         // dto > data
@@ -285,7 +291,7 @@ public class AccountService {
         Header header = Header.builder()
                 .apiName("openAccountAuth")
                 .transmissionDate(formattedDateTime.get("date"))
-                .transmissionDate(formattedDateTime.get("time"))
+                .transmissionTime(formattedDateTime.get("time"))
                 .apiServiceCode("openAccountAuth")
                 .institutionTransactionUniqueNo(formattedDateTime.get("date") + formattedDateTime.get("time") + RandomNumberGenerator.generateRandomNumber())
                 .apiKey(ssafyFinanceApiKey)
@@ -320,6 +326,9 @@ public class AccountService {
 
     public VerifyAccountResponseDto verifyAccount(long userId, String accountNo, String authText, String authCode) {
 
+        System.out.println("authText: " +  authText);
+        System.out.println("authCode: " + authCode);
+
         // accountNo으로 계좌조회(없으면 404)
         Account account;
         try {
@@ -341,7 +350,7 @@ public class AccountService {
         Header header = Header.builder()
                 .apiName("checkAuthCode")
                 .transmissionDate(formattedDateTime.get("date"))
-                .transmissionDate(formattedDateTime.get("time"))
+                .transmissionTime(formattedDateTime.get("time"))
                 .apiServiceCode("checkAuthCode")
                 .institutionTransactionUniqueNo(formattedDateTime.get("date") + formattedDateTime.get("time") + RandomNumberGenerator.generateRandomNumber())
                 .apiKey(ssafyFinanceApiKey)
@@ -412,7 +421,7 @@ public class AccountService {
             Header header = Header.builder()
                     .apiName("inquireDemandDepositAccountHolderName")
                     .transmissionDate(formattedDateTime.get("date"))
-                    .transmissionDate(formattedDateTime.get("time"))
+                    .transmissionTime(formattedDateTime.get("time"))
                     .apiServiceCode("inquireDemandDepositAccountHolderName")
                     .institutionTransactionUniqueNo(formattedDateTime.get("date") + formattedDateTime.get("time") + RandomNumberGenerator.generateRandomNumber())
                     .apiKey(ssafyFinanceApiKey)
@@ -437,10 +446,10 @@ public class AccountService {
             // 현재 userId의 사용자명 != 방금 얻은 사용자명 이면 403
 
             // User 객체 조회하기 (없으면 404)
-            User user = userRepository.findById(userId).orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "[AccountService - 000]"));
+            User user = userRepository.findById(userId).orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "[AccountService - 001]"));
 
             // Bank 객체 조회하기 (없으면 404)
-            Bank bank = bankRepository.findByCode(accountDto.getBankCode()).orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "[AccountService - 000]"));
+            Bank bank = bankRepository.findByCode(accountDto.getBankCode()).orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "[AccountService - 002]"));
 
             // 계좌번호 암호화
             String encryptedAccountNo;
@@ -487,10 +496,10 @@ public class AccountService {
     }
 
     // 4-3-2
-    public ModifyAccountResponseDto modifyAccount(Long userId, Long accountId, ModifyAccountRequestDto request) {
+    public ModifyAccountResponseDto modifyAccount(Long userId, String accountId, ModifyAccountRequestDto request) {
 
         // account 객체 조회 (없으면 404)
-        Account account = accountRepository.findById(accountId).orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "[AccountService - 000]"));
+        Account account = accountRepository.findByUuid(accountId).orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "[AccountService - 000]"));
 
         // userId != account의 userId이면 403
 

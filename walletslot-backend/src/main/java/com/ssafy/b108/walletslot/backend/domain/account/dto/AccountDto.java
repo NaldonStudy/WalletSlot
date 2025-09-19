@@ -1,5 +1,6 @@
 package com.ssafy.b108.walletslot.backend.domain.account.dto;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.*;
 
 @Getter
@@ -7,6 +8,7 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class AccountDto {
 
     // Field
@@ -14,4 +16,5 @@ public class AccountDto {
     private String bankCode;
     private String bankName;
     private String accountNo;
+    private String accountBalance;
 }

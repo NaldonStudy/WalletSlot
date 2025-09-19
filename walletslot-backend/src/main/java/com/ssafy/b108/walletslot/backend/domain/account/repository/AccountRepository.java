@@ -11,4 +11,6 @@ public interface AccountRepository extends JpaRepository<Account, Long> {
     List<Account> findByUser(User user);
     Optional<Account> findByUserAndIsPrimaryTrue(User user);
     Optional<Account> findByEncryptedAccountNo(String accountNo);
+    Optional<Account> findByUuid(String uuid);
+    void deleteByUuid(String uuid);
 }

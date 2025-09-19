@@ -1,5 +1,6 @@
 package com.ssafy.b108.walletslot.backend.domain.account.dto.external;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.*;
 
     @Getter
@@ -10,6 +11,7 @@ import lombok.*;
 public class SSAFYverifyAccountResponseDto {
 
     // Field
+    @JsonProperty("REC")
     private Rec REC;
 
     // Nested Class
