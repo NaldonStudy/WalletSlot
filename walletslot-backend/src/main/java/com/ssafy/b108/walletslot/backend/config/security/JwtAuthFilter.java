@@ -10,6 +10,7 @@ import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
+import org.springframework.util.AntPathMatcher;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
@@ -24,7 +25,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
     // 인증을 통과시킬 경로 프리픽스
     private static final Set<String> WHITELIST_PREFIX = Set.of(
-            "/api/auth",
+            "/api/auth/**",
             "/swagger-ui/",
             "/v3/api-docs",
             "/swagger-resources",
@@ -34,6 +35,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     );
 
     private final JwtProvider jwtProvider;
+    private final AntPathMatcher pathMatcher = new AntPathMatcher();
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
@@ -67,7 +69,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     /* ------------------------ helpers ------------------------ */
 
     private boolean isWhitelisted(String path) {
-        return WHITELIST_PREFIX.stream().anyMatch(path::startsWith);
+        return WHITELIST_PREFIX.stream().anyMatch(pattern -> pathMatcher.match(pattern, path));
     }
 
     private String resolveBearerToken(HttpServletRequest req) {
