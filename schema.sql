@@ -99,10 +99,10 @@ CREATE TABLE `slot` (
 	`id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
 	`uuid` VARCHAR(64) NOT NULL,
 	`name` VARCHAR(128) NOT NULL,
-	`is_saving_slot` BOOLEAN NOT NULL DEFAULT FALSE,
+	`is_saving` BOOLEAN NOT NULL DEFAULT FALSE,
 	`icon` TEXT,
 	`color` VARCHAR(64),
-	`slot_rank` INT UNSIGNED COMMENT '사람들이 많이 사용하는 순위'
+	`rank` INT UNSIGNED COMMENT '사람들이 많이 사용하는 순위'
 );
 
 DROP TABLE IF EXISTS `bank`;
