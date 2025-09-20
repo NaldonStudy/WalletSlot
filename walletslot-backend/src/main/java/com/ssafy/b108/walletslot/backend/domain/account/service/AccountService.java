@@ -65,7 +65,7 @@ public class AccountService {
         String url2 = "https://finopenapi.ssafy.io/ssafy/api/v1/edu/demandDeposit/inquireDemandDepositAccountList";
         
         // Header 만들기
-        Map<String, String> formattedDateTime = LocalDateTimeFormatter.formatter(LocalDateTime.now());
+        Map<String, String> formattedDateTime = LocalDateTimeFormatter.formatter();
         Header header = Header.builder()
                 .apiName("inquireDemandDepositAccountList")
                 .transmissionDate(formattedDateTime.get("date"))
@@ -285,9 +285,9 @@ public class AccountService {
 
         // SSAFY 금융 API >>>>> 2.9.1 1원 송금
         // 요청보낼 url
-        String url2 = "https://finopenapi.ssafy.io/ssafy/api/v1/edu/accountAuth/openAccountAuth";
-        Map<String, String> formattedDateTime = LocalDateTimeFormatter.formatter(LocalDateTime.now());
-        Header header2 = Header.builder()
+        String url = "https://finopenapi.ssafy.io/ssafy/api/v1/edu/accountAuth/openAccountAuth";
+        Map<String, String> formattedDateTime = LocalDateTimeFormatter.formatter();
+        Header header = Header.builder()
                 .apiName("openAccountAuth")
                 .transmissionDate(formattedDateTime.get("date"))
                 .transmissionTime(formattedDateTime.get("time"))
@@ -331,9 +331,9 @@ public class AccountService {
 
         // SSAFY 금융 API >>>>> 2.9.2 1원 송금 검증
         // 요청보낼 url
-        String url2 = "https://finopenapi.ssafy.io/ssafy/api/v1/edu/accountAuth/checkAuthCode";
-        Map<String, String> formattedDateTime = LocalDateTimeFormatter.formatter(LocalDateTime.now());
-        Header header2 = Header.builder()
+        String url = "https://finopenapi.ssafy.io/ssafy/api/v1/edu/accountAuth/checkAuthCode";
+        Map<String, String> formattedDateTime = LocalDateTimeFormatter.formatter();
+        Header header = Header.builder()
                 .apiName("checkAuthCode")
                 .transmissionDate(formattedDateTime.get("date"))
                 .transmissionTime(formattedDateTime.get("time"))
@@ -399,11 +399,13 @@ public class AccountService {
             User user = userRepository.findById(userId).orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "[AccountService]"));
             String userKey = user.getUserKey();
 
-            // SSAFY 금융 API >>>>> 2.4.6 예금주 조회
-            // 방금 조회한 사용자의 이름 != 예금주 명이면 403 보내야 함
-            // 요청보낼 url
-            String url2 = "https://finopenapi.ssafy.io/ssafy/api/v1/edu/demandDeposit/inquireDemandDepositAccountHolderName";
-            Map<String, String> formattedDateTime = LocalDateTimeFormatter.formatter(LocalDateTime.now());
+            // 싸피 금융 API에 요청보낼 바디 만들기
+            // 현재 로그인된 사용자의 userId 획득 -> DB에서 이 userId를 가지는 사용자의 이메일 조회 -> 싸피 금융 api에 userKey 요청 -> 획득 후 헤더에 userKey 포함해서 요청보내야함
+            // 지금은 더미데이터 v1의 userKey로 사용
+
+            // 요청보낼 url (예금주 조회)
+            String url = "https://finopenapi.ssafy.io/ssafy/api/v1/edu/demandDeposit/inquireDemandDepositAccountHolderName";
+            Map<String, String> formattedDateTime = LocalDateTimeFormatter.formatter();
             Header header = Header.builder()
                     .apiName("inquireDemandDepositAccountHolderName")
                     .transmissionDate(formattedDateTime.get("date"))
