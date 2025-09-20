@@ -1,11 +1,12 @@
-# DROP DATABASE IF EXISTS walletslotdb;
-# CREATE DATABASE walletslotdb;
+DROP DATABASE IF EXISTS walletslotdb;
+CREATE DATABASE walletslotdb;
 
 USE walletslotdb;
 
 DROP TABLE IF EXISTS `user`;
 CREATE TABLE `user` (
 	`id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `uuid` VARCHAR(64) NOT NULL,
 	`name` VARCHAR(64) NOT NULL,
 	`phone_number` VARCHAR(64) NOT NULL,
 	`gender` ENUM('FEMALE', 'MAN') NOT NULL,
@@ -67,12 +68,14 @@ CREATE TABLE `push_endpoint` (
 DROP TABLE IF EXISTS `consent_form`;
 CREATE TABLE `consent_form` (
 	`id` INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    `uuid` varchar(64),
 	`title` TEXT NOT NULL
 );
 
 DROP TABLE IF EXISTS `user_consent`;
 CREATE TABLE `user_consent` (
 	`id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `uuid` VARCHAR(64) NOT NULL,
 	`user_id` INT UNSIGNED NOT NULL,
 	`consent_form_id` INT UNSIGNED NOT NULL,
 	`agreed_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -98,21 +101,23 @@ CREATE TABLE `slot` (
 	`name` VARCHAR(128) NOT NULL,
 	`is_saving_slot` BOOLEAN NOT NULL DEFAULT FALSE,
 	`icon` TEXT,
-	`color` VARCHAR(64) NOT NULL,
+	`color` VARCHAR(64),
 	`slot_rank` INT UNSIGNED COMMENT '사람들이 많이 사용하는 순위'
 );
 
 DROP TABLE IF EXISTS `bank`;
 CREATE TABLE `bank` (
 	`id` INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    `uuid` VARCHAR(64) NOT NULL,
 	`name` VARCHAR(64) NOT NULL,
 	`code` VARCHAR(64) NOT NULL,
-	`color` VARCHAR(64) NOT NULL
+	`color` VARCHAR(64)
 );
 
 DROP TABLE IF EXISTS `account`;
 CREATE TABLE `account` (
 	`id` INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    `uuid` VARCHAR(64) NOT NULL,
 	`user_id` INT UNSIGNED NOT NULL,
 	`bank_id` INT UNSIGNED NOT NULL,
 	`alias` VARCHAR(128),
@@ -135,6 +140,7 @@ CREATE TABLE `account` (
 DROP TABLE IF EXISTS `account_slot`;
 CREATE TABLE `account_slot` (
 	`id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `uuid` VARCHAR(64) NOT NULL,
 	`account_id` INT UNSIGNED NOT NULL,
 	`slot_id` INT UNSIGNED NOT NULL,
 	`initial_budget` BIGINT UNSIGNED NOT NULL DEFAULT 0,
@@ -162,6 +168,7 @@ CREATE TABLE `account_slot` (
 DROP TABLE IF EXISTS `slot_history`;
 CREATE TABLE `slot_history` (
 	`id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `uuid` VARCHAR(64) NOT NULL,
 	`account_slot_id` INT UNSIGNED NOT NULL,
 	`changed_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 	`old_budget` BIGINT UNSIGNED NOT NULL DEFAULT 0,
@@ -176,13 +183,13 @@ CREATE TABLE `slot_history` (
 DROP TABLE IF EXISTS `transaction`;
 CREATE TABLE `transaction` (
 	`id` INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    `uuid` VARCHAR(64) NOT NULL,
 	`account_id` INT UNSIGNED NOT NULL,
 	`account_slot_id` INT UNSIGNED NOT NULL,
-	`uuid` VARCHAR(64) NOT NULL,
 	`unique_no` BIGINT UNSIGNED NOT NULL COMMENT 'transactionUniqueNo',
 	`type` VARCHAR(64) NOT NULL COMMENT 'transactionType, transactionTypeName',
 	`opponent_account_no` BIGINT UNSIGNED COMMENT 'transactionAccountNo',
-	`counter_party` VARCHAR(255) NOT NULL COMMENT 'transactionSummary',
+	`summary` VARCHAR(255) NOT NULL COMMENT 'transactionSummary',
 	`amount` BIGINT UNSIGNED NOT NULL COMMENT 'transactionBalance',
 	`balance` BIGINT UNSIGNED NOT NULL,
 	`transaction_at` VARCHAR(64) NOT NULL COMMENT 'transactionDate, transactionTime',
@@ -210,6 +217,7 @@ CREATE TABLE `ai_report` (
 DROP TABLE IF EXISTS `notification`;
 CREATE TABLE `notification` (
 	`id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `uuid` VARCHAR(64) NOT NULL,
 	`user_id` INT UNSIGNED NOT NULL,
 	`title` VARCHAR(255) NOT NULL,
 	`content` TINYTEXT,
@@ -228,6 +236,7 @@ CREATE TABLE `notification` (
 DROP TABLE IF EXISTS `wishlist`;
 CREATE TABLE `wishlist` (
 	`id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `uuid` VARCHAR(64) NOT NULL,
 	`user_id` INT UNSIGNED NOT NULL,
 	`name` VARCHAR(64) NOT NULL,
 	`price` BIGINT UNSIGNED NOT NULL DEFAULT 0,
@@ -251,3 +260,4 @@ CREATE TABLE `email` (
 		ON DELETE CASCADE
         ON UPDATE CASCADE
 );
+
