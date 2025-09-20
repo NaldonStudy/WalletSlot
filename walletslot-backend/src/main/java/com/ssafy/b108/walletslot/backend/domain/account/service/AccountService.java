@@ -64,7 +64,7 @@ public class AccountService {
         String url = "https://finopenapi.ssafy.io/ssafy/api/v1/edu/demandDeposit/inquireDemandDepositAccountList";
         
         // Header 만들기
-        Map<String, String> formattedDateTime = LocalDateTimeFormatter.formatter(LocalDateTime.now());
+        Map<String, String> formattedDateTime = LocalDateTimeFormatter.formatter();
         Header header = Header.builder()
                 .apiName("inquireDemandDepositAccountList")
                 .transmissionDate(formattedDateTime.get("date"))
@@ -287,7 +287,7 @@ public class AccountService {
 
         // 요청보낼 url
         String url = "https://finopenapi.ssafy.io/ssafy/api/v1/edu/accountAuth/openAccountAuth";
-        Map<String, String> formattedDateTime = LocalDateTimeFormatter.formatter(LocalDateTime.now());
+        Map<String, String> formattedDateTime = LocalDateTimeFormatter.formatter();
         Header header = Header.builder()
                 .apiName("openAccountAuth")
                 .transmissionDate(formattedDateTime.get("date"))
@@ -346,7 +346,7 @@ public class AccountService {
 
         // 요청보낼 url
         String url = "https://finopenapi.ssafy.io/ssafy/api/v1/edu/accountAuth/checkAuthCode";
-        Map<String, String> formattedDateTime = LocalDateTimeFormatter.formatter(LocalDateTime.now());
+        Map<String, String> formattedDateTime = LocalDateTimeFormatter.formatter();
         Header header = Header.builder()
                 .apiName("checkAuthCode")
                 .transmissionDate(formattedDateTime.get("date"))
@@ -417,7 +417,7 @@ public class AccountService {
 
             // 요청보낼 url (예금주 조회)
             String url = "https://finopenapi.ssafy.io/ssafy/api/v1/edu/demandDeposit/inquireDemandDepositAccountHolderName";
-            Map<String, String> formattedDateTime = LocalDateTimeFormatter.formatter(LocalDateTime.now());
+            Map<String, String> formattedDateTime = LocalDateTimeFormatter.formatter();
             Header header = Header.builder()
                     .apiName("inquireDemandDepositAccountHolderName")
                     .transmissionDate(formattedDateTime.get("date"))
