@@ -1,7 +1,9 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
-import { LocalUser, AuthTokens } from '@/src/types';
+import { User, LocalUser } from '@/src/types';
+import { STORAGE_KEYS } from '@/src/constants';
 import { getOrCreateDeviceId } from '@/src/services/deviceIdService';
+import { notificationApi } from '@/src/api/notification';
 import { Buffer } from 'buffer';
 
 // ===== 인증 관련 헬퍼 함수들 =====
@@ -15,13 +17,6 @@ function extractRefreshTokenFromCookie(setCookieHeader: string): string | null {
         return null;
     }
 }
-
-// ====== 저장소 키 상수 ======
-const STORAGE_KEYS = {
-    USER : 'local_user',
-    ACCESS_TOKEN : 'access_token',
-    REFRESH_TOKEN : 'refresh_token',
-} as const;
 
 
 export const authService = {
@@ -160,13 +155,47 @@ export const authService = {
 
 
 // ============= 통합 관리 =============
-    // 로그인 성공 시 모든 정보 저장
-    async saveLoginData(user: LocalUser, tokens: AuthTokens): Promise<void> {
+    // 로그인 성공 시 모든 정보 저장 (response에서 자동으로 refreshToken 추출)
+    async saveLoginData(response: Response): Promise<void> {
         try {
+            const responseData = await response.json();
+            const setCookieHeader = response.headers.get('Set-Cookie');
+            const refreshToken = setCookieHeader ? extractRefreshTokenFromCookie(setCookieHeader) : null;
+            
+            if (!refreshToken) {
+                throw new Error('RefreshToken을 Set-Cookie에서 추출할 수 없습니다');
+            }
+            
+            const data = responseData.data; // ← data.data에서 실제 사용자 데이터 추출
+            
+            // 알림 동의 상태 확인
+            const notificationConsent = await this.getNotificationConsent();
+            
+            const isPushEnabled = notificationConsent !== null 
+                ? notificationConsent 
+                : await (async () => {
+                    try {
+                        const response = await notificationApi.getUserNotificationSettings();
+                        const value = response.data.isPushEnabled;
+                        // 서버에서 가져온 값을 로컬에 저장
+                        await AsyncStorage.setItem(STORAGE_KEYS.NOTIFICATION_CONSENT, value.toString());
+                        return value;
+                    } catch (error) {
+                        console.error('[🔔AUTH_SERVICE] ❌서버 알림 설정 조회 실패:', error);
+                        return true; // 에러 시 기본값
+                    }
+                })();
+            
+            const localUser: LocalUser = {
+                userId: data.userId,
+                userName: data.name,
+                isPushEnabled: isPushEnabled,
+            };
+            
             await Promise.all([
-                this.saveUser(user),
-                this.saveAccessToken(tokens.accessToken),
-                this.saveRefreshToken(tokens.refreshToken),
+                this.saveUser(localUser),
+                this.saveAccessToken(data.accessToken),
+                this.saveRefreshToken(refreshToken),
             ]);
             console.log('[🎯AUTH_SERVICE] ✅로그인 데이터 저장 완료');
         } catch (error) {
@@ -189,6 +218,20 @@ export const authService = {
             throw error;
         }
     },
+
+    // 알림 동의 상태 확인
+    async getNotificationConsent(): Promise<boolean | null> {
+        try {
+            const consent = await AsyncStorage.getItem(STORAGE_KEYS.NOTIFICATION_CONSENT);
+            if (consent === 'true') return true;
+            if (consent === 'false') return false;
+            return null; // 'true'나 'false'가 아니면 null
+        } catch (error) {
+            console.error('[🔔AUTH_SERVICE] ❌알림 동의 상태 조회 실패:', error);
+            return null;
+        }
+    },
+
 
     // 로그인 상태 확인
     async isLoggedIn(): Promise<boolean> {

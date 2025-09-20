@@ -279,21 +279,14 @@ export interface UserDevice {
   createdAt: string;
 }
 
-/**
- * 인증 토큰 정보
- */
-export interface AuthTokens {
-  accessToken: string;
-  refreshToken: string;
-  expiresIn: number;
-}
 
 /**
  * 로그인 폼 데이터
  */
 export interface LoginForm {
   phone: string;
-  password: string;
+  pin: string;
+  deviceId: string;
 }
 
 /**
