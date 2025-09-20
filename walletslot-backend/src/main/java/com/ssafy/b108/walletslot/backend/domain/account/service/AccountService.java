@@ -298,7 +298,7 @@ public class AccountService {
                 .build();
 
         Map<String, Object> body2 = new HashMap<>();
-        body2.put("Header", header2);
+        body2.put("Header", header);
         body2.put("accountNo", accountNo);
         body2.put("authText", bankName);
 
@@ -307,7 +307,7 @@ public class AccountService {
 
         // 요청 보내기
         restTemplate.exchange(
-                url2,
+                url,
                 HttpMethod.POST,
                 httpEntity2,
                 Void.class
@@ -344,7 +344,7 @@ public class AccountService {
                 .build();
 
         Map<String, Object> body2 = new HashMap<>();
-        body2.put("Header", header2);
+        body2.put("Header", header);
         body2.put("accountNo", accountNo);
         body2.put("authText", authText);
         body2.put("authCode", authCode);
@@ -354,7 +354,7 @@ public class AccountService {
 
         // 요청 보내기
         ResponseEntity<SSAFYverifyAccountResponseDto> httpResponse2 = restTemplate.exchange(
-                url2,
+                url,
                 HttpMethod.POST,
                 httpEntity,
                 SSAFYverifyAccountResponseDto.class
@@ -425,7 +425,7 @@ public class AccountService {
 
             // 요청 보내기
             ResponseEntity<SSAFYGetAccountHolderNameResponseDto> httpResponse2 = restTemplate.exchange(
-                    url2,
+                    url,
                     HttpMethod.POST,
                     httpEntity2,
                     SSAFYGetAccountHolderNameResponseDto.class
