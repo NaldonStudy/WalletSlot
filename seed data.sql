@@ -136,11 +136,11 @@ VALUES
 
 -- USER_CONSENT
 DESCRIBE `user_consent`;
-INSERT INTO `user_consent` (id, user_id, consent_form_id, expired_at)
+INSERT INTO `user_consent` (id, uuid, user_id, consent_form_id, expired_at)
 VALUES
-(1, 1, 1, '2026-09-17 00:20:01'),
-(2, 1, 2, '2026-09-17 00:20:01'),
-(3, 2, 1, '2026-09-20 14:02:16');
+(1, UUID(), 1, 1, '2026-09-17 00:20:01'),
+(2, UUID(), 1, 2, '2026-09-17 00:20:01'),
+(3, UUID(), 2, 1, '2026-09-20 14:02:16');
 
 -- PUSH_ENDPOINT
 DESCRIBE `push_endpoint`;
