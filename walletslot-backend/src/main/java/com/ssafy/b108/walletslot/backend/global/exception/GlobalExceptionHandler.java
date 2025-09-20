@@ -49,6 +49,7 @@ public class GlobalExceptionHandler {
     // 기타 예상 못한 오류는 500으로 숨김
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleEtc(Exception ex) {
+        ex.printStackTrace();
         ErrorResponse body = ErrorResponse.builder()
                 .message(ErrorCode.INTERNAL_SERVER_ERROR.getMessage()) // 내부 메시지 노출 X
                 .build();
