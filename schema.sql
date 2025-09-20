@@ -1,5 +1,5 @@
-# DROP DATABASE IF EXISTS walletslotdb;
-# CREATE DATABASE walletslotdb;
+DROP DATABASE IF EXISTS walletslotdb;
+CREATE DATABASE walletslotdb;
 
 USE walletslotdb;
 
@@ -52,7 +52,6 @@ CREATE TABLE `user_pin` (
 DROP TABLE IF EXISTS `push_endpoint`;
 CREATE TABLE `push_endpoint` (
 	`id` INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
-    `uuid` VARCHAR(64) NOT NULL,
 	`user_id` INT UNSIGNED,
 	`device_id` VARCHAR(64) NOT NULL,
 	`platform` ENUM('ANDROID', 'IOS') NOT NULL,
@@ -69,6 +68,7 @@ CREATE TABLE `push_endpoint` (
 DROP TABLE IF EXISTS `consent_form`;
 CREATE TABLE `consent_form` (
 	`id` INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    `uuid` varchar(64),
 	`title` TEXT NOT NULL
 );
 
@@ -101,7 +101,7 @@ CREATE TABLE `slot` (
 	`name` VARCHAR(128) NOT NULL,
 	`is_saving_slot` BOOLEAN NOT NULL DEFAULT FALSE,
 	`icon` TEXT,
-	`color` VARCHAR(64) NOT NULL,
+	`color` VARCHAR(64),
 	`slot_rank` INT UNSIGNED COMMENT '사람들이 많이 사용하는 순위'
 );
 
@@ -111,7 +111,7 @@ CREATE TABLE `bank` (
     `uuid` VARCHAR(64) NOT NULL,
 	`name` VARCHAR(64) NOT NULL,
 	`code` VARCHAR(64) NOT NULL,
-	`color` VARCHAR(64) NOT NULL
+	`color` VARCHAR(64)
 );
 
 DROP TABLE IF EXISTS `account`;
@@ -189,7 +189,7 @@ CREATE TABLE `transaction` (
 	`unique_no` BIGINT UNSIGNED NOT NULL COMMENT 'transactionUniqueNo',
 	`type` VARCHAR(64) NOT NULL COMMENT 'transactionType, transactionTypeName',
 	`opponent_account_no` BIGINT UNSIGNED COMMENT 'transactionAccountNo',
-	`counter_party` VARCHAR(255) NOT NULL COMMENT 'transactionSummary',
+	`summary` VARCHAR(255) NOT NULL COMMENT 'transactionSummary',
 	`amount` BIGINT UNSIGNED NOT NULL COMMENT 'transactionBalance',
 	`balance` BIGINT UNSIGNED NOT NULL,
 	`transaction_at` VARCHAR(64) NOT NULL COMMENT 'transactionDate, transactionTime',
@@ -260,3 +260,4 @@ CREATE TABLE `email` (
 		ON DELETE CASCADE
         ON UPDATE CASCADE
 );
+
