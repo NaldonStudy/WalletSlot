@@ -4,6 +4,7 @@ import com.ssafy.b108.walletslot.backend.domain.account.entity.Account;
 import jakarta.persistence.*;
 import lombok.*;
 import java.util.List;
+import java.util.UUID;
 
 @Entity
 @Table(name = "bank")
@@ -17,6 +18,10 @@ public class Bank {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @Column(nullable = false, unique = true, length = 64)
+    @Builder.Default
+    private String uuid = UUID.randomUUID().toString();
 
     @Column(length = 64, nullable = false)
     private String name;

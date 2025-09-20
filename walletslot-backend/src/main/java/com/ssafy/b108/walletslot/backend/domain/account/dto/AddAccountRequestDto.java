@@ -23,7 +23,7 @@ public class AddAccountRequestDto {
     public static class AccountDto {
 
         // Field
-        private String bankCode;
+        private String bankId;
         private String accountNo;
     }
 }
