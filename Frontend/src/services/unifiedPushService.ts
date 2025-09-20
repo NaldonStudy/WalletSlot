@@ -5,6 +5,8 @@
  */
 import { firebasePushService } from './firebasePushService';
 import { localNotificationService } from './localNotificationService';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { STORAGE_KEYS } from '@/src/constants';
 
 export class UnifiedPushService {
   private static instance: UnifiedPushService;
@@ -77,6 +79,9 @@ export class UnifiedPushService {
       // TODO: 서버에 deviceId의 사용자 연결을 해제하는 API 호출
       console.log('[UNIFIED_PUSH] Firebase 사용자 연결 해제');
     }
+    // 로그아웃 시 알림 동의 상태 삭제
+    await AsyncStorage.removeItem(STORAGE_KEYS.NOTIFICATION_CONSENT);
+    console.log('[UNIFIED_PUSH] 알림 동의 상태 삭제 완료');
   }
 
   /**
