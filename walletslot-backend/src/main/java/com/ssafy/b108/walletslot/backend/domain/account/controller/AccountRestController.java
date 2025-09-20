@@ -81,7 +81,7 @@ public class AccountRestController {
             extensions = @Extension(name = "x-order", properties = @ExtensionProperty(name = "order", value = "6"))
     )
     public ResponseEntity<RequestVerificationResponseDto> requestVerification(@AuthenticationPrincipal UserPrincipal principal, @RequestBody RequestVerificationRequestDto request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(accountService.requestVerification(principal.userId(), request.getAccountNo()));
+        return ResponseEntity.status(HttpStatus.CREATED).body(accountService.requestVerification(principal.userId(), request.getBankId(), request.getAccountNo()));
     }
 
     @PostMapping("/verification/verify")
@@ -101,7 +101,7 @@ public class AccountRestController {
     @PostMapping("/link")
     @Operation(
             summary = "4-3-1 계좌연동",
-            description = "현재 사용자의 대표 계좌의 정보를 상세조회합니다.",
+            description = "사용자의 계좌를 우리 서비스에 연동합니다.",
             extensions = @Extension(name = "x-order", properties = @ExtensionProperty(name = "order", value = "8"))
     )
     public ResponseEntity<AddAccountResponseDto> addAccount(@AuthenticationPrincipal UserPrincipal principal, @RequestBody AddAccountRequestDto request) {
