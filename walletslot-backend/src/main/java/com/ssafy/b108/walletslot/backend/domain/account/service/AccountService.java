@@ -5,15 +5,14 @@ import com.ssafy.b108.walletslot.backend.common.util.AESUtil;
 import com.ssafy.b108.walletslot.backend.common.util.LocalDateTimeFormatter;
 import com.ssafy.b108.walletslot.backend.common.util.RandomNumberGenerator;
 import com.ssafy.b108.walletslot.backend.domain.account.dto.*;
-import com.ssafy.b108.walletslot.backend.domain.account.dto.external.SSAFYGetAccountHolderNameResponseDto;
-import com.ssafy.b108.walletslot.backend.domain.account.dto.external.SSAFYRequestVerificationResponseDto;
-import com.ssafy.b108.walletslot.backend.domain.account.dto.external.SSAFYverifyAccountResponseDto;
+import com.ssafy.b108.walletslot.backend.domain.account.dto.external.*;
 import com.ssafy.b108.walletslot.backend.domain.account.entity.Account;
-import com.ssafy.b108.walletslot.backend.domain.account.dto.external.SSAFYGetAccountListResponseDto;
 import com.ssafy.b108.walletslot.backend.domain.account.repository.AccountRepository;
 import com.ssafy.b108.walletslot.backend.domain.bank.entity.Bank;
 import com.ssafy.b108.walletslot.backend.domain.bank.repository.BankRepository;
+import com.ssafy.b108.walletslot.backend.domain.user.entity.Email;
 import com.ssafy.b108.walletslot.backend.domain.user.entity.User;
+import com.ssafy.b108.walletslot.backend.domain.user.repository.EmailRepository;
 import com.ssafy.b108.walletslot.backend.domain.user.repository.UserRepository;
 import com.ssafy.b108.walletslot.backend.global.error.AppException;
 import com.ssafy.b108.walletslot.backend.global.error.ErrorCode;
@@ -42,12 +41,13 @@ public class AccountService {
     private final AccountRepository accountRepository;
     private final UserRepository userRepository;
     private final BankRepository bankRepository;
+    private final EmailRepository emailRepository;
 
     @Value("${api.ssafy.finance.apiKey}")
     private String ssafyFinanceApiKey;
 
     @Value("${api.ssafy.finance.userKey}")
-    private String ssafyFinanceUserKey;
+    private String ssafyFinanceUserKey; // 혹시 몰라서 살려둠
 
     private final SecretKey encryptionKey;
     private final RestTemplate restTemplate;
@@ -56,12 +56,13 @@ public class AccountService {
     // 4-1-1
     public GetAccountListResponseDto getAccountList(Long userId) {
 
-        // 싸피 금융 API에 요청보낼 바디 만들기
-        // 현재 로그인된 사용자의 userId 획득 -> DB에서 이 userId를 가지는 사용자의 이메일 조회 -> 싸피 금융 api에 userKey 요청 -> 획득 후 헤더에 userKey 포함해서 요청보내야함
-        // 지금은 더미데이터 v1의 userKey로 사용
+        // user 조회 -> userKey 획득하기
+        User user = userRepository.findById(userId).orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "[AccountService]"));
+        String userKey = user.getUserKey();
 
+        // SSAFY 금융 API >>>>> 2.4.4 계좌 목록 조회
         // 요청보낼 url
-        String url = "https://finopenapi.ssafy.io/ssafy/api/v1/edu/demandDeposit/inquireDemandDepositAccountList";
+        String url2 = "https://finopenapi.ssafy.io/ssafy/api/v1/edu/demandDeposit/inquireDemandDepositAccountList";
         
         // Header 만들기
         Map<String, String> formattedDateTime = LocalDateTimeFormatter.formatter();
@@ -72,26 +73,26 @@ public class AccountService {
                 .apiServiceCode("inquireDemandDepositAccountList")
                 .institutionTransactionUniqueNo(formattedDateTime.get("date") + formattedDateTime.get("time") + RandomNumberGenerator.generateRandomNumber())
                 .apiKey(ssafyFinanceApiKey)
-                .userKey(ssafyFinanceUserKey)
+                .userKey(userKey)
                 .build();
 
-        Map<String, Object> body = new HashMap<>();
-        body.put("Header", header);
+        Map<String, Object> body2 = new HashMap<>();
+        body2.put("Header", header);
 
         // 요청보낼 http entity 만들기
-        HttpEntity<Map<String, Object>> httpEntity = new HttpEntity<>(body);
+        HttpEntity<Map<String, Object>> httpEntity2 = new HttpEntity<>(body2);
 
         // 요청 보내기
-        ResponseEntity<SSAFYGetAccountListResponseDto> httpResponse = restTemplate.exchange(
-                url,
+        ResponseEntity<SSAFYGetAccountListResponseDto> httpResponse2 = restTemplate.exchange(
+                url2,
                 HttpMethod.POST,
-                httpEntity,
+                httpEntity2,
                 SSAFYGetAccountListResponseDto.class
         );
 
         // SSAFY 금융망 API로부터 받은 응답 가지고 dto 조립
         // dto > data > accounts
-        List<AccountDto> accountDtoList = httpResponse.getBody().getREC().stream().map(account -> AccountDto.builder()
+        List<AccountDto> accountDtoList = httpResponse2.getBody().getREC().stream().map(account -> AccountDto.builder()
                         .accountNo(account.getAccountNo())
                         .bankName(account.getBankName())
                         .bankCode(account.getBankCode())
@@ -142,6 +143,7 @@ public class AccountService {
                                 .accountNo(AESUtil.decrypt(account.getEncryptedAccountNo(), encryptionKey))
                                 .bankName(account.getBank().getName())
                                 .bankCode(account.getBank().getCode())
+                                .alias(account.getAlias())
                                 .accountBalance(String.valueOf(account.getBalance()))
                                 .build();
                     } catch(Exception e) {
@@ -178,6 +180,7 @@ public class AccountService {
                     .accountNo(AESUtil.decrypt(account.getEncryptedAccountNo(), encryptionKey))
                     .bankName(account.getBank().getName())
                     .bankCode(account.getBank().getCode())
+                    .alias(account.getAlias())
                     .accountBalance(String.valueOf(account.getBalance()))
                     .build();
         } catch(Exception e) {
@@ -211,6 +214,7 @@ public class AccountService {
                     .accountNo(AESUtil.decrypt(account.getEncryptedAccountNo(), encryptionKey))
                     .bankName(account.getBank().getName())
                     .bankCode(account.getBank().getCode())
+                    .alias(account.getAlias())
                     .accountBalance(String.valueOf(account.getBalance()))
                     .build();
         } catch (Exception e) {
@@ -248,6 +252,7 @@ public class AccountService {
                     .accountNo(AESUtil.decrypt(account.getEncryptedAccountNo(), encryptionKey))
                     .bankCode(account.getBank().getCode())
                     .bankName(account.getBank().getName())
+                    .alias(account.getAlias())
                     .build();
         } catch (Exception e) {
             throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "[AccountService - 000]");
@@ -265,26 +270,20 @@ public class AccountService {
     }
 
     // 4-2-1
-    public RequestVerificationResponseDto requestVerification(long userId, String accountNo) {
+    public RequestVerificationResponseDto requestVerification(long userId, String bankUuid, String accountNo) {
+
+        // user 조회 -> userKey 획득하기
+        User user = userRepository.findById(userId).orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "[AccountService]"));
+        String userKey = user.getUserKey();
+
+        // SSAFY 금융 API >>>>> 2.4.6 예금주 조회
+        // 방금 조회한 사용자의 이름 != 예금주 명이면 403 보내야 함
 
         // 1원 송금받는 사용자 통장내역에 찍힐 기업명 만들기
-        // account에서 account 조회 -> bank 획득해서 bankName 얻기
-        Account account;
-        try{
-            account = accountRepository.findByEncryptedAccountNo(AESUtil.encrypt(accountNo, encryptionKey)).orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "[AccountService - 000]"));
-        } catch (Exception e) {
-            throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "[AccountService - 000]");
-        }
+        Bank bank = bankRepository.findByUuid(bankUuid).orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "[AccountService - 000]"));
+        String bankName = bank.getName();
 
-        // userId != 조회된 계좌 userId 이면 403
-
-        // 기업명 꺼내기
-        String authText = account.getBank().getName();
-
-        // 싸피 금융 API에 요청보낼 바디 만들기
-        // 현재 로그인된 사용자의 userId 획득 -> DB에서 이 userId를 가지는 사용자의 이메일 조회 -> 싸피 금융 api에 userKey 요청 -> 획득 후 헤더에 userKey 포함해서 요청보내야함
-        // 지금은 더미데이터 v1의 userKey로 사용
-
+        // SSAFY 금융 API >>>>> 2.9.1 1원 송금
         // 요청보낼 url
         String url = "https://finopenapi.ssafy.io/ssafy/api/v1/edu/accountAuth/openAccountAuth";
         Map<String, String> formattedDateTime = LocalDateTimeFormatter.formatter();
@@ -295,55 +294,42 @@ public class AccountService {
                 .apiServiceCode("openAccountAuth")
                 .institutionTransactionUniqueNo(formattedDateTime.get("date") + formattedDateTime.get("time") + RandomNumberGenerator.generateRandomNumber())
                 .apiKey(ssafyFinanceApiKey)
-                .userKey(ssafyFinanceUserKey)
+                .userKey(userKey)
                 .build();
 
-        Map<String, Object> body = new HashMap<>();
-        body.put("Header", header);
-        body.put("accountNo", accountNo);
-        body.put("authText", authText);
+        Map<String, Object> body2 = new HashMap<>();
+        body2.put("Header", header2);
+        body2.put("accountNo", accountNo);
+        body2.put("authText", bankName);
 
         // 요청보낼 http entity 만들기
-        HttpEntity<Map<String, Object>> httpEntity = new HttpEntity<>(body);
+        HttpEntity<Map<String, Object>> httpEntity2 = new HttpEntity<>(body2);
 
         // 요청 보내기
-        ResponseEntity<SSAFYRequestVerificationResponseDto> httpResponse = restTemplate.exchange(
-                url,
+        restTemplate.exchange(
+                url2,
                 HttpMethod.POST,
-                httpEntity,
-                SSAFYRequestVerificationResponseDto.class
+                httpEntity2,
+                Void.class
         );
 
-        // SSAFY 금융망 API로부터 받은 응답 가지고 dto 조립
+        // dto 조립
         RequestVerificationResponseDto requestVerificationResponseDto = RequestVerificationResponseDto.builder()
                 .success(true)
                 .message("[AccountService - 000] 1원인증 요청 성공")
                 .build();
 
         return requestVerificationResponseDto;
-
     }
 
+    // 4-2-2
     public VerifyAccountResponseDto verifyAccount(long userId, String accountNo, String authText, String authCode) {
 
-        System.out.println("authText: " +  authText);
-        System.out.println("authCode: " + authCode);
+        // user 조회 -> userKey 획득하기
+        User user = userRepository.findById(userId).orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "[AccountService]"));
+        String userKey = user.getUserKey();
 
-        // accountNo으로 계좌조회(없으면 404)
-        Account account;
-        try {
-            account = accountRepository.findByEncryptedAccountNo(AESUtil.encrypt(accountNo, encryptionKey)).orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "[AccountService - 000]"));
-        } catch (Exception e) {
-            throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "[AccountService - 000]");
-        }
-
-        // userId != 조회된 계좌 userId 이면 403
-
-        // 싸피 금융 api에 검증요청
-        // 싸피 금융 API에 요청보낼 바디 만들기
-        // 현재 로그인된 사용자의 userId 획득 -> DB에서 이 userId를 가지는 사용자의 이메일 조회 -> 싸피 금융 api에 userKey 요청 -> 획득 후 헤더에 userKey 포함해서 요청보내야함
-        // 지금은 더미데이터 v1의 userKey로 사용
-
+        // SSAFY 금융 API >>>>> 2.9.2 1원 송금 검증
         // 요청보낼 url
         String url = "https://finopenapi.ssafy.io/ssafy/api/v1/edu/accountAuth/checkAuthCode";
         Map<String, String> formattedDateTime = LocalDateTimeFormatter.formatter();
@@ -354,43 +340,43 @@ public class AccountService {
                 .apiServiceCode("checkAuthCode")
                 .institutionTransactionUniqueNo(formattedDateTime.get("date") + formattedDateTime.get("time") + RandomNumberGenerator.generateRandomNumber())
                 .apiKey(ssafyFinanceApiKey)
-                .userKey(ssafyFinanceUserKey)
+                .userKey(userKey)
                 .build();
 
-        Map<String, Object> body = new HashMap<>();
-        body.put("Header", header);
-        body.put("accountNo", accountNo);
-        body.put("authText", authText);
-        body.put("authCode", authCode);
+        Map<String, Object> body2 = new HashMap<>();
+        body2.put("Header", header2);
+        body2.put("accountNo", accountNo);
+        body2.put("authText", authText);
+        body2.put("authCode", authCode);
 
         // 요청보낼 http entity 만들기
-        HttpEntity<Map<String, Object>> httpEntity = new HttpEntity<>(body);
+        HttpEntity<Map<String, Object>> httpEntity = new HttpEntity<>(body2);
 
         // 요청 보내기
-        ResponseEntity<SSAFYverifyAccountResponseDto> httpResponse = restTemplate.exchange(
-                url,
+        ResponseEntity<SSAFYverifyAccountResponseDto> httpResponse2 = restTemplate.exchange(
+                url2,
                 HttpMethod.POST,
                 httpEntity,
                 SSAFYverifyAccountResponseDto.class
         );
 
         // dto 만들기 (SUCCESS 키 값에 따라 분기처리)
-        if(httpResponse.getBody().getREC().getStatus().equals("SUCCESS")) {
+        if(httpResponse2.getBody().getREC().getStatus().equals("SUCCESS")) {
             VerifyAccountResponseDto verifyAccountResponseDto = VerifyAccountResponseDto.builder()
                     .success(true)
                     .message("[AccountService - 000] 1원인증 검증 결과: 인증번호 일치")
                     .data(VerifyAccountResponseDto.Data.builder()
-                            .accountNo(httpResponse.getBody().getREC().getAccountNo())
+                            .accountNo(httpResponse2.getBody().getREC().getAccountNo())
                             .build())
                     .build();
 
             return verifyAccountResponseDto;
-        } else if(httpResponse.getBody().getREC().getStatus().equals("FAIL")) {
+        } else if(httpResponse2.getBody().getREC().getStatus().equals("FAIL")) {
             VerifyAccountResponseDto verifyAccountResponseDto = VerifyAccountResponseDto.builder()
                     .success(true)
                     .message("[AccountService - 000] 1원인증 검증 결과: 인증번호 불일치")
                     .data(VerifyAccountResponseDto.Data.builder()
-                            .accountNo(httpResponse.getBody().getREC().getAccountNo())
+                            .accountNo(httpResponse2.getBody().getREC().getAccountNo())
                             .build())
                     .build();
 
@@ -409,7 +395,9 @@ public class AccountService {
         List<com.ssafy.b108.walletslot.backend.domain.account.dto.AccountDto> accountDtoList = new ArrayList<>();
         for(AddAccountRequestDto.AccountDto accountDto : accounts) {
 
-            // 싸피 금융 api에 예금주 조회
+            // user 조회 -> userKey 획득하기
+            User user = userRepository.findById(userId).orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "[AccountService]"));
+            String userKey = user.getUserKey();
 
             // 싸피 금융 API에 요청보낼 바디 만들기
             // 현재 로그인된 사용자의 userId 획득 -> DB에서 이 userId를 가지는 사용자의 이메일 조회 -> 싸피 금융 api에 userKey 요청 -> 획득 후 헤더에 userKey 포함해서 요청보내야함
@@ -425,31 +413,31 @@ public class AccountService {
                     .apiServiceCode("inquireDemandDepositAccountHolderName")
                     .institutionTransactionUniqueNo(formattedDateTime.get("date") + formattedDateTime.get("time") + RandomNumberGenerator.generateRandomNumber())
                     .apiKey(ssafyFinanceApiKey)
-                    .userKey(ssafyFinanceUserKey)
+                    .userKey(userKey)
                     .build();
 
-            Map<String, Object> body = new HashMap<>();
-            body.put("Header", header);
-            body.put("accountNo", accountDto.getAccountNo());
+            Map<String, Object> body2 = new HashMap<>();
+            body2.put("Header", header);
+            body2.put("accountNo", accountDto.getAccountNo());
 
             // 요청보낼 http entity 만들기
-            HttpEntity<Map<String, Object>> httpEntity = new HttpEntity<>(body);
+            HttpEntity<Map<String, Object>> httpEntity2 = new HttpEntity<>(body2);
 
             // 요청 보내기
-            ResponseEntity<SSAFYGetAccountHolderNameResponseDto> httpResponse = restTemplate.exchange(
-                    url,
+            ResponseEntity<SSAFYGetAccountHolderNameResponseDto> httpResponse2 = restTemplate.exchange(
+                    url2,
                     HttpMethod.POST,
-                    httpEntity,
+                    httpEntity2,
                     SSAFYGetAccountHolderNameResponseDto.class
             );
 
-            // 현재 userId의 사용자명 != 방금 얻은 사용자명 이면 403
-
-            // User 객체 조회하기 (없으면 404)
-            User user = userRepository.findById(userId).orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "[AccountService - 001]"));
+            // 현재 요청보낸 사용자 이름 != 방금 조회한 예금주명 이면 403 응답
+            if(!user.getName().equals(httpResponse2.getBody().getREC().getUserName())) {
+                new AppException(ErrorCode.FORBIDDEN, "[AccountService]");
+            }
 
             // Bank 객체 조회하기 (없으면 404)
-            Bank bank = bankRepository.findByCode(accountDto.getBankCode()).orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "[AccountService - 002]"));
+            Bank bank = bankRepository.findByUuid(accountDto.getBankId()).orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "[AccountService - 002]"));
 
             // 계좌번호 암호화
             String encryptedAccountNo;
@@ -483,7 +471,7 @@ public class AccountService {
                 throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "[AccountService - 000]");
             }
             accountDtoList.add(accountDto2);
-        }
+        } // 연동요청 받은 모든 계좌들에 대해 Account 객체로 만들어서 account 테이블에 저장 완료.
 
         // dto 조립하기
         AddAccountResponseDto addAccountResponseDto = AddAccountResponseDto.builder()
@@ -501,7 +489,10 @@ public class AccountService {
         // account 객체 조회 (없으면 404)
         Account account = accountRepository.findByUuid(accountId).orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "[AccountService - 000]"));
 
-        // userId != account의 userId이면 403
+        // userId != account의 userId이면 403 응답
+        if(userId != account.getUser().getId()) {
+            new AppException(ErrorCode.FORBIDDEN, "[AccountService - 000]");
+        }
 
         // request 돌면서 null 아닌거 있으면 update 메서드 호출
         if(request.getAlias() != null) {

@@ -16,5 +16,6 @@ public class AccountDto {
     private String bankCode;
     private String bankName;
     private String accountNo;
+    private String alias;
     private String accountBalance;
 }
