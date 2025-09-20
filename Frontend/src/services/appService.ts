@@ -30,13 +30,13 @@ export const appService = {
   getOnboardingCompleted: async (): Promise<boolean> => {
     try {
       const settingsData = await AsyncStorage.getItem(STORAGE_KEYS.ONBOARDING_DONE);
-      if (!settingsData) return false;
+      if (!settingsData) return false; // 데이터가 없으면 false 반환 (온보딩 필요)
       
       const settings = JSON.parse(settingsData);
       return Boolean(settings.onboardingCompleted);
     } catch (error) {
       console.error('[📱APP_SERVICE] ❌온보딩 완료 상태 조회 실패:', error);
-      return false;
+      return false; // 에러 시 false 반환 (온보딩 필요)
     }
   },
 

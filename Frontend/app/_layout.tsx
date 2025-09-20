@@ -17,7 +17,6 @@ import { initializeMSW } from '@/src/mocks';
 import { unifiedPushService } from '@/src/services/unifiedPushService';
 import { getOrCreateDeviceId } from '@/src/services/deviceIdService';
 import { appService } from '@/src/services/appService';
-import { useAppStore } from '@/src/store/appStore';
 // import { monitoringService } from '@/src/services';
 
 // ✅ 개발 모드에서만 MSW를 초기화합니다.
@@ -34,13 +33,14 @@ export default function RootLayout() {
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
     // ... (다른 폰트 추가 가능)
   });
-  // 온보딩 완료 여부: appStore에서 관리
-  const { onboardingDone, getOnboardingCompleted } = useAppStore();
+  // 온보딩 완료 여부: 직접 AsyncStorage에서 관리
+  const [onboardingDone, setOnboardingDone] = useState<boolean | null>(null);
 
   // 🐛 디버그용 함수: 온보딩을 다시 보기 위해 false로 설정
   const resetOnboarding = async () => {
     console.log('🔄 온보딩 리셋 시작');
     await appService.setOnboardingCompleted(false);
+    setOnboardingDone(false);
     console.log('✅ 온보딩 리셋 완료 - onboardingDone:', false);
   };
 
@@ -48,6 +48,7 @@ export default function RootLayout() {
   const completeOnboarding = async () => {
     console.log('✅ 온보딩 완료 설정');
     await appService.setOnboardingCompleted(true);
+    setOnboardingDone(true);
     console.log('✅ 온보딩 완료 설정됨 - onboardingDone:', true);
   };
 
@@ -148,21 +149,23 @@ export default function RootLayout() {
         console.log('✅ DeviceId 초기화 완료:', deviceId);
         
         // 온보딩 완료 여부 조회
-        await getOnboardingCompleted();
+        const completed = await appService.getOnboardingCompleted();
+        setOnboardingDone(completed);
       } catch (error) {
         console.error('❌ 앱 초기화 실패:', error);
         // deviceId 초기화 실패해도 앱은 계속 실행
-        await getOnboardingCompleted();
+        const completed = await appService.getOnboardingCompleted();
+        setOnboardingDone(completed);
       }
     })();
   }, []);
 
-  // 폰트 로딩과 온보딩 상태 확인이 모두 완료되면 스플래시 화면을 숨깁니다.
+  // 폰트 로딩이 완료되면 스플래시 화면을 숨깁니다.
   useEffect(() => {
-    if (loaded && onboardingDone !== null) {
+    if (loaded) {
       SplashScreen.hideAsync();
     }
-  }, [loaded, onboardingDone]);
+  }, [loaded]);
   
   // 앱 시작 시 기타 초기화 로직
   useEffect(() => {
@@ -228,8 +231,8 @@ export default function RootLayout() {
     }
   }, [onboardingDone]);
 
-  // 폰트나 온보딩 상태가 로딩 중일 때는 아무것도 렌더링하지 않습니다.
-  if (!loaded || onboardingDone === null) {
+  // 폰트 로딩 중일 때는 아무것도 렌더링하지 않습니다.
+  if (!loaded) {
     return null;
   }
 
