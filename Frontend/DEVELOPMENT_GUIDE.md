@@ -217,7 +217,7 @@ EXPO_PUBLIC_MSW_ENABLED=true
 │   │   ├── unifiedPushService.ts # ✅ 통합 푸시 서비스 (완전 구현)
 │   │   ├── localNotificationService.ts # ✅ 로컬 알림 서비스
 |   |   ├── deviceIdService.ts # ✅ deviceId uuid 생성(완전 구현)
-|   |   ├── authService.ts     # 🚧 계좌 데이터 관리 훅 (구조만 완성)
+|   |   ├── authService.ts     # 🚧 
 |   |   ├── appService.ts      # 🚧 계좌 데이터 관리 훅 (구조만 완성)
 │   │   └── index.ts     # 서비스들 통합 export
 │   │

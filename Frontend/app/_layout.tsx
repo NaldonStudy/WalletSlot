@@ -16,7 +16,8 @@ import { queryClient } from '@/src/api/queryClient';
 import { initializeMSW } from '@/src/mocks';
 import { unifiedPushService } from '@/src/services/unifiedPushService';
 import { getOrCreateDeviceId } from '@/src/services/deviceIdService';
-import { settingsUtils } from '@/src/store';
+import { appService } from '@/src/services/appService';
+import { useAppStore } from '@/src/store/appStore';
 // import { monitoringService } from '@/src/services';
 
 // ✅ 개발 모드에서만 MSW를 초기화합니다.
@@ -33,22 +34,20 @@ export default function RootLayout() {
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
     // ... (다른 폰트 추가 가능)
   });
-  // 온보딩 완료 여부: null은 아직 로딩 중을 의미
-  const [onboardingDone, setOnboardingDone] = useState<boolean | null>(null);
+  // 온보딩 완료 여부: appStore에서 관리
+  const { onboardingDone, getOnboardingCompleted } = useAppStore();
 
   // 🐛 디버그용 함수: 온보딩을 다시 보기 위해 false로 설정
   const resetOnboarding = async () => {
     console.log('🔄 온보딩 리셋 시작');
-    await settingsUtils.setOnboardingCompleted(false);
-    setOnboardingDone(false);
+    await appService.setOnboardingCompleted(false);
     console.log('✅ 온보딩 리셋 완료 - onboardingDone:', false);
   };
 
   // 🐛 디버그용 함수: 온보딩 완료 상태로 설정
   const completeOnboarding = async () => {
     console.log('✅ 온보딩 완료 설정');
-    await settingsUtils.setOnboardingCompleted(true);
-    setOnboardingDone(true);
+    await appService.setOnboardingCompleted(true);
     console.log('✅ 온보딩 완료 설정됨 - onboardingDone:', true);
   };
 
@@ -74,7 +73,7 @@ export default function RootLayout() {
 
   // 🐛 디버그용 함수: 현재 상태 확인
   const checkOnboardingStatus = async () => {
-    const status = await settingsUtils.getOnboardingCompleted();
+    const status = await appService.getOnboardingCompleted();
     console.log('📊 현재 온보딩 상태:', status);
     console.log('📊 현재 onboardingDone state:', onboardingDone);
   };
@@ -86,6 +85,25 @@ export default function RootLayout() {
       console.log('📱 현재 DeviceId:', deviceId);
     } catch (error) {
       console.error('❌ DeviceId 조회 실패:', error);
+    }
+  };
+
+  // 🔍 디버그용 함수: AsyncStorage에 저장된 모든 데이터 조회
+  const checkAllAsyncStorageData = async () => {
+    try {
+      console.log('🔍 AsyncStorage 전체 데이터 조회 시작');
+      const keys = await AsyncStorage.getAllKeys();
+      console.log('📋 저장된 키 목록:', keys);
+      
+      const allData = await AsyncStorage.multiGet(keys);
+      console.log('📊 모든 데이터:');
+      allData.forEach(([key, value]) => {
+        console.log(`  ${key}: ${value}`);
+      });
+      
+      console.log('✅ AsyncStorage 전체 데이터 조회 완료');
+    } catch (error) {
+      console.error('❌ AsyncStorage 데이터 조회 실패:', error);
     }
   };
 
@@ -109,6 +127,7 @@ export default function RootLayout() {
     (global as any).completeOnboarding = completeOnboarding;
     (global as any).checkOnboardingStatus = checkOnboardingStatus;
     (global as any).checkDeviceId = checkDeviceId;
+    (global as any).checkAllAsyncStorageData = checkAllAsyncStorageData;
     (global as any).clearSignupName = clearSignupName;
     (global as any).clearAsyncStorage = clearAsyncStorage;
     (global as any).initializePushService = initializePushService;
@@ -129,13 +148,11 @@ export default function RootLayout() {
         console.log('✅ DeviceId 초기화 완료:', deviceId);
         
         // 온보딩 완료 여부 조회
-        const done = await settingsUtils.getOnboardingCompleted();
-        setOnboardingDone(done);
+        await getOnboardingCompleted();
       } catch (error) {
         console.error('❌ 앱 초기화 실패:', error);
         // deviceId 초기화 실패해도 앱은 계속 실행
-        const done = await settingsUtils.getOnboardingCompleted();
-        setOnboardingDone(done);
+        await getOnboardingCompleted();
       }
     })();
   }, []);
@@ -224,7 +241,7 @@ export default function RootLayout() {
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
             <Stack.Screen name="(onboarding)" options={{ headerShown: false }} />
             <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-            <Stack.Screen name="+not-found" />
+            <Stack.Screen name="+not-found" options={{ headerShown: false }} />
             {/* 공통 컴포넌트 테스트
             <Stack.Screen name="(dev)" options={{ headerShown: false }} /> */}
           </Stack>

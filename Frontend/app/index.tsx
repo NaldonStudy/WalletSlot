@@ -7,16 +7,13 @@ import { Redirect } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 
-import { settingsUtils } from '@/src/store';
+import { useAppStore } from '@/src/store/appStore';
 
 export default function RootIndex() {
-  const [onboardingDone, setOnboardingDone] = useState<boolean | null>(null);
+  const { onboardingDone, getOnboardingCompleted } = useAppStore();
 
   useEffect(() => {
-    (async () => {
-      const done = await settingsUtils.getOnboardingCompleted();
-      setOnboardingDone(done);
-    })();
+    getOnboardingCompleted();
   }, []);
 
   // 온보딩 상태를 확인하는 동안 로딩 표시

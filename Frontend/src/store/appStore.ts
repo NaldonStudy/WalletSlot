@@ -1,99 +1,63 @@
-import React, { createContext, useContext, useReducer, ReactNode } from 'react';
+import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
+import { appService } from '@/src/services/appService';
 
 interface AppState {
-  theme: 'light' | 'dark' | 'system';
-  language: 'ko' | 'en';
-  biometricEnabled: boolean;
-  notificationEnabled: boolean;
-  soundEnabled: boolean;
+  // 상태
+  onboardingDone: boolean | null;
+  
+  // 액션들
+  setOnboardingCompleted: (completed: boolean) => Promise<void>;
+  getOnboardingCompleted: () => Promise<void>;
+  resetOnboarding: () => Promise<void>;
 }
 
-type AppAction =
-  | { type: 'SET_THEME'; payload: 'light' | 'dark' | 'system' }
-  | { type: 'SET_LANGUAGE'; payload: 'ko' | 'en' }
-  | { type: 'TOGGLE_BIOMETRIC' }
-  | { type: 'TOGGLE_NOTIFICATION' }
-  | { type: 'TOGGLE_SOUND' };
+export const useAppStore = create<AppState>()(
+  persist(
+    (set, get) => ({
+      // 초기 상태
+      onboardingDone: null,
 
-const initialState: AppState = {
-  theme: 'system',
-  language: 'ko',
-  biometricEnabled: true,
-  notificationEnabled: true,
-  soundEnabled: true,
-};
+      // 온보딩 완료 설정
+      setOnboardingCompleted: async (completed: boolean) => {
+        try {
+          await appService.setOnboardingCompleted(completed);
+          set({ onboardingDone: completed });
+          console.log('[📱APP_STORE] ✅온보딩 완료 상태 저장:', completed);
+        } catch (error) {
+          console.error('[📱APP_STORE] ❌온보딩 완료 상태 저장 실패:', error);
+          throw error;
+        }
+      },
 
-const appReducer = (state: AppState, action: AppAction): AppState => {
-  switch (action.type) {
-    case 'SET_THEME':
-      return { ...state, theme: action.payload };
-    
-    case 'SET_LANGUAGE':
-      return { ...state, language: action.payload };
-    
-    case 'TOGGLE_BIOMETRIC':
-      return { ...state, biometricEnabled: !state.biometricEnabled };
-    
-    case 'TOGGLE_NOTIFICATION':
-      return { ...state, notificationEnabled: !state.notificationEnabled };
-    
-    case 'TOGGLE_SOUND':
-      return { ...state, soundEnabled: !state.soundEnabled };
-    
-    default:
-      return state;
-  }
-};
+      // 온보딩 완료 상태 조회
+      getOnboardingCompleted: async () => {
+        try {
+          const completed = await appService.getOnboardingCompleted();
+          set({ onboardingDone: completed });
+          console.log('[📱APP_STORE] ✅온보딩 완료 상태 조회:', completed);
+        } catch (error) {
+          console.error('[📱APP_STORE] ❌온보딩 완료 상태 조회 실패:', error);
+        }
+      },
 
-interface AppContextType extends AppState {
-  setTheme: (theme: 'light' | 'dark' | 'system') => void;
-  setLanguage: (language: 'ko' | 'en') => void;
-  toggleBiometric: () => void;
-  toggleNotification: () => void;
-  toggleSound: () => void;
-}
-
-const AppContext = createContext<AppContextType | undefined>(undefined);
-
-export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [state, dispatch] = useReducer(appReducer, initialState);
-
-  const setTheme = (theme: 'light' | 'dark' | 'system') => {
-    dispatch({ type: 'SET_THEME', payload: theme });
-  };
-
-  const setLanguage = (language: 'ko' | 'en') => {
-    dispatch({ type: 'SET_LANGUAGE', payload: language });
-  };
-
-  const toggleBiometric = () => {
-    dispatch({ type: 'TOGGLE_BIOMETRIC' });
-  };
-
-  const toggleNotification = () => {
-    dispatch({ type: 'TOGGLE_NOTIFICATION' });
-  };
-
-  const toggleSound = () => {
-    dispatch({ type: 'TOGGLE_SOUND' });
-  };
-
-  const value: AppContextType = {
-    ...state,
-    setTheme,
-    setLanguage,
-    toggleBiometric,
-    toggleNotification,
-    toggleSound,
-  };
-
-  return React.createElement(AppContext.Provider, { value }, children);
-};
-
-export const useAppStore = () => {
-  const context = useContext(AppContext);
-  if (!context) {
-    throw new Error('useAppStore must be used within an AppProvider');
-  }
-  return context;
-};
+      // 온보딩 상태 초기화
+      resetOnboarding: async () => {
+        try {
+          await appService.resetOnboarding();
+          set({ onboardingDone: false });
+          console.log('[📱APP_STORE] ✅온보딩 상태 초기화 완료');
+        } catch (error) {
+          console.error('[📱APP_STORE] ❌온보딩 상태 초기화 실패:', error);
+          throw error;
+        }
+      },
+    }),
+    {
+      name: 'app-storage',
+      partialize: (state) => ({ 
+        onboardingDone: state.onboardingDone,
+      }),
+    }
+  )
+);
