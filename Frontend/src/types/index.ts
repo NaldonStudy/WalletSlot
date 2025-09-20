@@ -17,7 +17,7 @@ export interface LocalUser {
  */
 export interface LocalSettings {
   onboardingCompleted: boolean;
-  theme: 'light' | 'dark';
+  // theme: 'light' | 'dark';
 }
 
 // ===== 공통 타입 =====
