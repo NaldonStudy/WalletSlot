@@ -16,6 +16,12 @@ export default function PhoneScreen() {
     consignment: false,
     openBanking: false,
   });
+  const [openBankingExpanded, setOpenBankingExpanded] = useState(false);
+  const [openBankingSubTerms, setOpenBankingSubTerms] = useState({
+    service: false,
+    privacy: false,
+    thirdParty: false,
+  });
   const { name, carrier, residentFront6, residentBack1, setPhone: setStorePhone, isPhoneValid, clearName, clearResidentId, clearPhone } = useSignupStore();
 
   const carriers = ['SKT', 'KT', 'LG U+', '알뜰폰'];
@@ -171,15 +177,51 @@ export default function PhoneScreen() {
       consignment: newValue,
       openBanking: newValue,
     });
+    setOpenBankingSubTerms({
+      service: newValue,
+      privacy: newValue,
+      thirdParty: newValue, // 전체 동의는 고지도 포함
+    });
   };
 
   const handleTermAgree = (term: keyof typeof terms) => {
     const newTerms = { ...terms, [term]: !terms[term] };
     setTerms(newTerms);
     
+    // 오픈뱅킹 기본 동의를 클릭한 경우 하위 모든 항목들 체크/해제
+    if (term === 'openBanking') {
+      setOpenBankingSubTerms({
+        service: newTerms.openBanking,
+        privacy: newTerms.openBanking,
+        thirdParty: newTerms.openBanking,
+      });
+    }
+    
     // 모든 약관이 동의되었는지 확인
-    const allTermsAgreed = Object.values(newTerms).every(agreed => agreed);
+    const allTermsAgreed = Object.values(newTerms).every(agreed => agreed) && 
+                          Object.values(openBankingSubTerms).every(agreed => agreed);
     setAllAgreed(allTermsAgreed);
+  };
+
+  const handleOpenBankingSubTermAgree = (subTerm: keyof typeof openBankingSubTerms) => {
+    const newSubTerms = { ...openBankingSubTerms, [subTerm]: !openBankingSubTerms[subTerm] };
+    setOpenBankingSubTerms(newSubTerms);
+    
+    // 필수 하위 약관들만 확인 (service, privacy만 필수, thirdParty는 고지)
+    const requiredSubTermsAgreed = newSubTerms.service && newSubTerms.privacy;
+    console.log('하위 약관 상태:', newSubTerms);
+    console.log('필수 하위 약관 동의:', requiredSubTermsAgreed);
+    
+    setTerms({ ...terms, openBanking: requiredSubTermsAgreed });
+    
+    // 전체 동의 상태 확인 (모든 약관 + 모든 하위 약관)
+    const allTermsAgreed = Object.values({ ...terms, openBanking: requiredSubTermsAgreed }).every(agreed => agreed) && 
+                          Object.values(newSubTerms).every(agreed => agreed);
+    setAllAgreed(allTermsAgreed);
+  };
+
+  const toggleOpenBankingExpansion = () => {
+    setOpenBankingExpanded(!openBankingExpanded);
   };
 
   const handleConfirm = () => {
@@ -421,7 +463,12 @@ export default function PhoneScreen() {
                   {terms.service && <Text style={styles.checkmark}>✓</Text>}
                 </View>
                 <Text style={styles.termText}>[필수] Wallet Slot 서비스 이용약관</Text>
-                <Text style={styles.arrow}>›</Text>
+                <TouchableOpacity 
+                  onPress={() => router.push('/(auth)/(signup)/terms-detail?type=service')}
+                  style={styles.detailButton}
+                >
+                  <Text style={styles.arrow}>›</Text>
+                </TouchableOpacity>
               </TouchableOpacity>
 
               <TouchableOpacity 
@@ -432,7 +479,12 @@ export default function PhoneScreen() {
                   {terms.privacy && <Text style={styles.checkmark}>✓</Text>}
                 </View>
                 <Text style={styles.termText}>[필수] 개인(신용)정보 수집 및 이용</Text>
-                <Text style={styles.arrow}>›</Text>
+                <TouchableOpacity 
+                  onPress={() => router.push('/(auth)/(signup)/terms-detail?type=privacy')}
+                  style={styles.detailButton}
+                >
+                  <Text style={styles.arrow}>›</Text>
+                </TouchableOpacity>
               </TouchableOpacity>
 
               <TouchableOpacity 
@@ -442,20 +494,98 @@ export default function PhoneScreen() {
                 <View style={[styles.checkbox, terms.consignment && styles.checkedBox]}>
                   {terms.consignment && <Text style={styles.checkmark}>✓</Text>}
                 </View>
-                <Text style={styles.termText}>[고지] 개인정보 처리 위탁 - 알리고 송 대형</Text>
-                <Text style={styles.arrow}>›</Text>
+                <Text style={styles.termText}>[고지] 개인정보 처리 위탁 - 알리고 (sms발송 대행)</Text>
+                <TouchableOpacity 
+                  onPress={() => router.push('/(auth)/(signup)/terms-detail?type=consignment')}
+                  style={styles.detailButton}
+                >
+                  <Text style={styles.arrow}>›</Text>
+                </TouchableOpacity>
               </TouchableOpacity>
 
-              <TouchableOpacity 
-                style={styles.termItem} 
-                onPress={() => handleTermAgree('openBanking')}
-              >
-                <View style={[styles.checkbox, terms.openBanking && styles.checkedBox]}>
-                  {terms.openBanking && <Text style={styles.checkmark}>✓</Text>}
+              <View>
+                <View style={styles.termItem}>
+                  <TouchableOpacity 
+                    style={styles.termItemContent}
+                    onPress={() => handleTermAgree('openBanking')}
+                  >
+                    <View style={[styles.checkbox, terms.openBanking && styles.checkedBox]}>
+                      {terms.openBanking && <Text style={styles.checkmark}>✓</Text>}
+                    </View>
+                    <Text style={styles.termText}>[필수] 오픈뱅킹 기본 동의</Text>
+                    <TouchableOpacity 
+                      onPress={toggleOpenBankingExpansion}
+                      style={styles.expandButton}
+                    >
+                      <Text style={styles.expandArrow}>
+                        {openBankingExpanded ? '▼' : '▶'}
+                      </Text>
+                    </TouchableOpacity>
+                  </TouchableOpacity>
                 </View>
-                <Text style={styles.termText}>[필수] 오픈뱅킹 기본 동의</Text>
-                <Text style={styles.arrow}>›</Text>
-              </TouchableOpacity>
+                
+                {openBankingExpanded && (
+                  <View style={styles.subTermsContainer}>
+                    <Text style={styles.subTermsDescription}>
+                      Wallet Slot은 오픈뱅킹 대신 SSAFY 금융 API를 사용합니다.
+                    </Text>
+                    
+                    <View style={styles.subTermItem}>
+                      <TouchableOpacity 
+                        style={styles.subTermItemContent}
+                        onPress={() => handleOpenBankingSubTermAgree('service')}
+                      >
+                        <View style={[styles.checkbox, openBankingSubTerms.service && styles.checkedBox]}>
+                          {openBankingSubTerms.service && <Text style={styles.checkmark}>✓</Text>}
+                        </View>
+                        <Text style={styles.subTermText}>[필수] 오픈뱅킹 서비스 이용약관</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity 
+                        onPress={() => router.push('/(auth)/(signup)/terms-detail?type=openBankingService')}
+                        style={styles.detailButton}
+                      >
+                        <Text style={styles.arrow}>›</Text>
+                      </TouchableOpacity>
+                    </View>
+                    
+                    <View style={styles.subTermItem}>
+                      <TouchableOpacity 
+                        style={styles.subTermItemContent}
+                        onPress={() => handleOpenBankingSubTermAgree('privacy')}
+                      >
+                        <View style={[styles.checkbox, openBankingSubTerms.privacy && styles.checkedBox]}>
+                          {openBankingSubTerms.privacy && <Text style={styles.checkmark}>✓</Text>}
+                        </View>
+                        <Text style={styles.subTermText}>[필수] 개인정보 수집·이용(오픈뱅킹)</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity 
+                        onPress={() => router.push('/(auth)/(signup)/terms-detail?type=openBankingPrivacy')}
+                        style={styles.detailButton}
+                      >
+                        <Text style={styles.arrow}>›</Text>
+                      </TouchableOpacity>
+                    </View>
+                    
+                    <View style={styles.subTermItem}>
+                      <TouchableOpacity 
+                        style={styles.subTermItemContent}
+                        onPress={() => handleOpenBankingSubTermAgree('thirdParty')}
+                      >
+                        <View style={[styles.checkbox, openBankingSubTerms.thirdParty && styles.checkedBox]}>
+                          {openBankingSubTerms.thirdParty && <Text style={styles.checkmark}>✓</Text>}
+                        </View>
+                        <Text style={styles.subTermText}>개인정보 제3자 제공(오픈뱅킹)</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity 
+                        onPress={() => router.push('/(auth)/(signup)/terms-detail?type=openBankingThirdParty')}
+                        style={styles.detailButton}
+                      >
+                        <Text style={styles.arrow}>›</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                )}
+              </View>
             </View>
           </ScrollView>
 
@@ -716,6 +846,54 @@ const styles = StyleSheet.create({
   termText: {
     flex: 1,
     fontSize: 14,
+    color: '#374151',
+    marginLeft: 12,
+  },
+  // 상세보기 버튼
+  detailButton: {
+    padding: 8,
+    marginLeft: 8,
+  },
+  // 오픈뱅킹 확장 관련 스타일
+  termItemContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  expandButton: {
+    padding: 8,
+    marginLeft: 8,
+  },
+  expandArrow: {
+    fontSize: 12,
+    color: '#6B7280',
+  },
+  subTermsContainer: {
+    paddingLeft: 32,
+    paddingBottom: 16,
+    backgroundColor: '#F9FAFB',
+  },
+  subTermsDescription: {
+    fontSize: 12,
+    color: '#6B7280',
+    marginBottom: 12,
+    fontStyle: 'italic',
+  },
+  subTermItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+  },
+  subTermItemContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  subTermText: {
+    flex: 1,
+    fontSize: 13,
     color: '#374151',
     marginLeft: 12,
   },
