@@ -35,7 +35,7 @@ public class GetSlotHistoryResponseDto {
     @NoArgsConstructor
     @AllArgsConstructor
     @Builder
-    public class SlotDto {
+    public static class SlotDto {
 
         // Field
         private String slotId;
@@ -48,7 +48,7 @@ public class GetSlotHistoryResponseDto {
     @NoArgsConstructor
     @AllArgsConstructor
     @Builder
-    public class SlotHistoryDto {
+    public static class SlotHistoryDto {
 
         // Field
         private String slotHistoryId;

@@ -59,7 +59,7 @@ public class RecommendSlotListResponseDto {
     @NoArgsConstructor
     @AllArgsConstructor
     @Builder
-    public class SlotDto {
+    public static class SlotDto {
 
         // Field
         private String slotId;

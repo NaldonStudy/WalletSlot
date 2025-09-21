@@ -21,7 +21,7 @@ public class ModifyAccountSlotResponseDto {
     @NoArgsConstructor
     @AllArgsConstructor
     @Builder
-    public class Data {
+    public static class Data {
 
         // Field
         private String accountSlotId;

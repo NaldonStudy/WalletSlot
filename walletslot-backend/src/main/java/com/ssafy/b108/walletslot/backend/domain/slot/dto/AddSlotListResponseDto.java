@@ -33,7 +33,7 @@ public class AddSlotListResponseDto {
     @NoArgsConstructor
     @AllArgsConstructor
     @Builder
-    public class SlotDto {
+    public static class SlotDto {
 
         // Field
         private String accountSlotId;

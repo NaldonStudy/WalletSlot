@@ -23,7 +23,7 @@ public class ModifyAccountSlotListResponseDto {
     @NoArgsConstructor
     @AllArgsConstructor
     @Builder
-    public class Data {
+    public static class Data {
 
         // Field
         private List<SlotDto> slots;
@@ -33,7 +33,7 @@ public class ModifyAccountSlotListResponseDto {
     @NoArgsConstructor
     @AllArgsConstructor
     @Builder
-    public class SlotDto {
+    public static class SlotDto {
 
         // Field
         private String accountSlotId;
