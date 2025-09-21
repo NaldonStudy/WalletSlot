@@ -1,5 +1,6 @@
 package com.ssafy.b108.walletslot.backend.domain.slot.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.*;
 
 import java.util.List;
@@ -38,7 +39,10 @@ public class GetSlotListResponseDto {
         // Field
         private String SlotId;
         private String name;
+
+        @JsonProperty("isSaving")
         private boolean isSaving;
+
         private String icon;
         private String color;
         private Integer rank;

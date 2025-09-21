@@ -1,5 +1,6 @@
 package com.ssafy.b108.walletslot.backend.domain.slot.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -40,7 +41,10 @@ public class GetSlotHistoryResponseDto {
         // Field
         private String slotId;
         private String slotName;
+
+        @JsonProperty("isCustom")
         private boolean isCustom;
+
         private String customName;
     }
 

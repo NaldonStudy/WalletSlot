@@ -62,16 +62,7 @@ public class SlotRestController {
         return ResponseEntity.status(HttpStatus.OK).body(slotService.getAccountSlotList(principal.userId(), accountId));
     }
 
-    @PostMapping("accounts/{accountId}/slots/recommend")
-    @Operation(
-            summary = "5-2-1 계좌 슬롯 리스트 추천",
-            description = "계좌 연동 후 슬롯 리스트를 추천합니다."
-    )
-    public ResponseEntity<RecommendSlotListResponseDto> recommendSlotList(@AuthenticationPrincipal UserPrincipal principal, @PathVariable String accountId, @RequestBody RecommendSlotListRequestDto request) {
-        return ResponseEntity.status(HttpStatus.OK).body(slotService.recommendSlotList(principal.userId(), accountId, request.getBaseDay(), request.getIncome(), request.getPeriod()));
-    }
-
-    @GetMapping("/api/accounts/{accountId}/slots/{slotId}/history")
+    @GetMapping("/accounts/{accountId}/slots/{slotId}/history")
     @Operation(
             summary = "5-1-5 슬롯 히스토리 전체조회",
             description = "슬롯 예산변경 히스토리를 전체 조회합니다."
@@ -80,7 +71,16 @@ public class SlotRestController {
         return ResponseEntity.status(HttpStatus.OK).body(slotService.getSlotHistory(principal.userId(), accountId, slotId));
     }
 
-    @PostMapping("/{accountId}/slots")
+    @PostMapping("/accounts/{accountId}/slots/recommend")
+    @Operation(
+            summary = "5-2-1 계좌 슬롯 리스트 추천",
+            description = "계좌 연동 후 슬롯 리스트를 추천합니다."
+    )
+    public ResponseEntity<RecommendSlotListResponseDto> recommendSlotList(@AuthenticationPrincipal UserPrincipal principal, @PathVariable String accountId, @RequestBody RecommendSlotListRequestDto request) {
+        return ResponseEntity.status(HttpStatus.OK).body(slotService.recommendSlotList(principal.userId(), accountId, request.getBaseDay(), request.getIncome(), request.getPeriod()));
+    }
+
+    @PostMapping("/accounts/{accountId}/slots")
     @Operation(
             summary = "5-2-2 슬롯등록"  ,
             description = "계좌의 슬롯 리스트를 최초로 등록하거나 추후 서비스 이용 중 새로운 슬롯을 추가로 등록합니다."
