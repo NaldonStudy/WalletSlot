@@ -57,11 +57,6 @@ public class Account {
     public void updateAlias(String alias) {
         this.alias = alias;
     }
-
-    public void updateBalance(long balance) {
-        this.balance = balance;
-    }
-
     public void updateIsPrimary(Boolean isPrimary) {
         this.isPrimary = isPrimary;
     }

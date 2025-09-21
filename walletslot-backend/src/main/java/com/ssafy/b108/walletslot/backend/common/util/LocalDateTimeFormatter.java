@@ -1,8 +1,6 @@
 package com.ssafy.b108.walletslot.backend.common.util;
 
-import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
+import java.time.*;
 import java.time.format.DateTimeFormatter;
 import java.util.Map;
 
@@ -18,5 +16,34 @@ public class LocalDateTimeFormatter {
                 "date", now.format(dateFormatter),
                 "time", now.format(timeFormatter)
         );
+    }
+
+    /**
+     * 개월 수를 받아서 해당 개월 수 만큼 전의 날짜를 반환해주는 메서드
+     */
+    public static Map<String, String> fomatterWithMonthsAgo(Short period) {
+        DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("yyyyMMdd");
+
+        ZonedDateTime now = ZonedDateTime.now(ZoneId.of("Asia/Seoul"));
+        ZonedDateTime ago = now.minusMonths(period);
+
+        return Map.of(
+                "date", now.format(dateFormatter),
+                "dateMonthsAgo", ago.format(dateFormatter)
+        );
+    }
+
+    /**
+     * 생일을 LocalDateTime으로 받아서 나이계산을 해주는 메서드
+     */
+    public static int calculateAge(LocalDateTime birthDateTime) {
+        // 현재 일자 (서울 기준)
+        LocalDate today = LocalDate.now(ZoneId.of("Asia/Seoul"));
+
+        // LocalDateTime → LocalDate (시간은 무시)
+        LocalDate birthDate = birthDateTime.toLocalDate();
+
+        // Period를 이용해 두 날짜 차이 계산
+        return Period.between(birthDate, today).getYears();
     }
 }

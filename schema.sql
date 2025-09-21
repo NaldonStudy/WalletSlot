@@ -1,5 +1,5 @@
-DROP DATABASE IF EXISTS walletslotdb;
-CREATE DATABASE walletslotdb;
+# DROP DATABASE IF EXISTS walletslotdb;
+# CREATE DATABASE walletslotdb;
 
 USE walletslotdb;
 
@@ -8,6 +8,7 @@ CREATE TABLE `user` (
 	`id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     `uuid` VARCHAR(64) NOT NULL,
 	`name` VARCHAR(64) NOT NULL,
+    `user_key` VARCHAR(255) NOT NULL,
 	`phone_number` VARCHAR(64) NOT NULL,
 	`gender` ENUM('FEMALE', 'MAN') NOT NULL,
 	`birth_date` DATETIME NOT NULL,
@@ -99,10 +100,10 @@ CREATE TABLE `slot` (
 	`id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
 	`uuid` VARCHAR(64) NOT NULL,
 	`name` VARCHAR(128) NOT NULL,
-	`is_saving_slot` BOOLEAN NOT NULL DEFAULT FALSE,
+	`is_saving` BOOLEAN NOT NULL DEFAULT FALSE,
 	`icon` TEXT,
 	`color` VARCHAR(64),
-	`slot_rank` INT UNSIGNED COMMENT '사람들이 많이 사용하는 순위'
+	`rank` INT UNSIGNED COMMENT '사람들이 많이 사용하는 순위'
 );
 
 DROP TABLE IF EXISTS `bank`;

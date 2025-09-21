@@ -5,7 +5,6 @@ import lombok.*;
 import java.util.List;
 
 @Getter
-@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -15,7 +14,6 @@ public class AddAccountRequestDto {
     private List<AccountDto> accounts;
 
     @Getter
-    @Setter
     @NoArgsConstructor
     @AllArgsConstructor
     @Builder

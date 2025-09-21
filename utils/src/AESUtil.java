@@ -41,6 +41,6 @@ public class AESUtil {
     public static void main(String[] args) throws Exception {
 
         // 사용예시
-        System.out.println("02012345601123: " + encrypt("02012345601123", encryptionKey));
+        System.out.println("0015809296630377: " + encrypt("0015809296630377", encryptionKey));
     }
 }
