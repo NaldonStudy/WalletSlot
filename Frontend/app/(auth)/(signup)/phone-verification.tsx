@@ -193,13 +193,13 @@ export default function PhoneVerificationScreen() {
       const mockVerified = code === correctCode; // 입력한 코드와 발송된 코드 비교
       
       if (mockVerified) {
-        // 인증 성공 - 다음 단계로 이동
+        // 인증 성공 - 계좌 선택 화면으로 이동
         Alert.alert('인증 완료', '휴대폰 인증이 완료되었습니다.', [
           {
             text: '확인',
             onPress: () => {
-              // TODO: 다음 단계로 네비게이션 (기기 인증 등)
-              router.replace('/(tabs)/dashboard');
+              // 계좌 선택 화면으로 이동
+              router.push('/(auth)/(signup)/account-selection');
             }
           }
         ]);
