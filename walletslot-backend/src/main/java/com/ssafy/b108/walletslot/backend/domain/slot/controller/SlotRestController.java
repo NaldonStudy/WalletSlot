@@ -44,7 +44,14 @@ public class SlotRestController {
         return ResponseEntity.status(HttpStatus.OK).body(slotService.getAccountSlotList(principal.userId(), accountId));
     }
 
-    // 5-2-1
+    @PostMapping("accounts/{accountId}/slots/recommend")
+    @Operation(
+            summary = "5-2-1 계좌 슬롯 리스트 추천",
+            description = "계좌 연동 후 슬롯 리스트를 추천합니다."
+    )
+    public ResponseEntity<RecommendSlotListResponseDto> recommendSlotList(@AuthenticationPrincipal UserPrincipal principal, @PathVariable String accountId, @RequestBody RecommendSlotListRequestDto request) {
+        return ResponseEntity.status(HttpStatus.OK).body(slotService.recommendSlotList(principal.userId(), accountId, request.getBaseDay(), request.getIncome(), request.getPeriod()));
+    }
 
     @PostMapping("/{accountId}/slots")
     @Operation(

@@ -60,4 +60,7 @@ public class User {
     // Relations
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Account> accounts;
+
+    // Method
+    public void updateBaseDay(Short baseDay) { this.baseDay = baseDay; }
 }
