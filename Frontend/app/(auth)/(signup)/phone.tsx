@@ -229,7 +229,16 @@ export default function PhoneScreen() {
       alert('필수 약관에 모두 동의해주세요.');
       return;
     }
-    router.replace('/(tabs)/dashboard');
+    
+    // SMS 인증 화면으로 이동
+    const phoneNumber = phone.replace(/[^0-9]/g, ''); // 하이픈 제거
+    router.push({
+      pathname: '/(auth)/(signup)/phone-verification' as any,
+      params: {
+        phoneNumber,
+        purpose: 'DEVICE_VERIFY'
+      }
+    });
   };
 
   const handleClose = () => {

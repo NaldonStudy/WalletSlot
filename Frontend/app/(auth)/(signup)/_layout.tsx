@@ -21,6 +21,18 @@ export default function SignupLayout() {
                     animation: 'fade'
                 }} 
             />
+            <Stack.Screen 
+                name="phone-verification" 
+                options={{ 
+                    animation: 'fade'
+                }} 
+            />
+            <Stack.Screen 
+                name="terms-detail" 
+                options={{ 
+                    animation: 'fade'
+                }} 
+            />
         </Stack>
     )
 }
