@@ -27,6 +27,7 @@ export default function PhoneVerificationScreen() {
   const [digits, setDigits] = useState<string[]>(['', '', '', '', '', '']);
   const [error, setError] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [correctCode, setCorrectCode] = useState<string>(''); // 발송된 올바른 코드 저장
 
   // 참조
   const inputRefs = useRef<(TextInput | null)[]>([]);
@@ -120,6 +121,7 @@ export default function PhoneVerificationScreen() {
       setCooldown(mockResendAvailableIn);
       setDigits(['', '', '', '', '', '']);
       setError('');
+      setCorrectCode(mockCode); // 올바른 코드 저장
       
       console.log('[SMS Screen] 상태 업데이트 완료 - expiresIn:', mockExpiresIn);
     } catch (error: any) {
@@ -184,11 +186,11 @@ export default function PhoneVerificationScreen() {
     setError('');
     
     try {
-      console.log('[SMS Screen] 인증 시도:', { verificationId, code });
+      console.log('[SMS Screen] 인증 시도:', { verificationId, code, correctCode });
       
       // Mock 인증 (나중에 API 연결)
       // 실제로는 서버에서 검증해야 함
-      const mockVerified = true; // 항상 성공으로 처리
+      const mockVerified = code === correctCode; // 입력한 코드와 발송된 코드 비교
       
       if (mockVerified) {
         // 인증 성공 - 다음 단계로 이동
@@ -202,7 +204,7 @@ export default function PhoneVerificationScreen() {
           }
         ]);
       } else {
-        setError('인증에 실패했습니다. 다시 시도해주세요.');
+        setError('인증코드가 일치하지 않습니다. 다시 입력해주세요.');
       }
     } catch (error: any) {
       console.error('[SMS Screen] 인증 오류:', error);
@@ -219,23 +221,49 @@ export default function PhoneVerificationScreen() {
     setDigits(newDigits);
     setError(''); // 입력 시 에러 메시지 초기화
 
-    // 다음 입력칸으로 자동 이동
+    // 다음 입력칸으로 자동 이동 (마지막 칸이 아닐 때만)
     if (value && index < 5) {
       inputRefs.current[index + 1]?.focus();
     }
     
-    // 6자리 모두 입력되면 마지막 칸에서 포커스 해제
+    // 6자리 모두 입력되면 마지막 칸에서 포커스 해제 (커서 사라짐)
     if (value && index === 5) {
-      inputRefs.current[index]?.blur();
+      setTimeout(() => {
+        inputRefs.current[index]?.blur();
+      }, 100);
+    }
+  };
+
+  // 입력칸 클릭 처리 (6자리 모두 입력된 후 수정 가능)
+  const handleInputPress = (index: number) => {
+    // 6자리 모두 입력된 상태에서 아무 칸이나 클릭하면 해당 칸에 포커스
+    if (code.length === 6) {
+      inputRefs.current[index]?.focus();
     }
   };
 
 
   // 백스페이스 처리
   const handleKeyPress = (index: number, key: string) => {
-    if (key === 'Backspace' && !digits[index] && index > 0) {
-      // 현재 칸이 비어있으면 이전 칸으로 이동
-      inputRefs.current[index - 1]?.focus();
+    if (key === 'Backspace') {
+      if (digits[index]) {
+        // 현재 칸에 값이 있으면 현재 칸만 지우기
+        const newDigits = [...digits];
+        newDigits[index] = '';
+        setDigits(newDigits);
+        setError('');
+      } else if (index > 0) {
+        // 현재 칸이 비어있으면 이전 칸으로 이동하고 이전 칸도 지우기
+        const newDigits = [...digits];
+        newDigits[index - 1] = '';
+        setDigits(newDigits);
+        setError('');
+        
+        // 이전 칸으로 포커스 이동
+        setTimeout(() => {
+          inputRefs.current[index - 1]?.focus();
+        }, 50);
+      }
     }
   };
 
@@ -263,25 +291,32 @@ export default function PhoneVerificationScreen() {
           {/* 6자리 입력칸 */}
           <View style={styles.digitContainer}>
             {digits.map((digit, index) => (
-              <TextInput
+              <TouchableOpacity
                 key={index}
-                ref={(ref) => {
-                  inputRefs.current[index] = ref;
-                }}
-                value={digit}
-                onChangeText={(value) => handleDigitChange(index, value)}
-                onKeyPress={({ nativeEvent }) => handleKeyPress(index, nativeEvent.key)}
-                keyboardType="number-pad"
-                maxLength={1}
                 style={[
                   styles.digitInput,
                   digit ? styles.digitInputFilled : null,
                   error ? styles.digitInputError : null
                 ]}
-                textAlign="center"
-                selectTextOnFocus
-                showSoftInputOnFocus={true}
-              />
+                onPress={() => handleInputPress(index)}
+                activeOpacity={0.7}
+              >
+                <TextInput
+                  ref={(ref) => {
+                    inputRefs.current[index] = ref;
+                  }}
+                  value={digit}
+                  onChangeText={(value) => handleDigitChange(index, value)}
+                  onKeyPress={({ nativeEvent }) => handleKeyPress(index, nativeEvent.key)}
+                  keyboardType="number-pad"
+                  maxLength={1}
+                  style={styles.digitInputText}
+                  textAlign="center"
+                  selectTextOnFocus
+                  showSoftInputOnFocus={true}
+                  pointerEvents="none" // TouchableOpacity가 터치를 처리하도록
+                />
+              </TouchableOpacity>
             ))}
           </View>
 
@@ -379,11 +414,17 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#D1D5DB',
     borderRadius: 8,
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  digitInputText: {
     fontSize: 22,
     fontWeight: '600',
     color: '#111827',
-    backgroundColor: '#FFFFFF',
     textAlign: 'center',
+    width: '100%',
+    height: '100%',
   },
   digitInputFilled: {
     borderColor: '#3B82F6',
