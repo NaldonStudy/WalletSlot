@@ -21,7 +21,7 @@ public class ChatGPTResponseDto {
     @NoArgsConstructor
     @AllArgsConstructor
     @Builder
-    public class Choice {
+    public static class Choice {
 
         // Field
         private Message message;
@@ -31,7 +31,7 @@ public class ChatGPTResponseDto {
     @NoArgsConstructor
     @AllArgsConstructor
     @Builder
-    public class Message {
+    public static class Message {
 
         // Field
         private String content;
@@ -41,7 +41,7 @@ public class ChatGPTResponseDto {
     @NoArgsConstructor
     @AllArgsConstructor
     @Builder
-    public class RecommendedSlotDto {
+    public static class RecommendedSlotDto {
 
         // Field
         private String name;

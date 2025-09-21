@@ -72,10 +72,13 @@ public class SlotRestController {
     }
 
     @GetMapping("/api/accounts/{accountId}/slots/{slotId}/history")
+    @Operation(
+            summary = "5-1-5 슬롯 히스토리 전체조회",
+            description = "슬롯 예산변경 히스토리를 전체 조회합니다."
+    )
     public ResponseEntity<GetSlotHistoryResponseDto> getSlotHistory(@AuthenticationPrincipal UserPrincipal principal, @PathVariable String accountId, @PathVariable String slotId) {
         return ResponseEntity.status(HttpStatus.OK).body(slotService.getSlotHistory(principal.userId(), accountId, slotId));
     }
-
 
     @PostMapping("/{accountId}/slots")
     @Operation(

@@ -24,7 +24,7 @@ public class GetSlotHistoryResponseDto {
     @NoArgsConstructor
     @AllArgsConstructor
     @Builder
-    public class Data {
+    public static class Data {
 
         // Field
         private SlotDto slot;

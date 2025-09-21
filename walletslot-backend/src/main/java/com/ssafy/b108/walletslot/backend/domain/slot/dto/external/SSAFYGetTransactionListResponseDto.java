@@ -31,7 +31,7 @@ public class SSAFYGetTransactionListResponseDto {
     @NoArgsConstructor
     @AllArgsConstructor
     @Builder
-    public class Transaction {
+    public static class Transaction {
 
         // Field
         private String transactionDate;

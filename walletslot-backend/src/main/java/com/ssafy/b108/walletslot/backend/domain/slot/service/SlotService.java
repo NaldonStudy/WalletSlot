@@ -154,7 +154,7 @@ public class SlotService {
         Slot slot = slotRepository.findByUuid(slotUuid).orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "[SlotService - 000]"));
 
         // AccountSlot 삭제
-        accountRepository.deleteByAccountAndSlot(account, slot);
+        accountSlotRepository.deleteByAccountAndSlot(account, slot);
         AccountSlot accountSlot = accountSlotRepository.findByAccountAndSlot(account, slot).orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "[SlotService - 000]"));
 
         // dto 조립

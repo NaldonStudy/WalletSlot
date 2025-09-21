@@ -22,7 +22,7 @@ public class AddSlotListResponseDto {
     @NoArgsConstructor
     @AllArgsConstructor
     @Builder
-    public class Data {
+    public static class Data {
 
         // Field
         List<SlotDto> slots;

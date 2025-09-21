@@ -13,5 +13,4 @@ public interface AccountRepository extends JpaRepository<Account, Long> {
     Optional<Account> findByUserAndIsPrimaryTrue(User user);
     Optional<Account> findByUuid(String uuid);
     void deleteByUuid(String uuid);
-    void deleteByAccountAndSlot(Account account, Slot slot);
 }

@@ -23,7 +23,7 @@ public class RecommendSlotListResponseDto {
     @NoArgsConstructor
     @AllArgsConstructor
     @Builder
-    public class Data {
+    public static class Data {
 
         // Field
         private BankDto bank;
@@ -35,7 +35,7 @@ public class RecommendSlotListResponseDto {
     @NoArgsConstructor
     @AllArgsConstructor
     @Builder
-    public class BankDto {
+    public static class BankDto {
 
         // Field
         private String bankId;
@@ -47,7 +47,7 @@ public class RecommendSlotListResponseDto {
     @NoArgsConstructor
     @AllArgsConstructor
     @Builder
-    public class AccountDto {
+    public static class AccountDto {
 
         // Field
         private String accountId;

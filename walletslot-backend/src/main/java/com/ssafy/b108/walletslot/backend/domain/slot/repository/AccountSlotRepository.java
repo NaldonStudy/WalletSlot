@@ -13,4 +13,5 @@ public interface AccountSlotRepository extends JpaRepository<AccountSlot, Intege
     Optional<List<AccountSlot>> findByAccount(Account account);
     void deleteByAccount(Account account);
     Optional<AccountSlot> findByAccountAndSlot(Account account, Slot slot);
+    void deleteByAccountAndSlot(Account account, Slot slot);
 }
