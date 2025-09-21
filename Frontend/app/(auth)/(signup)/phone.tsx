@@ -225,7 +225,7 @@ export default function PhoneScreen() {
   };
 
   const handleConfirm = () => {
-    if (!terms.service || !terms.privacy || !terms.openBanking) {
+    if (!terms.service || !terms.privacy || !terms.consignment || !terms.openBanking) {
       alert('필수 약관에 모두 동의해주세요.');
       return;
     }
@@ -494,7 +494,7 @@ export default function PhoneScreen() {
                 <View style={[styles.checkbox, terms.consignment && styles.checkedBox]}>
                   {terms.consignment && <Text style={styles.checkmark}>✓</Text>}
                 </View>
-                <Text style={styles.termText}>[고지] 개인정보 처리 위탁 - 알리고 (sms발송 대행)</Text>
+                <Text style={styles.termText}>[필수] 개인정보 처리 위탁 - 알리고 (sms발송 대행)</Text>
                 <TouchableOpacity 
                   onPress={() => router.push('/(auth)/(signup)/terms-detail?type=consignment')}
                   style={styles.detailButton}
@@ -593,14 +593,14 @@ export default function PhoneScreen() {
           <TouchableOpacity 
             style={[
               styles.confirmButton, 
-              (!terms.service || !terms.privacy || !terms.openBanking) && styles.disabledButton
+              (!terms.service || !terms.privacy || !terms.consignment || !terms.openBanking) && styles.disabledButton
             ]} 
             onPress={handleConfirm}
-            disabled={!terms.service || !terms.privacy || !terms.openBanking}
+            disabled={!terms.service || !terms.privacy || !terms.consignment || !terms.openBanking}
           >
             <Text style={[
               styles.confirmButtonText,
-              (!terms.service || !terms.privacy || !terms.openBanking) && styles.disabledButtonText
+              (!terms.service || !terms.privacy || !terms.consignment || !terms.openBanking) && styles.disabledButtonText
             ]}>
               확인
             </Text>
