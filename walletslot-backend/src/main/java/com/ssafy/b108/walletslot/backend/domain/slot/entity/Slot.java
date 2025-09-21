@@ -6,7 +6,7 @@ import java.util.*;
 
 @Entity
 @Table(name = "slot")
-@Getter @Setter
+@Getter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -26,7 +26,7 @@ public class Slot {
 
     @Column(nullable = false)
     @Builder.Default
-    private boolean isSavingSlot = false;
+    private boolean isSaving = false;
 
     @Lob
     @Column(columnDefinition = "TEXT", nullable = false)
@@ -36,7 +36,7 @@ public class Slot {
     private String color;
 
     @Column(nullable = false)
-    private Integer slotRank;
+    private Integer rank;
 
     @OneToMany(mappedBy = "slot", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<AccountSlot> accountSlots;

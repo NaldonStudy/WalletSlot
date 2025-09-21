@@ -4,11 +4,12 @@ import com.ssafy.b108.walletslot.backend.domain.account.entity.Account;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 @Entity
 @Table(name = "account_slot")
-@Getter @Setter
+@Getter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -38,7 +39,8 @@ public class AccountSlot {
     private Long currentBudget;
 
     @Column(nullable = false)
-    private Long spent;
+    @Builder.Default
+    private Long spent = 0L;
 
     @Column(nullable = false)
     private int budgetChangeCount;
@@ -63,4 +65,23 @@ public class AccountSlot {
     @Column(nullable = false)
     @Builder.Default
     private boolean isAlertSent = false;
+
+    @OneToMany(mappedBy = "accountSlot", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<SlotHistory> slotHistoryList;
+
+    // Method
+    public void updateCustomName(String customName) {
+        if(customName.equals("default")) {
+            this.customName = slot.getName();
+            isCustom = false;
+        } else {
+            this.customName = customName;
+            isCustom = true;
+        }
+    }
+
+    public void updateBudget(Long newBudget) {
+        this.currentBudget = newBudget;
+        this.budgetChangeCount++;
+    }
 }
