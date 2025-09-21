@@ -91,7 +91,7 @@ export const useUpdateDateOfBirth = () => {
 export const useUpdateGender = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: profileApi.updateGender,
+    mutationFn: (gender: string) => profileApi.updateGender(gender as 'M' | 'F' | 'O'),
     onMutate: async (gender: string) => {
       const key = queryKeys.user.profile();
       await queryClient.cancelQueries({ queryKey: key });

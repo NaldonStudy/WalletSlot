@@ -1,3 +1,4 @@
+import Settings from '@/app/(tabs)/profile/Settings';
 import { ThemedView } from '@/components/ThemedView';
 import { queryKeys } from '@/src/api';
 import {
@@ -24,7 +25,8 @@ import {
   Modal,
   ScrollView,
   StatusBar,
-  StyleSheet, Switch, Text,
+  StyleSheet,
+  Text,
   TextInput,
   TouchableOpacity,
   View
@@ -671,169 +673,8 @@ export default function ProfileScreen() {
         }}
       />
 
-      {/* Settings Modal - full screen per Figma */}
-      <Modal visible={settingsModalVisible} animationType="slide" transparent={false} onRequestClose={() => setSettingsModalVisible(false)}>
-        <View style={[styles.container, { backgroundColor: '#fff' }]}> 
-          <View style={[styles.modalHeader, { borderBottomWidth: 0 }]}> 
-            <TouchableOpacity onPress={() => setSettingsModalVisible(false)}>
-              <Ionicons name="chevron-back" size={24} color="#222" />
-            </TouchableOpacity>
-            <Text style={[styles.modalTitle, { flex: 1, textAlign: 'center' }]}>환경설정</Text>
-            <View style={{ width: 36 }} />
-          </View>
-
-          <ScrollView>
-            {/* 알림 설정 */}
-            <View style={styles.settingsSection}>
-              <Text style={styles.settingsSectionTitle}>알림 설정</Text>
-              <View style={styles.settingsRow}>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.menuLabel}>푸시알림 설정</Text>
-                  <Text style={styles.menuValue}>앱 푸시 알림 수신</Text>
-                </View>
-                <Switch
-                  value={!!settingsState?.push}
-                  onValueChange={async (v) => {
-                    const next = { ...(settingsState || {}), push: v };
-                    setSettingsState(next);
-                    await AsyncStorage.setItem('settings', JSON.stringify(next));
-                  }}
-                />
-              </View>
-
-              <View style={styles.settingsRow}>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.menuLabel}>마케팅 알림 설정</Text>
-                  <Text style={styles.menuValue}>프로모션 및 맞춤형 광고 수신</Text>
-                </View>
-                <Switch
-                  value={!!settingsState?.marketing}
-                  onValueChange={async (v) => {
-                    const next = { ...(settingsState || {}), marketing: v };
-                    setSettingsState(next);
-                    await AsyncStorage.setItem('settings', JSON.stringify(next));
-                  }}
-                />
-              </View>
-            </View>
-
-            <View style={styles.divider} />
-
-            {/* 인증/보안 */}
-            <View style={styles.settingsSection}>
-              <Text style={styles.settingsSectionTitle}>인증/보안</Text>
-              <TouchableOpacity style={styles.menuItem} onPress={() => Alert.alert('비밀번호 변경', '비밀번호 변경 화면으로 이동(예시)')}>
-                <View style={styles.menuLeft}>
-                  <View style={[styles.iconContainer, { backgroundColor: '#fff3e0' }]}>
-                    <Ionicons name="key" size={20} color="#f57f17" />
-                  </View>
-                  <View style={styles.menuInfo}>
-                    <Text style={styles.menuLabel}>비밀번호 변경</Text>
-                  </View>
-                </View>
-                <Ionicons name="chevron-forward" size={20} color="#ccc" />
-              </TouchableOpacity>
-
-              <TouchableOpacity style={styles.menuItem} onPress={() => Alert.alert('생체 인증', '생체 인증 설정(예시)')}>
-                <View style={styles.menuLeft}>
-                  <View style={[styles.iconContainer, { backgroundColor: '#e8f5e8' }]}>
-                    <Ionicons name="finger-print" size={20} color="#388e3c" />
-                  </View>
-                  <View style={styles.menuInfo}>
-                    <Text style={styles.menuLabel}>생체 인증</Text>
-                  </View>
-                </View>
-                <Ionicons name="chevron-forward" size={20} color="#ccc" />
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.divider} />
-
-            {/* 마이데이터 관리 */}
-            <View style={styles.settingsSection}>
-              <Text style={styles.settingsSectionTitle}>마이데이터 관리</Text>
-              <TouchableOpacity style={styles.menuItem} onPress={() => Alert.alert('연결 금융사 관리', '연결 금융사 관리(예시)')}>
-                <View style={styles.menuLeft}>
-                  <View style={[styles.iconContainer, { backgroundColor: '#e1f5fe' }]}>
-                    <Ionicons name="link" size={20} color="#0277bd" />
-                  </View>
-                  <View style={styles.menuInfo}>
-                    <Text style={styles.menuLabel}>연결 금융사 관리</Text>
-                  </View>
-                </View>
-                <Ionicons name="chevron-forward" size={20} color="#ccc" />
-              </TouchableOpacity>
-
-              <TouchableOpacity style={styles.menuItem} onPress={() => Alert.alert('마이데이터 재연동', '재연동(예시)')}>
-                <View style={styles.menuLeft}>
-                  <View style={[styles.iconContainer, { backgroundColor: '#fff8e1' }]}>
-                    <Ionicons name="refresh" size={20} color="#f9a825" />
-                  </View>
-                  <View style={styles.menuInfo}>
-                    <Text style={styles.menuLabel}>마이데이터 재연동</Text>
-                  </View>
-                </View>
-                <Ionicons name="chevron-forward" size={20} color="#ccc" />
-              </TouchableOpacity>
-
-              <TouchableOpacity style={styles.menuItem} onPress={() => Alert.alert('서비스 해지', '서비스 해지(예시)')}>
-                <View style={styles.menuLeft}>
-                  <View style={[styles.iconContainer, { backgroundColor: '#fce4ec' }]}>
-                    <Ionicons name="close-circle" size={20} color="#c2185b" />
-                  </View>
-                  <View style={styles.menuInfo}>
-                    <Text style={styles.menuLabel}>마이데이터 서비스 해지</Text>
-                  </View>
-                </View>
-                <Ionicons name="chevron-forward" size={20} color="#ccc" />
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.divider} />
-
-            {/* 기타 설정 */}
-            <View style={styles.settingsSection}>
-              <TouchableOpacity style={styles.menuItem} onPress={() => Alert.alert('개인정보 처리방침', '약관 보기(예시)')}>
-                <View style={styles.menuLeft}>
-                  <View style={[styles.iconContainer, { backgroundColor: '#fff3e0' }]}>
-                    <Ionicons name="document-text" size={20} color="#f57f17" />
-                  </View>
-                  <View style={styles.menuInfo}>
-                    <Text style={styles.menuLabel}>개인정보 처리방침</Text>
-                  </View>
-                </View>
-                <Ionicons name="chevron-forward" size={20} color="#ccc" />
-              </TouchableOpacity>
-
-              <TouchableOpacity style={styles.menuItem} onPress={() => Alert.alert('이용약관', '약관 보기(예시)')}>
-                <View style={styles.menuLeft}>
-                  <View style={[styles.iconContainer, { backgroundColor: '#e8f5e8' }]}>
-                    <Ionicons name="documents" size={20} color="#388e3c" />
-                  </View>
-                  <View style={styles.menuInfo}>
-                    <Text style={styles.menuLabel}>이용약관</Text>
-                  </View>
-                </View>
-                <Ionicons name="chevron-forward" size={20} color="#ccc" />
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.divider} />
-
-            {/* 회원 탈퇴 */}
-            <View style={styles.settingsSection}>
-              <TouchableOpacity style={[styles.menuItem, { justifyContent: 'center' }]} onPress={() => Alert.alert('회원 탈퇴', '정말 회원 탈퇴를 진행하시겠습니까?', [
-                { text: '취소', style: 'cancel' },
-                { text: '탈퇴', style: 'destructive', onPress: () => { Alert.alert('탈퇴 완료', '예시: 회원 탈퇴가 처리되었습니다.'); setSettingsModalVisible(false); } }
-              ])}>
-                <Text style={styles.dangerText}>회원 탈퇴</Text>
-              </TouchableOpacity>
-            </View>
-
-            <View style={{ height: 60 }} />
-          </ScrollView>
-        </View>
-      </Modal>
+  <Settings visible={settingsModalVisible} onClose={() => setSettingsModalVisible(false)} />
+      
 
       <VerificationModal
         key={`${verificationModal.type}-${verificationModal.visible}-${verificationModal.value}`}
