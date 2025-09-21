@@ -1,13 +1,62 @@
 package com.ssafy.b108.walletslot.backend.domain.slot.controller;
 
+import com.ssafy.b108.walletslot.backend.config.security.UserPrincipal;
+import com.ssafy.b108.walletslot.backend.domain.slot.dto.AddSlotListRequestDto;
+import com.ssafy.b108.walletslot.backend.domain.slot.dto.AddSlotListResponseDto;
+import com.ssafy.b108.walletslot.backend.domain.slot.dto.GetAccountSlotListResponseDto;
+import com.ssafy.b108.walletslot.backend.domain.slot.dto.GetSlotListResponseDto;
+import com.ssafy.b108.walletslot.backend.domain.slot.service.SlotService;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/slots")
+@RequestMapping("/api")
 @RequiredArgsConstructor
 @Tag(name = "Slot")
+/**
+ * Slot REST API Controller 입니다.
+ * 슬롯을 다루는 성격의 메서드들을 SlotController에서 작성하였습니다.
+ * Account - Slot 간 연결관계가 강한 우리 서비스 특성 상, SlotController에 있는 메서드이더라도 대부분의 매핑 경로가 /accounts로 시작합니다.
+ */
 public class SlotRestController {
+
+    // Field
+    private final SlotService slotService;
+
+    // Method
+    @GetMapping("/slots")
+    @Operation(
+            summary = "5-1-1 슬롯 전체조회",
+            description = "사용자에게 제공할 슬롯의 종류를 전체조회합니다."
+    )
+    public ResponseEntity<GetSlotListResponseDto> getSlotList() {
+        return ResponseEntity.status(HttpStatus.OK).body(slotService.getSlotList());
+    }
+
+    // 5-1-4
+    @GetMapping("/accounts/{accountId}/slots")
+    @Operation(
+            summary = "5-1-4 계좌 슬롯 리스트 전체 조회",
+            description = "특정 계좌의 슬롯 리스트를 전체 조회합니다."
+    )
+    public ResponseEntity<GetAccountSlotListResponseDto> getAccountSlotList(@AuthenticationPrincipal UserPrincipal principal, @PathVariable String accountId) {
+        return ResponseEntity.status(HttpStatus.OK).body(slotService.getAccountSlotList(principal.userId(), accountId));
+    }
+
+    // 기준일 슬롯등록은 patch로!
+
+    @PostMapping("/{accountId}/slots")
+    @Operation(
+            summary = "5-2-3 슬롯등록"  ,
+            description = "특정 계좌에 대해 최초로 슬롯 리스트를 등록하거나 추후 서비스 이용 중 새로운 슬롯을 추가로 등록합니다."
+    )
+    public ResponseEntity<AddSlotListResponseDto> addSlotList(@AuthenticationPrincipal UserPrincipal principal, @PathVariable String accountId, @RequestBody AddSlotListRequestDto request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(slotService.addSlotList(principal.userId(), accountId, request.getSlots()));
+    }
+
 }
