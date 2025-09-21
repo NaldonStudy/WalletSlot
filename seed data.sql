@@ -18,10 +18,10 @@ USE walletslotdb;
 
 -- USER
 DESCRIBE `user`;
-INSERT INTO `user` (id, uuid, name, phone_number, gender, birth_date, base_day, job)
+INSERT INTO `user` (id, uuid, user_key, name, phone_number, gender, birth_date, base_day, job)
 VALUES
-(1, UUID(), '전해지', '01012345678', 'FEMALE', '2000-02-24', 26, 'STUDENT'), -- 1234
-(2, UUID(), '김영희', '01098765432', 'FEMALE', '1998-07-15', 17, 'OFFICE_WORKER'); -- 4321
+(1, UUID(), 'd022c753-e3f0-4d58-a405-ee8a058fd199', '전해지', '01012345678', 'FEMALE', '2000-02-24', 26, 'STUDENT'), -- 1234
+(2, UUID(), 'd022c753-e3f0-4d58-a405-ee8a058fd199', '김영희', '01098765432', 'FEMALE', '1998-07-15', 17, 'OFFICE_WORKER'); -- 4321
 
 -- PEPPER_KEYS
 DESCRIBE `pepper_keys`;
@@ -70,7 +70,7 @@ VALUES
 
 -- SLOT
 DESCRIBE `slot`;
-INSERT INTO `slot` (id, uuid, name, is_saving_slot)
+INSERT INTO `slot` (id, uuid, name, is_saving)
 VALUES
 (1, UUID(), '식비', FALSE),
 (2, UUID(), '교통비', FALSE),
