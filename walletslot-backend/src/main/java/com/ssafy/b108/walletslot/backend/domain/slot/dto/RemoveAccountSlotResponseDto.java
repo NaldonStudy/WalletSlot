@@ -9,7 +9,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class ModifyAccountSlotResponseDto {
+public class RemoveAccountSlotResponseDto {
 
     // Field
     private boolean success;
@@ -21,11 +21,9 @@ public class ModifyAccountSlotResponseDto {
     @NoArgsConstructor
     @AllArgsConstructor
     @Builder
-    public class Data {
+    public static class Data {
 
         // Field
         private String accountSlotId;
-        private String customName;
-        private Long newBudget;
     }
 }

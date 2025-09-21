@@ -15,6 +15,7 @@ import com.ssafy.b108.walletslot.backend.domain.slot.dto.external.ChatGPTRespons
 import com.ssafy.b108.walletslot.backend.domain.slot.dto.external.SSAFYGetTransactionListResponseDto;
 import com.ssafy.b108.walletslot.backend.domain.slot.entity.AccountSlot;
 import com.ssafy.b108.walletslot.backend.domain.slot.entity.Slot;
+import com.ssafy.b108.walletslot.backend.domain.slot.entity.SlotHistory;
 import com.ssafy.b108.walletslot.backend.domain.slot.repository.AccountSlotRepository;
 import com.ssafy.b108.walletslot.backend.domain.slot.repository.SlotHistoryRepository;
 import com.ssafy.b108.walletslot.backend.domain.slot.repository.SlotRepository;
@@ -98,6 +99,75 @@ public class SlotService {
         return getSlotListResponseDto;
     }
 
+    // 5-1-2
+    public ModifyAccountSlotResponseDto modifyAccountSlot(Long userId, String accountUuid, String slotUuid, ModifyAccountSlotRequestDto request) {
+
+        // userId != account userId 이면 403 응답
+        Account account = accountRepository.findByUuid(accountUuid).orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "[SlotService - 000]"));
+        if(userId != account.getUser().getId()) {
+            throw new AppException(ErrorCode.FORBIDDEN, "[SlotService - 000]");
+        }
+
+        // slot 조회
+        Slot slot = slotRepository.findByUuid(slotUuid).orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "[SlotService - 000]"));
+
+        // AccountSlot 조회
+        AccountSlot accountSlot = accountSlotRepository.findByAccountAndSlot(account, slot).orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "[SlotService - 000]"));
+
+        // update
+        if(request.getCustomName() != null) {
+            accountSlot.updateCustomName(request.getCustomName());
+        }
+
+        if(request.getNewBudget() != null) {
+            Long oldBudget = accountSlot.getCurrentBudget();
+            accountSlot.updateBudget(request.getNewBudget());
+
+            SlotHistory slotHistory = SlotHistory.builder()
+                    .oldBudget(oldBudget)
+                    .newBudget(request.getNewBudget())
+                    .build();
+
+            slotHistoryRepository.save(slotHistory);
+        }
+
+        // dto 조립
+        ModifyAccountSlotResponseDto modifyAccountSlotResponseDto = ModifyAccountSlotResponseDto.builder()
+                .success(true)
+                .message("[SlotService - 000] 슬롯 정보수정 성공")
+                .data(ModifyAccountSlotResponseDto.Data.builder().accountSlotId(accountSlot.getUuid()).customName(request.getCustomName()).newBudget(request.getNewBudget()).build())
+                .build();
+
+        return modifyAccountSlotResponseDto;
+    }
+
+    // 5-1-3
+    public RemoveAccountSlotResponseDto removeAccountSlot(Long userId, String accountUuid, String slotUuid) {
+
+        // userId != account userId 이면 403 응답
+        Account account = accountRepository.findByUuid(accountUuid).orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "[SlotService - 000]"));
+        if(userId != account.getUser().getId()) {
+            throw new AppException(ErrorCode.FORBIDDEN, "[SlotService - 000]");
+        }
+
+        // slot 객체 조회
+        Slot slot = slotRepository.findByUuid(slotUuid).orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "[SlotService - 000]"));
+
+        // AccountSlot 삭제
+        accountRepository.deleteByAccountAndSlot(account, slot);
+        AccountSlot accountSlot = accountSlotRepository.findByAccountAndSlot(account, slot).orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "[SlotService - 000]"));
+
+        // dto 조립
+        RemoveAccountSlotResponseDto removeAccountSlotResponseDto = RemoveAccountSlotResponseDto.builder()
+                .success(true)
+                .message("[SlotService - 000] 슬롯 삭제 성공")
+                .data(RemoveAccountSlotResponseDto.Data.builder().accountSlotId(accountSlot.getUuid()).build())
+                .build();
+
+        // 응답
+        return removeAccountSlotResponseDto;
+    }
+
     // 5-1-4
     public GetAccountSlotListResponseDto getAccountSlotList(Long userId, String accountUuid) {
 
@@ -150,6 +220,57 @@ public class SlotService {
         return getAccountSlotListResponseDto;
     }
 
+    // 5-1-5
+    public GetSlotHistoryResponseDto getSlotHistory(Long userId, String accountUuid, String slotUuid) {
+
+        // userId != account userId 이면 403 응답
+        Account account = accountRepository.findByUuid(accountUuid).orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "[SlotService - 000]"));
+        if(userId != account.getUser().getId()) {
+            throw new AppException(ErrorCode.FORBIDDEN, "[SlotService - 000]");
+        }
+
+        // slot 객체 조회
+        Slot slot = slotRepository.findByUuid(slotUuid).orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "[SlotService - 000]"));
+
+        // AccountSlot 객체 조회
+        AccountSlot accountSlot = accountSlotRepository.findByAccountAndSlot(account, slot).orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "[SlotService - 000]"));
+
+        // SlotHistory 전체조회
+        List<SlotHistory> slotHistoryList = slotHistoryRepository.findByAccountSlot(accountSlot);
+
+        // dto 조립
+        // dto > data > slot
+        GetSlotHistoryResponseDto.SlotDto slotDto = GetSlotHistoryResponseDto.SlotDto.builder()
+                .slotId(slotUuid)
+                .slotName(slot.getName())
+                .isCustom(accountSlot.isCustom())
+                .customName(accountSlot.getCustomName())
+                .build();
+
+        // dto > data > history
+        List<GetSlotHistoryResponseDto.SlotHistoryDto>  slotHistoryDtoList = new ArrayList<>();
+        for(SlotHistory slotHistory : slotHistoryList){
+            GetSlotHistoryResponseDto.SlotHistoryDto slotHistoryDto = GetSlotHistoryResponseDto.SlotHistoryDto.builder()
+                    .slotHistoryId(slotHistory.getUuid())
+                    .oldBudget(slotHistory.getOldBudget())
+                    .newBudget(slotHistory.getNewBudget())
+                    .changedAt(slotHistory.getChangedAt())
+                    .build();
+
+            slotHistoryDtoList.add(slotHistoryDto);
+        }
+
+        // dto 조립
+        GetSlotHistoryResponseDto getSlotHistoryResponseDto = GetSlotHistoryResponseDto.builder()
+                .success(true)
+                .message("[SlotService - 000] 슬롯 히스토리 전체조회 성공")
+                .data(GetSlotHistoryResponseDto.Data.builder().slot(slotDto).history(slotHistoryDtoList).build())
+                .build();
+
+        // 응답
+        return getSlotHistoryResponseDto;
+    }
+
     // 5-2-1
     public RecommendSlotListResponseDto recommendSlotList(Long userId, String accountUuid, Short baseDay, String income, Short period) {
 
@@ -162,7 +283,7 @@ public class SlotService {
         // userKey, 나이 조회하기 위해 user 조회
         User user = userRepository.findById(userId).orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "[AccountService]"));
         String userKey = user.getUserKey();
-        
+
         // baseDay 저장
         user.updateBaseDay(baseDay);
 
@@ -452,6 +573,7 @@ public class SlotService {
                     .isCustom(slotDto.isCustom())
                     .customName(slotDto.getCustomName())
                     .initialBudget(slotDto.getInitialBudget())
+                    .currentBudget(slotDto.getInitialBudget())
                     .build();
 
             // DB에 저장
@@ -488,7 +610,7 @@ public class SlotService {
     }
 
     // 5-2-3
-    public ModifyAccountSlotResponseDto modifyAccountSlot(Long userId, String accountUuid, List<ModifyAccountSlotRequestDto.SlotDto> slotDtoList) {
+    public ModifyAccountSlotListResponseDto modifyAccountSlotList(Long userId, String accountUuid, List<ModifyAccountSlotListRequestDto.SlotDto> slotDtoList) {
 
         // userId != account userId이면 403
         Account account = accountRepository.findByUuid(accountUuid).orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "[SlotService - 000]"));
@@ -518,9 +640,9 @@ public class SlotService {
         Long additionalBudget = 0L;
 
         // 응답 dto에 들어갈 SlotDto 리스트
-        List<ModifyAccountSlotResponseDto.SlotDto> slotDtoList2 = new ArrayList<>();
+        List<ModifyAccountSlotListResponseDto.SlotDto> slotDtoList2 = new ArrayList<>();
 
-        for(ModifyAccountSlotRequestDto.SlotDto slotDto : slotDtoList){
+        for(ModifyAccountSlotListRequestDto.SlotDto slotDto : slotDtoList){
 
             // 기존에 있던 슬롯인지 검사
             for(AccountSlot accountSlot : accountSlotList) {
@@ -556,7 +678,7 @@ public class SlotService {
 
             // 응답 dto 조립
             // dto > data > slots
-            ModifyAccountSlotResponseDto.SlotDto slotDto2 = ModifyAccountSlotResponseDto.SlotDto.builder()
+            ModifyAccountSlotListResponseDto.SlotDto slotDto2 = ModifyAccountSlotListResponseDto.SlotDto.builder()
                     .accountSlotId(accountSlot.getUuid())
                     .name(slot.getName())
                     .isSaving(slot.isSaving())
@@ -574,10 +696,10 @@ public class SlotService {
         }
 
         // dto 조립
-        ModifyAccountSlotResponseDto modifyAccountSlotResponseDto = ModifyAccountSlotResponseDto.builder()
+        ModifyAccountSlotListResponseDto modifyAccountSlotResponseDto = ModifyAccountSlotListResponseDto.builder()
                 .success(true)
                 .message("[SlotService - 000] 다음달 슬롯 리스트 등록 성공")
-                .data(ModifyAccountSlotResponseDto.Data.builder().slots(slotDtoList2).build())
+                .data(ModifyAccountSlotListResponseDto.Data.builder().slots(slotDtoList2).build())
                 .build();
 
         // 응답

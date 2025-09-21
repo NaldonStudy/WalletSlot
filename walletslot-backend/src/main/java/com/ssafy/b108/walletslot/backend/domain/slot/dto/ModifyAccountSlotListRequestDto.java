@@ -5,27 +5,28 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
+
 @Getter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class ModifyAccountSlotResponseDto {
+public class ModifyAccountSlotListRequestDto {
 
     // Field
-    private boolean success;
-    private String message;
-    private Data data;
+    private List<SlotDto> slots;
 
     // Nested Class
     @Getter
     @NoArgsConstructor
     @AllArgsConstructor
     @Builder
-    public class Data {
+    public class SlotDto {
 
         // Field
-        private String accountSlotId;
+        private String slotId;
+        private boolean isCustom;
         private String customName;
-        private Long newBudget;
+        private Long initialBudget;
     }
 }

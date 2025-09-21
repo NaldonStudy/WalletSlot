@@ -67,4 +67,20 @@ public class AccountSlot {
 
     @OneToMany(fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
     private List<SlotHistory> slotHistoryList;
+
+    // Method
+    public void updateCustomName(String customName) {
+        if(customName.equals("default")) {
+            this.customName = slot.getName();
+            isCustom = false;
+        } else {
+            this.customName = customName;
+            isCustom = true;
+        }
+    }
+
+    public void updateBudget(Long newBudget) {
+        this.currentBudget = newBudget;
+        this.budgetChangeCount++;
+    }
 }

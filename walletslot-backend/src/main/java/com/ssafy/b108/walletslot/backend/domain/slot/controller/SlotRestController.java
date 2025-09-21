@@ -35,6 +35,24 @@ public class SlotRestController {
         return ResponseEntity.status(HttpStatus.OK).body(slotService.getSlotList());
     }
 
+    @PatchMapping("/accounts/{accountId}/slots/{slotId}")
+    @Operation(
+            summary = "5-1-2 슬롯 정보수정",
+            description = "슬롯에 별칭을 지정하거나 예산을 변경합니다. 별칭은 추후 같은 API에 customName 키 값을 default로 해서 요청을 보내시면 기본값으로 되돌아갑니다."
+    )
+    public ResponseEntity<ModifyAccountSlotResponseDto> modifyAccountSlot(@AuthenticationPrincipal UserPrincipal principal, @PathVariable String accountId, @PathVariable String slotId, @RequestBody ModifyAccountSlotRequestDto request) {
+        return ResponseEntity.status(HttpStatus.OK).body(slotService.modifyAccountSlot(principal.userId(), accountId, slotId, request));
+    }
+
+    @DeleteMapping("/accounts/{accountId}/slots/{slotId}")
+    @Operation(
+            summary = "5-1-3 슬롯 삭제",
+            description = "슬롯을 삭제합니다."
+    )
+    public ResponseEntity<RemoveAccountSlotResponseDto> removeAccountSlot(@AuthenticationPrincipal UserPrincipal principal, @PathVariable String accountId, @PathVariable String slotId) {
+        return ResponseEntity.status(HttpStatus.NO_CONTENT).body(slotService.removeAccountSlot(principal.userId(), accountId, slotId));
+    }
+
     @GetMapping("/accounts/{accountId}/slots")
     @Operation(
             summary = "5-1-4 계좌 슬롯 리스트 전체 조회",
@@ -53,6 +71,12 @@ public class SlotRestController {
         return ResponseEntity.status(HttpStatus.OK).body(slotService.recommendSlotList(principal.userId(), accountId, request.getBaseDay(), request.getIncome(), request.getPeriod()));
     }
 
+    @GetMapping("/api/accounts/{accountId}/slots/{slotId}/history")
+    public ResponseEntity<GetSlotHistoryResponseDto> getSlotHistory(@AuthenticationPrincipal UserPrincipal principal, @PathVariable String accountId, @PathVariable String slotId) {
+        return ResponseEntity.status(HttpStatus.OK).body(slotService.getSlotHistory(principal.userId(), accountId, slotId));
+    }
+
+
     @PostMapping("/{accountId}/slots")
     @Operation(
             summary = "5-2-2 슬롯등록"  ,
@@ -67,7 +91,7 @@ public class SlotRestController {
             summary = "5-2-3 슬롯재편성"  ,
             description = "기준일이 도래하여 계좌의 슬롯 리스트를 재편성합니다."
     )
-    public ResponseEntity<ModifyAccountSlotResponseDto> modifyAccountSlotResponseDto(@AuthenticationPrincipal UserPrincipal principal, @PathVariable String accountId, @RequestBody ModifyAccountSlotRequestDto request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(slotService.modifyAccountSlot(principal.userId(), accountId, request.getSlots()));
+    public ResponseEntity<ModifyAccountSlotListResponseDto> modifyAccountSlotListResponseDto(@AuthenticationPrincipal UserPrincipal principal, @PathVariable String accountId, @RequestBody ModifyAccountSlotListRequestDto request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(slotService.modifyAccountSlotList(principal.userId(), accountId, request.getSlots()));
     }
 }
