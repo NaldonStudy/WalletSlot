@@ -1,5 +1,6 @@
 package com.ssafy.b108.walletslot.backend.domain.slot.dto.external;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -11,6 +12,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class ChatGPTResponseDto {
 
     // Field
@@ -21,6 +23,7 @@ public class ChatGPTResponseDto {
     @NoArgsConstructor
     @AllArgsConstructor
     @Builder
+    @JsonIgnoreProperties(ignoreUnknown = true)
     public static class Choice {
 
         // Field
@@ -31,6 +34,7 @@ public class ChatGPTResponseDto {
     @NoArgsConstructor
     @AllArgsConstructor
     @Builder
+    @JsonIgnoreProperties(ignoreUnknown = true)
     public static class Message {
 
         // Field
@@ -41,6 +45,7 @@ public class ChatGPTResponseDto {
     @NoArgsConstructor
     @AllArgsConstructor
     @Builder
+    @JsonIgnoreProperties(ignoreUnknown = true)
     public static class RecommendedSlotDto {
 
         // Field

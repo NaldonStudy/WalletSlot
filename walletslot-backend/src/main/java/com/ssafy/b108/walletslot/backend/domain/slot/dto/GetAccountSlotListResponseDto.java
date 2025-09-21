@@ -59,5 +59,36 @@ public class GetAccountSlotListResponseDto {
 
         private Long exceededBudget;
         private Integer budgetChangeCount;
+
+        // Method
+        @JsonProperty("isSaving")
+        public boolean isSaving() {
+            return isSaving;
+        }
+
+        @JsonProperty("isSaving")
+        public void setSaving(boolean saving) {
+            this.isSaving = saving;
+        }
+
+        @JsonProperty("isCustom")
+        public boolean isCustom() {
+            return isCustom;
+        }
+
+        @JsonProperty("isCustom")
+        public void setCustom(boolean custom) {
+            this.isCustom = custom;
+        }
+
+        @JsonProperty("isBudgetExceeded")
+        public boolean isBudgetExceeded() {
+            return isBudgetExceeded;
+        }
+
+        @JsonProperty("isBudgetExceeded")
+        public void setBudgetExceeded(boolean budgetExceeded) {
+            this.isBudgetExceeded = budgetExceeded;
+        }
     }
 }

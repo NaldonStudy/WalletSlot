@@ -39,7 +39,8 @@ public class AccountSlot {
     private Long currentBudget;
 
     @Column(nullable = false)
-    private Long spent;
+    @Builder.Default
+    private Long spent = 0L;
 
     @Column(nullable = false)
     private int budgetChangeCount;
@@ -65,7 +66,7 @@ public class AccountSlot {
     @Builder.Default
     private boolean isAlertSent = false;
 
-    @OneToMany(fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "accountSlot", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
     private List<SlotHistory> slotHistoryList;
 
     // Method
