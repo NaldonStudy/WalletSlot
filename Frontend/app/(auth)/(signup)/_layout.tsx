@@ -51,6 +51,18 @@ export default function SignupLayout() {
                             animation: 'fade'
                         }} 
                     />
+                    <Stack.Screen 
+                        name="notification-consent" 
+                        options={{ 
+                            animation: 'fade'
+                        }} 
+                    />
+                    <Stack.Screen 
+                        name="welcome" 
+                        options={{ 
+                            animation: 'fade'
+                        }} 
+                    />
         </Stack>
     )
 }

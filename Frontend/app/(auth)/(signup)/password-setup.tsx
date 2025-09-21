@@ -22,9 +22,11 @@ export default function PasswordSetupScreen() {
   const [keypadNumbers, setKeypadNumbers] = useState<string[]>([]);
   const [pressedKey, setPressedKey] = useState<string | null>(null);
   const [pressedKeys, setPressedKeys] = useState<string[]>([]);
+  const [isConfirming, setIsConfirming] = useState<boolean>(false);
+  const [firstPin, setFirstPin] = useState<string>('');
+  const [error, setError] = useState<string>('');
 
   // 참조
-  const buttonRefs = useRef<(TouchableOpacity | null)[]>([]);
   const scaleAnimations = useRef<Animated.Value[]>([]);
 
   // 6자리 PIN 입력 완료 여부
@@ -47,11 +49,13 @@ export default function PasswordSetupScreen() {
       const newPin = [...pin];
       newPin[emptyIndex] = digit;
       setPin(newPin);
+      setError(''); // 입력 시 에러 메시지 초기화
     } else {
       // 6자리 모두 채워진 경우, 마지막 자리부터 교체
       const newPin = [...pin];
       newPin[5] = digit;
       setPin(newPin);
+      setError(''); // 입력 시 에러 메시지 초기화
     }
   };
 
@@ -150,28 +154,30 @@ export default function PasswordSetupScreen() {
   const handlePinComplete = async () => {
     if (!isPinComplete) return;
 
-    setIsLoading(true);
+    const pinString = pin.join('');
     
-    try {
-      // Mock PIN 저장 (실제로는 암호화하여 저장)
-      const pinString = pin.join('');
-      console.log('PIN 설정 완료:', pinString);
-      
-      // 성공 시뮬레이션
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      Alert.alert('설정 완료', 'PIN이 성공적으로 설정되었습니다.', [
-        {
-          text: '확인',
-          onPress: () => {
-            router.replace('/(tabs)/dashboard');
-          }
-        }
-      ]);
-    } catch (error) {
-      Alert.alert('설정 실패', 'PIN 설정 중 오류가 발생했습니다.');
-    } finally {
-      setIsLoading(false);
+    if (!isConfirming) {
+      // 첫 번째 PIN 입력 완료
+      setFirstPin(pinString);
+      setIsConfirming(true);
+      setPin(['', '', '', '', '', '']); // PIN 초기화
+      setError('');
+    } else {
+      // 두 번째 PIN 입력 완료 - 비교
+      if (firstPin === pinString) {
+        // PIN 일치 - 임시 저장 후 알림 동의 화면으로 이동
+        // TODO: PIN을 임시 저장 (useState 또는 Zustand)
+        console.log('PIN 설정 완료:', pinString);
+        
+        // 알림 동의 화면으로 이동
+        router.push('/(auth)/(signup)/notification-consent');
+      } else {
+        // PIN 불일치
+        setError('PIN이 일치하지 않습니다. 새롭게 다시 설정해주세요.');
+        setPin(['', '', '', '', '', '']); // PIN 초기화
+        setIsConfirming(false); // 첫 번째 입력 단계로 돌아감
+        setFirstPin('');
+      }
     }
   };
 
@@ -185,7 +191,9 @@ export default function PasswordSetupScreen() {
         {/* 메인 콘텐츠 */}
         <View style={styles.content}>
           <Text style={styles.title}>Wallet Slot을 안전하게 잠글</Text>
-          <Text style={styles.subtitle}>PIN 6자리를 입력해주세요.</Text>
+          <Text style={styles.subtitle}>
+            {isConfirming ? '확인을 위해 한 번 더 입력해주세요.' : 'PIN 6자리를 입력해주세요.'}
+          </Text>
 
           {/* PIN 입력 표시 */}
           <View style={styles.pinContainer}>
@@ -199,6 +207,11 @@ export default function PasswordSetupScreen() {
               />
             ))}
           </View>
+
+          {/* 에러 메시지 */}
+          {error ? (
+            <Text style={styles.errorText}>{error}</Text>
+          ) : null}
         </View>
 
         {/* 커스텀 키패드 */}
@@ -206,7 +219,6 @@ export default function PasswordSetupScreen() {
           {/* 첫 번째 행 */}
           <View style={styles.keypadRow}>
             <TouchableOpacity
-              ref={(ref) => { buttonRefs.current[0] = ref; }}
               style={[
                 styles.keypadButton,
                 pressedKeys.includes(keypadNumbers[0]) && styles.keypadButtonPressed
@@ -224,7 +236,6 @@ export default function PasswordSetupScreen() {
               </Animated.View>
             </TouchableOpacity>
             <TouchableOpacity
-              ref={(ref) => { buttonRefs.current[1] = ref; }}
               style={[
                 styles.keypadButton,
                 pressedKeys.includes(keypadNumbers[1]) && styles.keypadButtonPressed
@@ -242,7 +253,6 @@ export default function PasswordSetupScreen() {
               </Animated.View>
             </TouchableOpacity>
             <TouchableOpacity
-              ref={(ref) => { buttonRefs.current[2] = ref; }}
               style={[
                 styles.keypadButton,
                 pressedKeys.includes(keypadNumbers[2]) && styles.keypadButtonPressed
@@ -264,7 +274,6 @@ export default function PasswordSetupScreen() {
           {/* 두 번째 행 */}
           <View style={styles.keypadRow}>
             <TouchableOpacity
-              ref={(ref) => { buttonRefs.current[3] = ref; }}
               style={[
                 styles.keypadButton,
                 pressedKeys.includes(keypadNumbers[3]) && styles.keypadButtonPressed
@@ -282,7 +291,6 @@ export default function PasswordSetupScreen() {
               </Animated.View>
             </TouchableOpacity>
             <TouchableOpacity
-              ref={(ref) => { buttonRefs.current[4] = ref; }}
               style={[
                 styles.keypadButton,
                 pressedKeys.includes(keypadNumbers[4]) && styles.keypadButtonPressed
@@ -300,7 +308,6 @@ export default function PasswordSetupScreen() {
               </Animated.View>
             </TouchableOpacity>
             <TouchableOpacity
-              ref={(ref) => { buttonRefs.current[5] = ref; }}
               style={[
                 styles.keypadButton,
                 pressedKeys.includes(keypadNumbers[5]) && styles.keypadButtonPressed
@@ -322,7 +329,6 @@ export default function PasswordSetupScreen() {
           {/* 세 번째 행 */}
           <View style={styles.keypadRow}>
             <TouchableOpacity
-              ref={(ref) => { buttonRefs.current[6] = ref; }}
               style={[
                 styles.keypadButton,
                 pressedKeys.includes(keypadNumbers[6]) && styles.keypadButtonPressed
@@ -340,7 +346,6 @@ export default function PasswordSetupScreen() {
               </Animated.View>
             </TouchableOpacity>
             <TouchableOpacity
-              ref={(ref) => { buttonRefs.current[7] = ref; }}
               style={[
                 styles.keypadButton,
                 pressedKeys.includes(keypadNumbers[7]) && styles.keypadButtonPressed
@@ -358,7 +363,6 @@ export default function PasswordSetupScreen() {
               </Animated.View>
             </TouchableOpacity>
             <TouchableOpacity
-              ref={(ref) => { buttonRefs.current[8] = ref; }}
               style={[
                 styles.keypadButton,
                 pressedKeys.includes(keypadNumbers[8]) && styles.keypadButtonPressed
@@ -380,7 +384,6 @@ export default function PasswordSetupScreen() {
           {/* 네 번째 행: X, 마지막 숫자, ← */}
           <View style={styles.keypadRow}>
             <TouchableOpacity
-              ref={(ref) => { buttonRefs.current[9] = ref; }}
               style={[
                 styles.keypadButton,
                 styles.keypadButtonSpecial,
@@ -402,7 +405,6 @@ export default function PasswordSetupScreen() {
               </Animated.View>
             </TouchableOpacity>
             <TouchableOpacity
-              ref={(ref) => { buttonRefs.current[10] = ref; }}
               style={[
                 styles.keypadButton,
                 pressedKeys.includes(keypadNumbers[9]) && styles.keypadButtonPressed
@@ -420,7 +422,6 @@ export default function PasswordSetupScreen() {
               </Animated.View>
             </TouchableOpacity>
             <TouchableOpacity
-              ref={(ref) => { buttonRefs.current[11] = ref; }}
               style={[
                 styles.keypadButton,
                 styles.keypadButtonSpecial,
@@ -511,6 +512,12 @@ const styles = StyleSheet.create({
   pinDotFilled: {
     borderColor: '#3B82F6',
     backgroundColor: '#3B82F6',
+  },
+  errorText: {
+    fontSize: 14,
+    color: '#EF4444',
+    textAlign: 'center',
+    marginTop: 16,
   },
   keypad: {
     backgroundColor: '#F3F4F6',
