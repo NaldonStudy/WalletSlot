@@ -1,16 +1,12 @@
 package com.ssafy.b108.walletslot.backend.domain.slot.service;
 
-import com.ssafy.b108.walletslot.backend.domain.account.dto.AddAccountRequestDto;
 import com.ssafy.b108.walletslot.backend.domain.account.entity.Account;
 import com.ssafy.b108.walletslot.backend.domain.account.repository.AccountRepository;
-import com.ssafy.b108.walletslot.backend.domain.slot.dto.AddSlotListDto;
-import com.ssafy.b108.walletslot.backend.domain.slot.dto.AddSlotListRequestDto;
-import com.ssafy.b108.walletslot.backend.domain.slot.dto.AddSlotListResponseDto;
-import com.ssafy.b108.walletslot.backend.domain.slot.dto.GetAccountSlotListResponseDto;
-import com.ssafy.b108.walletslot.backend.domain.slot.dto.GetSlotListResponseDto;
+import com.ssafy.b108.walletslot.backend.domain.slot.dto.*;
 import com.ssafy.b108.walletslot.backend.domain.slot.entity.AccountSlot;
 import com.ssafy.b108.walletslot.backend.domain.slot.entity.Slot;
 import com.ssafy.b108.walletslot.backend.domain.slot.repository.AccountSlotRepository;
+import com.ssafy.b108.walletslot.backend.domain.slot.repository.SlotHistoryRepository;
 import com.ssafy.b108.walletslot.backend.domain.slot.repository.SlotRepository;
 import com.ssafy.b108.walletslot.backend.domain.user.entity.User;
 import com.ssafy.b108.walletslot.backend.domain.user.repository.UserRepository;
@@ -35,6 +31,7 @@ public class SlotService {
     private final AccountRepository accountRepository;
     private final UserRepository userRepository;
     private final AccountSlotRepository accountSlotRepository;
+    private final SlotHistoryRepository slotHistoryRepository;
 
     // Method
     // 5-1-1
@@ -224,4 +221,100 @@ public class SlotService {
         return addSlotListResponseDto;
     }
 
+    // 5-2-3
+    public ModifyAccountSlotResponseDto modifyAccountSlot(Long userId, String accountUuid, List<ModifyAccountSlotRequestDto.SlotDto> slotDtoList) {
+
+        // userId != account userId이면 403
+        Account account = accountRepository.findByUuid(accountUuid).orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "[SlotService - 000]"));
+        if(userId != account.getUser().getId()) {
+            throw new AppException(ErrorCode.FORBIDDEN, "[SlotService - 000]");
+        }
+
+        // 이 account 기준으로 accountSlot 조회해서 isExceeded == false 인거 있으면 절약금액 총합 누적
+        List<AccountSlot> accountSlotList = account.getAccountSlots();
+        Long savingAmount = 0L;
+        for(AccountSlot accountSlot : accountSlotList){
+
+            // 기존 SlotHistory 전부 삭제 (for문 도는 김에 이 안에서 삭제)
+            slotHistoryRepository.deleteByAccountSlot(accountSlot);
+
+            // 예산을 절약해서 사용한 슬롯이 있다면 절약 금액에 누적합
+            if(!accountSlot.isBudgetExceeded()) {
+                savingAmount += (accountSlot.getInitialBudget() - accountSlot.getSpent());
+            }
+        }
+
+        // 기존 AccountSlot들 전부 삭제 (만약 기준에 부합하지 않아서 메서드가 끝나기 전에 예외가 터지면, 롤백될 것이므로 괜찮음)
+        accountSlotRepository.deleteByAccount(account);
+
+        // slotDtoList 돌면서 이전에도 있던 슬롯이면(slotId 받은거 기준으로 조회) initialBudget 기준으로 예산 늘리는 건지 계산
+        // 늘리는 거면 늘린 예산 총합에 누적
+        Long additionalBudget = 0L;
+
+        // 응답 dto에 들어갈 SlotDto 리스트
+        List<ModifyAccountSlotResponseDto.SlotDto> slotDtoList2 = new ArrayList<>();
+
+        for(ModifyAccountSlotRequestDto.SlotDto slotDto : slotDtoList){
+
+            // 기존에 있던 슬롯인지 검사
+            for(AccountSlot accountSlot : accountSlotList) {
+                if(accountSlot.getSlot().getUuid().equals(slotDto.getSlotId())) {
+
+                    // 있던 슬롯이면 예산을 줄이는건지 늘리는 건지 검사
+                    if(slotDto.getInitialBudget() > accountSlot.getInitialBudget()) {
+
+                        // 늘리는 거면 addtionalBudget에 누적합
+                        additionalBudget += (slotDto.getInitialBudget() - accountSlot.getInitialBudget());
+                    }
+                    // 기존에 있던 슬롯의 예산을 줄이는 경우는 고려하지 않음.
+                    // 예산을 줄일 슬롯이 지난달에 절약한 슬롯과 겹칠 경우, 둘 중 하나만 반영해야 하는데 그러면 사용자가 헷갈릴 것 같아서 고려하지 X
+                    // 무조건 지난달에 절약한 만큼만 늘릴 수 있도록.
+                }
+            }
+
+            // AccountSlot 객체 만들어서 save.
+            // AccountSlot 객체에 넣을 Slot 객체 먼저 조회
+            Slot slot = slotRepository.findByUuid(slotDto.getSlotId()).orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "[SlotService - 000]"));
+
+            // AccountSlot 객체 만들기
+            AccountSlot accountSlot = AccountSlot.builder()
+                    .account(account)
+                    .slot(slot)
+                    .initialBudget(slotDto.getInitialBudget())
+                    .isCustom(slotDto.isCustom())
+                    .customName(slotDto.getCustomName())
+                    .build();
+
+            // 저장
+            accountSlotRepository.save(accountSlot);
+
+            // 응답 dto 조립
+            // dto > data > slots
+            ModifyAccountSlotResponseDto.SlotDto slotDto2 = ModifyAccountSlotResponseDto.SlotDto.builder()
+                    .accountSlotId(accountSlot.getUuid())
+                    .name(slot.getName())
+                    .isSaving(slot.isSaving())
+                    .isCustom(slotDto.isCustom())
+                    .customName(slotDto.getCustomName())
+                    .initialBudget(slotDto.getInitialBudget())
+                    .build();
+
+            slotDtoList2.add(slotDto2);
+        } // 요청받은 슬롯들에 대해 전부 돌면서 저장 완료
+
+        // 마지막에 절약금액 >= 늘린예산 인지 검사 (아니면 THRIFT_BUDGET_EXCEEDED 발생 시키기)
+        if(savingAmount < additionalBudget) {
+            throw new AppException(ErrorCode.THRIFT_BUDGET_EXCEEDED, "[SlotService - 000]");
+        }
+
+        // dto 조립
+        ModifyAccountSlotResponseDto modifyAccountSlotResponseDto = ModifyAccountSlotResponseDto.builder()
+                .success(true)
+                .message("[SlotService - 000] 다음달 슬롯 리스트 등록 성공")
+                .data(ModifyAccountSlotResponseDto.Data.builder().slots(slotDtoList2).build())
+                .build();
+
+        // 응답
+        return modifyAccountSlotResponseDto;
+    }
 }

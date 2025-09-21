@@ -4,11 +4,12 @@ import com.ssafy.b108.walletslot.backend.domain.account.entity.Account;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 @Entity
 @Table(name = "account_slot")
-@Getter @Setter
+@Getter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -63,4 +64,7 @@ public class AccountSlot {
     @Column(nullable = false)
     @Builder.Default
     private boolean isAlertSent = false;
+
+    @OneToMany(fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<SlotHistory> slotHistoryList;
 }

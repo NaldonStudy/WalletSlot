@@ -18,7 +18,8 @@ public enum ErrorCode {
     INTERNAL_SERVER_ERROR("알 수 없는 오류가 발생했습니다. 서버관리자에게 문의하세요.", HttpStatus.INTERNAL_SERVER_ERROR), // 서버에서 로그확인 필요
 
     // Slot
-    ALLOCATABLE_BUDGET_EXCEEDED("할당 가능한 예산을 초과했습니다.", HttpStatus.UNPROCESSABLE_ENTITY);
+    ALLOCATABLE_BUDGET_EXCEEDED("할당 가능한 예산을 초과했습니다.", HttpStatus.UNPROCESSABLE_ENTITY),
+    THRIFT_BUDGET_EXCEEDED("지난 달에 절약한 금액 한도 내에서만 다음달 슬롯 예산을 늘릴 수 있습니다.", HttpStatus.UNPROCESSABLE_ENTITY);
 
     private final String message;
     private final HttpStatus status;

@@ -1,10 +1,7 @@
 package com.ssafy.b108.walletslot.backend.domain.slot.controller;
 
 import com.ssafy.b108.walletslot.backend.config.security.UserPrincipal;
-import com.ssafy.b108.walletslot.backend.domain.slot.dto.AddSlotListRequestDto;
-import com.ssafy.b108.walletslot.backend.domain.slot.dto.AddSlotListResponseDto;
-import com.ssafy.b108.walletslot.backend.domain.slot.dto.GetAccountSlotListResponseDto;
-import com.ssafy.b108.walletslot.backend.domain.slot.dto.GetSlotListResponseDto;
+import com.ssafy.b108.walletslot.backend.domain.slot.dto.*;
 import com.ssafy.b108.walletslot.backend.domain.slot.service.SlotService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -38,25 +35,32 @@ public class SlotRestController {
         return ResponseEntity.status(HttpStatus.OK).body(slotService.getSlotList());
     }
 
-    // 5-1-4
     @GetMapping("/accounts/{accountId}/slots")
     @Operation(
             summary = "5-1-4 계좌 슬롯 리스트 전체 조회",
-            description = "특정 계좌의 슬롯 리스트를 전체 조회합니다."
+            description = "계좌의 슬롯 리스트를 전체 조회합니다."
     )
     public ResponseEntity<GetAccountSlotListResponseDto> getAccountSlotList(@AuthenticationPrincipal UserPrincipal principal, @PathVariable String accountId) {
         return ResponseEntity.status(HttpStatus.OK).body(slotService.getAccountSlotList(principal.userId(), accountId));
     }
 
-    // 기준일 슬롯등록은 patch로!
+    // 5-2-1
 
     @PostMapping("/{accountId}/slots")
     @Operation(
-            summary = "5-2-3 슬롯등록"  ,
-            description = "특정 계좌에 대해 최초로 슬롯 리스트를 등록하거나 추후 서비스 이용 중 새로운 슬롯을 추가로 등록합니다."
+            summary = "5-2-2 슬롯등록"  ,
+            description = "계좌의 슬롯 리스트를 최초로 등록하거나 추후 서비스 이용 중 새로운 슬롯을 추가로 등록합니다."
     )
     public ResponseEntity<AddSlotListResponseDto> addSlotList(@AuthenticationPrincipal UserPrincipal principal, @PathVariable String accountId, @RequestBody AddSlotListRequestDto request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(slotService.addSlotList(principal.userId(), accountId, request.getSlots()));
     }
 
+    @PatchMapping("/accounts/{accountId}/slots/reassign")
+    @Operation(
+            summary = "5-2-3 슬롯재편성"  ,
+            description = "기준일이 도래하여 계좌의 슬롯 리스트를 재편성합니다."
+    )
+    public ResponseEntity<ModifyAccountSlotResponseDto> modifyAccountSlotResponseDto(@AuthenticationPrincipal UserPrincipal principal, @PathVariable String accountId, @RequestBody ModifyAccountSlotRequestDto request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(slotService.modifyAccountSlot(principal.userId(), accountId, request.getSlots()));
+    }
 }

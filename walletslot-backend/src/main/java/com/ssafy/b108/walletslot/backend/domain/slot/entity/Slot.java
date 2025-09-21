@@ -6,7 +6,7 @@ import java.util.*;
 
 @Entity
 @Table(name = "slot")
-@Getter @Setter
+@Getter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
