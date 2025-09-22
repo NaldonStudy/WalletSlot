@@ -19,7 +19,19 @@ public enum ErrorCode {
 
     // Slot
     ALLOCATABLE_BUDGET_EXCEEDED("할당 가능한 예산을 초과했습니다.", HttpStatus.UNPROCESSABLE_ENTITY),
-    THRIFT_BUDGET_EXCEEDED("지난 달에 절약한 금액 한도 내에서만 다음달 슬롯 예산을 늘릴 수 있습니다.", HttpStatus.UNPROCESSABLE_ENTITY);
+    THRIFT_BUDGET_EXCEEDED("지난 달에 절약한 금액 한도 내에서만 다음달 슬롯 예산을 늘릴 수 있습니다.", HttpStatus.UNPROCESSABLE_ENTITY),
+
+    // User
+    LOGIN_FAILED("로그인에 실패했습니다.", HttpStatus.BAD_REQUEST),
+    PIN_LOCKED("PIN 시도 초과로 잠금되었습니다.", HttpStatus.TOO_MANY_REQUESTS),
+    PIN_MISMATCH("현재 PIN이 올바르지 않습니다.", HttpStatus.BAD_REQUEST),
+    OTP_INVALID("인증코드가 올바르지 않습니다.", HttpStatus.BAD_REQUEST),
+    OTP_EXPIRED("인증코드가 만료되었습니다.", HttpStatus.GONE),
+    REFRESH_DISABLED("Refresh 기능이 비활성화되었습니다.", HttpStatus.BAD_REQUEST),
+    REFRESH_INVALID("유효하지 않은 Refresh 토큰입니다.", HttpStatus.UNAUTHORIZED),
+    DEVICE_MISMATCH("요청한 deviceId가 토큰의 deviceId와 일치하지 않습니다.", HttpStatus.CONFLICT),
+    TOKEN_INVALID("유효하지 않은 액세스 토큰입니다.", HttpStatus.UNAUTHORIZED);
+
 
     private final String message;
     private final HttpStatus status;

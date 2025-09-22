@@ -63,6 +63,8 @@ public class SecurityConfig {
                         // devController를 위한
                         .requestMatchers("/api/dev/**").permitAll()
 
+                        .requestMatchers("/api/auth/me").authenticated()
+
                         // 헬스체크 & 인증 엔드포인트
                         .requestMatchers(
                                 "/actuator/health",

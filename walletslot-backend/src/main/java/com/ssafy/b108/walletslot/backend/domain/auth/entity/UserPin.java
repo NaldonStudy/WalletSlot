@@ -9,28 +9,24 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import java.time.Duration;
 import java.time.Instant;
 
-
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 
 @Entity
 @Table(name = "user_pin")
-@Getter @Setter
+@Getter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
 public class UserPin {
 
-    // Field
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY) @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "pepper_id", nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY) @JoinColumn(name = "pepper_id", nullable = false)
     private PepperKey pepperKey;
 
     @Column(nullable = false)
@@ -40,20 +36,30 @@ public class UserPin {
     private int cost;
 
     @Column(columnDefinition = "TINYINT", nullable = false)
-    private Integer failedCount;
+    private int failedCount;                      // ← int 로 변경
 
-    private Instant lockedUntil;
+    private LocalDateTime lockedUntil;
 
-    @Column(nullable = false, insertable = false, updatable = false)
-    private Instant lastChangedAt;
+    @Column(nullable = false)
+    private LocalDateTime lastChangedAt;
 
-    @Column(nullable = false, insertable = false, updatable = false)
-    private Instant lastVerifiedAt;
+    @Column(nullable = false)
+    private LocalDateTime lastVerifiedAt;
 
-    /* ===== 도메인 규칙 메서드 ===== */
+    /** INSERT 직전 기본값 보정 (DB DEFAULT 대신 JPA에서 채워줌) */
+    @PrePersist
+    void _prePersist() {
+        LocalDateTime now = LocalDateTime.now();
+        if (lastChangedAt == null)   lastChangedAt = now;
+        if (lastVerifiedAt == null)  lastVerifiedAt = now;
+        // failedCount는 int라 기본 0
+    }
+
+    /* ===== 도메인 규칙 ===== */
 
     public boolean isLocked(Instant now) {
-        return lockedUntil != null && now.isBefore(lockedUntil);
+        return lockedUntil != null &&
+                now.isBefore(lockedUntil.atZone(ZoneId.systemDefault()).toInstant());
     }
 
     public boolean matches(String rawPin, String pepperSecret, BCryptPasswordEncoder bcrypt) {
@@ -61,9 +67,9 @@ public class UserPin {
     }
 
     public void markFail(int maxFails, Duration lockDuration, Instant now) {
-        int fails = (failedCount == null ? 0 : failedCount) + 1;
+        int fails = this.failedCount + 1;
         if (fails >= maxFails) {
-            this.lockedUntil = now.plus(lockDuration);
+            this.lockedUntil = LocalDateTime.ofInstant(now.plus(lockDuration), ZoneId.systemDefault());
             this.failedCount = 0;
         } else {
             this.failedCount = fails;
@@ -73,7 +79,7 @@ public class UserPin {
     public void markSuccess(Instant now) {
         this.failedCount = 0;
         this.lockedUntil = null;
-        this.lastVerifiedAt = now;
+        this.lastVerifiedAt = LocalDateTime.ofInstant(now, ZoneId.systemDefault());
     }
 
     public void upgrade(String rawPin,
@@ -82,7 +88,7 @@ public class UserPin {
         this.bcryptedPin   = bcrypt.encode(newPepperSecret + rawPin);
         this.pepperKey     = newPepperKey;
         this.cost          = newCost;
-        this.lastChangedAt = now;
+        this.lastChangedAt = LocalDateTime.ofInstant(now, ZoneId.systemDefault());
     }
-
 }
+

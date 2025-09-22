@@ -33,7 +33,6 @@ public class DeviceBindingFilter extends OncePerRequestFilter {
             "/webjars",
             "/actuator/health",
             "/error",
-            "/api/auth",         // 로그인/리프레시/로그아웃 등
             "/api/ping/public",  // 퍼블릭 핑
             "/api/dev"
     );
