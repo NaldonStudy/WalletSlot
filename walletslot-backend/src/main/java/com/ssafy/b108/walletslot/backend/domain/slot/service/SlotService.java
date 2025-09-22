@@ -26,10 +26,12 @@ import com.ssafy.b108.walletslot.backend.global.error.AppException;
 import com.ssafy.b108.walletslot.backend.global.error.ErrorCode;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.reactive.function.client.WebClient;
 
 import javax.crypto.SecretKey;
 import java.util.*;
@@ -47,15 +49,13 @@ public class SlotService {
     private final SlotHistoryRepository slotHistoryRepository;
     private final RestTemplate restTemplate;
     private final SecretKey encryptionKey;
+    @Qualifier("ssafyGmsWebClient") private final WebClient ssafyGmsWebClient;
 
     @Value("${api.ssafy.finance.apiKey}")
     private String ssafyFinanceApiKey;
 
     @Value("${api.ssafy.gms.key}")
     private String ssafyGmsKey;
-
-//    @Value("${api.haeji.openai.key}")
-//    private String haejiopenaiKey;
 
     private static Map<String, String> incomes = new HashMap<>(); // 수입구간
 
@@ -361,14 +361,6 @@ public class SlotService {
         
         // gpt한테 요청보내기
         // SSAFY GMS >>>>> gpt-5-nano
-        // 요청보낼 url
-        String url2 = "https://gms.ssafy.io/gmsapi/api.openai.com/v1/chat/completions";
-        
-        // header 만들기
-        HttpHeaders headers = new HttpHeaders();
-        headers.add("Content-Type", "application/json");
-        headers.set("Authorization", "Bearer " + ssafyGmsKey);
-
         // body 만들기
         // body > messages
         List<ChatGPTRequestDto.Message> messages = new ArrayList<>();
@@ -424,8 +416,6 @@ public class SlotService {
                 slotListData
         );
 
-        System.out.println(userPrompt);
-
         ChatGPTRequestDto.Message message2 = ChatGPTRequestDto.Message.builder()
                 .role("user")
                 .content(userPrompt)
@@ -437,22 +427,14 @@ public class SlotService {
                 .messages(messages)
                 .build();
 
-        // 요청보낼 http entity 만들기
-        HttpEntity<ChatGPTRequestDto> httpEntity2 = new HttpEntity<>(body2, headers);
-
-        // 요청 보내기
-        ResponseEntity<ChatGPTResponseDto> httpResponse2 = restTemplate.exchange(
-                url2,
-                HttpMethod.POST,
-                httpEntity2,
-                ChatGPTResponseDto.class
-        );
+        // 요청보내기
+        ChatGPTResponseDto httpResponse2 = callGMS(body2);
 
         // gpt로부터 받은 응답 역직렬화
         JsonNode node;
         List<ChatGPTResponseDto.RecommendedSlotDto> recommendedSlots;
         try {
-            node = objectMapper.readTree(httpResponse2.getBody().getChoices().get(0).getMessage().getContent());
+            node = objectMapper.readTree(httpResponse2.getChoices().get(0).getMessage().getContent());
             JsonNode slotsNode = node.get("recommendedSlots");
 
             recommendedSlots = objectMapper.readValue(
@@ -514,6 +496,16 @@ public class SlotService {
 
         // 응답
         return recommendSlotListResponseDto;
+    }
+
+    // 5-2-1에서 ChatGPT 호출할 때 쓸 메서드
+    private ChatGPTResponseDto callGMS(ChatGPTRequestDto body) {
+        return ssafyGmsWebClient.post()
+                .uri("/chat/completions")
+                .bodyValue(body)
+                .retrieve()
+                .bodyToMono(ChatGPTResponseDto.class)
+                .block();
     }
 
     // 5-2-2
