@@ -25,7 +25,7 @@ public class RecommendSlotListResponseDto {
     @NoArgsConstructor
     @AllArgsConstructor
     @Builder
-    @Schema(name = "RecommendSlotListResponseDto")
+    @Schema(name = "RecommendSlotListResponseDto_Data")
     public static class Data {
 
         // Field
@@ -38,7 +38,7 @@ public class RecommendSlotListResponseDto {
     @NoArgsConstructor
     @AllArgsConstructor
     @Builder
-    @Schema(name = "RecommendSlotListResponseDto")
+    @Schema(name = "RecommendSlotListResponseDto_BankDto")
     public static class BankDto {
 
         // Field
@@ -51,7 +51,7 @@ public class RecommendSlotListResponseDto {
     @NoArgsConstructor
     @AllArgsConstructor
     @Builder
-    @Schema(name = "RecommendSlotListResponseDto")
+    @Schema(name = "RecommendSlotListResponseDto_AccountDto")
     public static class AccountDto {
 
         // Field

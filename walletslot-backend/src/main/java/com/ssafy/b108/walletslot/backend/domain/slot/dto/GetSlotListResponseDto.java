@@ -25,7 +25,7 @@ public class GetSlotListResponseDto {
     @NoArgsConstructor
     @AllArgsConstructor
     @Builder
-    @Schema(name = "GetSlotListResponseDto")
+    @Schema(name = "GetSlotListResponseDto_Data")
     public static class Data {
 
         // Field
