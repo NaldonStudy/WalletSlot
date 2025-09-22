@@ -13,33 +13,36 @@ export { useAccounts } from './useAccount';
 export { useAccountBalance } from './useAccountBalance';
 
 // 슬롯 관련 (기본 틀)
-export { useSlots, useSlotDetail } from './useSlots';
+export { useSlotDetail, useSlots } from './useSlots';
 
 // 알림 관련
 export {
-  useDeleteNotification, useMarkAllNotificationsAsRead, useMarkNotificationAsRead, useNotifications, useNotificationSettings, usePushNotificationSystem, useUnreadNotificationCount, useUpdateNotificationSettings
+    useDeleteNotification, useMarkAllNotificationsAsRead, useMarkNotificationAsRead, useNotifications, useNotificationSettings, usePushNotificationSystem, useUnreadNotificationCount, useUpdateNotificationSettings
 } from './useNotifications';
 
 // 알림 화면 전용 훅
 export { useNotificationLogic } from './useNotificationLogic';
 export { useNotificationNavigation } from './useNotificationNavigation';
 
+// 레포트 관련
+export { useSpendingReport } from './useSpendingReport';
+
 // 프로필 관련
 export {
-  useConfirmEmailVerification,
-  useConfirmPhoneVerification,
-  useRemoveAvatar,
-  useSendEmailVerification,
-  useSendPhoneVerification,
-  useUpdateAvatar,
-  useUpdateDateOfBirth,
-  useUpdateEmail,
-  useUpdateGender,
-  useUpdateJob,
-  useUpdateMonthlyIncome,
-  useUpdateName,
-  useUpdateProfile,
-  useUserProfile
+    useConfirmEmailVerification,
+    useConfirmPhoneVerification,
+    useRemoveAvatar,
+    useSendEmailVerification,
+    useSendPhoneVerification,
+    useUpdateAvatar,
+    useUpdateDateOfBirth,
+    useUpdateEmail,
+    useUpdateGender,
+    useUpdateJob,
+    useUpdateMonthlyIncome,
+    useUpdateName,
+    useUpdateProfile,
+    useUserProfile
 } from './useProfile';
 
 // 공통 유틸리티 훅

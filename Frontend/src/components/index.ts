@@ -26,6 +26,9 @@ export type { InputFieldProps } from './InputField';
 export { NotificationFilters } from './NotificationFilters';
 export { NotificationRow } from './NotificationItem';
 
+// 레포트 관련 컴포넌트
+export * from './report';
+
 // TODO: 추가할 공통 컴포넌트들
 // export { Card } from './Card';
 // export { Modal } from './Modal';

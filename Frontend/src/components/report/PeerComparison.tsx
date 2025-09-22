@@ -1,0 +1,160 @@
+import { Spacing, Typography } from '@/src/constants/theme';
+import type { PeerComparison } from '@/src/types/report';
+import React from 'react';
+import { StyleSheet, Text, View } from 'react-native';
+
+interface PeerComparisonProps {
+  peerComparison: PeerComparison;
+  theme: any;
+}
+
+export const PeerComparisonCard: React.FC<PeerComparisonProps> = ({
+  peerComparison,
+  theme
+}) => {
+  const formatCurrency = (amount: number) => {
+    return `${Math.round(amount / 10000)}만원`;
+  };
+
+  const { demographicInfo } = peerComparison;
+
+  return (
+    <View style={[styles.container, { backgroundColor: theme.colors.background.secondary }]}>
+      <Text style={[styles.sectionTitle, { color: theme.colors.text.primary }]}>
+        또래 비교
+      </Text>
+      
+      <Text style={[styles.demographicText, { color: theme.colors.text.secondary }]}>
+        {demographicInfo.gender === 'M' ? '남성' : '여성'} · {demographicInfo.ageGroup} 중반 · {demographicInfo.incomeRange}
+      </Text>
+
+      {peerComparison.categories.map((category, index) => {
+        const isHigher = category.comparisonPercent > 100;
+        const percentage = Math.abs(category.comparisonPercent - 100);
+        
+        return (
+          <View key={index} style={styles.categoryItem}>
+            <View style={styles.categoryHeader}>
+              <Text style={[styles.categoryName, { color: theme.colors.text.primary }]}>
+                {category.categoryName}
+              </Text>
+              <View style={[
+                styles.comparisonBadge, 
+                { backgroundColor: isHigher ? '#FEE2E2' : '#F0FDF4' }
+              ]}>
+                <Text style={[
+                  styles.comparisonText,
+                  { color: isHigher ? '#DC2626' : '#16A34A' }
+                ]}>
+                  {category.comparisonPercent}%
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.amountComparison}>
+              <View style={styles.amountItem}>
+                <Text style={[styles.amountLabel, { color: theme.colors.text.secondary }]}>
+                  내 지출: {formatCurrency(category.mySpending)}
+                </Text>
+              </View>
+              <View style={styles.amountItem}>
+                <Text style={[styles.amountLabel, { color: theme.colors.text.secondary }]}>
+                  평균: {formatCurrency(category.peerAverage)}
+                </Text>
+              </View>
+            </View>
+
+            {/* 비교 바 */}
+            <View style={styles.comparisonBarContainer}>
+              <View style={[styles.comparisonBar, { backgroundColor: theme.colors.background.tertiary }]}>
+                <View 
+                  style={[
+                    styles.mySpendingBar,
+                    { 
+                      backgroundColor: isHigher ? '#EF4444' : '#10B981',
+                      width: `${Math.min((category.mySpending / Math.max(category.mySpending, category.peerAverage)) * 100, 100)}%`
+                    }
+                  ]}
+                />
+              </View>
+            </View>
+          </View>
+        );
+      })}
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    padding: Spacing.lg,
+    marginBottom: Spacing.base,
+    borderRadius: 16,
+    overflow: 'visible', // 내용이 잘리지 않도록
+  },
+  sectionTitle: {
+    fontSize: Typography.fontSize.lg,
+    fontWeight: Typography.fontWeight.bold,
+    marginBottom: Spacing.xs,
+  },
+  demographicText: {
+    fontSize: Typography.fontSize.base, // 크기 증가
+    fontWeight: Typography.fontWeight.medium, // 글꼴 두께 추가
+    marginBottom: Spacing.lg,
+  },
+  categoryItem: {
+    marginBottom: Spacing.base,
+    paddingBottom: Spacing.base,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+    paddingVertical: Spacing.sm,
+    // minHeight 제거 - 컨텐츠에 따라 동적 크기
+  },
+  categoryHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: Spacing.sm,
+  },
+  categoryName: {
+    fontSize: Typography.fontSize.lg, // 크기 증가
+    fontWeight: Typography.fontWeight.bold, // 더 굵게
+  },
+  comparisonBadge: {
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  comparisonText: {
+    fontSize: Typography.fontSize.base, // 크기 증가
+    fontWeight: Typography.fontWeight.bold,
+  },
+  amountComparison: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: Spacing.sm,
+    flexWrap: 'wrap',
+    // minHeight 제거 - 텍스트 내용에 따라 자동 크기
+  },
+  amountItem: {
+    flex: 1,
+    paddingRight: Spacing.xs,
+    // minWidth 제거 - 내용에 따라 자연스럽게 크기 조정
+  },
+  amountLabel: {
+    fontSize: Typography.fontSize.base, // 크기 증가
+    fontWeight: Typography.fontWeight.medium, // 글꼴 두께 추가
+  },
+  comparisonBarContainer: {
+    marginTop: Spacing.xs,
+  },
+  comparisonBar: {
+    height: 8,
+    borderRadius: 4,
+    overflow: 'visible',
+  },
+  mySpendingBar: {
+    height: '100%',
+    borderRadius: 4,
+  },
+});

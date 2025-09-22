@@ -1,5 +1,6 @@
 import { SLOT_CATEGORIES } from "../constants/slots";
 export * from './account';
+export * from './report';
 export * from './slot';
 
 // ===== 로컬 저장소용 타입들 =====
