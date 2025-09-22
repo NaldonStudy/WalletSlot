@@ -6,7 +6,7 @@
  * 격리하여 fallback fetch 로직을 캡슐화합니다.
  */
 
-import type { PaginatedResponse, UserAccount, BaseResponse, AccountsResponse, SlotsResponse, SlotData } from '@/src/types';
+import type { PaginatedResponse, UserAccount, BaseResponse, AccountsResponse, SlotsResponse, SlotData, SlotDailySpendingResponse } from '@/src/types';
 
 /** 알림 목록 응답 형태 후보 타입 (느슨한 any 구조) */
 export type RawNotificationListResponse = any; // 다양한 케이스 수용
@@ -373,7 +373,7 @@ export function normalizeSlotDetail(raw: RawSlotsResponse): BaseResponse<SlotDat
     data: {
       slotId: '',
       slotName: '',
-      slotIcon: '',
+      slotIcon: { uri: '' },
       slotColor: '',
       budget: 0,
       remaining: 0,
@@ -394,6 +394,56 @@ export async function fetchSlotDetailFallback(slotId: string): Promise<BaseRespo
     }
   } catch (e) {
     console.log('[SLOT_DETAIL_NORMALIZER] fallback fetch 실패:', e);
+  }
+  return null;
+}
+
+/**
+ * 슬롯 하루 지출 합계 응답 정규화
+ */
+export function normalizeSlotDailySpending(raw: any): BaseResponse<SlotDailySpendingResponse> {
+  // Case A: 표준 API 응답 구조
+  if (raw && raw.success !== undefined && raw.data) {
+    return {
+      success: raw.success,
+      message: raw.message || '슬롯 하루 지출 합계 조회 성공',
+      data: raw.data,
+    };
+  }
+
+  // Case B: 직접 응답 객체
+  if (raw && raw.startDate && raw.transactions) {
+    return {
+      success: true,
+      message: raw.message || '슬롯 하루 지출 합계 조회 성공',
+      data: raw,
+    };
+  }
+
+  // Case C: 문자열/빈 객체 => 기본값
+  return {
+    success: true,
+    message: '슬롯 하루 지출 합계 조회 성공',
+    data: {
+      startDate: '',
+      transactions: [],
+    },
+  };
+}
+
+/**
+ * Fallback fetch를 수행하여 확실한 JSON을 확보.
+ * 네트워크/파싱 성공 시 정규화된 응답 반환, 실패 시 null 반환.
+ */
+export async function fetchSlotDailySpendingFallback(accountId: string, slotId: string): Promise<BaseResponse<SlotDailySpendingResponse> | null> {
+  try {
+    const res = await fetch(`/api/accounts/${accountId}/slots/${slotId}/daily-spending`);
+    const json = await res.json();
+    if (json) {
+      return normalizeSlotDailySpending(json);
+    }
+  } catch (e) {
+    console.log('[SLOT_DAILY_SPENDING_NORMALIZER] fallback fetch 실패:', e);
   }
   return null;
 }
