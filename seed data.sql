@@ -155,10 +155,15 @@ VALUES
 (2, UUID(), 2, '에어팟', 250000, NULL);
 
 -- EMAIL
-INSERT INTO `email` (id, user_id, name, email)
+INSERT INTO `email` (id, user_id, name, email, is_primary, verified_at, created_at)
 VALUES
-(1, 1, '전해지', 'wjsgowl0224@naver.com'),
-(2, 2, '김영희', 'kim@student.com');
+-- user 1: 과거 이메일(비기본) + 현재 이메일(기본)
+(1, 1, '전해지', 'wjsgowl0224_old@naver.com', 0, '2024-07-10 10:00:00', '2024-07-10 10:00:00'),
+(2, 1, '전해지', 'wjsgowl0224@naver.com',       1, '2025-09-20 13:22:00', '2025-09-20 13:20:00'),
+
+-- user 2: 현재 이메일(기본)만 1건
+(3, 2, '김영희', 'kim@student.com',             1, '2025-09-18 09:00:00', '2025-09-18 09:00:00');
+
 
 -- AI_REPORT (옵션)
 INSERT INTO `ai_report` (id, uuid, account_id, content)
