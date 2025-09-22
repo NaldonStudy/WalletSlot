@@ -595,8 +595,8 @@ public class SlotService {
             slotDtoList2.add(slotDto2);
         } // 추가요청받은 슬롯 리스트 추가 완료
 
-        // initialBudgetSum <= budgetLimit 검사
-        if(initialBudgetSum >  budgetLimit) {
+        // initialBudgetSum <= budgetLimit 맞는지 검사
+        if(!(initialBudgetSum <=  budgetLimit)) {
             throw new AppException(ErrorCode.ALLOCATABLE_BUDGET_EXCEEDED, "[SlotService - 034]");
         }
 

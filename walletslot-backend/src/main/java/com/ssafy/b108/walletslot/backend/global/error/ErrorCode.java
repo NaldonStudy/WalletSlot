@@ -19,8 +19,10 @@ public enum ErrorCode {
 
     // Slot
     ALLOCATABLE_BUDGET_EXCEEDED("할당 가능한 예산을 초과했습니다.", HttpStatus.UNPROCESSABLE_ENTITY),
-    THRIFT_BUDGET_EXCEEDED("지난 달에 절약한 금액 한도 내에서만 다음달 슬롯 예산을 늘릴 수 있습니다.", HttpStatus.UNPROCESSABLE_ENTITY);
+    THRIFT_BUDGET_EXCEEDED("지난 달에 절약한 금액 한도 내에서만 다음달 슬롯 예산을 늘릴 수 있습니다.", HttpStatus.UNPROCESSABLE_ENTITY),
 
+    // Transaction
+    INVALID_SPLIT_AMOUNT("나눈 금액들의 합이 원래 금액과 일치하지 않습니다.", HttpStatus.BAD_REQUEST);
     private final String message;
     private final HttpStatus status;
 }

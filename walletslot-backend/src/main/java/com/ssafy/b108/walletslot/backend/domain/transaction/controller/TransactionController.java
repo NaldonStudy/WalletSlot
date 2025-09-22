@@ -2,9 +2,7 @@ package com.ssafy.b108.walletslot.backend.domain.transaction.controller;
 
 import com.ssafy.b108.walletslot.backend.config.security.UserPrincipal;
 import com.ssafy.b108.walletslot.backend.domain.slot.dto.GetSlotListResponseDto;
-import com.ssafy.b108.walletslot.backend.domain.transaction.dto.GetAccountSlotTransactionListResponseDto;
-import com.ssafy.b108.walletslot.backend.domain.transaction.dto.GetAccountTransactionListResponseDto;
-import com.ssafy.b108.walletslot.backend.domain.transaction.dto.SplitTransactionResponseDto;
+import com.ssafy.b108.walletslot.backend.domain.transaction.dto.*;
 import com.ssafy.b108.walletslot.backend.domain.transaction.service.TransactionService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -45,8 +43,8 @@ public class TransactionController {
             }
 
     )
-    public ResponseEntity<GetAccountTransactionListResponseDto> getAccountTransactionList(@AuthenticationPrincipal UserPrincipal principal, @PathVariable String accountId) {
-        return ResponseEntity.status(HttpStatus.OK).body(transactionService.getAccountTransactionList(principal.userId(), accountId));
+    public ResponseEntity<GetAccountTransactionListResponseDto> getAccountTransactions(@AuthenticationPrincipal UserPrincipal principal, @PathVariable String accountId) {
+        return ResponseEntity.status(HttpStatus.OK).body(transactionService.getAccountTransactions(principal.userId(), accountId));
     }
 
     @GetMapping("/accounts/{accountId}/slots/{accountSlotId}/transactions")
@@ -62,24 +60,41 @@ public class TransactionController {
             }
 
     )
-    public ResponseEntity<GetAccountSlotTransactionListResponseDto> getAccountSlotTransactionList(@AuthenticationPrincipal UserPrincipal principal, @PathVariable String accountId, @PathVariable String accountSlotId) {
-        return ResponseEntity.status(HttpStatus.OK).body(transactionService.getAccountSlotTransactionList(principal.userId(), accountId, accountSlotId));
+    public ResponseEntity<GetAccountSlotTransactionListResponseDto> getAccountSlotTransactions(@AuthenticationPrincipal UserPrincipal principal, @PathVariable String accountId, @PathVariable String accountSlotId) {
+        return ResponseEntity.status(HttpStatus.OK).body(transactionService.getAccountSlotTransactions(principal.userId(), accountId, accountSlotId));
     }
 
-    @PostMapping("/accounts/{accountId}/transactions/{transactionId}/split")
+    @PostMapping("/accounts/{accountId}/transactions/{transactionId}/splits")
     @Operation(
             summary = "6-2-1 거래내역 나누기",
-            description = "하나의 거래내역을 여러개의 거래내역으로 나눕니다. (거래내역 분할 및 더치페이 기능에 활용)",
+            description = "하나의 거래내역을 여러개의 거래내역으로 나누고, 각각 다른 슬롯으로 재분배합니다.",
             responses = {
                     @ApiResponse(
-                            responseCode = "200",
-                            description = "[SlotService - 001] 슬롯 거래내역 나누기 성공 (이어서 6-2-2 요청을 보내주시기 바랍니다.)",
+                            responseCode = "201",
+                            description = "[SlotService - 001] 슬롯 거래내역 나누기 성공",
                             content = @Content(schema = @Schema(implementation = GetSlotListResponseDto.class))
                     )
             }
 
     )
-    public ResponseEntity<SplitTransactionResponseDto> splitTransaction(@AuthenticationPrincipal UserPrincipal principal, @PathVariable String accountId, @PathVariable String transactionId) {
-        return ResponseEntity.status(HttpStatus.OK).body(transactionService.splitTransaction(principal.userId(), accountId, transactionId));
+    public ResponseEntity<AddSplitTransactionsResponseDto> addSplitTransactions(@AuthenticationPrincipal UserPrincipal principal, @PathVariable String accountId, @PathVariable String transactionId, @RequestBody AddSplitTransactionsRequestDto request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(transactionService.addSplitTransactions(principal.userId(), accountId, transactionId, request.getTransactions()));
+    }
+
+    @PostMapping("/accounts/{accountId}/transactions/{transactionId}/dutchpays")
+    @Operation(
+            summary = "6-2-2 더치페이",
+            description = "하나의 거래내역에서 1/n만 남겨놓고, 나머지 항목을 미분류 슬롯으로 이동합니다.",
+            responses = {
+                    @ApiResponse(
+                            responseCode = "201",
+                            description = "[SlotService - 001] 더치페이 성공",
+                            content = @Content(schema = @Schema(implementation = GetSlotListResponseDto.class))
+                    )
+            }
+
+    )
+    public ResponseEntity<AddDutchPayTransactionsResponseDto> addDutchPayTransactions(@AuthenticationPrincipal UserPrincipal principal, @PathVariable String accountId, @PathVariable String transactionId, @RequestParam Integer n) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(transactionService.addDutchPayTransactions(principal.userId(), accountId, transactionId, n));
     }
 }

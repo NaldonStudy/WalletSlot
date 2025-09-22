@@ -11,4 +11,5 @@ import java.util.Optional;
 public interface TransactionRepository extends JpaRepository<Transaction,Long> {
     List<Transaction> findByAccount(Account account);
     List<Transaction> findByAccountSlot(AccountSlot accountSlot);
+    Optional<Transaction> findByUuid(String transactionUuid);
 }

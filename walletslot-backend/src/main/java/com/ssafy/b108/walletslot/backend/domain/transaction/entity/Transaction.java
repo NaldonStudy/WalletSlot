@@ -52,4 +52,21 @@ public class Transaction {
 
     @Column(nullable = false, insertable = false, updatable = false)
     private String transactionAt;
+
+    // Method
+    public void addAmount(Long amount) {
+        this.amount += amount;
+    }
+
+    public void minusAmount(Long amount) {
+        this.amount -= amount;
+    }
+
+    public void addBalance(Long balance) {
+        this.balance += balance;
+    }
+
+    public void minusBalance(Long balance) {
+        this.balance -= balance;
+    }
 }
