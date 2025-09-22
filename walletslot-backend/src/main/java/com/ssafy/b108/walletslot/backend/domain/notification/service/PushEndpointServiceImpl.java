@@ -1,6 +1,6 @@
 package com.ssafy.b108.walletslot.backend.domain.notification.service;
 
-import com.ssafy.b108.walletslot.backend.domain.notification.dto.*;
+import com.ssafy.b108.walletslot.backend.domain.notification.dto.device.*;
 import com.ssafy.b108.walletslot.backend.domain.notification.entity.PushEndpoint;
 import com.ssafy.b108.walletslot.backend.domain.notification.repository.PushEndpointRepository;
 import com.ssafy.b108.walletslot.backend.domain.user.entity.User;
@@ -19,105 +19,112 @@ import java.util.List;
 public class PushEndpointServiceImpl implements PushEndpointService {
 
     private final PushEndpointRepository pushRepo;
+
     private final UserRepository userRepo;
 
-    // 1-1 등록/갱신
+    /** * 1-1 / 8-1-1 디바이스(엔드포인트) 등록/갱신 */
     @Override
-    public RegisterDeviceResponseDto registerDevice(long userId, RegisterDeviceRequestDto req) {
-        User user = userRepo.findById(userId)
-                .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "[DeviceService - 000]"));
+    public RegisterDeviceResponseDto registerDevice(final long userId, final RegisterDeviceRequestDto req) {
+        final User user = userRepo.findById(userId)
+                .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "[DeviceService - 001]"));
 
-        PushEndpoint pe = pushRepo.findByUserAndDeviceId(user, req.getDeviceId())
+        final PushEndpoint pe = pushRepo.findByUserAndDeviceId(user, req.getDeviceId())
                 .orElseGet(() -> PushEndpoint.create(
                         user, req.getDeviceId(), req.getPlatform(), req.getToken(), req.getPushEnabled()
                 ));
 
-        if (pe.getId() != null) { // 이미 있으면 갱신
-            pe.refresh(req.getPlatform(), req.getToken(), req.getPushEnabled()); // pushEnabled 명시 시에만 변경
+        if (pe.getId() != null) {
+            pe.refresh(req.getPlatform(), req.getToken(), req.getPushEnabled());
         }
+
         pushRepo.save(pe);
 
         return RegisterDeviceResponseDto.builder()
                 .success(true)
-                .message("[DeviceService - 000] 디바이스 등록/갱신 성공")
+                .message("[DeviceService - 001] 디바이스 등록/갱신 성공")
                 .data(RegisterDeviceResponseDto.Data.builder().device(toDto(pe)).build())
                 .build();
     }
 
-    // 1-2 목록
+    /** * 1-2 / 8-1-2 내 디바이스(엔드포인트) 목록 조회 */
     @Override
-    public GetDeviceListResponseDto getMyDevices(long userId) {
-        User user = userRepo.findById(userId)
-                .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "[DeviceService - 000]"));
+    public GetDeviceListResponseDto getMyDevices(final long userId) {
+        final User user = userRepo.findById(userId)
+                .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "[DeviceService - 002]"));
 
-        List<PushEndpoint> list = pushRepo.findByUserOrderByIdDesc(user);
+        final List<PushEndpoint> list = pushRepo.findByUserOrderByIdDesc(user);
 
         return GetDeviceListResponseDto.builder()
                 .success(true)
-                .message("[DeviceService - 000] 디바이스 목록 조회 성공")
+                .message("[DeviceService - 002] 디바이스 목록 조회 성공")
                 .data(GetDeviceListResponseDto.Data.builder()
                         .devices(list.stream().map(this::toDto).toList())
                         .build())
                 .build();
     }
 
-    // 1-3 상태변경 (푸시 on/off 또는 원격 로그아웃)
+    /** * 1-3 / 8-1-3 디바이스(엔드포인트) 상태/설정 변경 (통합 PATCH) */
     @Override
-    public UpdateDeviceResponseDto updateDevice(long userId, String deviceId, UpdateDeviceRequestDto req) {
-        PushEndpoint pe = pushRepo.findByUserAndDeviceId(
-                userRepo.findById(userId).orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "[DeviceService - 000]")),
+    public UpdateDeviceResponseDto updateDevice(final long userId, final String deviceId, final UpdateDeviceRequestDto req) {
+        final PushEndpoint pe = pushRepo.findByUserAndDeviceId(
+                userRepo.findById(userId).orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "[DeviceService - 003]")),
                 deviceId
-        ).orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "[DeviceService - 000]"));
+        ).orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "[DeviceService - 003]"));
 
         if (Boolean.TRUE.equals(req.getRemoteLogout())) {
             pe.remoteLogout();
-        } else if (req.getPushEnabled() != null) {
-            pe.updatePushEnabled(req.getPushEnabled());
+        } else {
+            if (req.getPushEnabled() != null) pe.updatePushEnabled(req.getPushEnabled());
+            if (req.getToken() != null && !req.getToken().isBlank()) pe.replaceToken(req.getToken());
+            if (req.getPlatform() != null) pe.changePlatform(req.getPlatform());
+            if (req.getStatus() != null) pe.changeStatus(req.getStatus());
         }
 
         return UpdateDeviceResponseDto.builder()
                 .success(true)
-                .message("[DeviceService - 000] 디바이스 상태 변경 성공")
+                .message("[DeviceService - 003] 디바이스 상태 변경 성공")
                 .data(UpdateDeviceResponseDto.Data.builder().device(toDto(pe)).build())
                 .build();
     }
 
-    // 1-4 토큰 교체 (푸시 설정은 건드리지 않음)
+    /** * 1-4 (레거시) FCM/WebPush 토큰 교체 */
     @Override
-    public ReplaceDeviceTokenResponseDto replaceToken(long userId, String deviceId, ReplaceTokenRequestDto req) {
-        PushEndpoint pe = pushRepo.findByUserAndDeviceId(
-                userRepo.findById(userId).orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "[DeviceService - 000]")),
+    public ReplaceDeviceTokenResponseDto replaceToken(final long userId, final String deviceId, final ReplaceTokenRequestDto req) {
+        final PushEndpoint pe = pushRepo.findByUserAndDeviceId(
+                userRepo.findById(userId).orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "[DeviceService - 004]")),
                 deviceId
-        ).orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "[DeviceService - 000]"));
+        ).orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "[DeviceService - 004]"));
 
         pe.replaceToken(req.getToken());
 
         return ReplaceDeviceTokenResponseDto.builder()
                 .success(true)
-                .message("[DeviceService - 000] FCM/WebPush 토큰 교체 성공")
+                .message("[DeviceService - 004] FCM/WebPush 토큰 교체 성공")
                 .data(ReplaceDeviceTokenResponseDto.Data.builder().device(toDto(pe)).build())
                 .build();
     }
 
-    // 1-5 삭제
+    /** * 1-5 / 8-1-5 디바이스(엔드포인트) 삭제(연동 해지) */
     @Override
-    public DeleteDeviceResponseDto deleteDevice(long userId, String deviceId) {
-        PushEndpoint pe = pushRepo.findByUserAndDeviceId(
-                userRepo.findById(userId).orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "[DeviceService - 000]")),
+    public DeleteDeviceResponseDto deleteDevice(final long userId, final String deviceId) {
+        final PushEndpoint pe = pushRepo.findByUserAndDeviceId(
+                userRepo.findById(userId).orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "[DeviceService - 005]")),
                 deviceId
-        ).orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "[DeviceService - 000]"));
+        ).orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "[DeviceService - 005]"));
 
-        DeviceDto snapshot = toDto(pe);
+        final DeviceDto snapshot = toDto(pe);
+
         pushRepo.delete(pe);
 
         return DeleteDeviceResponseDto.builder()
                 .success(true)
-                .message("[DeviceService - 000] 디바이스 삭제(연동 해지) 성공")
+                .message("[DeviceService - 005] 디바이스 삭제(연동 해지) 성공")
                 .data(DeleteDeviceResponseDto.Data.builder().device(snapshot).build())
                 .build();
     }
 
-    private DeviceDto toDto(PushEndpoint e) {
+    // 공통: 엔티티 -> DTO 변환
+    private DeviceDto toDto(final PushEndpoint e) {
         return DeviceDto.builder()
                 .deviceId(e.getDeviceId())
                 .platform(e.getPlatform())

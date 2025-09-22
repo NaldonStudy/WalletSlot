@@ -1,4 +1,4 @@
-package com.ssafy.b108.walletslot.backend.domain.notification.dto;
+package com.ssafy.b108.walletslot.backend.domain.notification.dto.device;
 
 import jakarta.validation.constraints.*;
 import lombok.Builder;
