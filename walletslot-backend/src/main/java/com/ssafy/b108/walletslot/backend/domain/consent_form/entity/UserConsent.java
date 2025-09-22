@@ -45,6 +45,6 @@ public class UserConsent {
     @Column(nullable = false)
     private LocalDateTime expiredAt;
 
-    @Column(updatable = false)
+    @Column
     private LocalDateTime revokedAt;
 }
