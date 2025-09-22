@@ -23,7 +23,7 @@ public class ModifyAccountSlotResponseDto {
     @NoArgsConstructor
     @AllArgsConstructor
     @Builder
-    @Schema(name = "ModifyAccountSlotResponseDto")
+    @Schema(name = "ModifyAccountSlotResponseDto_Data")
     public static class Data {
 
         // Field

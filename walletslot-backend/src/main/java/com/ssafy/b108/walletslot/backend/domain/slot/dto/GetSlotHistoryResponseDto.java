@@ -27,7 +27,7 @@ public class GetSlotHistoryResponseDto {
     @NoArgsConstructor
     @AllArgsConstructor
     @Builder
-    @Schema(name = "GetSlotHistoryResponseDto")
+    @Schema(name = "GetSlotHistoryResponseDto_Data")
     public static class Data {
 
         // Field
@@ -39,7 +39,7 @@ public class GetSlotHistoryResponseDto {
     @NoArgsConstructor
     @AllArgsConstructor
     @Builder
-    @Schema(name = "GetSlotHistoryResponseDto")
+    @Schema(name = "GetSlotHistoryResponseDto_SlotDto")
     public static class SlotDto {
 
         // Field
@@ -56,7 +56,7 @@ public class GetSlotHistoryResponseDto {
     @NoArgsConstructor
     @AllArgsConstructor
     @Builder
-    @Schema(name = "GetSlotHistoryResponseDto")
+    @Schema(name = "GetSlotHistoryResponseDto_SlotHistoryDto")
     public static class SlotHistoryDto {
 
         // Field

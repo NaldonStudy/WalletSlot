@@ -64,7 +64,7 @@ public class RecommendSlotListResponseDto {
     @NoArgsConstructor
     @AllArgsConstructor
     @Builder
-    @Schema(name = "RecommendSlotListResponseDto")
+    @Schema(name = "RecommendSlotListResponseDto_SlotDto")
     public static class SlotDto {
 
         // Field

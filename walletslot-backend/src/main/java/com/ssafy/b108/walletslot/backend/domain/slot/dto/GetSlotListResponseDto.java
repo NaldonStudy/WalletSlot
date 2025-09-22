@@ -37,7 +37,7 @@ public class GetSlotListResponseDto {
     @NoArgsConstructor
     @AllArgsConstructor
     @Builder
-    @Schema(name = "GetSlotListResponseDto")
+    @Schema(name = "GetSlotListResponseDto_SlotDto")
     public static class SlotDto {
 
         // Field

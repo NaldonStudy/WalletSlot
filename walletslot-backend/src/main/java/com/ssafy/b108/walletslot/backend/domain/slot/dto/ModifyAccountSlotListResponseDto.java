@@ -26,7 +26,7 @@ public class ModifyAccountSlotListResponseDto {
     @NoArgsConstructor
     @AllArgsConstructor
     @Builder
-    @Schema(name = "ModifyAccountSlotListResponseDto")
+    @Schema(name = "ModifyAccountSlotListResponseDto_Data")
     public static class Data {
 
         // Field
@@ -37,7 +37,7 @@ public class ModifyAccountSlotListResponseDto {
     @NoArgsConstructor
     @AllArgsConstructor
     @Builder
-    @Schema(name = "ModifyAccountSlotListResponseDto")
+    @Schema(name = "ModifyAccountSlotListResponseDto_SlotDto")
     public static class SlotDto {
 
         // Field
