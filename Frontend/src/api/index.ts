@@ -6,5 +6,6 @@ export { notificationApi } from './notification';
 export { profileApi } from './profile';
 export { queryClient } from './queryClient';
 export { queryKeys } from './queryKeys';
-export { slotApi, slotCategoryApi } from './slot';
+export { reportApi } from './report';
+export { slotApi } from './slot';
 

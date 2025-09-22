@@ -25,3 +25,24 @@ export interface SlotDailySpendingResponse {
   startDate: string;
   transactions: SlotDailySpending[];
 }
+
+// 개별 거래내역
+export interface SlotTransaction {
+  transactionId: string;
+  date: string;       // YYYY-MM-DD
+  amount: number;     // 금액 (+/-)
+  remaining: number; // 잔액
+  summary: string // 거래처
+  category?: string;   // 선택적으로 카테고리
+}
+
+export interface SlotTransactionsResponse {
+  transactions: SlotTransaction[];
+  totalPages: number;
+  totalItems: number;
+  currentPage: number;
+  pageSize: number;
+}
+
+
+
