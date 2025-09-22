@@ -1,6 +1,7 @@
 package com.ssafy.b108.walletslot.backend.domain.slot.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
 
 import java.util.List;
@@ -9,6 +10,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@Schema(name = "GetAccountSlotListResponseDto")
 public class GetAccountSlotListResponseDto {
 
     // Field
@@ -21,6 +23,7 @@ public class GetAccountSlotListResponseDto {
     @NoArgsConstructor
     @AllArgsConstructor
     @Builder
+    @Schema(name = "GetAccountSlotListResponseDto")
     public static class Data {
 
         // Field
@@ -31,6 +34,7 @@ public class GetAccountSlotListResponseDto {
     @NoArgsConstructor
     @AllArgsConstructor
     @Builder
+    @Schema(name = "GetAccountSlotListResponseDto")
     public static class SlotDto {
 
         // Field
