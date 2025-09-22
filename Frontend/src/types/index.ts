@@ -1,4 +1,6 @@
 import { SLOT_CATEGORIES } from "../constants/slots";
+export * from './account';
+export * from './slot';
 
 // ===== 공통 타입 =====
 // ===== UI 컴포넌트용 타입들 =====
@@ -9,24 +11,6 @@ import { SLOT_CATEGORIES } from "../constants/slots";
 
 export type SlotId = keyof typeof SLOT_CATEGORIES;
 
-export interface SlotData {
-  slotId: SlotId;
-  name: string;
-  budget: number;
-  remain: number;
-  color: string;
-}
-
-/**
- * 계좌 데이터 (슬롯 포함)
- */
-export interface AccountData {
-  bankCode: string;
-  accountName: string;
-  accountNumber: string;
-  balanceFormatted: string;
-  slots: SlotData[];
-}
 
 export interface BaseResponse<T = any> {
   success: boolean;
@@ -79,6 +63,33 @@ export interface User {
 }
 
 /**
+ * 사용자 프로필 정보 (마이페이지용)
+ */
+export interface UserProfile {
+  name: string;
+  phone: string;
+  gender: 'M' | 'F' | 'O' | 'unknown';
+  dateOfBirth: string; // YYYY-MM-DD 형식
+  email: string | null;
+  job: string | null;
+  monthlyIncome: number | null; // 원 단위
+  avatar: string | null; // 프로필 이미지 URL
+  baseDay?: number; // 기준일 (1-31)
+}
+
+/**
+ * 프로필 수정 요청
+ */
+export interface UpdateProfileRequest {
+  name?: string;
+  email?: string;
+  job?: string;
+  monthlyIncome?: number;
+  avatar?: string; // base64 이미지 또는 파일 URL
+  baseDay?: number; // 기준일 (1-31)
+}
+
+/**
  * 은행 정보 인터페이스 (banks 테이블)
  */
 export interface Bank {
@@ -89,20 +100,6 @@ export interface Bank {
   brandColor: string | null;
 }
 
-/**
- * 사용자 계좌 정보 인터페이스 (accounts 테이블)
- */
-export interface UserAccount {
-  accountId: number;
-  userId: number;
-  bankName: string;
-  bankCode: string;
-  accountName: string;
-  accountNumberMasked: string | null;
-  balanceMinor: number;
-  lastSyncedAt: string | null;
-  isPrimary: boolean; // tinyint(1) -> boolean
-}
 
 /**
  * 슬롯(통장 쪼개기) 정보 인터페이스 (slots 테이블)

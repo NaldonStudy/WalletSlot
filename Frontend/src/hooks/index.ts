@@ -9,10 +9,11 @@ import { useEffect, useState } from 'react';
 export { useAuth } from './useAuth';
 
 // 계좌 관련 
-export { useAccount, useTransactions } from './useAccount';
+export { useAccounts } from './useAccount';
+export { useAccountBalance } from './useAccountBalance';
 
 // 슬롯 관련 (기본 틀)
-export { useSlot, useSlotRecommendations, useSlots } from './useSlots';
+export { useSlots, useSlotDetail } from './useSlots';
 
 // 알림 관련
 export {
@@ -22,6 +23,24 @@ export {
 // 알림 화면 전용 훅
 export { useNotificationLogic } from './useNotificationLogic';
 export { useNotificationNavigation } from './useNotificationNavigation';
+
+// 프로필 관련
+export {
+  useConfirmEmailVerification,
+  useConfirmPhoneVerification,
+  useRemoveAvatar,
+  useSendEmailVerification,
+  useSendPhoneVerification,
+  useUpdateAvatar,
+  useUpdateDateOfBirth,
+  useUpdateEmail,
+  useUpdateGender,
+  useUpdateJob,
+  useUpdateMonthlyIncome,
+  useUpdateName,
+  useUpdateProfile,
+  useUserProfile
+} from './useProfile';
 
 // 공통 유틸리티 훅
 export const useDebounce = (value: string, delay: number) => {

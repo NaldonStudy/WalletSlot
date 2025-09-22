@@ -1,12 +1,12 @@
 import { featureFlags } from '@/src/config/featureFlags';
 import { ENABLE_NOTIFICATION_FALLBACK } from '@/src/constants/api';
 import type {
-  BaseResponse,
-  NotificationItem,
-  NotificationSettings,
-  PaginatedResponse,
-  SendNotificationRequest,
-  UpdateTokenRequest
+    BaseResponse,
+    NotificationItem,
+    NotificationSettings,
+    PaginatedResponse,
+    SendNotificationRequest,
+    UpdateTokenRequest
 } from '@/src/types';
 import { apiClient } from './client';
 import { fetchNotificationsFallback, isAmbiguousAxiosBody, normalizeNotificationList } from './responseNormalizer';
@@ -267,14 +267,26 @@ export const notificationApi = {
    */
   getUnreadCount: async (): Promise<BaseResponse<{ count: number }>> => {
     try {
-      const response = await apiClient.get('/api/notifications/unread-count') as any;
-  console.log('[NOTIF_API] getUnreadCount response:', response);
-      // MSW에서 직접 { count: number } 형태로 반환
-      return {
-        success: true,
-        data: response.count !== undefined ? { count: response.count } : response,
-        message: '읽지 않은 알림 개수 조회 완료'
-      };
+      const raw = await apiClient.get('/api/notifications/unread-count') as any;
+      console.log('[NOTIF_API] getUnreadCount raw:', raw);
+
+      // apiClient는 가능한 한 { success, data } 형태로 반환합니다.
+      if (raw && typeof raw === 'object') {
+        if (raw.success && raw.data && typeof raw.data.count === 'number') {
+          return { success: true, data: { count: raw.data.count }, message: raw.message || '읽지 않은 알림 개수 조회 완료' };
+        }
+        // MSW가 직접 { count }로 반환한 경우도 고려
+        if (typeof raw.count === 'number') {
+          return { success: true, data: { count: raw.count }, message: '읽지 않은 알림 개수 조회 완료' };
+        }
+        // 그 외에는 raw.data 자체를 시도
+        if (raw.data && typeof raw.data.count === 'number') {
+          return { success: true, data: { count: raw.data.count }, message: raw.message || '읽지 않은 알림 개수 조회 완료' };
+        }
+      }
+
+      // 안전한 기본값
+      return { success: true, data: { count: 0 }, message: '읽지 않은 알림 개수 조회 완료' };
     } catch (error) {
   console.error('[NOTIF_API] 읽지 않은 알림 개수 조회 실패:', error);
       return {

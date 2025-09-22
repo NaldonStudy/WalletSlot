@@ -1,87 +1,109 @@
-import { useQuery } from '@tanstack/react-query';
-import { slotApi, queryKeys } from '@/src/api';
-import type { Slot } from '@/src/types';
+import { useQuery } from "@tanstack/react-query";
+import { slotApi, queryKeys } from "@/src/api";
+import type { SlotData, SlotsResponse, BaseResponse } from "@/src/types";
 
-interface SlotForm {
-  name: string;
-  targetAmount: number;
-  category: string;
-  description?: string;
-}
+type UseSlotsOptions = {
+  enabled?: boolean;
+};
 
-/**
- * 슬롯 관련 커스텀 훅 (기본 틀)
- * 추후 API 안정화에 따라 확장 예정
- */
-export const useSlots = (accountId?: number) => {
-  // 계좌별 슬롯 목록 조회 (현재 사용 가능한 API)
-  const { 
-    data: slotsData, 
+export const useSlots = (accountId?: string, options: UseSlotsOptions = {}) => {
+  const {
+    data: slots,
     isLoading,
+    isError,
     error,
     refetch,
-  } = useQuery({
-    queryKey: accountId ? queryKeys.slots.byAccount(accountId) : ['slots', 'none'],
-    queryFn: () => accountId ? slotApi.getSlotsByAccount(accountId) : null,
-    enabled: !!accountId,
-    staleTime: 2 * 60 * 1000, // 2분간 캐시 유지
-  });
-
-  const slots = slotsData?.data || [];
-
-  return {
-    // 데이터
-    slots,
-    isLoading,
-    error,
-    
-    // 액션 (추후 구현)
-    createSlot: (data: SlotForm) => {
-      console.log('Create slot:', data);
-      // TODO: API 구현 후 활성화
+  } = useQuery<any, Error, SlotData[]>({
+    queryKey: accountId ? queryKeys.slots.byAccount(accountId) : ['slots', 'byAccount', 'undefined'],
+    queryFn: async () => {
+      const result = await slotApi.getSlotsByAccount(accountId!);
+      return result;
     },
-    
-    // 유틸리티
-    refetch,
-    getTotalAmount: () => slots.reduce((sum: number, slot: Slot) => sum + (slot.targetMinor || 0), 0),
-    getActiveSlots: () => slots.filter((slot: Slot) => slot.isActive),
-    
-    // 포맷팅
-    formatSlotAmount: (amount: number) => 
-      new Intl.NumberFormat('ko-KR').format(amount) + '원',
-  };
-};
-
-/**
- * 개별 슬롯 상세 정보 훅 (기본 틀)
- */
-export const useSlot = (slotId: number) => {
-  const { 
-    data: slotData, 
-    isLoading,
-    error,
-  } = useQuery({
-    queryKey: queryKeys.slots.detail(slotId),
-    queryFn: () => slotApi.getSlotDetail(slotId),
-    enabled: !!slotId,
-    staleTime: 2 * 60 * 1000,
+    staleTime: 5 * 60 * 1000, // 5분간 캐시 유지
+    gcTime: 10 * 60 * 1000, // 10분간 가비지 컬렉션 방지
+    enabled: !!accountId && options.enabled !== false,
+    select: (res) => {
+      // MSW 응답 구조에 따른 유연한 처리
+      let slots = [];
+      
+      // Case 1: { data: { slots: [...] } } - 표준 구조
+      if (res && res.data && res.data.slots) {
+        slots = res.data.slots;
+      }
+      // Case 2: { slots: [...] } - 직접 구조 (MSW에서 직접 보내는 경우)
+      else if (res && res.slots) {
+        slots = res.slots;
+      }
+      // Case 3: 빈 응답 또는 예상하지 못한 구조
+      else {
+        console.warn('[useSlots] 예상하지 못한 응답 구조:', res);
+        return [];
+      }
+      
+      return slots;
+    },
   });
 
+  if (isError && error) {
+    console.error('[useSlots] 에러 발생:', error.message);
+  }
+
   return {
-    slot: slotData?.data,
+    slots: slots || [],
     isLoading,
+    isError,
     error,
+    refetch,
   };
 };
 
-/**
- * 슬롯 추천 기능 훅 (추후 구현)
- */
-export const useSlotRecommendations = () => {
-  // TODO: API 파라미터 정리 후 구현
+export const useSlotDetail = (slotId?: string) => {
+  const {
+    data: slot,
+    isLoading,
+    isError,
+    error,
+    refetch,
+  } = useQuery<any, Error, SlotData>({
+    queryKey: ['slots', 'detail', slotId],
+    queryFn: async () => {
+      const result = await slotApi.getSlotDetail(slotId!);
+      return result;
+    },
+    staleTime: 5 * 60 * 1000, // 5분간 캐시 유지
+    gcTime: 10 * 60 * 1000, // 10분간 가비지 컬렉션 방지
+    enabled: !!slotId,
+    select: (res) => {
+      // MSW 응답 구조에 따른 유연한 처리
+      let slot = null;
+      
+      // Case 1: { data: { slotId, slotName, ... } } - 표준 구조
+      if (res && res.data && res.data.slotId) {
+        slot = res.data;
+      }
+      // Case 2: { slotId, slotName, ... } - 직접 구조 (MSW에서 직접 보내는 경우)
+      else if (res && res.slotId) {
+        slot = res;
+      }
+      // Case 3: 빈 응답 또는 예상하지 못한 구조
+      else {
+        console.warn('[useSlotDetail] 예상하지 못한 응답 구조:', res);
+        return null;
+      }
+      
+      return slot;
+    },
+  });
+
+  if (isError && error) {
+    console.error('[useSlotDetail] 에러 발생:', error.message);
+  }
+
   return {
-    recommendations: [],
-    isLoading: false,
-    refetch: () => {},
+    slot,
+    isLoading,
+    isError,
+    error,
+    refetch,
   };
 };
