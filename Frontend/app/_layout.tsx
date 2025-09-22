@@ -1,22 +1,23 @@
 // ✅ 1. 폴리필을 다른 어떤 코드보다 먼저 import 합니다.
 import '@/src/polyfills';
+import AsyncStorage from '@react-native-async-storage/async-storage'; //개발 디버그 함수용
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { useFonts } from 'expo-font';
 import { SplashScreen, Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage'; //개발 디버그 함수용
 import { Platform } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import 'react-native-reanimated';
 
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { queryClient } from '@/src/api/queryClient';
+import CustomSplashScreen from '@/src/components/CustomSplashScreen';
 import { initializeMSW } from '@/src/mocks';
-import { unifiedPushService } from '@/src/services/unifiedPushService';
-import { getOrCreateDeviceId } from '@/src/services/deviceIdService';
 import { appService } from '@/src/services/appService';
+import { getOrCreateDeviceId } from '@/src/services/deviceIdService';
+import { unifiedPushService } from '@/src/services/unifiedPushService';
 // import { monitoringService } from '@/src/services';
 
 // ✅ 개발 모드에서만 MSW를 초기화합니다.
@@ -35,6 +36,10 @@ export default function RootLayout() {
   });
   // 온보딩 완료 여부: 직접 AsyncStorage에서 관리
   const [onboardingDone, setOnboardingDone] = useState<boolean | null>(null);
+  // 스플래시 최소 표시 시간을 위한 상태
+  const [splashMinTimeElapsed, setSplashMinTimeElapsed] = useState(false);
+  // 커스텀 스플래시 화면 표시 여부
+  const [showCustomSplash, setShowCustomSplash] = useState(true);
 
   // 🐛 디버그용 함수: 온보딩을 다시 보기 위해 false로 설정
   const resetOnboarding = async () => {
@@ -160,12 +165,27 @@ export default function RootLayout() {
     })();
   }, []);
 
-  // 폰트 로딩이 완료되면 스플래시 화면을 숨깁니다.
+  // 스플래시 최소 표시 시간 (3초) 보장
   useEffect(() => {
-    if (loaded) {
+    const timer = setTimeout(() => {
+      setSplashMinTimeElapsed(true);
+    }, 3000);
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  // 폰트 로딩과 앱 초기화가 완료되면 스플래시 화면을 숨깁니다.
+  useEffect(() => {
+    if (loaded && onboardingDone !== null && splashMinTimeElapsed) {
+      // 네이티브 스플래시 숨기기
       SplashScreen.hideAsync();
+      
+      // 커스텀 스플래시 추가 표시 시간 (2초)
+      setTimeout(() => {
+        setShowCustomSplash(false);
+      }, 2000);
     }
-  }, [loaded]);
+  }, [loaded, onboardingDone, splashMinTimeElapsed]);
   
   // 앱 시작 시 기타 초기화 로직
   useEffect(() => {
@@ -231,16 +251,35 @@ export default function RootLayout() {
     }
   }, [onboardingDone]);
 
-  // 폰트 로딩 중일 때는 아무것도 렌더링하지 않습니다.
-  if (!loaded) {
-    return null;
+  // 커스텀 스플래시 화면 표시
+  if (showCustomSplash) {
+    return <CustomSplashScreen />;
   }
+
+  // 폰트 로딩 중이거나 온보딩 상태 확인 중일 때는 스플래시 화면 유지
+  if (!loaded || onboardingDone === null) {
+    return <CustomSplashScreen />;
+  }
+
+  // 라우팅 로직: 온보딩 완료 여부에 따라 다른 화면으로 이동
+  const getInitialRoute = () => {
+    if (onboardingDone === false) {
+      // 온보딩 미완료 → 온보딩 화면
+      return '(onboarding)';
+    }
+    
+    // 온보딩 완료 → 메인 앱 (인증 상태는 각 화면에서 처리)
+    return '(tabs)';
+  };
+
+  const initialRoute = getInitialRoute();
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <QueryClientProvider client={queryClient}>
         <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-          <Stack>
+          <Stack initialRouteName={initialRoute}>
+            <Stack.Screen name="index" options={{ headerShown: false }} />
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
             <Stack.Screen name="(onboarding)" options={{ headerShown: false }} />
             <Stack.Screen name="(auth)" options={{ headerShown: false }} />

@@ -26,6 +26,9 @@ export type { InputFieldProps } from './InputField';
 export { NotificationFilters } from './NotificationFilters';
 export { NotificationRow } from './NotificationItem';
 
+// 스플래시 화면 컴포넌트
+export { default as CustomSplashScreen } from './CustomSplashScreen';
+
 // TODO: 추가할 공통 컴포넌트들
 // export { Card } from './Card';
 // export { Modal } from './Modal';
