@@ -22,7 +22,7 @@ public class VerifyAccountResponseDto {
     @NoArgsConstructor
     @AllArgsConstructor
     @Builder
-    @Schema(name = "VerifyAccountResponseDto")
+    @Schema(name = "VerifyAccountResponseDto_Data")
     public static class Data {
 
         // Field

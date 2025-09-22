@@ -23,7 +23,7 @@ public class RemoveAccountSlotResponseDto {
     @NoArgsConstructor
     @AllArgsConstructor
     @Builder
-    @Schema(name = "RemoveAccountSlotResponseDto")
+    @Schema(name = "RemoveAccountSlotResponseDto_Data")
     public static class Data {
 
         // Field

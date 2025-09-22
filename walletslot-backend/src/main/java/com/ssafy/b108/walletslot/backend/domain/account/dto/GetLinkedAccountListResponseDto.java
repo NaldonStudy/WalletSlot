@@ -24,7 +24,7 @@ public class GetLinkedAccountListResponseDto {
     @NoArgsConstructor
     @AllArgsConstructor
     @Builder
-    @Schema(name = "GetLinkedAccountListResponseDto")
+    @Schema(name = "GetLinkedAccountListResponseDto_Data")
     public static class Data {
 
         // Field
