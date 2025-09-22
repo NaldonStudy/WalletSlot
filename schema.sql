@@ -262,3 +262,22 @@ CREATE TABLE `email` (
         ON UPDATE CASCADE
 );
 
+DROP TABLE IF EXISTS `refresh_token`;
+CREATE TABLE `refresh_token` (
+  `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  `user_id` INT UNSIGNED NOT NULL,                
+  `device_id` VARCHAR(100) NOT NULL,
+  `family_id` CHAR(36) NOT NULL,
+  `jti` CHAR(36) NOT NULL UNIQUE,
+  `status` ENUM('ACTIVE','USED','REVOKED') NOT NULL,
+  `expires_at` DATETIME NOT NULL,
+  `rotated_from_jti` CHAR(36) NULL,
+  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `last_used_at` DATETIME NULL,
+
+  INDEX `idx_user_device_status` (`user_id`, `device_id`, `status`),
+  INDEX `idx_rt_family` (`family_id`),            
+  CONSTRAINT `fk_rt_user`
+    FOREIGN KEY (`user_id`) REFERENCES `user`(`id`)
+);
+
