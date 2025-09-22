@@ -3,23 +3,21 @@ package com.ssafy.b108.walletslot.backend.domain.user.entity;
 import com.ssafy.b108.walletslot.backend.domain.account.entity.Account;
 import jakarta.persistence.*;
 import lombok.*;
+
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
 @Entity
-@Table(name = "user")
-@Getter @Setter
+@Table(name = "`user`")
+@Getter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
 public class User {
 
-    // Enum
     public enum Gender { FEMALE, MAN }
     public enum Job { STUDENT, HOMEMAKER, OFFICE_WORKER, SOLDIER, SELF_EMPLOYED, FREELANCER, UNEMPLOYED, OTHER }
 
-    // Field
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -28,7 +26,7 @@ public class User {
     @Builder.Default
     private String uuid = UUID.randomUUID().toString();
 
-    @Column(length = 255, nullable = false)
+    @Column(length = 255)
     private String userKey;
 
     @Column(length = 64, nullable = false)
@@ -57,10 +55,30 @@ public class User {
     @Column(length = 20)
     private Job job;
 
-    // Relations
+    // 이메일 이력 (append-only). User 삭제 시 DB FK CASCADE도 걸려있지만,
+    // JPA에서도 orphanRemoval=true 로 일관성 유지.
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Account> accounts;
+    @OrderBy("createdAt DESC, id DESC")
+    @Builder.Default
+    private List<Email> emails = new ArrayList<>();
 
-    // Method
-    public void updateBaseDay(Short baseDay) { this.baseDay = baseDay; }
+    // ===== 도메인 메서드(세터 금지) =====
+    public void changeName(String v)               { this.name = v; }
+    public void assignUserKey(String v)            { this.userKey = v; }
+    public void changePhoneNumber(String v)        { this.phoneNumber = v; }
+    public void changeGender(Gender v)             { this.gender = v; }
+    public void changeBirthDate(LocalDateTime v)   { this.birthDate = v; }
+    public void changeJob(Job v)                   { this.job = v; }
+    public void updateBaseDay(Short v)             { this.baseDay = v; }
+
+    // 편의: 이메일 이력 추가(append-only)
+    public void addEmailSnapshot(Email e) {
+        e.bindTo(this);
+        this.emails.add(e);
+    }
+
+    @PrePersist
+    void ensureDefaults() {
+        if (uuid == null || uuid.isBlank()) uuid = UUID.randomUUID().toString();
+    }
 }

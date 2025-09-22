@@ -1,16 +1,16 @@
 package com.ssafy.b108.walletslot.backend.domain.account.dto.external;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import lombok.*;
+import lombok.Builder;
+import lombok.Value;
+import lombok.extern.jackson.Jacksonized;
 
-@Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
+
+@Value
 @Builder
+@Jacksonized
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class SSAFYGetUserKeyResponseDto {
 
-    // Field
-    private String userKey;
+    String userKey; // 응답 JSON이 {"userKey":"..."} 형태라고 가정
 }

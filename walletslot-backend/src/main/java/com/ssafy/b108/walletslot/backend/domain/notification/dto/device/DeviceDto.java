@@ -1,11 +1,12 @@
-package com.ssafy.b108.walletslot.backend.domain.notification.dto;
+package com.ssafy.b108.walletslot.backend.domain.notification.dto.device;
 
 import com.ssafy.b108.walletslot.backend.domain.notification.entity.PushEndpoint.Platform;
 import com.ssafy.b108.walletslot.backend.domain.notification.entity.PushEndpoint.Status;
 import lombok.Builder;
 import lombok.Value;
 
-@Value @Builder
+@Value
+@Builder
 public class DeviceDto {
     String deviceId;
     Platform platform;

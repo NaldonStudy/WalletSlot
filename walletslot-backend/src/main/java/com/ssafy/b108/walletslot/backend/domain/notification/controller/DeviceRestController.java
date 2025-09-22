@@ -1,7 +1,7 @@
 package com.ssafy.b108.walletslot.backend.domain.notification.controller;
 
 import com.ssafy.b108.walletslot.backend.config.security.UserPrincipal;
-import com.ssafy.b108.walletslot.backend.domain.notification.dto.*;
+import com.ssafy.b108.walletslot.backend.domain.notification.dto.device.*;
 import com.ssafy.b108.walletslot.backend.domain.notification.service.PushEndpointService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.extensions.Extension;
