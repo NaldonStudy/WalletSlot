@@ -6,7 +6,7 @@
  */
 
 import { http, HttpResponse } from 'msw';
-import type { SlotData, BaseResponse, SlotsResponse } from '@/src/types';
+import type { SlotData, BaseResponse, SlotsResponse, SlotDailySpendingResponse } from '@/src/types';
 import { SLOT_CATEGORIES } from '@/src/constants/slots';
 
 // MSW용 Mock 슬롯 데이터 (API 응답 형태)
@@ -94,7 +94,7 @@ const mockSlots: SlotData[] = [
   {
     slotId: "25", // 미분류 슬롯
     slotName: "미분류",
-    slotIcon: "", // 아이콘 없음
+    slotIcon: { uri: "" }, // 아이콘 없음
     slotColor: "", // 색상 없음
     budget: 0, // 예산 없음
     remaining: 0, // 잔액은 동적으로 계산
@@ -128,7 +128,7 @@ export const setActualAccountBalance = (accountId: string, balance: number) => {
 // 계좌별 슬롯 잔액 합계 계산 함수 (미분류 슬롯 제외)
 const calculateSlotBalance = (accountId: string): number => {
   let accountSlots: SlotData[] = [];
-  
+
   if (accountId === '1') {
     accountSlots = mockSlots.filter(slot => ['01', '18', '02', '07'].includes(slot.slotId));
   } else if (accountId === '2') {
@@ -142,12 +142,114 @@ const calculateSlotBalance = (accountId: string): number => {
   } else {
     accountSlots = mockSlots;
   }
-  
+
   // 미분류 슬롯(slotId "25") 제외하고 계산
   const regularSlots = accountSlots.filter(slot => slot.slotId !== "25");
   const balance = regularSlots.reduce((sum, slot) => sum + slot.remaining, 0);
-  
+
   return balance;
+};
+
+// Mock 데이터 정의
+const mockDailySpending: Record<string, SlotDailySpendingResponse> = {
+  // 🍚 식비 (slotId: 01) - budget: 400000, remaining: -20000, spent 합: 420000
+  '1-01': {
+    startDate: '2025-09-01',
+    transactions: [
+      { date: '2025-09-01', spent: 15000 },
+      { date: '2025-09-02', spent: 12000 },
+      { date: '2025-09-03', spent: 18000 },
+      { date: '2025-09-04', spent: 22000 },
+      { date: '2025-09-05', spent: 16000 },
+      { date: '2025-09-06', spent: 25000 },
+      { date: '2025-09-07', spent: 14000 },
+      { date: '2025-09-08', spent: 19000 },
+      { date: '2025-09-09', spent: 21000 },
+      { date: '2025-09-10', spent: 17000 },
+      { date: '2025-09-11', spent: 23000 },
+      { date: '2025-09-12', spent: 18000 },
+      { date: '2025-09-13', spent: 26000 },
+      { date: '2025-09-14', spent: 15000 },
+      { date: '2025-09-15', spent: 20000 },
+      { date: '2025-09-16', spent: 24000 },
+      { date: '2025-09-17', spent: 16000 },
+      { date: '2025-09-18', spent: 22000 },
+      { date: '2025-09-19', spent: 19000 },
+      { date: '2025-09-20', spent: 25000 },
+      { date: '2025-09-21', spent: 18000 },
+      { date: '2025-09-22', spent: 21000 },
+      { date: '2025-09-23', spent: 17000 },
+      { date: '2025-09-24', spent: 23000 },
+      { date: '2025-09-25', spent: 16000 },
+      { date: '2025-09-26', spent: 20000 },
+      { date: '2025-09-27', spent: 24000 },
+      { date: '2025-09-28', spent: 15000 },
+      { date: '2025-09-29', spent: 19000 },
+      { date: '2025-09-30', spent: 22000 },
+    ],
+  },
+
+  // ❤️ 데이트 비용 (slotId: 18) - budget: 500000, remaining: 230000, spent 합: 270000
+  '1-18': {
+    startDate: '2025-09-01',
+    transactions: [
+      { date: '2025-09-02', spent: 45000 },
+      { date: '2025-09-05', spent: 38000 },
+      { date: '2025-09-08', spent: 52000 },
+      { date: '2025-09-12', spent: 41000 },
+      { date: '2025-09-15', spent: 48000 },
+      { date: '2025-09-18', spent: 35000 },
+      { date: '2025-09-22', spent: 56000 },
+      { date: '2025-09-25', spent: 42000 },
+      { date: '2025-09-28', spent: 39000 },
+    ],
+  },
+
+  // 🚍 교통비 (slotId: 02) - budget: 150000, remaining: 45000, spent 합: 105000
+  '1-02': {
+    startDate: '2025-09-01',
+    transactions: [
+      { date: '2025-09-01', spent: 3500 },
+      { date: '2025-09-02', spent: 3500 },
+      { date: '2025-09-03', spent: 3500 },
+      { date: '2025-09-04', spent: 3500 },
+      { date: '2025-09-05', spent: 3500 },
+      { date: '2025-09-06', spent: 3500 },
+      { date: '2025-09-07', spent: 3500 },
+      { date: '2025-09-08', spent: 3500 },
+      { date: '2025-09-09', spent: 3500 },
+      { date: '2025-09-10', spent: 3500 },
+      { date: '2025-09-11', spent: 3500 },
+      { date: '2025-09-12', spent: 3500 },
+      { date: '2025-09-13', spent: 3500 },
+      { date: '2025-09-14', spent: 3500 },
+      { date: '2025-09-15', spent: 3500 },
+      { date: '2025-09-16', spent: 3500 },
+      { date: '2025-09-17', spent: 3500 },
+      { date: '2025-09-18', spent: 3500 },
+      { date: '2025-09-19', spent: 3500 },
+      { date: '2025-09-20', spent: 3500 },
+      { date: '2025-09-21', spent: 3500 },
+      { date: '2025-09-22', spent: 3500 },
+      { date: '2025-09-23', spent: 3500 },
+      { date: '2025-09-24', spent: 3500 },
+      { date: '2025-09-25', spent: 3500 },
+      { date: '2025-09-26', spent: 3500 },
+      { date: '2025-09-27', spent: 3500 },
+      { date: '2025-09-28', spent: 3500 },
+      { date: '2025-09-29', spent: 3500 },
+      { date: '2025-09-30', spent: 3500 },
+    ],
+  },
+
+  // 💰 저축 (slotId: 07) - budget: 1000000, remaining: 800000, spent 합: 200000
+  '1-07': {
+    startDate: '2025-09-01',
+    transactions: [
+      { date: '2025-09-01', spent: 100000 },
+      { date: '2025-09-15', spent: 100000 },
+    ],
+  },
 };
 
 export const slotHandlers = [
@@ -155,62 +257,62 @@ export const slotHandlers = [
   http.get('/api/accounts/:accountId/slots', ({ params }) => {
     const { accountId } = params;
 
-    
+
     // 계좌별로 다른 슬롯 데이터를 반환 (실제로는 accountId에 따라 필터링)
     // accountId에 따라 다른 슬롯 조합을 반환
     let accountSlots: SlotData[] = [];
-    
+
     if (accountId === '1') {
       // 첫 번째 계좌: 식비, 데이트, 교통비, 저축
-      accountSlots = mockSlots.filter(slot => 
+      accountSlots = mockSlots.filter(slot =>
         ['01', '18', '02', '07'].includes(slot.slotId)
       );
     } else if (accountId === '2') {
       // 두 번째 계좌: 여가비, 통신비, 보험비, 주거비
-      accountSlots = mockSlots.filter(slot => 
+      accountSlots = mockSlots.filter(slot =>
         ['05', '12', '11', '13'].includes(slot.slotId)
       );
     } else if (accountId === '3') {
       // 세 번째 계좌: 식비, 교통비, 문화생활비
-      accountSlots = mockSlots.filter(slot => 
+      accountSlots = mockSlots.filter(slot =>
         ['01', '02', '05'].includes(slot.slotId)
       );
     } else if (accountId === '4') {
       // 네 번째 계좌: 저축, 보험비, 주거비
-      accountSlots = mockSlots.filter(slot => 
+      accountSlots = mockSlots.filter(slot =>
         ['07', '11', '13'].includes(slot.slotId)
       );
     } else if (accountId === '5') {
       // 다섯 번째 계좌: 통신비, 미용, 취미
-      accountSlots = mockSlots.filter(slot => 
+      accountSlots = mockSlots.filter(slot =>
         ['12', '08', '15'].includes(slot.slotId)
       );
     } else {
       // 기본: 모든 슬롯
       accountSlots = mockSlots;
     }
-    
+
     // 미분류 금액 계산 - 계좌 잔액 API에서 설정한 실제 잔액 사용
     const accountIdStr = String(accountId);
     const slotBalance = calculateSlotBalance(accountIdStr);
-    
+
     // 계좌 잔액 API에서 설정한 실제 잔액 사용 (없으면 기본값 사용)
     const actualBalance = actualAccountBalances[accountIdStr] || accountBalances[accountIdStr] || 0;
     const uncategorizedAmount = actualBalance - slotBalance;
-  
+
     // 미분류 슬롯 추가 (모든 계좌에 포함)
     const uncategorizedSlot: SlotData = {
       slotId: "25",
       slotName: "미분류",
-      slotIcon: "",
+      slotIcon: { uri: "" },
       slotColor: "",
       budget: 0,
       remaining: uncategorizedAmount,
     };
-    
+
     // 일반 슬롯과 미분류 슬롯을 합침
     accountSlots = [...accountSlots, uncategorizedSlot];
-    
+
     const response: BaseResponse<SlotsResponse> = {
       success: true,
       message: '[SlotService - 000] 슬롯 리스트 조회 성공',
@@ -218,64 +320,31 @@ export const slotHandlers = [
         slots: accountSlots,
       },
     };
-   
-    return HttpResponse.json(response);
-  }),
-
-  // 특정 슬롯 상세 조회 (GET /api/slots/:slotId)
-  http.get('/api/slots/:slotId', ({ params }) => {
-    const { slotId } = params;
-    const slot = mockSlots.find(s => s.slotId === slotId);
-
-    
-    if (!slot) {
-      const errorResponse: BaseResponse<null> = {
-        success: false,
-        message: '슬롯을 찾을 수 없습니다.',
-        data: null,
-        errorCode: 'SLOT_NOT_FOUND',
-      };
-      
-      return HttpResponse.json(errorResponse, { status: 404 });
-    }
-    
-    const response: BaseResponse<SlotData> = {
-      success: true,
-      message: '[SlotService - 000] 슬롯 상세 조회 성공',
-      data: slot,
-    };
 
     return HttpResponse.json(response);
   }),
 
-  // 슬롯 예산 수정 (PUT /api/slots/:slotId/budget)
-  http.put('/api/slots/:slotId/budget', async ({ params, request }) => {
-    const { slotId } = params;
-    const body = await request.json() as { budget: number };
+  // 계좌별 슬롯 하루 지출 합계 조회 (GET /api/accounts/:accountId/slots/:slotId/daily-spending)
+  http.get('/api/accounts/:accountId/slots/:slotId/daily-spending', ({ params }) => {
+    const { accountId, slotId } = params;
+    const key = `${accountId}-${slotId}`;
+    const data = mockDailySpending[key];
 
-    
-    const slot = mockSlots.find(s => s.slotId === slotId);
-    
-    if (!slot) {
+    if (!data) {
       const errorResponse: BaseResponse<null> = {
         success: false,
-        message: '슬롯을 찾을 수 없습니다.',
+        message: '슬롯 하루 지출 데이터를 찾을 수 없습니다.',
         data: null,
-        errorCode: 'SLOT_NOT_FOUND',
+        errorCode: 'DAILY_SPENDING_NOT_FOUND',
       };
-      
       return HttpResponse.json(errorResponse, { status: 404 });
     }
-    
-    // 예산 업데이트 (실제로는 서버에서 처리)
-    slot.budget = body.budget;
-    
-    const response: BaseResponse<SlotData> = {
-      success: true,
-      message: '[SlotService - 000] 슬롯 예산 수정 성공',
-      data: slot,
-    };
 
+    const response: BaseResponse<SlotDailySpendingResponse> = {
+      success: true,
+      message: '[SlotService - 000] 슬롯 하루 지출 합계 조회 성공',
+      data,
+    };
     return HttpResponse.json(response);
   }),
 ];

@@ -13,7 +13,7 @@ import AccountDonutChart from '@/src/components/chart/AccountDonutChart';
 import AccountCarousel from '@/src/components/account/AccountCarousel';
 import { UncategorizedSlotCard } from '@/src/components/slot/UncategorizedSlotCard';
 import SlotList from '@/src/components/slot/SlotList';
-import { useAccountBalance } from '@/src/hooks/useAccountBalance';
+import { useAccountBalance } from '@/src/hooks';
 
 // 상수 정의
 const UNCATEGORIZED_SLOT_ID = "25"; // 미분류 슬롯 ID
@@ -84,11 +84,6 @@ export default function DashboardScreen() {
   const currentAccountSlots = allSlots.filter(slot => slot.slotId !== UNCATEGORIZED_SLOT_ID);
   const uncategorizedSlot = allSlots.find(slot => slot.slotId === UNCATEGORIZED_SLOT_ID);
   const uncategorizedAmount = uncategorizedSlot?.remaining || 0;
-
-  // 잔액 검증: 슬롯 잔액 합계 + 미분류 잔액 = 계좌 잔액
-  const slotBalanceSum = currentAccountSlots.reduce((sum, slot) => sum + slot.remaining, 0);
-  const totalCalculatedBalance = slotBalanceSum + uncategorizedAmount;
-  const accountBalance = currentAccount?.balance || 0;
   
   // AccountSummary용 데이터 (UserAccount 직접 사용)
   const currentAccountForSummary: UserAccount | undefined = currentAccount ? {
@@ -243,7 +238,7 @@ export default function DashboardScreen() {
               </Text>
             </View>
           ) : (
-            <SlotList slots={currentAccountSlots} />
+            <SlotList slots={currentAccountSlots} accountId={currentAccount.accountId} />
           )}
         </View>
 
