@@ -8,18 +8,16 @@ import java.util.List;
 import java.util.UUID;
 
 @Entity
-@Table(name = "user")
-@Getter @Setter
+@Table(name = "`user`") // 예약어/혼동 방지
+@Getter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
 public class User {
 
-    // Enum
     public enum Gender { FEMALE, MAN }
     public enum Job { STUDENT, HOMEMAKER, OFFICE_WORKER, SOLDIER, SELF_EMPLOYED, FREELANCER, UNEMPLOYED, OTHER }
 
-    // Field
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -57,7 +55,19 @@ public class User {
     @Column(length = 20)
     private Job job;
 
-    // Relations
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Account> accounts;
+
+    // 도메인 메서드
+    public void updateBaseDay(Short baseDay) { this.baseDay = baseDay; }
+
+    public void assignUserKey(String userKey) { this.userKey = userKey; }
+
+    // 빌더/기본생성자 사용 시 uuid 보장
+    @PrePersist
+    void ensureDefaults() {
+        if (uuid == null || uuid.isBlank()) {
+            uuid = UUID.randomUUID().toString();
+        }
+    }
 }
