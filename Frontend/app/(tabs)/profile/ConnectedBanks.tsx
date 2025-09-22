@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { ThemedText } from '@/components/ThemedText'
 import { ThemedView } from '@/components/ThemedView'
+import AccountConnectionDetail from './AccountConnectionDetail'
 
 type Props = {
   visible: boolean
@@ -21,7 +22,7 @@ type BankConnection = {
   accountName: string
   connectionDate: string
   expiryDate: string
-  status: 'active' | 'expired' | 'suspended'
+  status: 'active' | 'expired' | 'suspended' | 'deleted'
   balance: number
 }
 
@@ -39,6 +40,7 @@ export default function ConnectedBanks({ visible, onClose }: Props) {
   const [connections, setConnections] = useState<BankConnection[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [selectedConnection, setSelectedConnection] = useState<BankConnection | null>(null)
 
   // 연결된 금융사 목록 조회
   const fetchConnections = async () => {
@@ -66,36 +68,9 @@ export default function ConnectedBanks({ visible, onClose }: Props) {
     }
   }
 
-  // 계좌 연결 해제
-  const handleDisconnect = async (accountId: string, bankName: string) => {
-    Alert.alert(
-      '연결 해제',
-      `${bankName} 계좌 연결을 해제하시겠습니까?`,
-      [
-        { text: '취소', style: 'cancel' },
-        {
-          text: '해제',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              const response = await fetch(`/api/users/me/mydata/connections/${accountId}`, {
-                method: 'DELETE'
-              })
-              const data = await response.json()
-              
-              if (data.success) {
-                Alert.alert('완료', '계좌 연결이 해제되었습니다.')
-                fetchConnections() // 목록 새로고침
-              } else {
-                Alert.alert('오류', '연결 해제에 실패했습니다.')
-              }
-            } catch (err) {
-              Alert.alert('오류', '네트워크 오류가 발생했습니다.')
-            }
-          }
-        }
-      ]
-    )
+  // 계좌 연결 목록 새로고침 (AccountConnectionDetail에서 사용)
+  const refreshConnections = () => {
+    fetchConnections()
   }
 
   // 모달이 열릴 때 데이터 로드
@@ -198,24 +173,25 @@ export default function ConnectedBanks({ visible, onClose }: Props) {
 
                   {/* 해당 은행의 연결된 계좌들 */}
                   {connections.map((connection) => (
-                    <View
+                    <Pressable
                       key={connection.accountId}
-                  style={{
-                    backgroundColor: 'white',
-                    borderRadius: 12,
-                    padding: 16,
-                    marginBottom: 12,
-                    borderWidth: 1,
-                    borderColor: '#e0e0e0',
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    shadowColor: '#000',
-                    shadowOffset: { width: 0, height: 1 },
-                    shadowOpacity: 0.05,
-                    shadowRadius: 2,
-                    elevation: 1
-                  }}
-                >
+                      onPress={() => setSelectedConnection(connection)}
+                      style={{
+                        backgroundColor: 'white',
+                        borderRadius: 12,
+                        padding: 16,
+                        marginBottom: 12,
+                        borderWidth: 1,
+                        borderColor: '#e0e0e0',
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        shadowColor: '#000',
+                        shadowOffset: { width: 0, height: 1 },
+                        shadowOpacity: 0.05,
+                        shadowRadius: 2,
+                        elevation: 1
+                      }}
+                    >
                   {/* 은행 아이콘 */}
                   <View style={{
                     width: 48,
@@ -255,14 +231,9 @@ export default function ConnectedBanks({ visible, onClose }: Props) {
                     </ThemedText>
                   </View>
 
-                  {/* 메뉴 아이콘 */}
-                  <Pressable
-                    onPress={() => handleDisconnect(connection.accountId, connection.bankName)}
-                    style={{ padding: 8 }}
-                  >
-                    <Ionicons name="ellipsis-vertical" size={20} color="#666" />
-                  </Pressable>
-                </View>
+                  {/* 화살표 아이콘 */}
+                  <Ionicons name="chevron-forward" size={20} color="#666" />
+                </Pressable>
               ))}
             </View>
           ))}
@@ -292,6 +263,16 @@ export default function ConnectedBanks({ visible, onClose }: Props) {
           )}
         </ScrollView>
       </ThemedView>
+
+      {/* 계좌 상세 관리 모달 */}
+      {selectedConnection && (
+        <AccountConnectionDetail
+          visible={!!selectedConnection}
+          onClose={() => setSelectedConnection(null)}
+          connection={selectedConnection}
+          onConnectionUpdated={refreshConnections}
+        />
+      )}
     </Modal>
   )
 }
