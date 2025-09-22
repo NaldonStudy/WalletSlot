@@ -64,7 +64,7 @@ VALUES
 DESCRIBE `account`;
 INSERT INTO `account` (id, uuid, user_id, bank_id, alias, encrypted_account_no, balance, is_primary)
 VALUES
-(1, UUID(), 1, 3, null, 'BEblrFzS1Bw8CjTFwO3LDQ==', 5000000, TRUE),
+(1, UUID(), 1, 3, null, '+XuHwQ48eiy4J3rSoCToieQEUyihPrjpOEKmwzPhgco=', 5000000, TRUE),
 (2, UUID(), 1, 4, '비상금통장', 'Bv/MvZaXq/O/XObHTutrOw==', 2000000, FALSE),
 (3, UUID(), 2, 5, null, 'M3MSb/198l1CldcxjmiWKA==', 1000000, TRUE);
 
