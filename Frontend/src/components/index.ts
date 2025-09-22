@@ -26,20 +26,20 @@ export type { InputFieldProps } from './InputField';
 export { NotificationFilters } from './NotificationFilters';
 export { NotificationRow } from './NotificationItem';
 
-// TODO: 추가할 공통 컴포넌트들
-// export { Card } from './Card';
-// export { Modal } from './Modal';
-// export { LoadingSpinner } from './LoadingSpinner';
-// export { SlotCard } from './SlotCard';
-// export { PieChart } from './PieChart';
-// export { TabBar } from './TabBar';
-// export { Header } from './Header';
-// export { IconButton } from './IconButton';
-// export { Switch } from './Switch';
-// export { Slider } from './Slider';
-// export { Toast } from './Toast';
-// export { Badge } from './Badge';
-// export { Avatar } from './Avatar';
-// export { Divider } from './Divider';
-// export { SafeAreaView } from './SafeAreaView';
-// export { KeyboardAvoidingView } from './KeyboardAvoidingView';
+// 레포트 관련 컴포넌트
+export * from './report';
+
+/**
+ * 향후 추가 예정인 공통 컴포넌트들
+ * 
+ * Phase 2 개발 계획:
+ * - UI 기본 컴포넌트: Card, Modal, LoadingSpinner, Toast, Badge
+ * - 폼 컴포넌트: Switch, Slider, DatePicker
+ * - 네비게이션: TabBar, Header, IconButton
+ * - 차트: PieChart, BarChart, LineChart
+ * - 레이아웃: SafeAreaView, KeyboardAvoidingView, Divider
+ * - 도메인 특화: SlotCard, AccountCard, Avatar
+ */
+
+// 스플래시 화면 컴포넌트
+export { default as CustomSplashScreen } from './CustomSplashScreen';

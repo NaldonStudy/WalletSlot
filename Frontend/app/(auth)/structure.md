@@ -5,13 +5,13 @@ app/(auth)/
 │   ├── name.tsx
 │   ├── resident-id.tsx
 │   ├── phone.tsx
-|   ├── terms-agreement.tsx
 |   ├── terms-detail.tsx    
 │   ├── phone-verification.tsx
 │   ├── account-selection.tsx
 │   ├── account-verification.tsx
-│   ├── welcome.tsx
-│   └── password-setup.tsx
+|   ├── password-setup.tsx
+│   ├── notification-consent.tsx 
+│   └── welcome.tsx
 ├── (login)/
 │   ├── _layout.tsx
 │   ├── index.tsx              # 로그인 메인
