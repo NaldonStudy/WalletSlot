@@ -1,17 +1,17 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { 
-  View, 
-  Text, 
-  TextInput, 
-  StyleSheet, 
-  TouchableOpacity, 
+import { router, useLocalSearchParams } from 'expo-router';
+import React, { useEffect, useRef, useState } from 'react';
+import {
   Alert,
+  Dimensions,
   KeyboardAvoidingView,
   Platform,
-  Dimensions
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router, useLocalSearchParams } from 'expo-router';
 
 const { width } = Dimensions.get('window');
 
@@ -193,15 +193,19 @@ export default function PhoneVerificationScreen() {
       const mockVerified = code === correctCode; // 입력한 코드와 발송된 코드 비교
       
       if (mockVerified) {
-        // 인증 성공 - 계좌 선택 화면으로 이동
+        // 인증 성공 - 목적에 따라 분기
         Alert.alert('인증 완료', '휴대폰 인증이 완료되었습니다.', [
           {
             text: '확인',
             onPress: () => {
-              // 계좌 선택 화면으로 이동
-              router.push('/(auth)/(signup)/account-selection');
-            }
-          }
+              if (purpose === 'FORGOT_PIN') {
+                console.log('!!!pin 재설정으로 이동!!!');
+                // TODO: 실제 PIN 재설정 화면으로 이동 연결
+              } else {
+                router.push('/(auth)/(signup)/account-selection' as any);
+              }
+            },
+          },
         ]);
       } else {
         setError('인증코드가 일치하지 않습니다. 다시 입력해주세요.');
