@@ -1,5 +1,6 @@
 package com.ssafy.b108.walletslot.backend.domain.account.dto;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
 
 @Getter
@@ -7,6 +8,7 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@Schema(name = "VerifyAccountResponseDto")
 public class VerifyAccountResponseDto {
 
     // Field
@@ -20,6 +22,7 @@ public class VerifyAccountResponseDto {
     @NoArgsConstructor
     @AllArgsConstructor
     @Builder
+    @Schema(name = "VerifyAccountResponseDto")
     public static class Data {
 
         // Field

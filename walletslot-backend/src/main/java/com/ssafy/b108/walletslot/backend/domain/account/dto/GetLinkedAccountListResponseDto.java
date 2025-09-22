@@ -1,5 +1,6 @@
 package com.ssafy.b108.walletslot.backend.domain.account.dto;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
 
 import java.util.List;
@@ -9,6 +10,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@Schema(name = "GetLinkedAccountListResponseDto")
 public class GetLinkedAccountListResponseDto {
 
     // Field
@@ -22,6 +24,7 @@ public class GetLinkedAccountListResponseDto {
     @NoArgsConstructor
     @AllArgsConstructor
     @Builder
+    @Schema(name = "GetLinkedAccountListResponseDto")
     public static class Data {
 
         // Field
