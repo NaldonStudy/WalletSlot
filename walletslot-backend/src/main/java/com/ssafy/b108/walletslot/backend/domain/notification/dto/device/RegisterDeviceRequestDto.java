@@ -1,4 +1,4 @@
-package com.ssafy.b108.walletslot.backend.domain.notification.dto;
+package com.ssafy.b108.walletslot.backend.domain.notification.dto.device;
 
 import com.ssafy.b108.walletslot.backend.domain.notification.entity.PushEndpoint.Platform;
 import jakarta.validation.constraints.*;
@@ -19,5 +19,6 @@ public class RegisterDeviceRequestDto {
 
     @Size(max = 255)
     String token;   // 옵션(등록/갱신 시)
+
     Boolean pushEnabled;             // null이면 기존값 유지/기본값 적용
 }

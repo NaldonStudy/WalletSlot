@@ -1,11 +1,14 @@
-package com.ssafy.b108.walletslot.backend.domain.notification.dto;
+package com.ssafy.b108.walletslot.backend.domain.notification.dto.device;
 
 import lombok.Builder;
 import lombok.Value;
+import lombok.extern.jackson.Jacksonized;
 
 import java.util.List;
 
-@Value @Builder
+@Value
+@Builder
+@Jacksonized
 public class GetDeviceListResponseDto {
     boolean success;
     String message;
@@ -13,6 +16,7 @@ public class GetDeviceListResponseDto {
 
     @Value
     @Builder
+    @Jacksonized
     public static class Data {
         List<DeviceDto> devices;
     }

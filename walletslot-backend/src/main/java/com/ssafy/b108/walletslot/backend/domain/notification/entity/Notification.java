@@ -8,7 +8,7 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "notification")
-@Getter @Setter
+@Getter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -16,7 +16,7 @@ public class Notification {
 
     // Enum
     public enum Type {
-        // 아직 종류 미정
+        SYSTEM, DEVICE, BUDGET, TRANSACTION, MARKETING
     }
 
     // Field
@@ -44,9 +44,27 @@ public class Notification {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private Type type;
+    @lombok.Builder.Default
+    private Type type = Type.SYSTEM;
 
     private LocalDateTime readAt;
     private Boolean isDelivered;
     private LocalDateTime deliveredAt;
+
+
+    public void markDelivered() {
+        if (Boolean.TRUE.equals(this.isDelivered))
+            return;
+
+        this.isDelivered = true;
+        this.deliveredAt = LocalDateTime.now();
+    }
+
+    public void markRead() {
+        if (this.isRead)
+            return;
+
+        this.isRead = true;
+        this.readAt = LocalDateTime.now();
+    }
 }

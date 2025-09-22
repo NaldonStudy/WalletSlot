@@ -5,12 +5,11 @@ import lombok.Builder;
 import lombok.Value;
 import lombok.extern.jackson.Jacksonized;
 
-
 @Value
 @Builder
 @Jacksonized
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class SSAFYGetUserKeyResponseDto {
-
-    String userKey; // 응답 JSON이 {"userKey":"..."} 형태라고 가정
+public class SsafyErrorResponseDto {
+    String code;     // 예: "E4002"
+    String message;  // 선택적
 }

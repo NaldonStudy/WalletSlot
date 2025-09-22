@@ -8,7 +8,7 @@ CREATE TABLE `user` (
 	`id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     `uuid` VARCHAR(64) NOT NULL,
 	`name` VARCHAR(64) NOT NULL,
-    `user_key` VARCHAR(255) NOT NULL,
+    `user_key` VARCHAR(255) NULL,
 	`phone_number` VARCHAR(64) NOT NULL,
 	`gender` ENUM('FEMALE', 'MAN') NOT NULL,
 	`birth_date` DATETIME NOT NULL,
@@ -226,7 +226,7 @@ CREATE TABLE `notification` (
 	`delivered_at` DATETIME,
 	`is_read` BOOLEAN DEFAULT FALSE NOT NULL,
 	`read_at` DATETIME,
-	`type` ENUM('') NOT NULL,
+	`type` ENUM('SYSTEM','DEVICE','BUDGET','TRANSACTION','MARKETING') DEFAULT NULL,
     
 	CONSTRAINT `fk_notification_user_id`
 	FOREIGN KEY (`user_id`) REFERENCES user(`id`)

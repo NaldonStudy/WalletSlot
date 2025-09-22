@@ -91,5 +91,17 @@ public class PushEndpoint {
         this.status = Status.ACTIVE;
     }
 
-    private static boolean isBlank(String s) { return s == null || s.isBlank(); }
+    private static boolean isBlank(String s) {
+        return s == null || s.isBlank();
+    }
+
+    public void changePlatform(Platform newPlatform) {
+        if (newPlatform != null && this.platform != newPlatform)
+            this.platform = newPlatform;
+    }
+    public void changeStatus(Status newStatus) {
+        if (newStatus != null && this.status != newStatus)
+            this.status = newStatus;
+    }
+
 }
