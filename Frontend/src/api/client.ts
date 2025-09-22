@@ -1,7 +1,9 @@
 import { API_CONFIG } from '@/src/constants';
 import { USE_MSW } from '@/src/constants/api';
+import { authService } from '@/src/services/authService';
+import { getOrCreateDeviceId } from '@/src/services/deviceIdService';
 import type { ApiError, BaseResponse } from '@/src/types';
-import axios, { AxiosError, type AxiosInstance, type AxiosResponse } from 'axios';
+import axios, { AxiosError, AxiosInstance, AxiosResponse } from 'axios';
 
 class ApiClient {
   private client: AxiosInstance;
@@ -24,12 +26,36 @@ class ApiClient {
   }
 
   private setupInterceptors() {
+    // 요청 인터셉터 - X-Device-Id 및 토큰 자동 첨부
     this.client.interceptors.request.use(
       async (config) => {
+        // headers 안전 대입
+        const headers = { ...config.headers } as any;
+        
+        // X-Device-Id 헤더 추가 (모든 요청에 필수)
+        try {
+          headers['X-Device-Id'] = await getOrCreateDeviceId();
+        } catch (error) {
+          console.error('[API] DeviceId 조회 실패:', error);
+          // deviceId 조회 실패 시에도 요청은 계속 진행 (fallback 처리)
+        }
+
+        // Authorization 헤더 추가 (토큰이 있을 때만)
         const token = await this.getAccessToken();
         if (token) {
-          config.headers.Authorization = `Bearer ${token}`;
+          headers.Authorization = `Bearer ${token}`;
         }
+
+        // RefreshToken Cookie 헤더 추가 (토큰이 있을 때만)
+        const refreshToken = await authService.getRefreshToken();
+        if (refreshToken) {
+          headers.Cookie = `refreshToken=${refreshToken}`;
+        }
+
+        // headers 할당
+        config.headers = headers;
+
+        // 디버그 로그 (NPE 방지)
         try {
           const method = (config.method || 'get').toUpperCase();
           const fullUrl = `${config.baseURL || ''}${config.url}`;
@@ -50,6 +76,11 @@ class ApiClient {
         const originalRequest = error.config as any;
 
         if (error.response?.status === 401 && !originalRequest._retry) {
+          // 로그인 전에는 refreshToken이 없으므로 401 재발급 비활성
+          if (!(await this.canRefresh())) {
+            return Promise.reject(this.handleError(error));
+          }
+
           if (this.isRefreshing) {
             return new Promise((resolve, reject) => {
               this.failedQueue.push({ resolve, reject });
@@ -91,12 +122,24 @@ class ApiClient {
     this.failedQueue = [];
   }
 
+  private async canRefresh(): Promise<boolean> {
+    // authService를 통해 refreshToken 존재 확인
+    const refreshToken = await authService.getRefreshToken();
+    return !!refreshToken;
+  }
+
   private async getAccessToken(): Promise<string | null> {
-    return null;
+    // authService를 통해 accessToken 가져오기
+    return await authService.getAccessToken();
   }
 
   private async refreshToken(): Promise<string> {
-    throw new Error('Token refresh not implemented');
+    // authService를 통해 토큰 재발급
+    const newToken = await authService.refreshAccessToken();
+    if (!newToken) {
+      throw new Error('Token refresh failed');
+    }
+    return newToken;
   }
 
   private async redirectToAuthScreen(): Promise<void> {

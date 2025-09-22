@@ -4,6 +4,8 @@
  * 원격 푸시 알림 수신 후 화면에 표시, 예약 알림, 테스트 알림 등 기기 자체의 알림 기능을 담당합니다.
  */
 import type * as NotificationsType from 'expo-notifications';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { STORAGE_KEYS } from '@/src/constants';
 
 async function getNotifications(): Promise<typeof NotificationsType | null> {
   try {
@@ -189,11 +191,21 @@ export class LocalNotificationService {
 
     const permission = await Notifications.getPermissionsAsync();
     if (permission.status === 'granted') {
+      await AsyncStorage.setItem(STORAGE_KEYS.NOTIFICATION_CONSENT, 'true');
       return true;
     }
 
+    // 권한 요청 (사용자가 명시적으로 호출한 경우)
     const newPermission = await Notifications.requestPermissionsAsync();
-    return newPermission.status === 'granted';
+    const granted = newPermission.status === 'granted';
+    
+    if (granted) {
+      await AsyncStorage.setItem(STORAGE_KEYS.NOTIFICATION_CONSENT, 'true');
+    } else {
+      await AsyncStorage.setItem(STORAGE_KEYS.NOTIFICATION_CONSENT, 'false');
+    }
+    
+    return granted;
   }
 
   public cleanup(): void {

@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, TextInput, StyleSheet, KeyboardAvoidingView, Platform, Animated } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { useSignupStore } from '@/src/store/signupStore';
@@ -7,6 +7,26 @@ import { useSignupStore } from '@/src/store/signupStore';
 export default function NameScreen() {
   const [inputName, setLocalName] = useState('');
   const { setName, isNameValid } = useSignupStore();
+
+  // 애니메이션 값들
+  const nameFieldOpacity = useState(new Animated.Value(0))[0];
+  const nameFieldTranslateY = useState(new Animated.Value(50))[0];
+
+  // 컴포넌트 마운트 시 애니메이션 실행
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(nameFieldOpacity, {
+        toValue: 1,
+        duration: 500,
+        useNativeDriver: true,
+      }),
+      Animated.timing(nameFieldTranslateY, {
+        toValue: 0,
+        duration: 500,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
 
   const goNext = () => {
     // 스토어에 저장
@@ -26,7 +46,15 @@ export default function NameScreen() {
         <View style={styles.container}>
           <Text style={styles.title}>이름을 입력해주세요.</Text>
 
-          <View style={styles.fieldBlock}>
+          <Animated.View 
+            style={[
+              styles.fieldBlock,
+              {
+                opacity: nameFieldOpacity,
+                transform: [{ translateY: nameFieldTranslateY }],
+              },
+            ]}
+          >
             <Text style={styles.label}>이름</Text>
             <TextInput
               value={inputName}
@@ -39,7 +67,7 @@ export default function NameScreen() {
               autoCorrect={false}
               importantForAutofill="yes"
             />
-          </View>
+          </Animated.View>
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>

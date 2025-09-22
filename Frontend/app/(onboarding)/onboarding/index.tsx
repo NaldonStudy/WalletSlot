@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { settingsUtils } from '@/src/store';
+import { appService } from '@/src/services/appService';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -62,7 +62,7 @@ export default function OnboardingScreen() {
 
   const handleComplete = async () => {
     // 온보딩 완료 플래그 저장
-    await settingsUtils.setOnboardingCompleted(true);
+    await appService.setOnboardingCompleted(true);
     // 회원가입 이름 입력 화면으로 이동
     router.replace('/(auth)/(signup)/name');
   };
