@@ -13,8 +13,8 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@Schema(name = "AddDutchPayTransactionsResponseDto")
-public class AddDutchPayTransactionsResponseDto {
+@Schema(name = "ModifyTransactionResponseDto")
+public class ModifyTransactionResponseDto {
 
     // Field
     private boolean success;
@@ -26,31 +26,37 @@ public class AddDutchPayTransactionsResponseDto {
     @NoArgsConstructor
     @AllArgsConstructor
     @Builder
-    @Schema(name = "AddDutchPayTransactionsResponseDto_Data")
+    @Schema(name = "ModifyTransactionResponseDto_Data")
     public static class Data {
 
         // Field
-        private SlotAndTransactionDto originalTransaction;
-        private List<SlotAndTransactionDto> dutchPayTransactions;
+        private TransactionDto transaction;
+        private SlotDto originalSlot;
+        private SlotDto reassignedSlot;
     }
 
     @Getter
     @NoArgsConstructor
     @AllArgsConstructor
     @Builder
-    @Schema(name = "AddDutchPayTransactionsResponseDto_SlotAndTransactionDto")
-    public static class SlotAndTransactionDto {
+    @Schema(name = "ModifyTransactionResponseDto_TransactionDto")
+    public static class TransactionDto {
 
         // Field
-        private SlotDto slot;
-        private TransactionDto transaction;
+        private String transactionId;
+        private String type;
+        private String opponentAccountNo;
+        private String summary;
+        private Long amount;
+        private Long balance;
+        private String transactionAt;
     }
 
     @Getter
     @NoArgsConstructor
     @AllArgsConstructor
     @Builder
-    @Schema(name = "AddDutchPayTransactionsResponseDto_SlotDto")
+    @Schema(name = "ModifyTransactionResponseDto_SlotDto")
     public static class SlotDto {
 
         // Field
@@ -108,20 +114,4 @@ public class AddDutchPayTransactionsResponseDto {
         }
     }
 
-    @Getter
-    @NoArgsConstructor
-    @AllArgsConstructor
-    @Builder
-    @Schema(name = "AddDutchPayTransactionsResponseDto_TransactionDto")
-    public static class TransactionDto {
-
-        // Field
-        private String transactionId;
-        private String type;
-        private String opponentAccountNo;
-        private String summary;
-        private Long amount;
-        private Long balance;
-        private String transactionAt;
-    }
 }

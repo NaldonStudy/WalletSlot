@@ -69,4 +69,8 @@ public class Transaction {
     public void minusBalance(Long balance) {
         this.balance -= balance;
     }
+
+    public void changeAccountSlot(AccountSlot accountSlot) {
+        this.accountSlot = accountSlot;    // 이것에 따라 발생해야하는 다른 비즈니스 로직들은 해당 Service에서 수행하도록 함. (엔티티 클래스가 과도하게 비즈니스 로직을 수행하는 것 방지)
+    }
 }

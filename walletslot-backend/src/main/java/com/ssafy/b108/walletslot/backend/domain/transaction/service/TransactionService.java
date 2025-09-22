@@ -117,6 +117,135 @@ public class TransactionService {
     }
 
     /**
+     * 6-1-3 거래내역을 다른 슬롯으로 이동
+     */
+    public ModifyTransactionResponseDto modifyTransaction(Long userId, String accountUuid, String transactionUuid, String accountSlotUuid) {
+
+        // userId != account userId 이면 403 응답
+        Account account = accountRepository.findByUuid(accountUuid).orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "TransactionService - 001"));
+        if(userId != account.getUser().getId()) {
+            throw new AppException(ErrorCode.FORBIDDEN, "TransactionService - 002");
+        }
+
+        // accountSlot이 이 account의 슬롯이 아니면 400 응답
+        AccountSlot newAccountSlot = accountSlotRepository.findByUuid(accountSlotUuid).orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "TransactionService - 001"));
+        if(!account.getUuid().equals(newAccountSlot.getAccount().getUuid())) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "TransactionService - 003");
+        }
+
+        // transaction 조회
+        Transaction transaction = transactionRepository.findByUuid(transactionUuid).orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "TransactionService - 001"));
+
+        // transaction의 account slot을 새로운 account slot 객체로 바꿔주기
+        AccountSlot oldAccountSlot = transaction.getAccountSlot();
+        transaction.changeAccountSlot(newAccountSlot);
+
+        // 기존 account slot의 지출금액 minus
+        oldAccountSlot.minusSpent(transaction.getAmount());
+
+        // isBudgetExceeded 여부 다시 조사
+        if(oldAccountSlot.getSpent() > oldAccountSlot.getCurrentBudget()) {
+            oldAccountSlot.updateIsBudgetExceeded(true);
+        } else {
+            oldAccountSlot.updateIsBudgetExceeded(false);
+        }
+        
+        // 새로운 account slot 지출금액 add
+        newAccountSlot.addSpent(transaction.getAmount());
+
+        // isBudgetExceeded 여부 다시 조사
+        if(newAccountSlot.getSpent() > newAccountSlot.getCurrentBudget()) {
+            newAccountSlot.updateIsBudgetExceeded(true);
+        } else {
+            newAccountSlot.updateIsBudgetExceeded(false);
+        }
+
+        // oldAccountSlot에 초과된 금액 계산 (초과하지 않았으면 0으로 세팅)
+        Long oldAccountSlotExceededBudget = oldAccountSlot.getSpent() - oldAccountSlot.getCurrentBudget();
+        if(oldAccountSlotExceededBudget < 0) {
+            oldAccountSlotExceededBudget = 0L;
+        }
+
+        // oldAccountSlot에 남은 금액 계산 (남지 않았으면 0으로 세팅)
+        Long oldAccountSlotRemainingBudget = oldAccountSlot.getCurrentBudget() - oldAccountSlot.getSpent();
+        if(oldAccountSlotRemainingBudget < 0) {
+            oldAccountSlotRemainingBudget = 0L;
+        }
+
+        // dto > data > originalTransaction > slot
+        ModifyTransactionResponseDto.SlotDto originalAccountSlotDto = ModifyTransactionResponseDto.SlotDto.builder()
+                .accountSlotId(oldAccountSlot.getUuid())
+                .name(oldAccountSlot.getSlot().getName())
+                .isSaving(oldAccountSlot.getSlot().isSaving())
+                .icon(oldAccountSlot.getSlot().getIcon())
+                .color(oldAccountSlot.getSlot().getColor())
+                .isCustom(oldAccountSlot.isCustom())
+                .customName(oldAccountSlot.getCustomName())
+                .currentBudget(oldAccountSlot.getCurrentBudget())
+                .spent(oldAccountSlot.getSpent())
+                .remainingBudget(oldAccountSlotRemainingBudget)
+                .isBudgetExceeded(oldAccountSlot.isBudgetExceeded())
+                .exceededBudget(oldAccountSlotExceededBudget)
+                .build();
+
+        // newAccountSlot에 초과된 금액 계산 (초과하지 않았으면 0으로 세팅)
+        Long newAccountSlotExceededBudget = newAccountSlot.getSpent() - newAccountSlot.getCurrentBudget();
+        if(newAccountSlotExceededBudget < 0) {
+            newAccountSlotExceededBudget = 0L;
+        }
+
+        // newAccountSlot에 남은 금액 계산 (남지 않았으면 0으로 세팅)
+        Long newAccountSlotRemainingBudget = newAccountSlot.getCurrentBudget() - newAccountSlot.getSpent();
+        if(newAccountSlotRemainingBudget < 0) {
+            newAccountSlotRemainingBudget = 0L;
+        }
+
+        // dto > data > reassignedTransaction > slot
+        ModifyTransactionResponseDto.SlotDto reassignedAccountSlotDto = ModifyTransactionResponseDto.SlotDto.builder()
+                .accountSlotId(newAccountSlot.getUuid())
+                .name(newAccountSlot.getSlot().getName())
+                .isSaving(newAccountSlot.getSlot().isSaving())
+                .icon(newAccountSlot.getSlot().getIcon())
+                .color(newAccountSlot.getSlot().getColor())
+                .isCustom(newAccountSlot.isCustom())
+                .customName(newAccountSlot.getCustomName())
+                .currentBudget(newAccountSlot.getCurrentBudget())
+                .spent(newAccountSlot.getSpent())
+                .remainingBudget(newAccountSlotRemainingBudget)
+                .isBudgetExceeded(newAccountSlot.isBudgetExceeded())
+                .exceededBudget(newAccountSlotExceededBudget)
+                .build();
+
+        // dto > data > originalTransaction, reassignedTransaction > transaction
+        ModifyTransactionResponseDto.TransactionDto transactionDto = ModifyTransactionResponseDto.TransactionDto.builder()
+                .transactionId(transaction.getUuid())
+                .type(transaction.getType())
+                .opponentAccountNo(transaction.getOpponentAccountNo())
+                .summary(transaction.getSummary())
+                .amount(transaction.getAmount())
+                .balance(transaction.getBalance())
+                .transactionAt(transaction.getTransactionAt())
+                .build();
+
+        // dto > data
+        ModifyTransactionResponseDto.Data data = ModifyTransactionResponseDto.Data.builder()
+                .transaction(transactionDto)
+                .originalSlot(originalAccountSlotDto)
+                .reassignedSlot(reassignedAccountSlotDto)
+                .build();
+
+        // dto
+        ModifyTransactionResponseDto modifyTransactionResponseDto = ModifyTransactionResponseDto.builder()
+                .success(true)
+                .message("[TransactionService - 000] 거래내역 슬롯 재배치 성공")
+                .data(data)
+                .build();
+
+        // 응답
+        return modifyTransactionResponseDto;
+    }
+
+    /**
      * 6-2-1 거래내역 나누기
      */
     public AddSplitTransactionsResponseDto addSplitTransactions(Long userId, String accountUuid, String transactionUuid, List<AddSplitTransactionsRequestDto.SplitTransactionDto> splitTransactions) {

@@ -95,10 +95,12 @@ public class AccountSlot {
 
     public void addBudget(Long budget) {
         this.currentBudget += budget;
+        this.budgetChangeCount++;
     }
 
     public void minusBudget(Long budget) {
         this.currentBudget -= budget;
+        this.budgetChangeCount++;
     }
 
     public void addSpent(Long spent) {
