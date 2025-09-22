@@ -25,7 +25,6 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
     // 인증을 통과시킬 경로 프리픽스
     private static final Set<String> WHITELIST_PREFIX = Set.of(
-            "/api/auth/**",
             "/swagger-ui/",
             "/v3/api-docs",
             "/swagger-resources",
