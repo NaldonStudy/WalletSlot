@@ -1,5 +1,5 @@
-DROP DATABASE IF EXISTS walletslotdb;
-CREATE DATABASE walletslotdb;
+# DROP DATABASE IF EXISTS walletslotdb;
+# CREATE DATABASE walletslotdb;
 
 USE walletslotdb;
 

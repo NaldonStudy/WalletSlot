@@ -6,6 +6,9 @@ import com.ssafy.b108.walletslot.backend.domain.account.service.AccountService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.extensions.Extension;
 import io.swagger.v3.oas.annotations.extensions.ExtensionProperty;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -29,7 +32,13 @@ public class AccountRestController {
     @Operation(
             summary = "4-1-1 마이데이터 연동",
             description = "현재 사용자의 마이데이터를 불러옵니다. (from. SSAFY 교육용 금융망 API)",
-            extensions = @Extension(name = "x-order", properties = @ExtensionProperty(name = "order", value = "1"))
+            responses = {
+                    @ApiResponse(
+                            responseCode = "200",
+                            description = "[AccountService - 000] 마이데이터 연동 성공",
+                            content = @Content(schema = @Schema(implementation = GetAccountListResponseDto.class))
+                    )
+            }
     )
     public ResponseEntity<GetAccountListResponseDto> getAccountList(@AuthenticationPrincipal UserPrincipal principal) {
         return ResponseEntity.status(HttpStatus.OK).body(accountService.getAccountList(principal.userId()));
@@ -39,7 +48,13 @@ public class AccountRestController {
     @Operation(
             summary = "4-1-2 연동 계좌목록 조회",
             description = "현재 사용자가 우리 서비스에 연동한 계좌목록을 조회합니다.",
-            extensions = @Extension(name = "x-order", properties = @ExtensionProperty(name = "order", value = "2"))
+            responses = {
+                    @ApiResponse(
+                            responseCode = "200",
+                            description = "[AccountService - 000] 연동계좌 조회 성공",
+                            content = @Content(schema = @Schema(implementation = GetLinkedAccountListResponseDto.class))
+                    )
+            }
     )
     public ResponseEntity<GetLinkedAccountListResponseDto> getLinkedAccounts(@AuthenticationPrincipal UserPrincipal principal) {
         return ResponseEntity.status(HttpStatus.OK).body(accountService.getLinkedAccounts(principal.userId()));
@@ -49,7 +64,13 @@ public class AccountRestController {
     @Operation(
             summary = "4-1-3 계좌 상세조회",
             description = "특정 계좌의 정보를 상세조회합니다.",
-            extensions = @Extension(name = "x-order", properties = @ExtensionProperty(name = "order", value = "3"))
+            responses = {
+                    @ApiResponse(
+                            responseCode = "200",
+                            description = "[AccountService - 000] 계좌 상세조회 성공",
+                            content = @Content(schema = @Schema(implementation = GetAccountResponseDto.class))
+                    )
+            }
     )
     public ResponseEntity<GetAccountResponseDto> getAccount(@AuthenticationPrincipal UserPrincipal principal, @PathVariable String accountId) {
         return ResponseEntity.status(HttpStatus.OK).body(accountService.getAccount(principal.userId(), accountId));
@@ -59,7 +80,13 @@ public class AccountRestController {
     @Operation(
             summary = "4-1-4 대표계좌 상세조회",
             description = "현재 사용자의 대표 계좌의 정보를 상세조회합니다.",
-            extensions = @Extension(name = "x-order", properties = @ExtensionProperty(name = "order", value = "4"))
+            responses = {
+                    @ApiResponse(
+                            responseCode = "200",
+                            description = "[AccountService - 000] 대표계좌 조회 성공",
+                            content = @Content(schema = @Schema(implementation = GetPrimaryAccountResponseDto.class))
+                    )
+            }
     )
     public ResponseEntity<GetPrimaryAccountResponseDto> getPrimaryAccount(@AuthenticationPrincipal UserPrincipal principal) {
         return ResponseEntity.status(HttpStatus.OK).body(accountService.getPrimaryAccount(principal.userId()));
@@ -69,7 +96,13 @@ public class AccountRestController {
     @Operation(
             summary = "4-1-5 연동된 계좌 삭제",
             description = "현재 사용자가 우리 서비스에 연동했던 계좌를 연동 해제합니다.",
-            extensions = @Extension(name = "x-order", properties = @ExtensionProperty(name = "order", value = "5"))
+            responses = {
+                    @ApiResponse(
+                            responseCode = "200",
+                            description = "[AccountService - 000] 계좌 삭제 성공",
+                            content = @Content(schema = @Schema(implementation = DeleteLinkedAccountResponseDto.class))
+                    )
+            }
     )
     public ResponseEntity<DeleteLinkedAccountResponseDto> deleteAccount(@AuthenticationPrincipal UserPrincipal principal, @PathVariable String accountId) {
         return ResponseEntity.status(HttpStatus.OK).body(accountService.deleteLinkedAccount(principal.userId(), accountId));
@@ -79,7 +112,14 @@ public class AccountRestController {
     @Operation(
             summary = "4-2-1 1원인증 요청",
             description = "1원인증을 요청합니다.",
-            extensions = @Extension(name = "x-order", properties = @ExtensionProperty(name = "order", value = "6"))
+            responses = {
+                    @ApiResponse(
+                            responseCode = "201",
+                            description = "[AccountService - 000] 1원인증 요청 성공",
+                            content = @Content(schema = @Schema(implementation = RequestVerificationResponseDto.class))
+                    )
+            }
+
     )
     public ResponseEntity<RequestVerificationResponseDto> requestVerification(@AuthenticationPrincipal UserPrincipal principal, @RequestBody RequestVerificationRequestDto request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(accountService.requestVerification(principal.userId(), request.getBankId(), request.getAccountNo()));
@@ -89,7 +129,13 @@ public class AccountRestController {
     @Operation(
             summary = "4-2-2 1원인증",
             description = "1원 인증을 진행합니다.",
-            extensions = @Extension(name = "x-order", properties = @ExtensionProperty(name = "order", value = "7"))
+            responses = {
+                    @ApiResponse(
+                            responseCode = "200",
+                            description = "[AccountService - 000] 1원인증 검증 결과: 인증번호 일치 or 불일치",
+                            content = @Content(schema = @Schema(implementation = VerifyAccountResponseDto.class))
+                    )
+            }
     )
     public ResponseEntity<VerifyAccountResponseDto> verifyAccount(@AuthenticationPrincipal UserPrincipal principal, @RequestBody VerifyAccountRequestDto request) {
         int indexOfSpace = request.getAuthIdentifier().indexOf(" ");
@@ -103,7 +149,13 @@ public class AccountRestController {
     @Operation(
             summary = "4-3-1 계좌연동",
             description = "사용자의 계좌를 우리 서비스에 연동합니다.",
-            extensions = @Extension(name = "x-order", properties = @ExtensionProperty(name = "order", value = "8"))
+            responses = {
+                    @ApiResponse(
+                            responseCode = "201",
+                            description = "[AccountService - 000] 계좌연동 성공",
+                            content = @Content(schema = @Schema(implementation = AddAccountResponseDto.class))
+                    )
+            }
     )
     public ResponseEntity<AddAccountResponseDto> addAccount(@AuthenticationPrincipal UserPrincipal principal, @RequestBody AddAccountRequestDto request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(accountService.addAccount(principal.userId(), request.getAccounts()));
@@ -113,7 +165,13 @@ public class AccountRestController {
     @Operation(
             summary = "4-3-2 계좌 정보 수정",
             description = "특정계좌를 대표계좌로 설정하거나 별칭을 지정 및 수정합니다.",
-            extensions = @Extension(name = "x-order", properties = @ExtensionProperty(name = "order", value = "9"))
+            responses = {
+                    @ApiResponse(
+                            responseCode = "200",
+                            description = "[AccountService - 000] 계좌정보 수정 성공",
+                            content = @Content(schema = @Schema(implementation = ModifyAccountResponseDto.class))
+                    )
+            }
     )
     public ResponseEntity<ModifyAccountResponseDto> modifyAccount(@AuthenticationPrincipal UserPrincipal principal, @PathVariable String accountId, @RequestBody ModifyAccountRequestDto request) {
         return ResponseEntity.status(HttpStatus.OK).body(accountService.modifyAccount(principal.userId(), accountId, request));
