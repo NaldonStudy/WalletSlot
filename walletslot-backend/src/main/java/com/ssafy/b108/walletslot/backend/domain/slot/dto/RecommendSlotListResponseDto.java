@@ -1,5 +1,6 @@
 package com.ssafy.b108.walletslot.backend.domain.slot.dto;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -11,6 +12,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@Schema(name = "RecommendSlotListResponseDto")
 public class RecommendSlotListResponseDto {
 
     // Field
@@ -23,6 +25,7 @@ public class RecommendSlotListResponseDto {
     @NoArgsConstructor
     @AllArgsConstructor
     @Builder
+    @Schema(name = "RecommendSlotListResponseDto")
     public static class Data {
 
         // Field
@@ -35,6 +38,7 @@ public class RecommendSlotListResponseDto {
     @NoArgsConstructor
     @AllArgsConstructor
     @Builder
+    @Schema(name = "RecommendSlotListResponseDto")
     public static class BankDto {
 
         // Field
@@ -47,6 +51,7 @@ public class RecommendSlotListResponseDto {
     @NoArgsConstructor
     @AllArgsConstructor
     @Builder
+    @Schema(name = "RecommendSlotListResponseDto")
     public static class AccountDto {
 
         // Field
@@ -59,6 +64,7 @@ public class RecommendSlotListResponseDto {
     @NoArgsConstructor
     @AllArgsConstructor
     @Builder
+    @Schema(name = "RecommendSlotListResponseDto")
     public static class SlotDto {
 
         // Field
