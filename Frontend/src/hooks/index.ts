@@ -14,7 +14,6 @@ export { useAccountBalance } from './account/useAccountBalance';
 
 // 슬롯 관련
 export { useSlots } from './slots/useSlots';
-
 // 알림 관련
 export {
   useDeleteNotification, useMarkAllNotificationsAsRead, useMarkNotificationAsRead, useNotifications, useNotificationSettings, usePushNotificationSystem, useUnreadNotificationCount, useUpdateNotificationSettings
@@ -23,6 +22,9 @@ export {
 // 알림 화면 전용 훅
 export { useNotificationLogic } from './useNotificationLogic';
 export { useNotificationNavigation } from './useNotificationNavigation';
+
+// 레포트 관련
+export { useSpendingReport } from './useSpendingReport';
 
 // 프로필 관련
 export {
