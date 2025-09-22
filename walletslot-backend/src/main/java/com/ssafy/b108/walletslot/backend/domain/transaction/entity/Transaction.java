@@ -38,11 +38,11 @@ public class Transaction {
     @Column(nullable = false, insertable = false, updatable = false)
     private String type;
 
-    @Column(insertable = false, updatable = false)
-    private Long opponentAccountNo;
+    @Column(length = 255, insertable = false, updatable = false)
+    private String opponentAccountNo;
 
     @Column(nullable = false, insertable = false, updatable = false)
-    private String counterParty;
+    private String summary;
 
     @Column(nullable = false, insertable = false, updatable = false)
     private Long amount;
