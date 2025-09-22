@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, StyleSheet, KeyboardAvoidingView, Platform, Animated } from 'react-native';
+import { View, Text, TextInput, StyleSheet, KeyboardAvoidingView, Platform, Animated, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { useSignupStore } from '@/src/store/signupStore';
@@ -7,7 +7,7 @@ import { useSignupStore } from '@/src/store/signupStore';
 export default function ResidentIdScreen() {
   const [inputfront6, setFront6] = useState('');
   const [inputback1, setBack1] = useState('');
-  const { name, setResidentFront6, setResidentBack1, isResidentIdValid } = useSignupStore();
+  const { name, setResidentFront6, setResidentBack1, isResidentIdValid, clearName, clearResidentId, clearPhone } = useSignupStore();
   
   // 애니메이션 값들
   const nameFieldTranslateY = useState(new Animated.Value(0))[0];
@@ -122,11 +122,27 @@ export default function ResidentIdScreen() {
             ]}
           >
             <Text style={styles.label}>이름</Text>
-            <TextInput
-              value={name || ''}
-              editable={false}
-              style={[styles.input, styles.disabledInput]}
-            />
+            <TouchableOpacity 
+              style={styles.inputContainer}
+              onPress={() => {
+                // 이름, 주민등록번호, 휴대폰 번호 모두 초기화
+                clearName();
+                clearResidentId();
+                clearPhone();
+                // 로컬 상태도 초기화
+                setFront6('');
+                setBack1('');
+                router.push('/(auth)/(signup)/name');
+              }}
+              activeOpacity={0.7}
+            >
+              <TextInput
+                value={name || ''}
+                editable={false}
+                style={[styles.input, styles.disabledInput]}
+                pointerEvents="none"
+              />
+            </TouchableOpacity>
           </Animated.View>
         </View>
       </KeyboardAvoidingView>
@@ -193,6 +209,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     fontSize: 16,
     backgroundColor: '#FFFFFF',
+  },
+  inputContainer: {
+    // TouchableOpacity를 위한 컨테이너
   },
   disabledInput: {
     backgroundColor: '#F9FAFB',

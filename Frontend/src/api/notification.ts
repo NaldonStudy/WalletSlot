@@ -295,5 +295,34 @@ export const notificationApi = {
         message: '읽지 않은 알림 개수 조회에 실패했습니다.'
       };
     }
+  },
+
+    /**
+   *  로그인 시, 로컬에 저장된 알림 여부 없을 경우, 서버 조회(구현 미완)
+   *  true로 일단 하드 코딩.
+   */
+  async getUserNotificationSettings(): Promise<{ success: boolean; data: { isPushEnabled: boolean } }> {
+    try {
+      // TODO: 실제 API 호출 구현 (공통 헤더 포함)
+      // const response = await fetch('/api/user/notification-settings', {
+      //   headers: {
+      //     'Authorization': `Bearer ${accessToken}`,
+      //     'X-Device-Id': deviceId,
+      //     'Content-Type': 'application/json',
+      //   },
+      // });
+      
+      console.log('[API_NOTIFICATION] 📝사용자 알림 설정 조회 (기본값)');
+      return {
+        success: true,
+        data: { isPushEnabled: true }
+      };
+    } catch (error) {
+      console.error('[API_NOTIFICATION] ❌사용자 알림 설정 조회 실패:', error);
+      return {
+        success: false,
+        data: { isPushEnabled: true },
+      };
+    }
   }
 };

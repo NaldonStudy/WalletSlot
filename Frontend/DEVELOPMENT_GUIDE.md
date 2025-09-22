@@ -126,7 +126,13 @@ EXPO_PUBLIC_MSW_ENABLED=true
 ├── index.js            # ✅ Firebase v23 백그라운드 핸들러 등록
 ├── app/                 # Expo 라우터 기반 화면 구성
 │   ├── _dev/            # 🧪 개발용 컴포넌트 테스트 화면 그룹
-│   ├── (auth)/          # 🔐 인증(로그인, 회원가입) 관련 화면 그룹 
+│   ├── (auth)/          # 🔐 인증(로그인, 회원가입) 관련 화면 그룹
+│   │   ├── _layout.tsx  # auth 레이아웃
+│   │   └── (signup)/    # 회원가입 화면들
+│   │       ├── _layout.tsx          # signup 레이아웃
+│   │       ├── name.tsx             # ✅ 이름 입력 화면 (완전 구현)
+│   │       ├── phone.tsx            # ✅ 전화번호 입력 화면 (완전 구현)
+│   │       └── resident-id.tsx      # ✅ 주민등록 번호 입력 화면 (완전 구현)
 │   ├── (linking)/       # 🔗 딥링킹, 외부 연동 관련 화면 그룹
 │   ├── (onboarding)/    # 👋 온보딩(앱 최초 실행 시 안내) 화면 그룹
 │   │   ├── _layout.tsx  # 온보딩 레이아웃
@@ -210,11 +216,15 @@ EXPO_PUBLIC_MSW_ENABLED=true
 │   │   ├── firebasePushService.ts # ✅ Firebase v23 푸시 서비스 (완전 구현)
 │   │   ├── unifiedPushService.ts # ✅ 통합 푸시 서비스 (완전 구현)
 │   │   ├── localNotificationService.ts # ✅ 로컬 알림 서비스
+|   |   ├── deviceIdService.ts # ✅ deviceId uuid 생성(완전 구현)
+|   |   ├── authService.ts     # 🚧 
+|   |   ├── appService.ts      # 🚧 계좌 데이터 관리 훅 (구조만 완성)
 │   │   └── index.ts     # 서비스들 통합 export
 │   │
 │   ├── store/           # 🗄️ 데이터 저장소 및 클라이언트 상태 관리
 │   │   ├── appStore.ts  # 🚧 Zustand 기반 전역 상태 (기본 구조)
-│   │   ├── authStore.ts # 🚧 인증 상태 전용 스토어 (기본 구조)
+│   │   ├── authStore.ts # 🚧 (Z + Async) 인증 상태 전용 스토어 (기본 구조)
+│   │   ├── signupStore.ts  # ✅ Zustand 회원가입 데이터 임시 저장 (완전 구현)
 │   │   └── index.ts     # ✅ SecureStore/AsyncStorage 래퍼 유틸
 │   │
 │   ├── types/           # 📝 전역 타입 정의

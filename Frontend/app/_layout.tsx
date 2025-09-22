@@ -15,7 +15,8 @@ import { useColorScheme } from '@/hooks/useColorScheme';
 import { queryClient } from '@/src/api/queryClient';
 import { initializeMSW } from '@/src/mocks';
 import { unifiedPushService } from '@/src/services/unifiedPushService';
-import { settingsUtils } from '@/src/store';
+import { getOrCreateDeviceId } from '@/src/services/deviceIdService';
+import { appService } from '@/src/services/appService';
 // import { monitoringService } from '@/src/services';
 
 // ✅ 개발 모드에서만 MSW를 초기화합니다.
@@ -32,13 +33,13 @@ export default function RootLayout() {
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
     // ... (다른 폰트 추가 가능)
   });
-  // 온보딩 완료 여부: null은 아직 로딩 중을 의미
+  // 온보딩 완료 여부: 직접 AsyncStorage에서 관리
   const [onboardingDone, setOnboardingDone] = useState<boolean | null>(null);
 
   // 🐛 디버그용 함수: 온보딩을 다시 보기 위해 false로 설정
   const resetOnboarding = async () => {
     console.log('🔄 온보딩 리셋 시작');
-    await settingsUtils.setOnboardingCompleted(false);
+    await appService.setOnboardingCompleted(false);
     setOnboardingDone(false);
     console.log('✅ 온보딩 리셋 완료 - onboardingDone:', false);
   };
@@ -46,7 +47,7 @@ export default function RootLayout() {
   // 🐛 디버그용 함수: 온보딩 완료 상태로 설정
   const completeOnboarding = async () => {
     console.log('✅ 온보딩 완료 설정');
-    await settingsUtils.setOnboardingCompleted(true);
+    await appService.setOnboardingCompleted(true);
     setOnboardingDone(true);
     console.log('✅ 온보딩 완료 설정됨 - onboardingDone:', true);
   };
@@ -73,9 +74,38 @@ export default function RootLayout() {
 
   // 🐛 디버그용 함수: 현재 상태 확인
   const checkOnboardingStatus = async () => {
-    const status = await settingsUtils.getOnboardingCompleted();
+    const status = await appService.getOnboardingCompleted();
     console.log('📊 현재 온보딩 상태:', status);
     console.log('📊 현재 onboardingDone state:', onboardingDone);
+  };
+
+  // 🐛 디버그용 함수: deviceId 상태 확인
+  const checkDeviceId = async () => {
+    try {
+      const deviceId = await getOrCreateDeviceId();
+      console.log('📱 현재 DeviceId:', deviceId);
+    } catch (error) {
+      console.error('❌ DeviceId 조회 실패:', error);
+    }
+  };
+
+  // 🔍 디버그용 함수: AsyncStorage에 저장된 모든 데이터 조회
+  const checkAllAsyncStorageData = async () => {
+    try {
+      console.log('🔍 AsyncStorage 전체 데이터 조회 시작');
+      const keys = await AsyncStorage.getAllKeys();
+      console.log('📋 저장된 키 목록:', keys);
+      
+      const allData = await AsyncStorage.multiGet(keys);
+      console.log('📊 모든 데이터:');
+      allData.forEach(([key, value]) => {
+        console.log(`  ${key}: ${value}`);
+      });
+      
+      console.log('✅ AsyncStorage 전체 데이터 조회 완료');
+    } catch (error) {
+      console.error('❌ AsyncStorage 데이터 조회 실패:', error);
+    }
   };
 
   // 🚀 디버그용 함수: 푸시 알림 서비스 초기화 테스트
@@ -97,6 +127,8 @@ export default function RootLayout() {
     (global as any).resetOnboarding = resetOnboarding;
     (global as any).completeOnboarding = completeOnboarding;
     (global as any).checkOnboardingStatus = checkOnboardingStatus;
+    (global as any).checkDeviceId = checkDeviceId;
+    (global as any).checkAllAsyncStorageData = checkAllAsyncStorageData;
     (global as any).clearSignupName = clearSignupName;
     (global as any).clearAsyncStorage = clearAsyncStorage;
     (global as any).initializePushService = initializePushService;
@@ -108,20 +140,32 @@ export default function RootLayout() {
     if (error) throw error;
   }, [error]);
 
-  // 앱 시작 시 1회: 온보딩 완료 여부를 비동기로 조회
+  // 앱 시작 시 1회: deviceId 초기화 및 온보딩 완료 여부를 비동기로 조회
   useEffect(() => {
     (async () => {
-      const done = await settingsUtils.getOnboardingCompleted();
-      setOnboardingDone(done);
+      try {
+        // deviceId 초기화 (없으면 생성, 있으면 기존 값 사용)
+        const deviceId = await getOrCreateDeviceId();
+        console.log('✅ DeviceId 초기화 완료:', deviceId);
+        
+        // 온보딩 완료 여부 조회
+        const completed = await appService.getOnboardingCompleted();
+        setOnboardingDone(completed);
+      } catch (error) {
+        console.error('❌ 앱 초기화 실패:', error);
+        // deviceId 초기화 실패해도 앱은 계속 실행
+        const completed = await appService.getOnboardingCompleted();
+        setOnboardingDone(completed);
+      }
     })();
   }, []);
 
-  // 폰트 로딩과 온보딩 상태 확인이 모두 완료되면 스플래시 화면을 숨깁니다.
+  // 폰트 로딩이 완료되면 스플래시 화면을 숨깁니다.
   useEffect(() => {
-    if (loaded && onboardingDone !== null) {
+    if (loaded) {
       SplashScreen.hideAsync();
     }
-  }, [loaded, onboardingDone]);
+  }, [loaded]);
   
   // 앱 시작 시 기타 초기화 로직
   useEffect(() => {
@@ -187,8 +231,8 @@ export default function RootLayout() {
     }
   }, [onboardingDone]);
 
-  // 폰트나 온보딩 상태가 로딩 중일 때는 아무것도 렌더링하지 않습니다.
-  if (!loaded || onboardingDone === null) {
+  // 폰트 로딩 중일 때는 아무것도 렌더링하지 않습니다.
+  if (!loaded) {
     return null;
   }
 
@@ -200,7 +244,7 @@ export default function RootLayout() {
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
             <Stack.Screen name="(onboarding)" options={{ headerShown: false }} />
             <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-            <Stack.Screen name="+not-found" />
+            <Stack.Screen name="+not-found" options={{ headerShown: false }} />
             {/* 공통 컴포넌트 테스트
             <Stack.Screen name="(dev)" options={{ headerShown: false }} /> */}
           </Stack>
