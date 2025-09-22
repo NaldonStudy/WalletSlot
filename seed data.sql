@@ -100,8 +100,8 @@ VALUES
 -- ACCOUNT_SLOT
 INSERT INTO `account_slot` (id, uuid, account_id, slot_id, initial_budget, current_budget, spent, budget_change_count, is_budget_exceeded, is_custom, custom_name)
 VALUES
-(1, UUID(), 1, 1, 100000, 150000, 0, 1, FALSE, FALSE, NULL),
-(2, UUID(), 1, 2, 50000, 50000, 0, 0, FALSE, FALSE, NULL),
+(1, UUID(), 1, 1, 100000, 150000, 4500, 1, FALSE, FALSE, NULL),
+(2, UUID(), 1, 2, 300000, 300000, 300000, 0, FALSE, FALSE, NULL),
 (3, UUID(), 1, 3, 30000, 30000, 0, 0, FALSE, FALSE, NULL),
 (4, UUID(), 2, 1, 100000, 100000, 0, 0, FALSE, FALSE, NULL),
 (5, UUID(), 2, 2, 50000, 100000, 0, 1, FALSE, FALSE, NULL),
