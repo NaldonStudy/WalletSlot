@@ -35,6 +35,9 @@ public class JwtProvider {
     @Value("${app.security.jwt.refresh-ttl-days:30}")
     private long refreshTtlDays;
 
+    @Value("${app.security.jwt.clock-skew-seconds:0}")
+    private long clockSkewSeconds;
+
     // ===== 내부 유틸 =====
     private byte[] key() {
         return Base64.getDecoder().decode(secretB64);
@@ -48,7 +51,8 @@ public class JwtProvider {
         JWSVerifier verifier = new MACVerifier(key());
         if (!jwt.verify(verifier)) return false;
         Date exp = jwt.getJWTClaimsSet().getExpirationTime();
-        return exp != null && exp.after(new Date());
+        if (exp == null) return false;
+        return exp.toInstant().isAfter(Instant.now().minusSeconds(clockSkewSeconds));
     }
 
     private Long readUid(JWTClaimsSet cs) {
@@ -204,4 +208,6 @@ public class JwtProvider {
             return null;
         }
     }
+
+
 }
