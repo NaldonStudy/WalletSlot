@@ -10,7 +10,6 @@ export default function DashboardLayout() {
           headerShown: false 
         }} 
       />
-      {/* TODO: 슬롯 상세 페이지 구현 후 활성화
       <Stack.Screen 
         name="[slotId]" 
         options={{ 
@@ -18,7 +17,6 @@ export default function DashboardLayout() {
           presentation: 'modal'
         }} 
       />
-      */}
     </Stack>
   );
 }

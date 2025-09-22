@@ -2,6 +2,7 @@ import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
 import { Image } from 'expo-image';
+import { ImageSourcePropType } from 'react-native';
 
 type CircularProgressProps = {
   progress: number; // 0-1 사이의 값
@@ -9,7 +10,7 @@ type CircularProgressProps = {
   strokeWidth?: number;
   color?: string;
   backgroundColor?: string;
-  icon?: any; // require()로 가져온 아이콘
+  icon?: ImageSourcePropType; // require()로 가져온 아이콘
   iconSize?: number;
 };
 
