@@ -25,32 +25,32 @@ public class Transaction {
     private String uuid = UUID.randomUUID().toString();
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "account_id", nullable = false, insertable = false, updatable = false)
+    @JoinColumn(name = "account_id", nullable = false)
     private Account account;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "account_slot_id", nullable = false, insertable = false, updatable = false)
+    @JoinColumn(name = "account_slot_id", nullable = false)
     private AccountSlot accountSlot;
 
-    @Column(nullable = false, insertable = false, updatable = false)
+    @Column(nullable = false)
     private Long uniqueNo;
 
-    @Column(nullable = false, insertable = false, updatable = false)
+    @Column(nullable = false)
     private String type;
 
-    @Column(length = 255, insertable = false, updatable = false)
+    @Column(length = 255)
     private String opponentAccountNo;
 
-    @Column(nullable = false, insertable = false, updatable = false)
+    @Column(nullable = false)
     private String summary;
 
-    @Column(nullable = false, insertable = false, updatable = false)
+    @Column(nullable = false)
     private Long amount;
 
-    @Column(nullable = false, insertable = false, updatable = false)
+    @Column(nullable = false)
     private Long balance;
 
-    @Column(nullable = false, insertable = false, updatable = false)
+    @Column(nullable = false)
     private String transactionAt;
 
     // Method

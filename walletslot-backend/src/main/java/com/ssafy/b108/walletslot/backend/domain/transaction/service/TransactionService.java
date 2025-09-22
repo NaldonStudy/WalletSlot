@@ -5,6 +5,7 @@ import com.ssafy.b108.walletslot.backend.domain.account.repository.AccountReposi
 import com.ssafy.b108.walletslot.backend.domain.slot.entity.AccountSlot;
 import com.ssafy.b108.walletslot.backend.domain.slot.entity.Slot;
 import com.ssafy.b108.walletslot.backend.domain.slot.repository.AccountSlotRepository;
+import com.ssafy.b108.walletslot.backend.domain.slot.repository.SlotRepository;
 import com.ssafy.b108.walletslot.backend.domain.transaction.dto.*;
 import com.ssafy.b108.walletslot.backend.domain.transaction.entity.Transaction;
 import com.ssafy.b108.walletslot.backend.domain.transaction.repository.TransactionRepository;
@@ -27,6 +28,7 @@ public class TransactionService {
     private final TransactionRepository transactionRepository;
     private final AccountRepository accountRepository;
     private final AccountSlotRepository accountSlotRepository;
+    private final SlotRepository slotRepository;
 
     // Method
     /**
@@ -258,6 +260,7 @@ public class TransactionService {
 
         // transaction 조회
         Transaction originalTransaction = transactionRepository.findByUuid(transactionUuid).orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "TransactionService - 001"));
+        Long originalAmount = originalTransaction.getAmount();
 
         // originalTransaction 삭제
         transactionRepository.delete(originalTransaction);
@@ -302,11 +305,27 @@ public class TransactionService {
             // 저장
             transactionRepository.save(transaction);
 
+            // account slot 지출금액 늘리기
+            accountSlot.addSpent(splitTransactionDto.getAmount());
+
+            // account slot 예산초과 여부 다시 조사하기
+            if(accountSlot.getSpent() > accountSlot.getCurrentBudget()) {
+                accountSlot.updateIsBudgetExceeded(true);
+            } else {
+                accountSlot.updateIsBudgetExceeded(false);
+            }
+
             // dto > data > splitTransactions > slot
             // 예산초과 상태 아닐 때를 대비하여, exceededBudget값만 미리 계산
             Long exceededBudget = accountSlot.getSpent() - accountSlot.getCurrentBudget();
             if(exceededBudget < 0) {
                 exceededBudget = 0L;
+            }
+
+            // originalAccountSlot에 남은 금액 계산 (남지 않았으면 0으로 세팅)
+            Long accountSlotRemainingBudget = accountSlot.getCurrentBudget() - accountSlot.getSpent();
+            if(accountSlotRemainingBudget < 0) {
+                accountSlotRemainingBudget = 0L;
             }
 
             AddSplitTransactionsResponseDto.SlotDto slotDto = AddSplitTransactionsResponseDto.SlotDto.builder()
@@ -319,7 +338,7 @@ public class TransactionService {
                     .customName(accountSlot.getCustomName())
                     .currentBudget(accountSlot.getCurrentBudget())
                     .spent(accountSlot.getSpent())
-                    .remainingBudget(accountSlot.getCurrentBudget() - accountSlot.getSpent())
+                    .remainingBudget(accountSlotRemainingBudget)
                     .isBudgetExceeded(accountSlot.isBudgetExceeded())
                     .exceededBudget(exceededBudget)
                     .build();
@@ -340,7 +359,7 @@ public class TransactionService {
         }
 
         // 마지막에 나눈 금액들의 합 == 원래 금액인지 검사하고, 같지 않으면 400 응답
-        if(originalTransaction.getAmount() != splitAmountSum) {
+        if(!originalAmount.equals(splitAmountSum)) {
             throw new AppException(ErrorCode.INVALID_SPLIT_AMOUNT, "TransactionService - 003");
         }
 
@@ -349,6 +368,7 @@ public class TransactionService {
                 .transactionId(originalTransaction.getUuid())
                 .type(originalTransaction.getType())
                 .opponentAccountNo(originalTransaction.getOpponentAccountNo())
+                .summary(originalTransaction.getSummary())
                 .amount(originalTransaction.getAmount())
                 .transactionAt(originalTransaction.getTransactionAt())
                 .build();
@@ -385,14 +405,23 @@ public class TransactionService {
 
         // originalTransaction의 지출금액과 거래 후 잔액 값 조정
         originalTransaction.minusAmount(originalAmount - perPersonAmount);
-        originalTransaction.addBalance(originalBalance - perPersonAmount);
+        originalTransaction.addBalance(originalAmount - perPersonAmount);
 
-        // originalTransaction이 속한 슬롯의 지출금액 조정
-        originalTransaction.getAccountSlot().minusSpent(originalAmount- perPersonAmount);
+        // originalTransaction이 속한 슬롯 조회
+        AccountSlot originalAccountSlot = originalTransaction.getAccountSlot();
+        
+        // originalAccountSlot 값들 미리 저장해두기
+        Long originalSpent = originalAccountSlot.getSpent();
+        Long originalCurrentBudget = originalAccountSlot.getCurrentBudget();
+        boolean originalIsBudgetExceeded = originalAccountSlot.isBudgetExceeded();
+        
+        // originalAccountSlot 지출금액 1/n만 남겨두고 나머지는 회복시키기
+        originalAccountSlot.minusSpent(originalAmount- perPersonAmount);
 
         // 미분류 슬롯에 들어갈 트랜잭션 객체 하나 더 만들고 save.
         // 이 계좌의 미분류 슬롯 객체 조회
-        AccountSlot uncategorizedAccountSlot = accountSlotRepository.findByAccountAndName(account, "미분류").orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "TransactionService - 004"));
+        Slot uncategorizedSlot = slotRepository.findByUuid("1450babf-97ca-11f0-9dfe-28c5d21ceb15").orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "TransactionService - 001"));
+        AccountSlot uncategorizedAccountSlot = accountSlotRepository.findByAccountAndSlot(account, uncategorizedSlot).orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "TransactionService - 004"));
         Transaction newTransaction = Transaction.builder()
                 .account(account)
                 .accountSlot(uncategorizedAccountSlot)
@@ -411,17 +440,14 @@ public class TransactionService {
         uncategorizedAccountSlot.addSpent(originalAmount - perPersonAmount);
 
         // dto > data > originalTransaction
-        // originalTrnasaction의 accountSlot 조회
-        AccountSlot originalAccountSlot = originalTransaction.getAccountSlot();
-
         // originalAccountSlot에 초과된 금액 계산 (초과하지 않았으면 0으로 세팅)
-        Long originalAccountSlotExceededBudget = originalAccountSlot.getSpent() - originalAccountSlot.getCurrentBudget();
+        Long originalAccountSlotExceededBudget = originalSpent - originalCurrentBudget;
         if(originalAccountSlotExceededBudget < 0) {
             originalAccountSlotExceededBudget = 0L;
         }
 
         // originalAccountSlot에 남은 금액 계산 (남지 않았으면 0으로 세팅)
-        Long originalAccountSlotRemainingBudget = originalAccountSlot.getCurrentBudget() - originalAccountSlot.getSpent();
+        Long originalAccountSlotRemainingBudget = originalCurrentBudget - originalSpent;
         if(originalAccountSlotRemainingBudget < 0) {
             originalAccountSlotRemainingBudget = 0L;
         }
@@ -435,10 +461,10 @@ public class TransactionService {
                 .color(originalAccountSlot.getSlot().getColor())
                 .isCustom(originalAccountSlot.isCustom())
                 .customName(originalAccountSlot.getCustomName())
-                .currentBudget(originalAccountSlot.getCurrentBudget())
-                .spent(originalAccountSlot.getSpent())
+                .currentBudget(originalCurrentBudget)
+                .spent(originalSpent)
                 .remainingBudget(originalAccountSlotRemainingBudget)
-                .isBudgetExceeded(originalAccountSlot.isBudgetExceeded())
+                .isBudgetExceeded(originalIsBudgetExceeded)
                 .exceededBudget(originalAccountSlotExceededBudget)
                 .build();
 
@@ -453,17 +479,34 @@ public class TransactionService {
                 .transactionAt(originalTransaction.getTransactionAt())
                 .build();
 
+        // dto > data > dutchPayTransactions > slotDto > 0
+        AddDutchPayTransactionsResponseDto.SlotDto dutchPaySlotDto0 = AddDutchPayTransactionsResponseDto.SlotDto.builder()
+                .accountSlotId(originalAccountSlot.getUuid())
+                .name(originalAccountSlot.getSlot().getName())
+                .isSaving(originalAccountSlot.getSlot().isSaving())
+                .icon(originalAccountSlot.getSlot().getIcon())
+                .color(originalAccountSlot.getSlot().getColor())
+                .isCustom(originalAccountSlot.isCustom())
+                .customName(originalAccountSlot.getCustomName())
+                .currentBudget(originalAccountSlot.getCurrentBudget())
+                .spent(originalAccountSlot.getSpent())
+                .remainingBudget(originalAccountSlot.getCurrentBudget() - originalAccountSlot.getSpent())
+                .isBudgetExceeded(originalAccountSlot.isBudgetExceeded())
+                .exceededBudget(originalAccountSlotExceededBudget)
+                .build();
+
         // uncategorizedAccountSlot에 초과된 금액 계산 (초과하지 않았으면 0으로 세팅)
-        Long uncategorizedAccountSlotExceededBudget = originalAccountSlot.getSpent() - originalAccountSlot.getCurrentBudget();
+        Long uncategorizedAccountSlotExceededBudget = uncategorizedAccountSlot.getSpent() - uncategorizedAccountSlot.getCurrentBudget();
         if(uncategorizedAccountSlotExceededBudget < 0) {
             uncategorizedAccountSlotExceededBudget = 0L;
         }
 
         // uncategorizedAccountSlot에 남은 금액 계산 (남지 않았으면 0으로 세팅)
-        Long uncategorizedAccountSlotRemainingBudget = originalAccountSlot.getCurrentBudget() - originalAccountSlot.getSpent();
+        Long uncategorizedAccountSlotRemainingBudget = uncategorizedAccountSlot.getCurrentBudget() - uncategorizedAccountSlot.getSpent();
         if(uncategorizedAccountSlotRemainingBudget < 0) {
             uncategorizedAccountSlotRemainingBudget = 0L;
         }
+
         // dto > data > dutchPayTransactions > slotDto > 1
         AddDutchPayTransactionsResponseDto.SlotDto dutchPaySlotDto1 = AddDutchPayTransactionsResponseDto.SlotDto.builder()
                 .accountSlotId(uncategorizedAccountSlot.getUuid())
@@ -503,7 +546,7 @@ public class TransactionService {
                 .build();
 
         List<AddDutchPayTransactionsResponseDto.SlotAndTransactionDto> dutchPayTransactions = new ArrayList<>();
-        dutchPayTransactions.add(AddDutchPayTransactionsResponseDto.SlotAndTransactionDto.builder().slot(originalSlotDto).transaction(dutchPayTransactionDto0).build());
+        dutchPayTransactions.add(AddDutchPayTransactionsResponseDto.SlotAndTransactionDto.builder().slot(dutchPaySlotDto0).transaction(dutchPayTransactionDto0).build());
         dutchPayTransactions.add(AddDutchPayTransactionsResponseDto.SlotAndTransactionDto.builder().slot(dutchPaySlotDto1).transaction(dutchPayTransactionDto1).build());
 
         // dto > data
