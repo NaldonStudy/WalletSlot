@@ -16,7 +16,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 @Service
@@ -63,7 +62,7 @@ public class TransactionService {
         // dto
         GetAccountTransactionListResponseDto getAccountTransactionListResponseDto = GetAccountTransactionListResponseDto.builder()
                 .success(true)
-                .message("[TransactionService - 000] 계좌 거래내역 전체조회 성공")
+                .message("[TransactionService - 003] 계좌 거래내역 전체조회 성공")
                 .data(GetAccountTransactionListResponseDto.Data.builder().transactions(transactionDtoList).build())
                 .build();
 
@@ -77,15 +76,15 @@ public class TransactionService {
     public GetAccountSlotTransactionListResponseDto getAccountSlotTransactions(Long userId, String accountUuid, String accountSlotUuid) {
 
         // userId != account userId 이면 403 응답
-        Account account = accountRepository.findByUuid(accountUuid).orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "TransactionService - 001"));
+        Account account = accountRepository.findByUuid(accountUuid).orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "TransactionService - 004"));
         if(userId != account.getUser().getId()) {
-            throw new AppException(ErrorCode.FORBIDDEN, "TransactionService - 002");
+            throw new AppException(ErrorCode.FORBIDDEN, "TransactionService - 005");
         }
 
         // account != account slot의 account 이면 400 응답
-        AccountSlot accountSlot = accountSlotRepository.findByUuid(accountSlotUuid).orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "TransactionService - 001"));
+        AccountSlot accountSlot = accountSlotRepository.findByUuid(accountSlotUuid).orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "TransactionService - 006"));
         if(!account.getUuid().equals(accountSlot.getAccount().getUuid())) {
-            throw new AppException(ErrorCode.BAD_REQUEST, "TransactionService - 003");
+            throw new AppException(ErrorCode.BAD_REQUEST, "TransactionService - 007");
         }
 
         // 슬롯 거래내역 전체조회
@@ -110,7 +109,7 @@ public class TransactionService {
         // dto
         GetAccountSlotTransactionListResponseDto getAccountSlotTransactionListResponseDto = GetAccountSlotTransactionListResponseDto.builder()
                 .success(true)
-                .message("[TransactionService - 000] 슬롯 거래내역 전체조회 성공")
+                .message("[TransactionService - 008] 슬롯 거래내역 전체조회 성공")
                 .data(GetAccountSlotTransactionListResponseDto.Data.builder().transactions(transactionDtoList).build())
                 .build();
 
@@ -124,19 +123,19 @@ public class TransactionService {
     public ModifyTransactionResponseDto modifyTransaction(Long userId, String accountUuid, String transactionUuid, String accountSlotUuid) {
 
         // userId != account userId 이면 403 응답
-        Account account = accountRepository.findByUuid(accountUuid).orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "TransactionService - 001"));
+        Account account = accountRepository.findByUuid(accountUuid).orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "TransactionService - 009"));
         if(userId != account.getUser().getId()) {
-            throw new AppException(ErrorCode.FORBIDDEN, "TransactionService - 002");
+            throw new AppException(ErrorCode.FORBIDDEN, "TransactionService - 010");
         }
 
         // accountSlot이 이 account의 슬롯이 아니면 400 응답
-        AccountSlot newAccountSlot = accountSlotRepository.findByUuid(accountSlotUuid).orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "TransactionService - 001"));
+        AccountSlot newAccountSlot = accountSlotRepository.findByUuid(accountSlotUuid).orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "TransactionService - 011"));
         if(!account.getUuid().equals(newAccountSlot.getAccount().getUuid())) {
-            throw new AppException(ErrorCode.BAD_REQUEST, "TransactionService - 003");
+            throw new AppException(ErrorCode.BAD_REQUEST, "TransactionService - 012");
         }
 
         // transaction 조회
-        Transaction transaction = transactionRepository.findByUuid(transactionUuid).orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "TransactionService - 001"));
+        Transaction transaction = transactionRepository.findByUuid(transactionUuid).orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "TransactionService - 013"));
 
         // transaction의 account slot을 새로운 account slot 객체로 바꿔주기
         AccountSlot oldAccountSlot = transaction.getAccountSlot();
@@ -239,7 +238,7 @@ public class TransactionService {
         // dto
         ModifyTransactionResponseDto modifyTransactionResponseDto = ModifyTransactionResponseDto.builder()
                 .success(true)
-                .message("[TransactionService - 000] 거래내역 슬롯 재배치 성공")
+                .message("[TransactionService - 014] 거래내역 슬롯 재배치 성공")
                 .data(data)
                 .build();
 
@@ -253,13 +252,13 @@ public class TransactionService {
     public AddSplitTransactionsResponseDto addSplitTransactions(Long userId, String accountUuid, String transactionUuid, List<AddSplitTransactionsRequestDto.SplitTransactionDto> splitTransactions) {
 
         // userId != account userId 이면 403 응답
-        Account account = accountRepository.findByUuid(accountUuid).orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "TransactionService - 001"));
+        Account account = accountRepository.findByUuid(accountUuid).orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "TransactionService - 015"));
         if(userId != account.getUser().getId()) {
-            throw new AppException(ErrorCode.FORBIDDEN, "TransactionService - 002");
+            throw new AppException(ErrorCode.FORBIDDEN, "TransactionService - 016");
         }
 
         // transaction 조회
-        Transaction originalTransaction = transactionRepository.findByUuid(transactionUuid).orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "TransactionService - 001"));
+        Transaction originalTransaction = transactionRepository.findByUuid(transactionUuid).orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "TransactionService - 017"));
         Long originalAmount = originalTransaction.getAmount();
 
         // originalTransaction 삭제
@@ -286,7 +285,7 @@ public class TransactionService {
             splitAmountSum += splitTransactionDto.getAmount();
 
             // AccountSlot 조회
-            AccountSlot accountSlot = accountSlotRepository.findByUuid(splitTransactionDto.getAccountSlotId()).orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "TransactionService - 001"));
+            AccountSlot accountSlot = accountSlotRepository.findByUuid(splitTransactionDto.getAccountSlotId()).orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "TransactionService - 018"));
             Slot slot = accountSlot.getSlot();  // 나눌 슬롯 정보도 줘야하니깐 Slot 객체 얻어놓기
 
             // Transaction 객체 만들기
@@ -360,7 +359,7 @@ public class TransactionService {
 
         // 마지막에 나눈 금액들의 합 == 원래 금액인지 검사하고, 같지 않으면 400 응답
         if(!originalAmount.equals(splitAmountSum)) {
-            throw new AppException(ErrorCode.INVALID_SPLIT_AMOUNT, "TransactionService - 003");
+            throw new AppException(ErrorCode.INVALID_SPLIT_AMOUNT, "TransactionService - 019");
         }
 
         //dto > data > originalTransaction
@@ -376,7 +375,7 @@ public class TransactionService {
         // dto
         AddSplitTransactionsResponseDto addSplitTransactionsResponseDto = AddSplitTransactionsResponseDto.builder()
                 .success(true)
-                .message("[TransactionService - 004] 금액 나누기 성공")
+                .message("[TransactionService - 020] 금액 나누기 성공")
                 .data(AddSplitTransactionsResponseDto.Data.builder().originalTransaction(originalTransactionDto).splitTransactions(splitTransactionDtos).build())
                 .build();
 
@@ -390,13 +389,13 @@ public class TransactionService {
     public AddDutchPayTransactionsResponseDto addDutchPayTransactions(Long userId, String accountUuid, String transactionUuid, Integer n) {
 
         // userId != account userId 이면 403 응답
-        Account account = accountRepository.findByUuid(accountUuid).orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "TransactionService - 001"));
+        Account account = accountRepository.findByUuid(accountUuid).orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "TransactionService - 021"));
         if(userId != account.getUser().getId()) {
-            throw new AppException(ErrorCode.FORBIDDEN, "TransactionService - 002");
+            throw new AppException(ErrorCode.FORBIDDEN, "TransactionService - 022");
         }
 
         // transaction 조회하고 변경 전 지출금액과 거래 후 잔액 값 저장해두기
-        Transaction originalTransaction = transactionRepository.findByUuid(transactionUuid).orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "TransactionService - 003"));
+        Transaction originalTransaction = transactionRepository.findByUuid(transactionUuid).orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "TransactionService - 023"));
         Long originalAmount = originalTransaction.getAmount();
         Long originalBalance = originalTransaction.getBalance();
 
@@ -420,8 +419,8 @@ public class TransactionService {
 
         // 미분류 슬롯에 들어갈 트랜잭션 객체 하나 더 만들고 save.
         // 이 계좌의 미분류 슬롯 객체 조회
-        Slot uncategorizedSlot = slotRepository.findByUuid("1450babf-97ca-11f0-9dfe-28c5d21ceb15").orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "TransactionService - 001"));
-        AccountSlot uncategorizedAccountSlot = accountSlotRepository.findByAccountAndSlot(account, uncategorizedSlot).orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "TransactionService - 004"));
+        Slot uncategorizedSlot = slotRepository.findByUuid("c8e604bb-95e9-11f0-9470-3a932b1ba57c").orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "TransactionService - 024"));
+        AccountSlot uncategorizedAccountSlot = accountSlotRepository.findByAccountAndSlot(account, uncategorizedSlot).orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "TransactionService - 025"));
         Transaction newTransaction = Transaction.builder()
                 .account(account)
                 .accountSlot(uncategorizedAccountSlot)
@@ -558,7 +557,7 @@ public class TransactionService {
         // dto
         AddDutchPayTransactionsResponseDto addDutchPayTransactionsResponseDto = AddDutchPayTransactionsResponseDto.builder()
                 .success(true)
-                .message("[TransactionService - 000] 더치페이 성공")
+                .message("[TransactionService - 026] 더치페이 성공")
                 .data(data)
                 .build();
 

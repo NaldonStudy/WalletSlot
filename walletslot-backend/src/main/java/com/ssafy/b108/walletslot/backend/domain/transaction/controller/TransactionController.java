@@ -1,7 +1,6 @@
 package com.ssafy.b108.walletslot.backend.domain.transaction.controller;
 
 import com.ssafy.b108.walletslot.backend.config.security.UserPrincipal;
-import com.ssafy.b108.walletslot.backend.domain.slot.dto.GetSlotListResponseDto;
 import com.ssafy.b108.walletslot.backend.domain.transaction.dto.*;
 import com.ssafy.b108.walletslot.backend.domain.transaction.service.TransactionService;
 import io.swagger.v3.oas.annotations.Operation;
