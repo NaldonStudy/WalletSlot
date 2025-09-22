@@ -29,7 +29,18 @@ export { NotificationRow } from './NotificationItem';
 // 레포트 관련 컴포넌트
 export * from './report';
 
-// TODO: 추가할 공통 컴포넌트들
+/**
+ * 향후 추가 예정인 공통 컴포넌트들
+ * 
+ * Phase 2 개발 계획:
+ * - UI 기본 컴포넌트: Card, Modal, LoadingSpinner, Toast, Badge
+ * - 폼 컴포넌트: Switch, Slider, DatePicker
+ * - 네비게이션: TabBar, Header, IconButton
+ * - 차트: PieChart, BarChart, LineChart
+ * - 레이아웃: SafeAreaView, KeyboardAvoidingView, Divider
+ * - 도메인 특화: SlotCard, AccountCard, Avatar
+ */
+
 // export { Card } from './Card';
 // export { Modal } from './Modal';
 // export { LoadingSpinner } from './LoadingSpinner';

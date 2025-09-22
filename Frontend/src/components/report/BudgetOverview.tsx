@@ -4,10 +4,23 @@ import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 interface BudgetOverviewProps {
+  /** 예산 대비 지출 비교 데이터 */
   budgetComparison: BudgetComparison;
+  /** 앱 테마 객체 (라이트/다크 모드 색상 포함) */
   theme: any;
 }
 
+/**
+ * 이번 달 예산 대비 실제 지출을 시각화하는 컴포넌트
+ * 
+ * 주요 기능:
+ * - 거래 횟수 및 지난 달 대비 증감률 표시
+ * - 예산 대비 지출 비율을 프로그레스 바로 시각화
+ * - 예산 초과 시 빨간색으로 경고 표시
+ * 
+ * @param budgetComparison - 예산 비교 데이터
+ * @param theme - 테마 설정
+ */
 export const BudgetOverview: React.FC<BudgetOverviewProps> = ({
   budgetComparison,
   theme
@@ -102,7 +115,7 @@ const styles = StyleSheet.create({
     padding: Spacing.lg,
     marginBottom: Spacing.base,
     borderRadius: 16,
-    overflow: 'visible', // 내용이 잘리지 않도록
+    overflow: 'visible',
   },
   sectionTitle: {
     fontSize: Typography.fontSize.lg,
@@ -114,13 +127,11 @@ const styles = StyleSheet.create({
     justifyContent: 'space-around',
     marginBottom: Spacing.lg,
     alignItems: 'flex-start',
-    // minHeight 제거 - 텍스트 내용에 따라 동적 높이
   },
   statItem: {
     alignItems: 'center',
     flex: 1,
     paddingHorizontal: Spacing.xs,
-    // minHeight 제거 - 텍스트에 맞게 자동 조정
   },
   statNumber: {
     fontSize: Typography.fontSize['2xl'],
@@ -134,7 +145,7 @@ const styles = StyleSheet.create({
   },
   statLabel: {
     fontSize: Typography.fontSize.sm,
-    fontWeight: Typography.fontWeight.medium, // 글꼴 두께 추가
+    fontWeight: Typography.fontWeight.medium,
   },
   budgetBarContainer: {
     marginTop: Spacing.base,
@@ -145,15 +156,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: Spacing.xs,
     flexWrap: 'wrap',
-    // minHeight 제거 - 라벨 내용에 따라 자동 크기
   },
   budgetLabel: {
     fontSize: Typography.fontSize.sm,
-    fontWeight: Typography.fontWeight.medium, // 글꼴 두께 추가
+    fontWeight: Typography.fontWeight.medium,
   },
   budgetAmount: {
-    fontSize: Typography.fontSize.lg, // 크기 증가
-    fontWeight: Typography.fontWeight.bold, // 더 굵게
+    fontSize: Typography.fontSize.lg,
+    fontWeight: Typography.fontWeight.bold,
   },
   budgetBar: {
     height: 12,

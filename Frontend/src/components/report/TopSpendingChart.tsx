@@ -4,10 +4,24 @@ import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 interface TopSpendingChartProps {
+  /** 상위 지출 카테고리 데이터 배열 (최대 3개) */
   topSpendingCategories: TopSpendingCategory[];
+  /** 앱 테마 객체 (라이트/다크 모드 색상 포함) */
   theme: any;
 }
 
+/**
+ * 상위 3대 지출 카테고리를 막대 차트로 시각화하는 컴포넌트
+ * 
+ * 주요 기능:
+ * - 상위 3개 카테고리의 지출 금액을 막대 차트로 표시
+ * - 각 카테고리별 색상 구분 (파랑, 빨강, 초록)
+ * - 막대 차트 하단에 상세 정보 및 백분율 표시
+ * - 반응형 차트 높이 (최대 지출 금액 기준 비례 조정)
+ * 
+ * @param topSpendingCategories - 상위 지출 카테고리 데이터
+ * @param theme - 테마 설정
+ */
 export const TopSpendingChart: React.FC<TopSpendingChartProps> = ({
   topSpendingCategories,
   theme
@@ -80,7 +94,7 @@ const styles = StyleSheet.create({
     padding: Spacing.lg,
     marginBottom: Spacing.base,
     borderRadius: 16,
-    overflow: 'visible', // 내용이 잘리지 않도록
+    overflow: 'visible',
   },
   sectionTitle: {
     fontSize: Typography.fontSize.lg,
@@ -109,9 +123,9 @@ const styles = StyleSheet.create({
     borderRadius: 6,
   },
   barLabel: {
-    fontSize: Typography.fontSize.sm, // 크기 증가
+    fontSize: Typography.fontSize.sm,
     textAlign: 'center',
-    fontWeight: Typography.fontWeight.bold, // 더 굵게
+    fontWeight: Typography.fontWeight.bold,
   },
   detailsContainer: {
     marginTop: Spacing.base,
@@ -121,7 +135,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: Spacing.sm,
     paddingVertical: Spacing.xs,
-    // minHeight 제거 - 텍스트에 따라 자동 높이
   },
   colorIndicator: {
     width: 12,
@@ -135,14 +148,13 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     flexWrap: 'wrap',
-    // minHeight 제거 - 컨텐츠에 따라 동적 크기
   },
   detailName: {
-    fontSize: Typography.fontSize.lg, // 크기 증가
-    fontWeight: Typography.fontWeight.bold, // 더 굵게
+    fontSize: Typography.fontSize.lg,
+    fontWeight: Typography.fontWeight.bold,
   },
   detailAmount: {
-    fontSize: Typography.fontSize.base, // 크기 증가
-    fontWeight: Typography.fontWeight.medium, // 글꼴 두께 추가
+    fontSize: Typography.fontSize.base,
+    fontWeight: Typography.fontWeight.medium,
   },
 });

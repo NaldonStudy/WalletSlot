@@ -4,10 +4,24 @@ import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 interface CategoryAnalysisProps {
+  /** 카테고리별 지출 분석 데이터 배열 */
   categoryAnalysis: CategorySpending[];
+  /** 앱 테마 객체 (라이트/다크 모드 색상 포함) */
   theme: any;
 }
 
+/**
+ * 슬롯(카테고리)별 예산 사용 현황을 분석하는 컴포넌트
+ * 
+ * 주요 기능:
+ * - 각 슬롯의 예산 대비 실제 지출 비교
+ * - 상태별 색상 구분 (절약/딱맞음/초과)
+ * - 지출 비율을 프로그레스 바로 시각화
+ * - 지난 기간 대비 변화율 표시
+ * 
+ * @param categoryAnalysis - 카테고리별 지출 분석 데이터
+ * @param theme - 테마 설정
+ */
 export const CategoryAnalysis: React.FC<CategoryAnalysisProps> = ({
   categoryAnalysis,
   theme
@@ -99,7 +113,7 @@ const styles = StyleSheet.create({
     padding: Spacing.lg,
     marginBottom: Spacing.base,
     borderRadius: 16,
-    overflow: 'visible', // 내용이 잘리지 않도록
+    overflow: 'visible',
   },
   sectionTitle: {
     fontSize: Typography.fontSize.lg,
@@ -121,8 +135,8 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.xs,
   },
   categoryName: {
-    fontSize: Typography.fontSize.lg, // 크기 증가
-    fontWeight: Typography.fontWeight.bold, // 더 굵게
+    fontSize: Typography.fontSize.lg,
+    fontWeight: Typography.fontWeight.bold,
   },
   statusBadge: {
     paddingHorizontal: Spacing.sm,
@@ -131,8 +145,8 @@ const styles = StyleSheet.create({
   },
   statusText: {
     color: 'white',
-    fontSize: Typography.fontSize.sm, // 크기 증가
-    fontWeight: Typography.fontWeight.bold, // 더 굵게
+    fontSize: Typography.fontSize.sm,
+    fontWeight: Typography.fontWeight.bold,
   },
   categoryDetails: {
     flexDirection: 'row',
@@ -140,7 +154,6 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     marginBottom: Spacing.sm,
     flexWrap: 'wrap',
-    // minHeight 제거 - 텍스트에 따라 자동 크기
   },
   categoryAmount: {
     fontSize: Typography.fontSize.base,
@@ -149,10 +162,10 @@ const styles = StyleSheet.create({
     // flexShrink 제거 - 텍스트가 자연스럽게 확장되도록
   },
   changePercent: {
-    fontSize: Typography.fontSize.base, // 크기 증가
-    fontWeight: Typography.fontWeight.bold, // 더 굵게
-    textAlign: 'right', // 우측 정렬
-    marginLeft: Spacing.sm, // 좌측 여백
+    fontSize: Typography.fontSize.base,
+    fontWeight: Typography.fontWeight.bold,
+    textAlign: 'right',
+    marginLeft: Spacing.sm,
   },
   progressBar: {
     height: 8,

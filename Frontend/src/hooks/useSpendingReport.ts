@@ -4,17 +4,22 @@ import type { SpendingReport } from '@/src/types/report';
 import { useQuery } from '@tanstack/react-query';
 
 /**
- * 전체 계좌 통합 소비 레포트 조회 훅
- * @param enabled 쿼리 활성화 여부 (기본값: true)
+ * 전체 계좌 통합 소비 레포트를 조회하는 커스텀 훅
+ * 
+ * 주요 기능:
+ * - TanStack Query 기반 데이터 캐싱 및 자동 갱신
+ * - 필수 필드 검증을 통한 데이터 무결성 보장
+ * - 개발/운영 환경별 재시도 정책 적용
+ * - MSW 환경에서의 안정적인 폴백 처리
+ * 
+ * @param enabled 쿼리 활성화 여부 (기본값: true, 계좌 로딩 완료 후 활성화 권장)
+ * @returns TanStack Query 결과 객체 (data, isLoading, error, refetch 등)
  */
 export const useSpendingReport = (enabled: boolean = true) => {
   return useQuery({
     queryKey: queryKeys.reports.spending(),
     queryFn: async (): Promise<SpendingReport> => {
-      console.log('[useSpendingReport] 쿼리 함수 실행 (전체 계좌 통합)');
-      
       const result = await reportApi.getSpendingReport();
-      console.log('[useSpendingReport] API 결과:', result);
       
       if (!result) {
         throw new Error('소비 레포트 데이터가 없습니다.');
@@ -22,7 +27,6 @@ export const useSpendingReport = (enabled: boolean = true) => {
       
       // 필수 필드 검증
       if (!result.period || !result.budgetComparison || !result.categoryAnalysis) {
-        console.error('[useSpendingReport] 필수 필드 누락:', result);
         throw new Error('소비 레포트 데이터가 완전하지 않습니다.');
       }
       

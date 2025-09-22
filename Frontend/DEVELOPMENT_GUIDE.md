@@ -23,8 +23,9 @@ WalletSlot은 개인 예산 관리와 계좌 연동을 통한 스마트 자금 �
 
 ### 🏗️ 핵심 프레임워크
 - **React Native**: 0.81.4 (최신 아키텍처 지원)
-- **Expo**: ^54.0.7 (SDK 54, New Architecture 활성화)
+- **Expo**: 54.0.8 (SDK 54, New Architecture 활성화)
 - **React**: 19.1.0
+- **React DOM**: 19.1.0 (웹 지원)
 - **TypeScript**: ~5.9.2 (엄격한 타입 체크)
 
 ### 🔄 상태 관리 & 네트워킹
@@ -37,11 +38,13 @@ WalletSlot은 개인 예산 관리와 계좌 연동을 통한 스마트 자금 �
 - **@react-native-firebase/messaging**: ^23.3.1 (FCM, 함수 호출 방식)
 - **expo-notifications**: ~0.32.11 (로컬 알림 + 권한 관리)
 
-### 🎨 UI & 폼
+### 🎨 UI & 폼 & 차트
 - **react-hook-form**: ^7.62.0 + **@hookform/resolvers**: ^5.2.2
 - **zod**: ^4.1.8 (스키마 검증)
-- **victory-native**: ^41.20.1 (차트)
+- **victory-native**: ^41.20.1 (차트 라이브러리)
+- **@shopify/react-native-skia**: 2.2.12 (고성능 그래픽)
 - **expo-linear-gradient**: ~15.0.7 (그라데이션)
+- **expo-blur**: ~15.0.7 (블러 효과)
 
 ### 🎭 개발 환경 (MSW)
 - **MSW**: ^2.11.2 (React Native 네트워크 인터셉트)
@@ -54,12 +57,32 @@ WalletSlot은 개인 예산 관리와 계좌 연동을 통한 스마트 자금 �
 - **web-streams-polyfill**: ^4.2.0 (스트림 폴리필)
 - **buffer**, **events**, **process**, **stream-browserify**, **util** (Node.js 호환)
 
-### 📱 네이티브 기능
-- **expo-device**: ~8.0.7 (디바이스 정보)
+### 📱 네이티브 기능 & 라우팅
+- **expo-router**: ~6.0.7 (파일 기반 라우팅)
+- **@react-navigation/native**: ^7.1.8 (네비게이션 코어)
+- **@react-navigation/bottom-tabs**: ^7.4.0 (탭 네비게이션)
+- **expo-device**: ~8.0.8 (디바이스 정보)
 - **expo-constants**: ~18.0.8 (앱 설정)
 - **expo-secure-store**: ~15.0.7 (보안 저장소)
+- **expo-image**: ~3.0.8 (최적화된 이미지)
+- **expo-image-picker**: ~17.0.8 (이미지 선택)
+- **expo-haptics**: ~15.0.7 (햅틱 피드백)
+- **expo-linking**: ~8.0.8 (딥링크)
+- **expo-web-browser**: ~15.0.7 (인앱 브라우저)
 - **react-native-gesture-handler**: ~2.28.0 (제스처)
 - **react-native-reanimated**: ~4.1.0 (애니메이션)
+- **react-native-screens**: ~4.16.0 (네이티브 스크린)
+- **react-native-safe-area-context**: ~5.6.1 (Safe Area)
+- **react-native-svg**: 15.12.1 (SVG 지원)
+- **react-native-webview**: 13.15.0 (웹뷰)
+- **react-native-worklets**: 0.5.1 (워클릿)
+
+### 🔧 개발 도구 & 테스팅
+- **ESLint**: ^9.35.0 + **eslint-config-expo**: ~10.0.0
+- **Jest**: ~29.7.0 (테스팅 프레임워크)
+- **@testing-library/react-native**: ^13.3.3 (컴포넌트 테스트)
+- **react-test-renderer**: 19.1.0 (렌더링 테스트)
+- **react-native-svg-transformer**: ^1.5.1 (SVG 변환)
 
 ## 3. 개발 환경 설정
 
@@ -72,16 +95,13 @@ npm install
 # 2. 개발 서버 시작 (Expo Go)
 npm start
 
-# 3. Android 빌드 (Development Build)
-npm run android
-
-# 4. iOS 빌드 (Development Build)
-npm run ios
+# 3. Android 빌드 (Development Build) - 현재 사용 중
+npx expo run:android
 ```
 
 ### 📱 환경별 개발 방식
 
-#### **Expo Go 환경** (권장 - 빠른 개발)
+#### **Expo Go 환경** (빠른 개발)
 ```bash
 npm start
 # QR 코드 스캔으로 즉시 테스트
@@ -89,26 +109,48 @@ npm start
 # MSW로 완전한 API 시뮬레이션
 ```
 
-#### **Development Build 환경** (실제 Firebase 테스트)
+#### **Development Build 환경** (실제 Firebase 테스트) - **현재 권장**
 ```bash
-# Android Prebuild
-npx expo prebuild --platform android --clean
-npm run android
+# Android 빌드 및 실행 (현재 사용 중인 방식)
+npx expo run:android
 
-# iOS Prebuild (필요시)
-npx expo prebuild --platform ios --clean
-npm run ios
+# 또는 별도 명령어로
+npm run android  # expo run:android와 동일
 ```
+
+> **참고**: iOS 빌드는 현재 환경에서 지원되지 않습니다.
 
 ### 🔧 필수 설정 파일
 
-#### **Firebase 설정**
+#### **Firebase 설정** ✅
 ```bash
-# Android: google-services.json을 루트에 배치
-# iOS: GoogleService-Info.plist을 ios/ 폴더에 배치
+# Android: google-services.json (루트 디렉토리에 배치됨)
+# 현재 프로젝트에 설정 완료
 ```
 
-#### **환경 변수 (선택사항)**
+#### **주요 설정 파일들**
+- **`app.json`**: Expo 앱 설정 (푸시 알림, 패키지명 등)
+- **`eas.json`**: EAS Build 설정 (빌드 프로필)
+- **`metro.config.js`**: Metro 번들러 설정 (SVG 변환 포함)
+- **`tsconfig.json`**: TypeScript 설정 (경로 alias `@/*` 포함)
+- **`eslint.config.js`**: ESLint 설정 (Expo 플랫 설정)
+
+#### **패키지 관리**
+```bash
+# package.json 오버라이드 설정
+"overrides": {
+  "glob": "^10.4.5"  # 의존성 버전 강제 지정
+}
+
+# 사용 가능한 스크립트
+npm run start      # expo start
+npm run android    # expo run:android  
+npm run web        # expo start --web
+npm run lint       # expo lint
+npm run reset-project  # 프로젝트 초기화
+```
+
+#### **개발 환경 변수 (선택사항)**
 ```bash
 # .env.local 생성 (gitignore에 포함됨)
 EXPO_PUBLIC_API_URL=https://api.walletslot.com
@@ -125,29 +167,61 @@ EXPO_PUBLIC_MSW_ENABLED=true
 /                        # Frontend 루트 디렉토리 
 ├── index.js            # ✅ Firebase v23 백그라운드 핸들러 등록
 ├── app/                 # Expo 라우터 기반 화면 구성
+│   ├── index.tsx        # ✅ 앱 진입점 화면
+│   ├── _layout.tsx      # ✅ 글로벌 레이아웃 설정
+│   ├── +not-found.tsx   # ✅ 404 페이지
 │   ├── _dev/            # 🧪 개발용 컴포넌트 테스트 화면 그룹
+│   │   ├── _layout.tsx  # 개발 화면 레이아웃
+│   │   └── test/        # 테스트 화면들
+│   │       └── index.tsx    # ✅ 컴포넌트 테스트 화면
 │   ├── (auth)/          # 🔐 인증(로그인, 회원가입) 관련 화면 그룹
 │   │   ├── _layout.tsx  # auth 레이아웃
+│   │   ├── structure.md # 인증 플로우 구조 문서
 │   │   └── (signup)/    # 회원가입 화면들
-│   │       ├── _layout.tsx          # signup 레이아웃
-│   │       ├── name.tsx             # ✅ 이름 입력 화면 (완전 구현)
-│   │       ├── phone.tsx            # ✅ 전화번호 입력 화면 (완전 구현)
-│   │       └── resident-id.tsx      # ✅ 주민등록 번호 입력 화면 (완전 구현)
-│   ├── (linking)/       # 🔗 딥링킹, 외부 연동 관련 화면 그룹
+│   │       ├── _layout.tsx              # signup 레이아웃
+│   │       ├── name.tsx                 # ✅ 이름 입력 화면
+│   │       ├── phone.tsx                # ✅ 전화번호 입력 화면
+│   │       ├── phone-verification.tsx   # ✅ 전화번호 인증 화면
+│   │       ├── resident-id.tsx          # ✅ 주민등록번호 입력 화면
+│   │       ├── password-setup.tsx       # ✅ 비밀번호 설정 화면
+│   │       ├── account-selection.tsx    # ✅ 계좌 선택 화면
+│   │       ├── account-verification.tsx # ✅ 계좌 인증 화면
+│   │       ├── notification-consent.tsx # ✅ 알림 동의 화면
+│   │       ├── terms-detail.tsx         # ✅ 약관 상세 화면
+│   │       └── welcome.tsx              # ✅ 가입 완료 환영 화면
+│   ├── (linking)/       # 🔗 딥링킹, 외부 연동 관련 화면 그룹 (미구현)
 │   ├── (onboarding)/    # 👋 온보딩(앱 최초 실행 시 안내) 화면 그룹
 │   │   ├── _layout.tsx  # 온보딩 레이아웃
 │   │   └── onboarding/  # 실제 온보딩 화면들
-│   │       └── index.tsx   # ✅ 메인 온보딩 슬라이드 화면 (완전 구현)
-│   ├── (tabs)/          # 📱 메인 탭 네비게이션 그룹
-│   │   ├── _layout.tsx  # 4개 탭 설정 (대시보드, 리포트, 알림, 프로필)
-│   │   ├── dashboard/   # 📊 대시보드 탭
-│   │   │   └── index.tsx    # ✅ 메인 대시보드 화면 (완전 구현)
-│   │   ├── report/      # 📈 리포트 탭
-│   │   │   └── index.tsx    # 🚧 리포트 메인 화면 (플레이스홀더)
-│   │   ├── notifications/ # 🔔 알림 탭
-│   │   │   └── index.tsx    # ✅ 알림 목록 화면 (완전 구현)
-│   │   └── profile/     # 👤 프로필 탭
-│   │       └── index.tsx    # 🚧 프로필 설정 화면 (플레이스홀더)
+│   │       ├── _layout.tsx  # 온보딩 내부 레이아웃
+│   │       └── index.tsx    # ✅ 메인 온보딩 슬라이드 화면
+│   └── (tabs)/          # 📱 메인 탭 네비게이션 그룹 (5개 탭)
+│       ├── _layout.tsx  # 탭 네비게이션 설정
+│       ├── dashboard/   # 📊 대시보드 탭
+│       │   ├── _layout.tsx  # 대시보드 레이아웃
+│       │   └── index.tsx    # ✅ 메인 대시보드 화면
+│       ├── report/      # 📈 리포트 탭
+│       │   ├── _layout.tsx  # 리포트 레이아웃
+│       │   └── index.tsx    # ✅ 리포트 메인 화면 (신규 구현)
+│       ├── notifications/ # 🔔 알림 탭
+│       │   ├── _layout.tsx  # 알림 레이아웃
+│       │   └── index.tsx    # ✅ 알림 목록 화면
+│       ├── profile/     # 👤 프로필 탭
+│       │   ├── _layout.tsx              # 프로필 레이아웃
+│       │   ├── index.tsx                # ✅ 메인 프로필 화면
+│       │   ├── Settings.tsx             # ✅ 설정 화면
+│       │   ├── AccountSettings.tsx      # ✅ 계좌 설정 화면
+│       │   ├── ConnectedBanks.tsx       # ✅ 연결된 은행 목록 화면
+│       │   ├── AccountConnectionDetail.tsx # ✅ 계좌 연결 상세 화면
+│       │   ├── MyDataSettings.tsx       # ✅ 마이데이터 설정 화면
+│       │   ├── NotificationSettings.tsx # ✅ 알림 설정 화면
+│       │   ├── BiometricRegister.tsx    # ✅ 생체인증 등록 화면
+│       │   ├── PinChangeModal.tsx       # ✅ PIN 변경 모달
+│       │   ├── PrivacyPolicy.tsx        # ✅ 개인정보처리방침 화면
+│       │   └── TermsOfService.tsx       # ✅ 이용약관 화면
+│       └── wishlist/    # 🎯 위시리스트 탭
+│           ├── _layout.tsx  # 위시리스트 레이아웃
+│           └── index.tsx    # ✅ 위시리스트 메인 화면
 │   ├── +not-found.tsx   # 404 에러 화면
 │   ├── index.tsx        # ✅ 온보딩 상태 기반 라우팅 로직
 │   └── _layout.tsx      # ✅ 앱 최상위 레이아웃 (푸시 알림 자동 초기화)
@@ -165,10 +239,13 @@ EXPO_PUBLIC_MSW_ENABLED=true
 │   │   ├── client.ts    # ✅ Axios 인스턴스 + 인증 인터셉터
 │   │   ├── queryKeys.ts # ✅ TanStack Query 키 중앙 관리
 │   │   ├── queryClient.ts # ✅ Query 클라이언트 설정
+│   │   ├── responseNormalizer.ts # ✅ API 응답 정규화 유틸리티
 │   │   ├── account.ts   # 🚧 계좌 관련 API 함수 (템플릿)
 │   │   ├── auth.ts      # 🚧 인증 관련 API 함수 (템플릿)
 │   │   ├── slot.ts      # 🚧 슬롯 관련 API 함수 (템플릿)
 │   │   ├── notification.ts # ✅ 푸시 알림 API (완전 구현)
+│   │   ├── profile.ts   # ✅ 사용자 프로필 API (완전 구현)
+│   │   ├── report.ts    # ✅ 지출 리포트 API (완전 구현, 신규 추가)
 │   │   └── index.ts     # API 함수들 통합 export
 │   │
 │   ├── components/      # 🧩 커스텀 재사용 컴포넌트 (WalletSlot 전용)
@@ -179,7 +256,22 @@ EXPO_PUBLIC_MSW_ENABLED=true
 │   │   ├── chart/       # 📊 차트 관련 컴포넌트들
 │   │   │   └── AccountDonutChart.tsx # ✅ 계좌별 슬롯 현황 도넛 차트
 │   │   ├── common/      # 🔧 범용 컴포넌트 폴더
+│   │   │   ├── Avatar.tsx           # ✅ 사용자 아바타 컴포넌트
+│   │   │   ├── CircularProgress.tsx # ✅ 원형 진행률 표시 컴포넌트
+│   │   │   ├── EditableField.tsx    # ✅ 인라인 편집 가능한 필드 컴포넌트
+│   │   │   └── index.ts             # ✅ 공통 컴포넌트들 통합 export
+│   │   ├── report/      # 📈 리포트 관련 컴포넌트들 (신규 추가)
+│   │   │   ├── BudgetOverview.tsx        # ✅ 예산 대비 지출 현황 요약
+│   │   │   ├── BudgetSuggestion.tsx      # ✅ AI 기반 예산 조정 제안
+│   │   │   ├── CategoryAnalysis.tsx      # ✅ 슬롯별 예산 사용 분석
+│   │   │   ├── PeerComparison.tsx        # ✅ 또래 그룹과의 지출 비교
+│   │   │   ├── PersonalizedInsight.tsx   # ✅ 개인화 소비 패턴 인사이트
+│   │   │   ├── SpendingReportHeader.tsx  # ✅ 리포트 헤더 (기간, 제목)
+│   │   │   ├── TopSpendingChart.tsx      # ✅ 상위 3대 지출 막대 차트
+│   │   │   └── index.ts                  # ✅ 리포트 컴포넌트들 통합 export
 │   │   ├── slot/        # 🎯 슬롯 관련 컴포넌트들
+│   │   │   ├── SlotItem.tsx              # ✅ 개별 슬롯 아이템 컴포넌트
+│   │   │   ├── SlotList.tsx              # ✅ 슬롯 목록 표시 컴포넌트
 │   │   │   └── UncategorizedSlotCard.tsx # ✅ 미분류 슬롯 카드
 │   │   ├── Button.tsx   # ✅ 테마 기반 버튼 컴포넌트
 │   │   ├── InputField.tsx # ✅ 폼 입력 필드 컴포넌트
@@ -194,7 +286,7 @@ EXPO_PUBLIC_MSW_ENABLED=true
 │   │   ├── Colors.ts    # 🎨 기본 색상 정의 (라이트/다크 모드)
 │   │   ├── income.ts    # 💰 수입 관련 상수
 │   │   ├── messages.ts  # 💬 메시지 템플릿 상수
-│   │   ├── sampleData.ts # ✅ 개발용 샘플 데이터 (완전 구현)
+
 │   │   ├── slots.ts     # ✅ 슬롯 카테고리 및 색상 매핑
 │   │   ├── storage.ts   # 🗃️ 저장소 키 관리
 │   │   ├── theme.ts     # ✅ 디자인 시스템 (완전 구현)
@@ -204,34 +296,43 @@ EXPO_PUBLIC_MSW_ENABLED=true
 │   │
 │   ├── hooks/           # 🪝 비즈니스 로직 커스텀 훅
 │   │   ├── useAccount.ts # 🚧 계좌 데이터 관리 훅 (구조만 완성)
+│   │   ├── useAccountBalance.ts # ✅ 특정 계좌 잔액 조회 훅 (완전 구현)
 │   │   ├── useAuth.ts   # 🚧 인증 상태 관리 훅 (구조만 완성)
+│   │   ├── useLinkedAccounts.ts # ✅ 연동된 계좌 목록 조회 훅 (완전 구현)
+│   │   ├── useProfile.ts # ✅ 사용자 프로필 관리 훅 (완전 구현)
 │   │   ├── useSlots.ts  # 🚧 슬롯 데이터 관리 훅 (구조만 완성)
 │   │   ├── useNotifications.ts # ✅ 푸시 알림 TanStack Query 훅
 │   │   ├── useNotificationLogic.ts # ✅ 알림 UI 로직 전용 훅
 │   │   ├── useNotificationNavigation.ts # ✅ 알림 네비게이션 훅
+│   │   ├── useSpendingReport.ts # ✅ 지출 리포트 TanStack Query 훅 (신규 추가)
 │   │   ├── useTheme.ts  # 🎨 테마 관련 유틸리티 훅
 │   │   └── index.ts     # 훅들 통합 export
 │   │
 │   ├── services/        # 🏢 비즈니스 로직 서비스 클래스
+│   │   ├── appService.ts      # 🚧 앱 관련 서비스 (기본 구조)
+│   │   ├── authService.ts     # 🚧 인증 관련 서비스 (기본 구조)
+│   │   ├── deviceIdService.ts # ✅ 디바이스 ID UUID 생성 (완전 구현)
 │   │   ├── firebasePushService.ts # ✅ Firebase v23 푸시 서비스 (완전 구현)
-│   │   ├── unifiedPushService.ts # ✅ 통합 푸시 서비스 (완전 구현)
 │   │   ├── localNotificationService.ts # ✅ 로컬 알림 서비스
-|   |   ├── deviceIdService.ts # ✅ deviceId uuid 생성(완전 구현)
-|   |   ├── authService.ts     # 🚧 
-|   |   ├── appService.ts      # 🚧 계좌 데이터 관리 훅 (구조만 완성)
+│   │   ├── monitoringService.ts # ✅ 앱 모니터링 서비스 (완전 구현)
+│   │   ├── unifiedPushService.ts # ✅ 통합 푸시 서비스 (완전 구현)
 │   │   └── index.ts     # 서비스들 통합 export
 │   │
 │   ├── store/           # 🗄️ 데이터 저장소 및 클라이언트 상태 관리
-│   │   ├── appStore.ts  # 🚧 Zustand 기반 전역 상태 (기본 구조)
-│   │   ├── authStore.ts # 🚧 (Z + Async) 인증 상태 전용 스토어 (기본 구조)
-│   │   ├── signupStore.ts  # ✅ Zustand 회원가입 데이터 임시 저장 (완전 구현)
+│   │   ├── authStore.ts # 🚧 Zustand 인증 상태 전용 스토어 (기본 구조)
+│   │   ├── signupStore.ts # ✅ Zustand 회원가입 데이터 임시 저장 (완전 구현)
 │   │   └── index.ts     # ✅ SecureStore/AsyncStorage 래퍼 유틸
 │   │
 │   ├── types/           # 📝 전역 타입 정의
 │   │   └── index.ts     # ✅ API 응답, 컴포넌트 props 등 핵심 타입
 │   │
 │   └── utils/           # 🔧 유틸리티 함수
-│       └── index.ts     # 🚧 유틸리티 함수들 (기본 구조)
+│       ├── color.ts     # ✅ 색상 변환 및 조작 유틸리티
+│       ├── deepLink.ts  # ✅ 딥링크 처리 유틸리티
+│       ├── device.ts    # ✅ 디바이스 정보 조회 유틸리티
+│       ├── format.ts    # ✅ 데이터 포맷팅 유틸리티
+│       ├── validation.ts # ✅ 유효성 검사 유틸리티
+│       └── index.ts     # ✅ 유틸리티 함수들 통합 export
 │
 ├── components/          # 🧱 Expo 기본 컴포넌트들
 │   ├── ThemedText.tsx   # ✅ 테마 기반 텍스트 컴포넌트
@@ -263,298 +364,98 @@ EXPO_PUBLIC_MSW_ENABLED=true
 - **MSW 통합**: 개발 환경에서 완전한 백엔드 시뮬레이션
 - **Firebase v23 호환**: 최신 modular API 사용
 - **TypeScript 엄격 모드**: 런타임 에러 최소화
-- **폴리필 최소화**: 필수 요소만 포함하여 번들 크기 최적화
 
 ---
 
 ## 5. Firebase 푸시 알림 시스템
 
-### 🔥 Firebase v23 완전 가이드
+### 🔥 Firebase v23 간단 가이드
 
-#### **핵심 변경사항 (v22 → v23)**
+#### **핵심 변경사항**
 - **함수 호출 방식**: `messaging()` 함수로 호출 필수
-- **자동 APNs 관리**: iOS APNs 토큰 자동 처리
-- **Deprecated 메서드 제거**: 수동 등록 관련 메서드 정리
+- **자동 토큰 관리**: FCM/APNs 토큰 자동 처리
 
-#### **시스템 아키텍처**
-```typescript
-index.js                    # 백그라운드 메시지 핸들러 등록
-└── Firebase v23 함수 호출 방식
+#### **환경별 동작**
+| 환경 | Firebase | Mock 데이터 | 실제 푸시 |
+|------|----------|-------------|-----------|
+| **Expo Go** | ❌ | ✅ | ❌ |
+| **Development Build** | ✅ | ❌ | ✅ |
+| **Production** | ✅ | ❌ | ✅ |
 
-firebasePushService.ts      # Firebase 코어 서비스
-├── initialize()            # 권한 요청 + FCM 토큰 발급
-├── setupMessageListeners() # 포그라운드/백그라운드 처리
-└── showLocalNotification()  # Expo Notifications 연동
-
-unifiedPushService.ts       # 통합 인터페이스
-└── Firebase + Local 알림 조율
-```
-
-### 📱 환경별 동작 방식
-
-#### **🎯 Expo Go 환경** (권장 - 빠른 개발)
-```
-❌ Firebase 네이티브 모듈 없음
-✅ 서비스가 자동으로 실패 처리
-✅ MSW로 완전한 푸시 플로우 시뮬레이션
-✅ 로컬 알림으로 결과 확인
-```
-
-#### **🛠 Development Build 환경** (실제 Firebase)
-```
-✅ 실제 Firebase FCM 토큰 발급
-✅ 실제 푸시 알림 수신
-✅ Firebase Console에서 직접 테스트 가능
-✅ APNs 자동 관리 (iOS)
-```
-
-#### **🚀 운영 환경** (Production)
-```
-✅ 실제 백엔드 API 호출
-✅ Firebase Admin SDK로 실제 푸시 전송
-✅ 모든 기능 실제 동작
-```
-
-### 🔧 Firebase 설정 가이드
-
-#### **1단계: Firebase Console 설정**
-1. **프로젝트 생성**: `walletslot`
+#### **Firebase 설정**
+1. **Firebase Console**: `walletslot` 프로젝트 생성
 2. **Android 앱 등록**: `com.walletslot.app`
-3. **iOS 앱 등록**: `com.walletslot.app` (선택사항)
-4. **Cloud Messaging API 활성화**
+3. **설정 파일**: `google-services.json` → 프로젝트 루트
+4. **권한 설정**: `app.json`에 알림 권한 추가됨
 
-#### **2단계: 설정 파일 배치**
-```bash
-# Android (필수)
-google-services.json → 프로젝트 루트/
-
-# iOS (선택사항)
-GoogleService-Info.plist → ios/[ProjectName]/
-```
-
-#### **3단계: SHA-1 인증서 등록 (선택사항)**
-푸시 알림만 사용하는 경우 **생략 가능**하지만, Google Services 사용 시 필요:
-
-```powershell
-# Windows PowerShell에서 실행
-keytool -list -v -keystore "%USERPROFILE%\.android\debug.keystore" -alias androiddebugkey -storepass android -keypass android
-```
-
-결과에서 SHA1 값을 복사하여 Firebase Console → 프로젝트 설정 → SHA 인증서 지문에 추가
-
-### 📋 코드 사용법
-
-#### **앱 시작 시 자동 초기화**
+#### **사용법**
 ```typescript
-// app/_layout.tsx에서 자동 실행
-useEffect(() => {
-  if (onboardingDone) {
-    unifiedPushService.initialize();
-  }
-}, [onboardingDone]);
-```
+// 자동 초기화 (app/_layout.tsx)
+unifiedPushService.initialize();
 
-#### **개발 환경에서 테스트**
-```typescript
-// 콘솔에서 실행 가능한 디버그 함수들 (__DEV__ 환경)
-initializePushService();  // 푸시 서비스 초기화
-getPushStatus();          // 현재 상태 확인
-```
-
-#### **MSW 환경에서 FCM 토큰 확인**
-알림 화면에서 MSW 모드일 때만 FCM 토큰 디버그 섹션이 표시됩니다:
-```typescript
-// MSW 환경 체크
-if (__DEV__ && isMSWEnabled()) {
-  // FCM 토큰 표시
-  const token = unifiedPushService.getFCMToken();
+// 개발 환경 테스트
+if (__DEV__) {
+  initializePushService();  // 푸시 서비스 초기화
+  getPushStatus();          // 상태 확인
 }
 ```
-
-### 🔍 트러블슈팅
-
-#### **Firebase 모듈 에러**
-```
-ERROR [Error: Native module RNFBAppModule not found]
-```
-**해결책**: Expo Go 환경의 정상적인 동작입니다. Mock 모드로 자동 전환됩니다.
-
-#### **Push notifications removed from Expo Go**
-```
-ERROR expo-notifications: Android Push notifications functionality was removed
-```
-**해결책**: Expo Go의 제한사항입니다. Development Build 사용 권장.
-
-#### **FCM 토큰 발급 실패**
-```
-ERROR Firebase not initialized
-```
-**해결책**: 
-- `google-services.json` 파일 위치 확인
-- Development Build에서 테스트
-- Firebase Console 프로젝트 설정 확인
 
 ---
 
 ## 6. MSW 개발 환경
 
-### 🎭 MSW (Mock Service Worker) 완전 가이드
+### 🎭 MSW 간단 가이드
 
-WalletSlot은 백엔드 API가 준비되지 않은 상황에서도 완전한 개발이 가능하도록 MSW를 통합했습니다.
+백엔드 API가 없어도 완전한 개발이 가능한 Mock 시스템입니다.
 
 #### **핵심 특징**
-- **실제 네트워크 요청 가로채기**: fetch, axios 코드 변경 없음
-- **Faker.js 연동**: 실제와 유사한 한국어 Mock 데이터
-- **조건부 활성화**: `__DEV__` 환경에서만 동작
-- **최소 폴리필**: React Native 호환성 최적화
-
-#### **MSW 시스템 구조**
-```typescript
-src/polyfills.ts           # React Native MSW 폴리필 (최소 집합)
-├── Event, MessageEvent 등 필수 요소만
-
-src/mocks/
-├── index.ts              # MSW 초기화 및 isMSWEnabled()
-├── server.ts             # React Native용 MSW 서버
-├── test.ts               # MSW 연결 테스트 유틸리티
-└── handlers/
-    └── index.ts          # 도메인별 API Mock 핸들러
-```
+- **실제 네트워크 요청 가로채기**: 코드 변경 없이 Mock 데이터 반환
+- **Faker.js 연동**: 실제와 유사한 한국어 데이터
+- **자동 활성화**: `__DEV__` 환경에서만 동작
 
 #### **사용법**
-
-**자동 초기화**:
 ```typescript
-// app/_layout.tsx에서 자동 실행
+// 자동 초기화 (app/_layout.tsx)
 if (__DEV__) {
   initializeMSW();
 }
-```
 
-**MSW 상태 확인**:
-```typescript
+// API 호출 (기존 코드 그대로)
+const response = await apiClient.get('/api/notifications');
+// → MSW가 자동으로 Mock 데이터 반환
+
+// MSW 상태 확인
 import { isMSWEnabled } from '@/src/mocks';
-
-// UI에서 조건부 렌더링
 if (isMSWEnabled()) {
   // MSW 모드에서만 보이는 개발 도구
 }
-```
-
-**API 호출 (코드 변경 없음)**:
-```typescript
-// 기존 API 호출 코드 그대로 사용
-const response = await apiClient.get('/api/notifications');
-// MSW가 자동으로 가로채서 Mock 데이터 반환
-```
-
-#### **Mock 데이터 예시**
-```typescript
-// 실제와 유사한 한국어 알림 데이터
-{
-  id: "ntf_001",
-  title: "예산 초과 알림",
-  body: "식비 예산의 90%를 사용했습니다",
-  type: "budget_exceeded",
-  isRead: false,
-  createdAt: "2025-09-18T10:30:00Z"
-}
-```
-
-#### **개발 도구**
-```typescript
-// 콘솔에서 사용 가능한 MSW 유틸리티
-const { mswUtils } = await import('@/src/mocks');
-
-mswUtils.test.connection();  // MSW 연결 테스트
-mswUtils.test.showAPIs();    // 사용 가능한 API 목록
-mswUtils.getStatus();        // MSW 현재 상태
 ```
 
 ---
 
 ## 7. Android 빌드 가이드
 
-### 📱 Android Development Build 완전 가이드
+### 📱 Development Build 실행
 
-Expo Go에서 실제 Firebase 기능을 테스트하려면 Development Build가 필요합니다.
+실제 Firebase 기능 테스트를 위한 빌드 방법입니다.
 
-#### **빌드 전 준비사항**
-
-**필수 체크리스트**:
-- [x] `app.json`에 Android 설정 완료
-- [x] Firebase 플러그인 설정 완료
-- [ ] `google-services.json` 파일 배치
-
-#### **1단계: Firebase 설정 파일 배치**
+#### **빠른 실행**
 ```bash
-# Firebase Console에서 다운로드한 파일을 루트에 배치
-copy [다운로드한파일] google-services.json
+# 1. Firebase 설정 파일 확인
+# google-services.json이 루트에 있는지 확인
+
+# 2. Android 빌드 및 실행
+npx expo run:android
 ```
 
-#### **2단계: Prebuild 실행**
-```bash
-# Android 전용 prebuild (권장)
-npx expo prebuild --platform android --clean
-
-# 또는 전체 플랫폼
-npx expo prebuild --clean
-```
-
-#### **3단계: Android Studio 빌드**
-```bash
-# Android Studio에서 빌드하거나
-cd android
-./gradlew assembleDebug
-
-# APK 설치
-adb install app/build/outputs/apk/debug/app-debug.apk
-```
-
-#### **4단계: 실제 Firebase 테스트**
-1. APK 설치 후 앱 실행
-2. 알림 화면에서 FCM 토큰 확인
-3. Firebase Console → Cloud Messaging → 테스트 메시지에서 토큰 입력
-4. 푸시 알림 전송 테스트
-
-### 🔧 Android Studio 설정
-
-#### **필수 설정**
-- **Compile SDK**: 34
-- **Target SDK**: 34  
-- **Min SDK**: 21
-
-#### **Firebase 설정 확인**
-- `android/app/google-services.json` 파일 존재
-- `android/app/build.gradle`에 `apply plugin: 'com.google.gms.google-services'` 확인
-
-#### **권한 확인**
-```xml
-<!-- android/app/src/main/AndroidManifest.xml -->
-<uses-permission android:name="android.permission.INTERNET" />
-<uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
-<uses-permission android:name="com.google.android.c2dm.permission.RECEIVE" />
-```
-
-### 🚀 배포 준비
-
-#### **릴리즈 빌드**
-```bash
-cd android
-./gradlew assembleRelease
-# 결과: android/app/build/outputs/apk/release/app-release.apk
-```
-
-#### **Google Play Console 업로드**
-1. 릴리즈 키스토어로 서명 필요
-2. AAB (Android App Bundle) 형태 권장
-3. Firebase에 릴리즈 SHA-1 인증서 추가
+#### **문제 해결**
+- **Firebase 에러**: Expo Go의 정상 동작, Mock 모드로 자동 전환
+- **빌드 실패**: `npx expo prebuild --platform android --clean` 후 재시도
+- **권한 에러**: Firebase Console에서 패키지명 확인
 
 ---
 
-## 8. 핵심 설계 원칙
-
-### 8.1 환경별 자동 전환 아키텍처
+## 8. 핵심 개발 원칙
 - **Expo Go**: Firebase 모듈 부재 시 자동 Mock 모드 전환
 - **Development Build**: 실제 Firebase + MSW API 시뮬레이션 병행
 - **Production**: 실제 백엔드 API + Firebase Admin SDK 완전 연동
@@ -597,56 +498,34 @@ cd android
 
 ---
 
-## 9. 완성된 기능 현황
+## 9. 개발 가이드 요약
 
-### 🏗️ 기본 프로젝트 설정 (완료)
+### ✅ 완료된 주요 기능
 
-- ✅ **Expo + TypeScript 환경**: React Native 0.81.4, Expo SDK 54.0.7
-- ✅ **절대 경로 설정**: `@/*` 매핑으로 깔끔한 import
-- ✅ **파일 기반 라우팅**: Expo Router v6 그룹 라우팅
-- ✅ **온보딩 시스템**: AsyncStorage 기반 완료 상태 관리
-- ✅ **New Architecture**: Expo 54에서 활성화
+**푸시 알림 시스템**
+- Firebase v23 완전 통합
+- 환경별 자동 전환 (Expo Go ↔ Development Build)
+- MSW Mock 시뮬레이션
 
-### 🔔 Firebase 푸시 알림 시스템 (완료)
-- ✅ **Firebase v23 호환**: 함수 호출 방식으로 완전 업그레이드
-- ✅ **환경별 자동 전환**: Expo Go(Mock) ↔ Development Build(실제)
-- ✅ **통합 서비스 아키텍처**: unifiedPushService로 모든 푸시 기능 관리
-- ✅ **백그라운드 핸들러**: index.js에서 앱 종료 상태 알림 처리
-- ✅ **Deprecated 메서드 정리**: v23에서 제거된 기능들 모두 정리
-- ✅ **권한 요청 플로우**: Expo Notifications + Firebase 조합
-- ✅ **플랫폼별 최적화**: iOS APNs 자동 관리, Android 채널 설정
+**알림 화면 시스템**
+- 완전한 CRUD 기능
+- 실시간 업데이트 (Optimistic UI)
+- 필터링 및 네비게이션 연동
 
-### 🎭 MSW 개발 환경 (완료)
-- ✅ **React Native MSW**: 실제 네트워크 요청 가로채기
-- ✅ **최소 폴리필**: 필수 요소만 포함하여 성능 최적화
-- ✅ **Faker.js 연동**: 실제와 유사한 한국어 Mock 데이터
-- ✅ **조건부 UI**: isMSWEnabled()로 개발/운영 환경 구분
-- ✅ **자동 초기화**: __DEV__ 환경에서 자동 활성화
-- ✅ **테스트 유틸리티**: MSW 연결 상태 확인 도구
+**리포트 시스템**
+- 종합 지출 분석 및 차트
+- AI 예산 제안 및 또래 비교
+- 개인화 인사이트
 
-### 🎨 디자인 시스템
-**`src/constants/theme.ts` - ✅ 기본 동작 완료**
-- `Colors`: 50단계 색상 팔레트 (primary, secondary, gray 등), 슬롯 카테고리별 색상, 라이트/다크 모드 색상
-- `Typography`: 폰트 크기(xs~6xl), 폰트 두께(light~extrabold), 줄 간격 등
-- `Spacing`: 4px~96px 간격 시스템 (`xs`, `sm`, `base` 등)
-- `BorderRadius`, `Shadows`: UI 컴포넌트용 스타일 토큰
-- `themes` 객체: 라이트/다크 테마 자동 전환 지원
-- **개선 필요**: 접근성 고려한 색상 대비, 반응형 간격, 더 다양한 컴포넌트 상태별 색상
+**프로필 관리**
+- 사용자 정보 CRUD
+- 연락처 인증 플로우
+- 11개 세부 설정 화면
 
-**재사용 컴포넌트 - 🔧 기본 기능 완료, 개선 필요**
-- **`src/components/Button.tsx`**: 
-  - Props: `variant`(primary/secondary/outline/ghost/danger), `size`(sm/md/lg), `loading`, `disabled` 등
-  - 기능: 테마 기반 자동 색상 변경, 로딩 스피너, 접근성 지원
-  - **개선 필요**: 애니메이션, 햅틱 피드백, 다양한 아이콘 지원, 더 많은 변형
-- **`src/components/InputField.tsx`**: 
-  - Props: `label`, `error`, `helperText`, `required`, `leftElement`, `rightElement` 등
-  - 기능: 포커스 상태 관리, 에러 표시, 좌우 아이콘 지원
-  - **개선 필요**: 다양한 입력 타입(숫자, 전화번호), 실시간 유효성 검사, 자동완성
-
-**계좌 관련 컴포넌트 - ✅ 완전 구현됨**
-- **`src/components/account/AccountSummary.tsx`**:
-  - Props: `account` (bankCode, accountName, accountNumber, balanceFormatted)
-  - 기능: 은행 로고 표시, 로딩 인디케이터, 이미지 캐싱, 테마 기반 색상, 메모이제이션
+**MSW 개발 환경**
+- 실제 네트워크 요청 가로채기
+- Faker.js 기반 한국어 Mock 데이터
+- 개발 도구 및 테스트 유틸리티
   - 최적화: React.memo로 불필요한 리렌더링 방지, expo-image로 성능 향상
 - **`src/components/account/AccountCarousel.tsx`**:
   - 기능: 계좌 간 스와이프 네비게이션, 인덱스 변경 알림, 테마 대응
@@ -659,6 +538,29 @@ cd android
   - 기능: 미분류 슬롯 잔액 표시, 읽지 않은 알림 배지
   - UI: 그라데이션 배경, 둥근 모서리, 그림자 효과
 
+**리포트 관련 컴포넌트 - ✅ 완전 구현됨 (신규 추가)**
+- **`src/components/report/SpendingReportHeader.tsx`**:
+  - 기능: 리포트 기간 표시, 사용자 친화적 제목, Safe Area 대응
+  - JSDoc: 완전한 API 문서화 및 기능 설명 포함
+- **`src/components/report/BudgetOverview.tsx`**:
+  - 기능: 예산 대비 지출 시각화, 증감률 표시, 프로그레스 바
+  - 최적화: 예산 초과 시 색상 경고, 반응형 디자인
+- **`src/components/report/CategoryAnalysis.tsx`**:
+  - 기능: 슬롯별 예산 사용 현황, 상태별 색상 구분 (절약/딱맞음/초과)
+  - UI: 프로그레스 바, 변화율 표시, 직관적 상태 배지
+- **`src/components/report/TopSpendingChart.tsx`**:
+  - 기능: 상위 3대 지출 카테고리 막대 차트, 색상별 범례
+  - 시각화: 반응형 차트 높이, 상세 정보 표시
+- **`src/components/report/PeerComparisonCard.tsx`**:
+  - 기능: 동일 그룹 또래와의 지출 비교, 인구통계학적 정보 표시
+  - 분석: 카테고리별 비교 백분율, 시각적 비교 바
+- **`src/components/report/BudgetSuggestionCard.tsx`**:
+  - 기능: AI 기반 다음 달 예산 조정 제안, 카테고리별 증감 권장
+  - UI: 시각적 강조, 제안 이유 설명
+- **`src/components/report/PersonalizedInsightCard.tsx`**:
+  - 기능: 개인 소비 유형 분석, 강점/개선점 제안
+  - AI 분석: 소비 패턴 분류, 신규 카테고리 발견, 실행 가능한 조언
+
 **상수 및 데이터 관리 - ✅ 완전 구현됨**
 - **`src/constants/banks.ts`**: 17개 주요 은행 코드, 로고, 색상 매핑 (한국은행~카카오뱅크, 싸피은행)
 - **`src/constants/sampleData.ts`**: 실제 운영과 유사한 계좌/슬롯 샘플 데이터, SLOT_CATEGORIES 연동
@@ -669,6 +571,7 @@ cd android
 - ✅ **TanStack Query 통합**: 캐시, 무효화, Optimistic Updates
 - ✅ **쿼리 키 관리**: 중앙집중식 쿼리 키 관리 시스템
 - ✅ **알림 API**: 완전한 CRUD + Optimistic UI 구현
+- ✅ **리포트 API**: 종합 지출 분석 API 완전 구현 (신규 추가)
 - 🚧 **계좌/슬롯 API**: 기본 구조만 완성 (실제 구현 대기)
 
 **`src/api/queryKeys.ts` - ✅ 구조 + 안정화 (변경됨)**
@@ -739,6 +642,16 @@ export const queryKeys = {
   - 모든 함수에 `[NOTIF_API]` 로깅 프리픽스 적용.
 
 **현재 상태**: 모든 함수가 TypeScript 타입과 함께 정의되어 있으나, 알림 API를 제외하고는 실제 API 호출 로직이 주석 처리되어 있고 mock 데이터 반환
+
+### 📊 리포트 시스템 (완료 - 신규 추가)
+- ✅ **종합 지출 분석**: 예산 대비 실제 지출, 전월 대비 증감률, 거래 횟수 통계
+- ✅ **슬롯별 분석**: 카테고리별 예산 사용률, 상태별 색상 구분 (절약/적정/초과)
+- ✅ **상위 지출 랭킹**: 막대 차트로 Top 3 지출 카테고리 시각화
+- ✅ **또래 비교**: 동일 연령/성별/소득대 그룹과의 지출 비교 분석
+- ✅ **AI 예산 제안**: 다음 달 예산 조정 권장 및 이유 설명
+- ✅ **개인화 인사이트**: 소비 유형 분석, 강점/개선점 제안, 신규 카테고리 발견
+- ✅ **MSW 통합**: 개발 환경에서 완전한 더미 데이터 제공 및 폴백 처리
+- ✅ **타입 안전성**: 완전한 TypeScript 타입 정의 및 데이터 검증
 
 ### 🧪 테스트 & 개발 도구 (완료)
 - ✅ **MSW 테스트 유틸리티**: 연결 상태, API 목록 확인
@@ -1026,6 +939,27 @@ export const useDeleteNotification = () => useMutation({
 ```
 **현재 상태**: TanStack Query + 옵티미스틱 업데이트 완전 구현. 모든 CRUD 작업에 캐시 동기화 포함
 
+**`src/hooks/useSpendingReport.ts` - ✅ 완전 구현됨 (신규 추가)**
+> **역할**: 전체 계좌 통합 소비 레포트 데이터를 TanStack Query로 관리
+```typescript
+export const useSpendingReport = (enabled: boolean = true) => useQuery({
+  queryKey: queryKeys.reports.spending(),
+  queryFn: async (): Promise<SpendingReport> => {
+    const result = await reportApi.getSpendingReport();
+    // 필수 필드 검증 (period, budgetComparison, categoryAnalysis)
+    if (!result.period || !result.budgetComparison || !result.categoryAnalysis) {
+      throw new Error('소비 레포트 데이터가 완전하지 않습니다.');
+    }
+    return result;
+  },
+  enabled: enabled, // 계좌 로딩 완료 후 활성화 권장
+  staleTime: 5 * 60 * 1000, // 5분간 캐시 유지
+  gcTime: 10 * 60 * 1000,   // 10분간 가비지 컬렉션 방지
+  retry: __DEV__ ? 1 : 2,   // 환경별 재시도 정책
+});
+```
+**현재 상태**: MSW 폴백 시스템으로 개발 환경 안정성 보장, 데이터 무결성 검증 포함
+
 ### 🎭 MSW (Mock Service Worker) 시스템
 **`src/mocks/` - ✅ 완전 구현됨**
 > **역할**: 백엔드 API가 준비되지 않은 상황에서 실제 네트워크 요청을 가로채서 Mock 응답을 제공하는 시스템
@@ -1135,6 +1069,20 @@ export const storageUtils = {
 - **성능 최적화**: React.memo, useMemo, useCallback으로 리렌더링 최소화
 - **사용된 컴포넌트**: AccountSummary, AccountCarousel, AccountDonutChart, UncategorizedSlotCard
 - **개선 필요**: 실제 API 연동, 로딩 상태, 에러 처리, 풀 투 리프레시
+
+**`app/(tabs)/report/index.tsx` - ✅ 완전 구현됨 (신규 추가)**
+- **종합적인 지출 리포트 시스템**:
+  - **SpendingReportHeader**: 리포트 기간 및 완료 상태 표시
+  - **BudgetOverview**: 예산 대비 실제 지출 요약 및 전월 대비 증감률
+  - **CategoryAnalysis**: 슬롯별 예산 사용 현황 및 상태별 색상 구분
+  - **TopSpendingChart**: 상위 3대 지출 카테고리 막대 차트
+  - **PeerComparisonCard**: 동일 연령/성별/소득대 또래와의 지출 비교
+  - **BudgetSuggestionCard**: AI 기반 다음 달 예산 조정 제안
+  - **PersonalizedInsightCard**: 개인화 소비 패턴 분석 및 개선 제안
+- **데이터 처리**: `useSpendingReport` 훅으로 TanStack Query 기반 캐싱
+- **에러 처리**: MSW 폴백 시스템으로 개발 환경 안정성 보장
+- **UX**: Pull-to-refresh, 로딩 상태, 에러 상태 완전 구현
+- **현재 상태**: MSW Mock 데이터로 완전 동작, 실제 API 연동 준비 완료
 
 **`app/(tabs)/notifications/index.tsx` - ✅ 완전 구현됨**
 - **실제 동작하는 기능들**:
@@ -1571,7 +1519,34 @@ unifiedPushService.testScenarios.spendingPattern('카페', 30);
 
 ---
 
-## 16. 2025-09-16 이후 주요 신규 기능 요약 (ver.2.1 추가사항)
+## 16. 2025-09-22 리포트 시스템 구축 완료 (ver.3.1 추가사항)
+
+### 📊 종합 지출 리포트 시스템 (신규 완성)
+- **7개 핵심 컴포넌트**: SpendingReportHeader, BudgetOverview, CategoryAnalysis, TopSpendingChart, PeerComparisonCard, BudgetSuggestionCard, PersonalizedInsightCard
+- **완전한 데이터 플로우**: `src/types/report.ts` → `src/api/report.ts` → `src/hooks/useSpendingReport.ts` → `app/(tabs)/report/index.tsx`
+- **AI 기반 인사이트**: 개인 소비 유형 분석, 또래 비교, 예산 조정 제안, 강점/개선점 피드백
+- **JSDoc 완전 문서화**: 모든 컴포넌트와 API에 상세한 기능 설명 및 사용법 포함
+
+### 🛠️ 코드 품질 개선
+- **불필요한 주석 제거**: TODO 주석, console.log, 중복 import 정리
+- **JSDoc 표준화**: 모든 리포트 관련 코드에 완전한 API 문서 적용
+- **타입 안전성 강화**: SpendingReport 인터페이스로 전체 데이터 구조 검증
+- **에러 처리 개선**: MSW 폴백 시스템으로 개발 환경 안정성 보장
+
+### 🎨 UI/UX 최적화
+- **시각화 강화**: 막대 차트, 프로그레스 바, 색상 구분으로 직관적 정보 전달
+- **반응형 디자인**: 모든 리포트 컴포넌트에서 overflow 처리 및 동적 크기 조정
+- **테마 통합**: 라이트/다크 모드 완전 지원, 일관된 색상 시스템 적용
+- **성능 최적화**: React.memo 적용, 불필요한 리렌더링 방지
+
+### 📈 개발 환경 개선
+- **MSW 통합**: 백엔드 API 없이도 완전한 리포트 기능 테스트 가능
+- **폴백 시스템**: API 실패 시 더미 데이터로 자동 전환, 개발 중단 없음
+- **개발자 경험**: Pull-to-refresh, 로딩 상태, 에러 상태 완전 구현
+
+---
+
+## 17. 2025-09-16 이후 주요 신규 기능 요약 (ver.2.1 추가사항)
 
 ### 🎯 온보딩 시스템 (신규 완성)
 - **완전한 앱 첫 실행 경험**: 4단계 슬라이드로 앱 핵심 가치 전달
@@ -1606,6 +1581,10 @@ unifiedPushService.testScenarios.spendingPattern('카페', 30);
 ---
 
 _End of ver.2.1 (2025-09-17 업데이트)_
+
+---
+
+_Latest Update: ver.3.1 (2025-09-22) - 리포트 시스템 구축 및 코드 품질 개선 완료_
 
 ### 🏗️ 기본 프로젝트 설정
 - **Expo + TypeScript 환경 구축**: React Native 0.81.4, Expo SDK 54 기반의 모바일 앱 개발 환경 완료
@@ -1746,35 +1725,10 @@ _End of ver.2.1 (2025-09-17 업데이트)_
 1. **로그인/회원가입 화면 UI 구현**
    - `app/(auth)/login.tsx`, `app/(auth)/register.tsx` 파일 생성
    - 기존 `Button`, `InputField` 컴포넌트와 온보딩 디자인 패턴 활용하여 일관된 UI 구성
-   
-2. **슬롯 생성/편집 화면 UI 구현**
-   - `app/(tabs)/slots/create.tsx` 파일 생성  
-   - 기존 `AccountDonutChart`, 슬롯 색상 시스템 재사용하여 예산 입력 UI 구성
-   
-3. **데이터 저장 유틸 실제 구현**
-   - `src/store/index.ts`에서 주석 처리된 SecureStore 코드 활성화
-   - 온보딩 시스템에서 검증된 AsyncStorage 패턴 확장 적용
+---
 
-4. **차트 및 시각화 확장**
-   - Victory Native ^41.20.1 활용하여 `AccountDonutChart` 외 추가 차트 컴포넌트 개발
-   - 월별/주별 지출 트렌드, 슬롯별 사용률 히스토리 차트
+이 문서는 WalletSlot Frontend 프로젝트의 종합 개발 가이드입니다. 
+프로젝트 구조, 기술 스택, 개발 환경 설정부터 주요 기능별 상세 구현 현황까지 다루고 있습니다.
 
-5. **Firebase 연동 준비**
-   - 설치된 `@react-native-firebase/app` ^23.3.1, `@react-native-firebase/messaging` ^23.3.1 설정
-   - FCM 토큰 관리 및 백엔드 연동 API 준비
-
-**⚠️ 백엔드 API 완성 후 진행할 작업:**
-1. **`useAuth` 훅 실제 로직 구현**
-   - 현재: `// TODO: 실제 로그인 API 호출` 주석만 있음
-   - 필요: `src/api/auth.ts`의 login(), register() 함수와 연동
-   
-2. **`useAccount`, `useSlots` 훅 API 연동**
-   - 현재: useQuery 구조만 있고 실제 API 호출 없음
-   - 필요: 백엔드 API 엔드포인트와 연동
-
-3. **푸시 알림 서버 발송 테스트**
-   - 현재: 토큰 생성 및 등록 로직 완성됨
-   - 필요: 백엔드 FCM 서버와 실제 푸시 발송 테스트
-
-4. **실제 데이터 흐름 테스트**
+개발 시 이 문서를 참고하여 일관된 아키텍처와 코딩 스타일을 유지해 주세요.
    - 로그인 → 토큰 저장 → API 호출 → 화면 표시 전체 플로우 검증

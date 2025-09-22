@@ -4,10 +4,25 @@ import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 interface PersonalizedInsightProps {
+  /** AI 기반 개인화 인사이트 데이터 */
   personalizedInsight: PersonalizedInsight;
+  /** 앱 테마 객체 (라이트/다크 모드 색상 포함) */
   theme: any;
 }
 
+/**
+ * 사용자 개인의 소비 패턴을 분석한 인사이트를 제공하는 카드 컴포넌트
+ * 
+ * 주요 기능:
+ * - 개인 소비 유형 분석 및 설명
+ * - 새로 발견된 소비 카테고리 하이라이트
+ * - 긍정적 소비 습관 칭찬 (강점)
+ * - 개선 필요한 소비 패턴 제안
+ * - 색상 구분으로 직관적인 정보 전달
+ * 
+ * @param personalizedInsight - 개인화 인사이트 데이터
+ * @param theme - 테마 설정
+ */
 export const PersonalizedInsightCard: React.FC<PersonalizedInsightProps> = ({
   personalizedInsight,
   theme,
@@ -26,7 +41,6 @@ export const PersonalizedInsightCard: React.FC<PersonalizedInsightProps> = ({
         <Text style={[styles.spendingType, { color: '#0369A1' }]}>
           {personalizedInsight.spendingType}
         </Text>
-        {/* ✅ CHANGED: View로 감싸기 */}
         <View>
           <Text
             style={[styles.spendingTypeDescription, { color: theme.colors.text.secondary }]}
@@ -44,7 +58,6 @@ export const PersonalizedInsightCard: React.FC<PersonalizedInsightProps> = ({
         <Text style={[styles.newCategoryTitle, { color: '#16A34A' }]}>
           온라인 강의
         </Text>
-        {/* ✅ CHANGED: View로 감싸기 */}
         <View>
           <Text
             style={[styles.newCategoryDescription, { color: theme.colors.text.secondary }]}
@@ -61,7 +74,6 @@ export const PersonalizedInsightCard: React.FC<PersonalizedInsightProps> = ({
             잘하고 있어요! 👍
           </Text>
           {personalizedInsight.strengths.map((strength, index) => (
-            // ✅ CHANGED: View로 감싸기
             <View key={index}>
               <Text style={[styles.insightItem, { color: theme.colors.text.secondary }]}>
                 • {strength}
@@ -78,7 +90,6 @@ export const PersonalizedInsightCard: React.FC<PersonalizedInsightProps> = ({
             개선해 보세요 💪
           </Text>
           {personalizedInsight.improvements.map((improvement, index) => (
-            // ✅ CHANGED: View로 감싸기
             <View key={index}>
               <Text style={[styles.insightItem, { color: theme.colors.text.secondary }]}>
                 • {improvement}

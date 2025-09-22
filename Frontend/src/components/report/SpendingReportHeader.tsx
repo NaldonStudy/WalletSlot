@@ -5,10 +5,24 @@ import { StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 interface SpendingReportHeaderProps {
+  /** 리포트 기간 정보 (시작일, 종료일) */
   period: ReportPeriod;
+  /** 앱 테마 객체 (라이트/다크 모드 색상 포함) */
   theme: any;
 }
 
+/**
+ * 지출 리포트 화면의 헤더 컴포넌트
+ * 
+ * 주요 기능:
+ * - 리포트 기간 표시 (월/일 형식)
+ * - 사용자 친화적인 리포트 제목 및 완료 상태 표시
+ * - Safe Area를 고려한 상단 패딩 적용
+ * - 일러스트 영역 제공 (향후 이미지 교체 가능)
+ * 
+ * @param period - 리포트 대상 기간
+ * @param theme - 테마 설정
+ */
 export const SpendingReportHeader: React.FC<SpendingReportHeaderProps> = ({
   period,
   theme
@@ -69,8 +83,8 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   dateText: {
-    fontSize: Typography.fontSize.base, // 크기 증가
-    fontWeight: Typography.fontWeight.bold, // 더 굵게
+    fontSize: Typography.fontSize.base,
+    fontWeight: Typography.fontWeight.bold,
     lineHeight: Math.round(Typography.fontSize.base * Typography.lineHeight.normal),
   },
   title: {

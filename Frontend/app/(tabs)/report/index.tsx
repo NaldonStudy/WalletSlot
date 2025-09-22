@@ -21,6 +21,21 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+/**
+ * 월별 지출 리포트를 종합적으로 분석하여 제공하는 메인 화면
+ * 
+ * 주요 기능:
+ * - 예산 대비 실제 지출 현황 요약
+ * - 슬롯별 예산 사용 분석 및 상태 표시
+ * - 상위 지출 카테고리 랭킹 차트
+ * - 동일 그룹 또래와의 지출 비교
+ * - AI 기반 개인화 인사이트 및 다음 달 예산 제안
+ * - Pull-to-refresh로 최신 데이터 갱신
+ * 
+ * 데이터 의존성:
+ * - useAccounts: 연결된 계좌 정보 필요
+ * - useSpendingReport: 지출 리포트 데이터 조회
+ */
 export default function ReportScreen() {
   const colorScheme = useColorScheme() ?? 'light';
   const theme = themes[colorScheme];

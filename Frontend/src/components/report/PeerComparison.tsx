@@ -4,10 +4,24 @@ import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 interface PeerComparisonProps {
+  /** 동일 연령/성별/소득대 그룹과의 비교 데이터 */
   peerComparison: PeerComparison;
+  /** 앱 테마 객체 (라이트/다크 모드 색상 포함) */
   theme: any;
 }
 
+/**
+ * 동일한 인구통계학적 그룹(연령, 성별, 소득) 내에서 사용자의 소비를 비교하는 컴포넌트
+ * 
+ * 주요 기능:
+ * - 또래 그룹 정보 표시 (성별, 연령대, 소득 구간)
+ * - 카테고리별 내 지출 vs 그룹 평균 비교
+ * - 비교 백분율 표시 (100% 기준 초과/미만 색상 구분)
+ * - 시각적 비교 바로 지출 차이 직관적 표현
+ * 
+ * @param peerComparison - 또래 비교 데이터
+ * @param theme - 테마 설정
+ */
 export const PeerComparisonCard: React.FC<PeerComparisonProps> = ({
   peerComparison,
   theme
@@ -90,7 +104,7 @@ const styles = StyleSheet.create({
     padding: Spacing.lg,
     marginBottom: Spacing.base,
     borderRadius: 16,
-    overflow: 'visible', // 내용이 잘리지 않도록
+    overflow: 'visible',
   },
   sectionTitle: {
     fontSize: Typography.fontSize.lg,
@@ -98,8 +112,8 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.xs,
   },
   demographicText: {
-    fontSize: Typography.fontSize.base, // 크기 증가
-    fontWeight: Typography.fontWeight.medium, // 글꼴 두께 추가
+    fontSize: Typography.fontSize.base,
+    fontWeight: Typography.fontWeight.medium,
     marginBottom: Spacing.lg,
   },
   categoryItem: {
@@ -108,7 +122,6 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#F3F4F6',
     paddingVertical: Spacing.sm,
-    // minHeight 제거 - 컨텐츠에 따라 동적 크기
   },
   categoryHeader: {
     flexDirection: 'row',
@@ -117,8 +130,8 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.sm,
   },
   categoryName: {
-    fontSize: Typography.fontSize.lg, // 크기 증가
-    fontWeight: Typography.fontWeight.bold, // 더 굵게
+    fontSize: Typography.fontSize.lg,
+    fontWeight: Typography.fontWeight.bold,
   },
   comparisonBadge: {
     paddingHorizontal: Spacing.sm,
@@ -126,7 +139,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   comparisonText: {
-    fontSize: Typography.fontSize.base, // 크기 증가
+    fontSize: Typography.fontSize.base,
     fontWeight: Typography.fontWeight.bold,
   },
   amountComparison: {
@@ -134,7 +147,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: Spacing.sm,
     flexWrap: 'wrap',
-    // minHeight 제거 - 텍스트 내용에 따라 자동 크기
   },
   amountItem: {
     flex: 1,
@@ -142,8 +154,8 @@ const styles = StyleSheet.create({
     // minWidth 제거 - 내용에 따라 자연스럽게 크기 조정
   },
   amountLabel: {
-    fontSize: Typography.fontSize.base, // 크기 증가
-    fontWeight: Typography.fontWeight.medium, // 글꼴 두께 추가
+    fontSize: Typography.fontSize.base,
+    fontWeight: Typography.fontWeight.medium,
   },
   comparisonBarContainer: {
     marginTop: Spacing.xs,

@@ -4,10 +4,24 @@ import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 interface BudgetSuggestionProps {
+  /** AI 기반 예산 제안 데이터 */
   budgetSuggestion: BudgetSuggestion;
+  /** 앱 테마 객체 (라이트/다크 모드 색상 포함) */
   theme: any;
 }
 
+/**
+ * AI 기반 다음 달 예산 조정 제안을 표시하는 카드 컴포넌트
+ * 
+ * 주요 기능:
+ * - 전체 예산 조정 권유 메시지 표시
+ * - 카테고리별 예산 증감 제안 및 이유 설명
+ * - 예산 증가(빨강)/감소(초록) 색상 구분
+ * - 사용자 친화적인 예산 조정 가이드 제공
+ * 
+ * @param budgetSuggestion - AI 예산 제안 데이터
+ * @param theme - 테마 설정
+ */
 export const BudgetSuggestionCard: React.FC<BudgetSuggestionProps> = ({
   budgetSuggestion,
   theme
@@ -90,7 +104,7 @@ const styles = StyleSheet.create({
     padding: Spacing.base,
     borderRadius: 12,
     marginBottom: Spacing.lg,
-    overflow: 'visible', // 내용이 잘리지 않도록
+    overflow: 'visible',
   },
   suggestionIcon: {
     fontSize: 24,
@@ -102,8 +116,8 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-start', // 텍스트가 위에서부터 시작
   },
   suggestionTitle: {
-    fontSize: Typography.fontSize.lg, // 크기 증가
-    fontWeight: Typography.fontWeight.bold, // 더 굵게
+    fontSize: Typography.fontSize.lg,
+    fontWeight: Typography.fontWeight.bold,
     marginBottom: Spacing.xs,
   },
   suggestionAmount: {
@@ -126,12 +140,12 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.xs,
   },
   categoryName: {
-    fontSize: Typography.fontSize.lg, // 크기 증가
-    fontWeight: Typography.fontWeight.bold, // 더 굵게
+    fontSize: Typography.fontSize.lg,
+    fontWeight: Typography.fontWeight.bold,
   },
   budgetChange: {
-    fontSize: Typography.fontSize.base, // 크기 증가
-    fontWeight: Typography.fontWeight.bold, // 더 굵게
+    fontSize: Typography.fontSize.base,
+    fontWeight: Typography.fontWeight.bold,
   },
   categoryReason: {
     fontSize: Typography.fontSize.base,
