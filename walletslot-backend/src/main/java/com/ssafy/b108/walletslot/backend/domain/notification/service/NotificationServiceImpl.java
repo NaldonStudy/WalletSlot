@@ -1,8 +1,14 @@
 package com.ssafy.b108.walletslot.backend.domain.notification.service;
 
+import com.ssafy.b108.walletslot.backend.common.dto.Header;
+import com.ssafy.b108.walletslot.backend.common.util.AESUtil;
+import com.ssafy.b108.walletslot.backend.common.util.LocalDateTimeFormatter;
+import com.ssafy.b108.walletslot.backend.common.util.RandomNumberGenerator;
+import com.ssafy.b108.walletslot.backend.domain.account.entity.Account;
 import com.ssafy.b108.walletslot.backend.domain.notification.dto.notification.*;
 import com.ssafy.b108.walletslot.backend.domain.notification.entity.Notification;
 import com.ssafy.b108.walletslot.backend.domain.notification.repository.NotificationRepository;
+import com.ssafy.b108.walletslot.backend.domain.transaction.dto.external.SSAFYGetTransactionListResponseDto;
 import com.ssafy.b108.walletslot.backend.domain.user.entity.User;
 import com.ssafy.b108.walletslot.backend.domain.user.repository.UserRepository;
 import com.ssafy.b108.walletslot.backend.global.error.AppException;
@@ -10,8 +16,15 @@ import com.ssafy.b108.walletslot.backend.global.error.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor

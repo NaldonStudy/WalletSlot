@@ -64,4 +64,6 @@ public class Account {
         this.isPrimary = isPrimary;
     }
     public void updateLastSyncedTransactionUniqueNo(String lastSyncedTransactionUniqueNo) { this.lastSyncedTransactionUniqueNo = lastSyncedTransactionUniqueNo; }
+    public void updateLastSyncedAt(LocalDateTime lastSyncedAt) { this.lastSyncedAt = lastSyncedAt; }
+    public void updateBalance(long balance) { this.balance = balance; }
 }

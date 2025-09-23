@@ -597,7 +597,7 @@ public class TransactionService {
     // 있다면 그 쪽으로 차감. (transaction 객체 생성하고 save할때 그 슬롯의 정보를 포함하고 슬롯 예산 잔액 등 비즈니스 로직 수행해야겠지)
     // 없다면 미분류 슬롯으로 해서 일단 transaction 객체 생성해서 save.
     // 그리고 fcm 토큰 가져와서 firebase에 알림 요청. (notification 테이블에도 notification 객체 만들어서 save.하고 비즈니스 로직 수행)
-    public void checkTransactions(@AuthenticationPrincipal UserPrincipal principal) {
+    public void checkTransactions() {
 
         // 우리 서비스 전체 유저
         List<User> users = userRepository.findAll();
@@ -662,9 +662,14 @@ public class TransactionService {
                         account.updateLastSyncedTransactionUniqueNo(transactionDto.getTransactionUniqueNo());
 
                         // transaction summary 보고 우리 DB에 슬롯 매핑돼있는거 있는지 검색
-                        // 있다면 그걸로 accountSlot해서 Transaction 객체 만들어서 save. + 해당 accountSlot의 예산 초과하지 않았는지 다시 조사 + 초과했다면 accountSlot의 isAlertSent = true + notification 객체 만들어서 save. + 푸시알림(성공하면 notification의 isDelivered = true)
+
+
+
+
+                        // 있다면 그걸로 accountSlot해서 Transaction 객체 만들어서 save. + notification 객체 만들어서 save. + 푸시알림(성공하면 notification의 isDelivered = true)
                         // 없다면 미분류 슬롯으로 accountSlot해서 Transaction 객체 만들어서 save. + notification 객체 만들어서 save. + 푸시알림(성공하면 notification의 isDelivered = true)
-                        // 계좌 각종 필드들 최신화
+                        // 계좌 각종 필드들 최신화 (마지막 동기일, 잔액)
+                        // accountslot 필드들 최신화 (spent, isBudgetExceeded) + 초과했다면 accountSlot의 isAlertSent = true + notification 객체 만들어서 save. + 푸시알림(성공하면 notification의 isDelivered = true)
                         //
                     }
                 }

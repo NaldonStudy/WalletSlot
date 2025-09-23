@@ -48,9 +48,12 @@ public class Notification {
     private Type type = Type.SYSTEM;
 
     private LocalDateTime readAt;
-    private Boolean isDelivered;
-    private LocalDateTime deliveredAt;
 
+    @Column(nullable = false)
+    @Builder.Default
+    private Boolean isDelivered = false;
+
+    private LocalDateTime deliveredAt;
 
     public void markDelivered() {
         if (Boolean.TRUE.equals(this.isDelivered))
