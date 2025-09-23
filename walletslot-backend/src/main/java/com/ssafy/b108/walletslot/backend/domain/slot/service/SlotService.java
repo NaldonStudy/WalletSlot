@@ -177,7 +177,7 @@ public class SlotService {
         }
 
         // AccountSlot 전체조회
-        List<AccountSlot> accountSlotList = accountSlotRepository.findByAccount(account).orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "[SlotService - 014]"));
+        List<AccountSlot> accountSlotList = accountSlotRepository.findByAccount(account);
 
         // dto 조립
         // dto > data > slots

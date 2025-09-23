@@ -19,7 +19,7 @@ public class MerchantSlotDecision {
 
     // Field
     @Id
-    @Column(name = "merchant_code", length = 64, nullable = false)
+    @Column(length = 64, nullable = false)
     private String merchantCode;
 
     @Column(length = 255)

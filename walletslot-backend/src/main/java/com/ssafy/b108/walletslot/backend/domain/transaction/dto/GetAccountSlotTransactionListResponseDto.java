@@ -6,6 +6,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Getter
@@ -46,6 +47,6 @@ public class GetAccountSlotTransactionListResponseDto {
         private String summary;
         private Long amount;
         private Long balance;
-        private String transactionAt;
+        private LocalDateTime transactionAt;
     }
 }

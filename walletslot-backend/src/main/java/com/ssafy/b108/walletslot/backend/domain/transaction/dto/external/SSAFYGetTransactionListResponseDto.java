@@ -42,8 +42,8 @@ public class SSAFYGetTransactionListResponseDto {
         private String transactionTime;
         private String transactionTypeName;
         private String transactionAccountNo;    // 이체타입 거래인 경우 상대방의 계좌번호
-        private String transactionBalance;    // 거래금액
-        private String transactionAfterBalance;    // 거래 후 잔액
+        private Long transactionBalance;    // 거래금액
+        private Long transactionAfterBalance;    // 거래 후 잔액
         private String transactionSummary;
     }
 }

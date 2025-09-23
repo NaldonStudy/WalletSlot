@@ -20,6 +20,7 @@ public enum ErrorCode {
     // Slot
     ALLOCATABLE_BUDGET_EXCEEDED("할당 가능한 예산을 초과했습니다.", HttpStatus.UNPROCESSABLE_ENTITY),
     THRIFT_BUDGET_EXCEEDED("지난 달에 절약한 금액 한도 내에서만 다음달 슬롯 예산을 늘릴 수 있습니다.", HttpStatus.UNPROCESSABLE_ENTITY),
+    MISSING_UNCATEGORIZED_SLOT("미분류 슬롯이 존재하지 않습니다. 미분류 슬롯을 개설 후 다시 시도해주세요.", HttpStatus.UNPROCESSABLE_ENTITY),
 
     // User
     LOGIN_FAILED("로그인에 실패했습니다.", HttpStatus.BAD_REQUEST),

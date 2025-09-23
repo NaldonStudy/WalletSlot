@@ -37,10 +37,10 @@ public class Notification {
 
     @Lob
     @Column(columnDefinition = "TINYTEXT")
-    private String content;
+    private String body;
 
     @Column(nullable = false)
-    private boolean isRead;
+    private boolean isRead = false;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
