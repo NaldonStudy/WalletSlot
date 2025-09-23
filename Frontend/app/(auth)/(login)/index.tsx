@@ -181,7 +181,7 @@ export default function LoginPinScreen() {
             <Image source={{ uri: 'https://dummyimage.com/160x160/ffd7a1/cc7a00&text=!'}} style={{ width: 160, height: 160, borderRadius: 80 }} />
           </View>
           <Text style={styles.countdown}>{String(countdown).padStart(2, '0')}</Text>
-          <Link href="/(auth)/(login)/forgot-password)" asChild>
+          <Link href="/(auth)/(login)/forgot-password" asChild>
             <Text style={styles.forgotLink}>비밀 번호를 잊어버리셨나요?</Text>
           </Link>
         </View>
