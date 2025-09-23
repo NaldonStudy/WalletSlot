@@ -18,6 +18,9 @@ export default function MyDataConsentScreen() {
 
   const canProceed = agreeTransfer && agree1 && agree2;
 
+  const [showCertModal, setShowCertModal] = useState(false);
+  const [selectedCert, setSelectedCert] = useState<string | null>(null);
+
   return (
     <View style={styles.container}>
       <ScrollView contentContainerStyle={styles.body}>
@@ -43,7 +46,9 @@ export default function MyDataConsentScreen() {
             <ThemedText style={styles.link}>자세히 보기</ThemedText>
           </TouchableOpacity>
           <TouchableOpacity style={styles.checkRow} onPress={() => setAgreeTransfer(!agreeTransfer)}>
-            <View style={[styles.checkbox, agreeTransfer && styles.checkboxOn]} />
+            <View style={[styles.checkbox, agreeTransfer && styles.checkboxOn]}>
+              {agreeTransfer && (<ThemedText style={styles.checkmark}>✓</ThemedText>)}
+            </View>
             <ThemedText style={styles.checkText}>상기 내용을 확인하였으며 '가입상품 목록' 및 '상세정보' 전송을 요구합니다.</ThemedText>
           </TouchableOpacity>
         </View>
@@ -62,7 +67,9 @@ export default function MyDataConsentScreen() {
             <ThemedText style={styles.link}>자세히 보기</ThemedText>
           </TouchableOpacity>
           <TouchableOpacity style={styles.checkRow} onPress={() => setAgree1(!agree1)}>
-            <View style={[styles.checkbox, agree1 && styles.checkboxOn]} />
+            <View style={[styles.checkbox, agree1 && styles.checkboxOn]}>
+              {agree1 && (<ThemedText style={styles.checkmark}>✓</ThemedText>)}
+            </View>
             <ThemedText style={styles.checkText}>상기 내용을 확인하였으며 개인(신용)정보 수집·이용에 동의합니다.</ThemedText>
           </TouchableOpacity>
         </View>
@@ -81,7 +88,9 @@ export default function MyDataConsentScreen() {
             <ThemedText style={styles.link}>자세히 보기</ThemedText>
           </TouchableOpacity>
           <TouchableOpacity style={styles.checkRow} onPress={() => setAgree2(!agree2)}>
-            <View style={[styles.checkbox, agree2 && styles.checkboxOn]} />
+            <View style={[styles.checkbox, agree2 && styles.checkboxOn]}>
+              {agree2 && (<ThemedText style={styles.checkmark}>✓</ThemedText>)}
+            </View>
             <ThemedText style={styles.checkText}>상기 내용을 확인하였으며 개인(신용)정보 제3자 제공에 동의합니다.</ThemedText>
           </TouchableOpacity>
         </View>
@@ -92,7 +101,7 @@ export default function MyDataConsentScreen() {
         <TouchableOpacity
           disabled={!canProceed}
           style={[styles.primaryBtn, canProceed ? styles.primaryOn : styles.primaryOff]}
-          onPress={() => router.back()}
+          onPress={() => setShowCertModal(true)}
         >
           <ThemedText style={[styles.primaryText, !canProceed && styles.primaryTextOff]}>동의하고 불러오기</ThemedText>
         </TouchableOpacity>
@@ -117,6 +126,59 @@ export default function MyDataConsentScreen() {
         onClose={() => setShowDoc3(false)}
         imageSource={require('@/src/assets/images/mydataconsent/provideConsent.png')}
       />
+
+      {/* 인증서 선택 모달 */}
+      <Modal
+        visible={showCertModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowCertModal(false)}
+      >
+        <View style={styles.certOverlay}>
+          <View style={styles.certSheet}>
+            <View style={styles.certHeader}>
+              <ThemedText style={styles.certTitle}>인증서 선택</ThemedText>
+              <TouchableOpacity onPress={() => setShowCertModal(false)}>
+                <ThemedText style={styles.certClose}>✕</ThemedText>
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.certGrid}>
+              {[
+                { key: 'naver', label: '네이버 인증서', icon: require('@/src/assets/images/mydataconsent/naver.png') },
+                { key: 'kakao', label: '카카오톡 인증서', icon: require('@/src/assets/images/mydataconsent/kakao.png') },
+              ].map((item) => (
+                <TouchableOpacity
+                  key={item.key}
+                  style={[
+                    styles.certItem,
+                    selectedCert === item.key && styles.certItemSelected,
+                  ]}
+                  onPress={() => setSelectedCert(item.key)}
+                >
+                  <Image source={item.icon} style={styles.certIcon} resizeMode="contain" />
+                  <ThemedText style={styles.certLabel}>{item.label}</ThemedText>
+                  {selectedCert === item.key && (
+                    <View style={styles.certCheck}><ThemedText style={styles.certCheckText}>✓</ThemedText></View>
+                  )}
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <TouchableOpacity
+              style={[styles.primaryBtn, selectedCert ? styles.primaryOn : styles.primaryOff]}
+              disabled={!selectedCert}
+              onPress={() => {
+                if (!selectedCert) return;
+                setShowCertModal(false);
+                router.push('/(mydata)/authenticationPin' as any);
+              }}
+            >
+              <ThemedText style={[styles.primaryText, !selectedCert && styles.primaryTextOff]}>확인</ThemedText>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -201,6 +263,7 @@ const styles = StyleSheet.create({
   checkbox: { width: 22, height: 22, borderRadius: 11, borderWidth: 2, borderColor: '#C9D1D9' },
   checkboxOn: { backgroundColor: '#2383BD', borderColor: '#2383BD' },
   checkText: { marginLeft: 10, color: '#4B5563' },
+  checkmark: { color: '#fff', fontSize: 14, fontWeight: 'bold', textAlign: 'center', lineHeight: 14 },
 
   bottom: { padding: 20, borderTopWidth: 1, borderTopColor: '#F0F0F0' },
   primaryBtn: { borderRadius: 10, alignItems: 'center', paddingVertical: 16 },
@@ -223,10 +286,25 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignSelf: 'center',
   },
+
+  // 인증서 선택 바텀시트
+  certOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
+  certSheet: { backgroundColor: '#fff', borderTopLeftRadius: 16, borderTopRightRadius: 16, padding: 20 },
+  certHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
+  certTitle: { fontSize: 16, fontWeight: '700', color: '#111' },
+  certClose: { fontSize: 20, color: '#666' },
+  certGrid: { flexDirection: 'row', gap: 12 },
+  certItem: { flex: 1, borderWidth: 1, borderColor: '#E2E8F0', borderRadius: 12, padding: 12, alignItems: 'center', position: 'relative' },
+  certItemSelected: { borderColor: '#2383BD' },
+  certIcon: { width: 48, height: 48, marginBottom: 8 },
+  certLabel: { fontSize: 14, color: '#333' },
+  certCheck: { position: 'absolute', top: 8, right: 8, width: 20, height: 20, borderRadius: 10, backgroundColor: '#2383BD', alignItems: 'center', justifyContent: 'center' },
+  certCheckText: { color: '#fff', fontSize: 12, fontWeight: 'bold' },
+
   section: { marginBottom: 16 },
   sectionTitle: { fontWeight: '700', color: '#333', marginBottom: 8 },
   tableBox: { height: 120, borderWidth: 1, borderColor: '#C7D2DF', borderRadius: 8, backgroundColor: '#F7FAFF' },
-  modalConfirm: { backgroundColor: '#2383BD', alignItems: 'center', paddingVertical: 14 },
+  modalConfirm: { backgroundColor: '#2383BD', alignItems: 'center', paddingVertical: 13.5 },
   modalConfirmText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
 });
 

@@ -95,7 +95,7 @@ export default function AccountSelectScreen() {
           params: { banks: JSON.stringify(pendingNavigateBanks) },
         } as any);
         setPendingNavigateBanks(null);
-      }, 30); // 닫힘 애니메이션 시간 대기
+      }, 10); // 닫힘 애니메이션 시간 대기
       return () => clearTimeout(timer);
     }
   }, [isModalVisible, pendingNavigateBanks]);
