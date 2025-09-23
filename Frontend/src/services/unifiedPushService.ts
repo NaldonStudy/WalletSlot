@@ -3,14 +3,15 @@
  * @description 푸시 알림 관련 서비스를 총괄하는 통합 인터페이스 (지휘자 역할).
  * 원격 알림은 FirebasePushService를, 로컬 알림 표시는 LocalNotificationService를 사용하도록 역할을 조율합니다.
  */
+import { STORAGE_KEYS } from '@/src/constants';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { firebasePushService } from './firebasePushService';
 import { localNotificationService } from './localNotificationService';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { STORAGE_KEYS } from '@/src/constants';
 
 export class UnifiedPushService {
   private static instance: UnifiedPushService;
   private isFirebaseEnabled = false;
+  private isInitialized = false; // 중복 초기화 방지 플래그
 
   private constructor() {}
 
@@ -29,6 +30,16 @@ export class UnifiedPushService {
     success: boolean;
     deviceId?: string;
   }> {
+    // 이미 초기화된 경우 기존 결과 반환
+    if (this.isInitialized) {
+      console.log('[UNIFIED_PUSH] 이미 초기화됨, 기존 상태 반환');
+      const existingDeviceId = await firebasePushService.getDeviceId();
+      return {
+        success: this.isFirebaseEnabled,
+        deviceId: existingDeviceId || undefined,
+      };
+    }
+
     console.log('[UNIFIED_PUSH] 통합 푸시 서비스 초기화 시작...');
 
     // Firebase 푸시 서비스만 초기화
@@ -48,6 +59,9 @@ export class UnifiedPushService {
       console.error('[UNIFIED_PUSH] Firebase 초기화 중 에러:', error);
       this.isFirebaseEnabled = false;
     }
+
+    // 초기화 완료 플래그 설정
+    this.isInitialized = true;
 
     console.log('[UNIFIED_PUSH] 초기화 완료:', {
       overall: this.isFirebaseEnabled,
