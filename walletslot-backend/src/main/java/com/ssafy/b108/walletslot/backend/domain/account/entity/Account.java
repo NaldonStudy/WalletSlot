@@ -47,6 +47,9 @@ public class Account {
     @Builder.Default
     private boolean isPrimary = false;
 
+    @Column(length = 255)
+    private String lastSyncedTransactionUniqueNo;
+
     @Column(nullable = false, insertable = false, updatable = false)
     private LocalDateTime lastSyncedAt;
 

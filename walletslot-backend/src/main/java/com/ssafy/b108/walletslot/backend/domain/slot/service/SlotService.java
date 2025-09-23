@@ -289,7 +289,7 @@ public class SlotService {
         // baseDay 저장
         user.updateBaseDay(baseDay);
 
-        // 거래내역 세달치 조회하기
+        // period 기간동안의 거래내역 조회하기
         // SSAFY 금융 API >>>>> 2.4.12 계좌 거래 내역 조회
         // 요청보낼 url
         String url1 = "https://finopenapi.ssafy.io/ssafy/api/v1/edu/demandDeposit/inquireTransactionHistoryList";

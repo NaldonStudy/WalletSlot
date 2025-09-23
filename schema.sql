@@ -121,6 +121,7 @@ CREATE TABLE `account` (
   `encrypted_account_no` VARCHAR(255) NOT NULL,
   `balance` BIGINT UNSIGNED NOT NULL DEFAULT 0,
   `is_primary` BOOLEAN NOT NULL DEFAULT FALSE,
+  `last_synced_transaction_unique_no` VARCHAR(255),
   `last_synced_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT `fk_account_user_id`
     FOREIGN KEY (`user_id`) REFERENCES `user`(`id`)

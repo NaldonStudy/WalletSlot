@@ -1,7 +1,13 @@
 package com.ssafy.b108.walletslot.backend.domain.transaction.service;
 
+import com.ssafy.b108.walletslot.backend.common.dto.Header;
+import com.ssafy.b108.walletslot.backend.common.util.AESUtil;
+import com.ssafy.b108.walletslot.backend.common.util.LocalDateTimeFormatter;
+import com.ssafy.b108.walletslot.backend.common.util.RandomNumberGenerator;
+import com.ssafy.b108.walletslot.backend.config.security.UserPrincipal;
 import com.ssafy.b108.walletslot.backend.domain.account.entity.Account;
 import com.ssafy.b108.walletslot.backend.domain.account.repository.AccountRepository;
+import com.ssafy.b108.walletslot.backend.domain.slot.dto.external.SSAFYGetTransactionListResponseDto;
 import com.ssafy.b108.walletslot.backend.domain.slot.entity.AccountSlot;
 import com.ssafy.b108.walletslot.backend.domain.slot.entity.Slot;
 import com.ssafy.b108.walletslot.backend.domain.slot.repository.AccountSlotRepository;
@@ -9,14 +15,25 @@ import com.ssafy.b108.walletslot.backend.domain.slot.repository.SlotRepository;
 import com.ssafy.b108.walletslot.backend.domain.transaction.dto.*;
 import com.ssafy.b108.walletslot.backend.domain.transaction.entity.Transaction;
 import com.ssafy.b108.walletslot.backend.domain.transaction.repository.TransactionRepository;
+import com.ssafy.b108.walletslot.backend.domain.user.entity.User;
+import com.ssafy.b108.walletslot.backend.domain.user.repository.UserRepository;
 import com.ssafy.b108.walletslot.backend.global.error.AppException;
 import com.ssafy.b108.walletslot.backend.global.error.ErrorCode;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
 
+import javax.crypto.SecretKey;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -28,6 +45,15 @@ public class TransactionService {
     private final AccountRepository accountRepository;
     private final AccountSlotRepository accountSlotRepository;
     private final SlotRepository slotRepository;
+    private final UserRepository userRepository;
+    private final RestTemplate restTemplate;
+
+    @Value("${api.ssafy.finance.apiKey}")
+    private String ssafyFinanceApiKey;
+
+    private String lastSyncedDate;
+
+    private final SecretKey encryptionKey;
 
     // Method
     /**
@@ -564,4 +590,73 @@ public class TransactionService {
         // 응답
         return addDutchPayTransactionsResponseDto;
     }
+
+    // 주기적으로 거래내역 api를 호출. (기간은 마지막으로 연동했던 시간부터~)
+    // 호출한 결과값의 맨 마지막 transactionUniqueNo이 마지막으로 내가 알고있던 transactionUniqueNo보다 크다면 결과값 리스트 첨부터 돌면서
+    // 마지막 transactionUniqueNo보다 크다면 transactionUniqueNo 갱신하고 해당 거래내역 정보 가지고 가맹점_슬롯 중간 테이블에 검색
+    // 있다면 그 쪽으로 차감. (transaction 객체 생성하고 save할때 그 슬롯의 정보를 포함하고 슬롯 예산 잔액 등 비즈니스 로직 수행해야겠지)
+    // 없다면 미분류 슬롯으로 해서 일단 transaction 객체 생성해서 save.
+    // 그리고 fcm 토큰 가져와서 firebase에 알림 요청. (notification 테이블에도 notification 객체 만들어서 save.하고 비즈니스 로직 수행)
+    public void checkTransactions(@AuthenticationPrincipal UserPrincipal principal) {
+
+        // 우리 서비스 전체 유저
+        List<User> users = userRepository.findAll();
+
+        for(User user : users) {
+            // 유저키 조회
+            String userKey = user.getUserKey();
+
+            // 현재 유저의 계좌 리스트 조회
+            List<Account> accounts = accountRepository.findByUser(user);
+
+            for(Account account : accounts) {
+                // period 기간동안의 거래내역 조회하기
+                // SSAFY 금융 API >>>>> 2.4.12 계좌 거래내역 조회
+                // 요청보낼 url
+                String url1 = "https://finopenapi.ssafy.io/ssafy/api/v1/edu/demandDeposit/inquireTransactionHistoryList";
+
+                // Header 만들기
+                Map<String, String> formattedDateTime = LocalDateTimeFormatter.formatter();
+                Header header = Header.builder()
+                        .apiName("inquireTransactionHistoryList")
+                        .transmissionDate(formattedDateTime.get("date"))
+                        .transmissionTime(formattedDateTime.get("time"))
+                        .apiServiceCode("inquireTransactionHistoryList")
+                        .institutionTransactionUniqueNo(formattedDateTime.get("date") + formattedDateTime.get("time") + RandomNumberGenerator.generateRandomNumber())
+                        .apiKey(ssafyFinanceApiKey)
+                        .userKey(userKey)
+                        .build();
+
+                // body 만들기
+                Map<String, Object> body1 = new HashMap<>();
+                body1.put("Header", header);
+                try {
+                    body1.put("accountNo", AESUtil.decrypt(account.getEncryptedAccountNo(), encryptionKey));
+                } catch(Exception e) {
+                    throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "TransactionService - 001");
+                }
+
+                body1.put("startDate", lastSyncedDate);
+                body1.put("endDate", formattedDateTime.get("date"));
+                body1.put("transactionType", "A");
+                body1.put("orderByType", "ASC");
+
+                // 요청보낼 http entity 만들기
+                HttpEntity<Map<String, Object>> httpEntity1 = new HttpEntity<>(body1);
+
+                // 요청 보내기
+                ResponseEntity<SSAFYGetTransactionListResponseDto> httpResponse1 = restTemplate.exchange(
+                        url1,
+                        HttpMethod.POST,
+                        httpEntity1,
+                        SSAFYGetTransactionListResponseDto.class
+                );
+            }
+
+
+        }
+    }
+
+
+
 }
