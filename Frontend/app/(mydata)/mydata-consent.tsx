@@ -1,4 +1,5 @@
 import { ThemedText } from '@/components/ThemedText';
+import { useBankSelectionStore } from '@/src/store/bankSelectionStore';
 import { useSignupStore } from '@/src/store/signupStore';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
@@ -7,6 +8,7 @@ import { Image, Modal, ScrollView, StyleSheet, TouchableOpacity, View } from 're
 export default function MyDataConsentScreen() {
   const router = useRouter();
   const { name } = useSignupStore();
+  const selectedBankCodes = useBankSelectionStore(s => s.selectedBankCodes);
 
   const [showDoc1, setShowDoc1] = useState(false); // 전송요구서
   const [showDoc2, setShowDoc2] = useState(false); // 수집/이용 동의

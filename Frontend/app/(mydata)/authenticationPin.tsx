@@ -1,10 +1,13 @@
 import { AuthKeypad } from '@/src/components';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import React, { useState } from 'react';
 import { KeyboardAvoidingView, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function AuthenticationPinScreen() {
+  const params = useLocalSearchParams();
+  const banksParam = (params?.banks as string) || undefined;
+
   // 상태
   const [pin, setPin] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -24,10 +27,9 @@ export default function AuthenticationPinScreen() {
   const handleSubmit = async () => {
     if (!isPinComplete) return;
     setIsLoading(true);
-    // 목업: 아무 6자리나 통과 → 다음 화면(또는 뒤로가기)
     setTimeout(() => {
       setIsLoading(false);
-      router.back();
+      router.push('/(mydata)/account-connect' as any);
     }, 300);
   };
 

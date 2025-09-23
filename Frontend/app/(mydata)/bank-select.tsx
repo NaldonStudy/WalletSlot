@@ -1,17 +1,18 @@
 import { ThemedText } from '@/components/ThemedText';
 import { BANK_CODES } from '@/src/constants/banks';
+import { useBankSelectionStore } from '@/src/store/bankSelectionStore';
 import { useSignupStore } from '@/src/store/signupStore';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import {
-    Animated,
-    Dimensions,
-    FlatList,
-    Image,
-    Modal,
-    StyleSheet,
-    TouchableOpacity,
-    View
+  Animated,
+  Dimensions,
+  FlatList,
+  Image,
+  Modal,
+  StyleSheet,
+  TouchableOpacity,
+  View
 } from 'react-native';
 
 const { width: screenWidth } = Dimensions.get('window');
@@ -28,9 +29,10 @@ const bankList = Object.entries(BANK_CODES).map(([code, bank]) => ({
 export default function AccountSelectScreen() {
   const { name } = useSignupStore();
   const router = useRouter();
+  const saveSelectedBanks = useBankSelectionStore(s => s.setSelectedBanks);
+  const selectedBanks = useBankSelectionStore(s => s.selectedBanks);
+  const setPersistBanks = useBankSelectionStore(s => s.setSelectedBankCodes);
   const [isModalVisible, setIsModalVisible] = useState(false);
-  const [selectedBanks, setSelectedBanks] = useState<Set<string>>(new Set());
-  const [pendingNavigateBanks, setPendingNavigateBanks] = useState<string[] | null>(null);
   
   // 애니메이션 값들
   const row1Animation = useRef(new Animated.Value(0)).current;
@@ -86,43 +88,24 @@ export default function AccountSelectScreen() {
     };
   }, []);
 
-  // 모달이 닫힌 후 내비게이션 수행
-  useEffect(() => {
-    if (!isModalVisible && pendingNavigateBanks && pendingNavigateBanks.length > 0) {
-      const timer = setTimeout(() => {
-        router.push({
-          pathname: '/(mydata)/mydata-consent',
-          params: { banks: JSON.stringify(pendingNavigateBanks) },
-        } as any);
-        setPendingNavigateBanks(null);
-      }, 10); // 닫힘 애니메이션 시간 대기
-      return () => clearTimeout(timer);
-    }
-  }, [isModalVisible, pendingNavigateBanks]);
-
-  // 은행 선택 토글
+  // 선택 토글 (스토어 상태로 직접 관리)
   const toggleBankSelection = (bankCode: string) => {
-    setSelectedBanks(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(bankCode)) {
-        newSet.delete(bankCode);
-      } else {
-        newSet.add(bankCode);
-      }
-      return newSet;
-    });
-  };
-
-  // 모두 선택/해제
-  const toggleAllBanks = () => {
-    if (selectedBanks.size === bankList.length) {
-      setSelectedBanks(new Set());
+    const set = new Set(selectedBanks.map(b => b.bankCode));
+    if (set.has(bankCode)) {
+      const next = selectedBanks.filter(b => b.bankCode !== bankCode);
+      saveSelectedBanks(next);
+      setPersistBanks(next.map(b => b.bankCode));
     } else {
-      setSelectedBanks(new Set(bankList.map(bank => bank.code)));
+      const next = [
+        ...selectedBanks,
+        { bankCode, bankName: BANK_CODES[bankCode as keyof typeof BANK_CODES]?.name || bankCode },
+      ];
+      saveSelectedBanks(next);
+      setPersistBanks(next.map(b => b.bankCode));
     }
   };
 
-  // 애니메이션된 은행 행 렌더링
+  // 애니메이션된 은행 렌더링
   const renderAnimatedBankRow = (animatedValue: Animated.Value, rowIndex: number) => {
     // 모든 행에 모든 은행을 표시하되, 순서를 다르게 배치
     const shuffledBanks = [...bankList];
@@ -140,6 +123,9 @@ export default function AccountSelectScreen() {
       ...shuffledBanks,
       ...shuffledBanks,
     ];
+
+    // 선택 상태 확인용 Set
+    const selectedSet = new Set(selectedBanks.map(b => b.bankCode));
 
     return (
       <Animated.View
@@ -192,7 +178,7 @@ export default function AccountSelectScreen() {
           onPress={() => setIsModalVisible(true)}
         >
           <ThemedText style={styles.bankCountText}>
-            {selectedBanks.size}개 은행 선택
+            {selectedBanks.length}개 은행 선택
           </ThemedText>
           <ThemedText style={styles.chevron}>⌄</ThemedText>
         </TouchableOpacity>
@@ -217,7 +203,7 @@ export default function AccountSelectScreen() {
             {/* 모달 헤더 */}
             <View style={styles.modalHeader}>
               <ThemedText style={styles.modalTitle}>
-                {selectedBanks.size}개 은행 선택
+                {selectedBanks.length}개 은행 선택
               </ThemedText>
               <TouchableOpacity onPress={() => setIsModalVisible(false)}>
                 <ThemedText style={styles.closeButton}>✕</ThemedText>
@@ -225,9 +211,18 @@ export default function AccountSelectScreen() {
             </View>
 
             {/* 모두 선택/해제 버튼 */}
-            <TouchableOpacity style={styles.selectAllButton} onPress={toggleAllBanks}>
+            <TouchableOpacity style={styles.selectAllButton} onPress={() => {
+              if (selectedBanks.length === bankList.length) {
+                saveSelectedBanks([]);
+                setPersistBanks([]);
+              } else {
+                const all = bankList.map(b => ({ bankCode: b.code, bankName: b.name }));
+                saveSelectedBanks(all);
+                setPersistBanks(all.map(b => b.bankCode));
+              }
+            }}>
               <ThemedText style={styles.selectAllText}>
-                {selectedBanks.size === bankList.length ? '모두 해제' : '모두 선택'}
+                {selectedBanks.length === bankList.length ? '모두 해제' : '모두 선택'}
               </ThemedText>
             </TouchableOpacity>
 
@@ -240,29 +235,32 @@ export default function AccountSelectScreen() {
               nestedScrollEnabled
               keyboardShouldPersistTaps="handled"
               style={styles.bankList}
-              renderItem={({ item: bank }) => (
-                <TouchableOpacity
-                  style={styles.bankItem}
-                  onPress={() => toggleBankSelection(bank.code)}
-                >
-                  <Image source={bank.logo} style={styles.bankItemIcon} resizeMode="contain" />
-                  <ThemedText style={styles.bankItemName}>{bank.shortName}</ThemedText>
-                  <View style={[
-                    styles.checkbox,
-                    selectedBanks.has(bank.code) && styles.checkboxSelected
-                  ]}>
-                    {selectedBanks.has(bank.code) && (
-                      <ThemedText style={styles.checkmark}>✓</ThemedText>
-                    )}
-                  </View>
-                </TouchableOpacity>
-              )}
+              renderItem={({ item: bank }) => {
+                const isSel = selectedBanks.some(b => b.bankCode === bank.code);
+                return (
+                  <TouchableOpacity
+                    style={styles.bankItem}
+                    onPress={() => toggleBankSelection(bank.code)}
+                  >
+                    <Image source={bank.logo} style={styles.bankItemIcon} resizeMode="contain" />
+                    <ThemedText style={styles.bankItemName}>{bank.shortName}</ThemedText>
+                    <View style={[
+                      styles.checkbox,
+                      isSel && styles.checkboxSelected
+                    ]}>
+                      {isSel && (
+                        <ThemedText style={styles.checkmark}>✓</ThemedText>
+                      )}
+                    </View>
+                  </TouchableOpacity>
+                );
+              }}
             />
 
             {/* 모달 하단 버튼들 */}
             <View style={styles.modalBottom}>
               {(() => {
-                const isConnectEnabled = selectedBanks.size > 0;
+                const isConnectEnabled = selectedBanks.length > 0;
                 return (
                   <TouchableOpacity
                     disabled={!isConnectEnabled}
@@ -272,9 +270,8 @@ export default function AccountSelectScreen() {
                     ]}
                     onPress={() => {
                       if (!isConnectEnabled) return;
-                      const selected = Array.from(selectedBanks);
-                      setPendingNavigateBanks(selected);
-                      setIsModalVisible(false); // 먼저 모달 닫기
+                      setIsModalVisible(false);
+                      router.push({ pathname: '/(mydata)/mydata-consent' } as any);
                     }}
                   >
                     <ThemedText style={[

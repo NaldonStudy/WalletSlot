@@ -29,7 +29,7 @@ export default function RootIndex() {
   // 온보딩 완료 여부에 따라 적절한 화면으로 리다이렉트
   if (onboardingDone) {
     console.log('✅ [INDEX] 온보딩 완료 → mydata(대시보드)로 이동');
-    return <Redirect href="/(mydata)/account-select" />;
+    return <Redirect href="/(mydata)/bank-select" />;
   } else {
     console.log('📱 [INDEX] 온보딩 미완료 → 온보딩 화면으로 이동');
     return <Redirect href="/(onboarding)/onboarding" />;
