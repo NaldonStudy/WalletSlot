@@ -57,6 +57,12 @@ export const NotificationFilters: React.FC<NotificationFiltersProps> = ({
 }) => {
   const getTypeDisplayName = (type: string) => {
     switch (type) {
+      case 'SYSTEM': return '시스템';
+      case 'DEVICE': return '디바이스';
+      case 'BUDGET': return '예산';
+      case 'TRANSACTION': return '거래';
+      case 'MARKETING': return '마케팅';
+      // 레거시 타입들 호환성 유지
       case 'budget_exceeded': return '예산초과';
       case 'goal_achieved': return '목표달성';
       case 'spending_pattern': return '지출패턴';

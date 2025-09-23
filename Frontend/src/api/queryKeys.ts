@@ -48,6 +48,13 @@ export const queryKeys = {
     settings: () => [...queryKeys.notifications.all, 'settings'] as const,
   },
 
+  // 푸시 엔드포인트 관련
+  pushEndpoints: {
+    all: ['pushEndpoints'] as const,
+    list: () => [...queryKeys.pushEndpoints.all, 'list'] as const,
+    detail: (deviceId: string) => [...queryKeys.pushEndpoints.all, 'detail', deviceId] as const,
+  },
+
   // 소비 레포트 관련
   reports: {
     all: ['reports'] as const,
