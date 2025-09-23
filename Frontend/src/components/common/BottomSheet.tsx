@@ -1,7 +1,9 @@
 import { Spacing, themes, Typography } from '@/src/constants/theme';
 import React, { ReactNode } from 'react';
-import { StyleSheet, Text, TouchableOpacity, useColorScheme, View } from 'react-native';
+import { Dimensions, PanResponder, StyleSheet, Text, TouchableOpacity, useColorScheme, View } from 'react-native';
 import { CommonModal, CommonModalProps } from './CommonModal';
+
+const { height: screenHeight } = Dimensions.get('window');
 
 /**
  * 바텀 시트 컴포넌트의 속성 타입
@@ -67,20 +69,25 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
 }) => {
   const colorScheme = useColorScheme() ?? 'light';
   const theme = themes[colorScheme];
-
-  // 높이 계산
+  // 높이 계산 - 항상 확장된 상태 유지
   const getHeightStyle = () => {
-    switch (height) {
-      case 'half':
-        return styles.halfHeight;
-      case 'full':
-        return styles.fullHeight;
-      case 'auto':
-        return styles.autoHeight;
-      default:
-        return typeof height === 'number' ? { height } : styles.autoHeight;
-    }
+    return { height: screenHeight * 0.9 };
   };
+
+  // 드래그 제스처 핸들러
+  const panResponder = PanResponder.create({
+    onStartShouldSetPanResponder: () => true,
+    onMoveShouldSetPanResponder: () => true,
+    onPanResponderMove: (evt, gestureState) => {
+      // 드래그 중 아무것도 하지 않음 (시각적 피드백 없음)
+    },
+    onPanResponderRelease: (evt, gestureState) => {
+      // 아래로 100px 이상 드래그하면 모달 닫기
+      if (gestureState.dy > 100) {
+        onClose();
+      }
+    },
+  });
 
   const renderHeader = () => {
     if (!showHeader && !header) return null;
@@ -139,7 +146,7 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
       ]}>
         {/* 드래그 핸들 */}
         {showHandle && (
-          <View style={styles.handleContainer}>
+          <View style={styles.handleContainer} {...panResponder.panHandlers}>
             <View style={[
               styles.handle,
               { backgroundColor: theme.colors.border.light }
@@ -166,16 +173,16 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   halfHeight: {
-    maxHeight: 400,
-    minHeight: 200,
+    maxHeight: 500,
+    minHeight: 300,
   },
   fullHeight: {
-    maxHeight: 600,
-    minHeight: 400,
+    maxHeight: 700,
+    minHeight: 500,
   },
   autoHeight: {
-    maxHeight: 500,
-    minHeight: 150,
+    maxHeight: 600,
+    minHeight: 200,
   },
   handleContainer: {
     alignItems: 'center',
@@ -220,6 +227,11 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: Spacing.lg,
     paddingBottom: Spacing.lg,
+  },
+  handleHint: {
+    fontSize: 11,
+    textAlign: 'center',
+    marginTop: 4,
   },
 });
 
