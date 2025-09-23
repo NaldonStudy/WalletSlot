@@ -55,15 +55,9 @@ export const showAvailableAPIs = async () => {
 
 // 기본 MSW 연결 테스트 (각 브랜치에서 도메인별 테스트 추가 가능)
 export const runBasicTests = async () => {
-  console.log('🚀 기본 MSW 테스트 시작...');
-  
   const connectionTest = await testMSWConnection();
   
-  if (connectionTest) {
-    await showAvailableAPIs();
-    await testMyDataConnections(); // 새로운 mydata API 테스트 추가
-    console.log('🎉 MSW 기본 설정이 완료되었습니다!');
-  } else {
+  if (!connectionTest) {
     console.warn('⚠️ MSW 연결에 문제가 있습니다.');
   }
   
@@ -86,15 +80,10 @@ export const testNotificationsFetch = async () => {
 // 연결된 금융사 목록 테스트
 export const testMyDataConnections = async () => {
   try {
-    console.log('🏦 연결된 금융사 목록 테스트 시작...');
     const res = await fetch('/api/users/me/mydata/connections');
     const data = await res.json();
-    console.log('🏦 연결된 금융사 API 응답:', data);
     
-    if (data.success && data.data && data.data.connections) {
-      console.log(`🏦 연결된 계좌 수: ${data.data.connections.length}`);
-      console.log(`🏦 활성 계좌 수: ${data.data.activeCount}`);
-    } else {
+    if (!data.success || !data.data?.connections) {
       console.warn('🏦 연결된 금융사 데이터 구조가 예상과 다릅니다:', data);
     }
   } catch (e) {

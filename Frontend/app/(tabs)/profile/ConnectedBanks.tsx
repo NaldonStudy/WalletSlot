@@ -6,6 +6,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { ThemedText } from '@/components/ThemedText'
 import { ThemedView } from '@/components/ThemedView'
 import { LoadingIndicator } from '@/src/components'
+import { useDeleteLinkedAccount, useLinkedAccounts, useRefreshMyData } from '@/src/hooks'
+import type { UserAccount } from '@/src/types'
 import AccountConnectionDetail from './AccountConnectionDetail'
 
 type Props = {
@@ -27,59 +29,90 @@ type BankConnection = {
   balance: number
 }
 
-type ApiResponse = {
-  success: boolean
-  data: {
-    connections: BankConnection[]
-    totalCount: number
-    activeCount: number
-  }
-}
-
 export default function ConnectedBanks({ visible, onClose }: Props) {
   const insets = useSafeAreaInsets()
   const [connections, setConnections] = useState<BankConnection[]>([])
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
   const [selectedConnection, setSelectedConnection] = useState<BankConnection | null>(null)
+  
+  // 새로운 API hooks 사용
+  const { data: linkedAccounts, isLoading: loading, error } = useLinkedAccounts()
+  const deleteAccountMutation = useDeleteLinkedAccount()
+  const refreshMyDataMutation = useRefreshMyData()
 
-  // 연결된 금융사 목록 조회
-  const fetchConnections = async () => {
-    setLoading(true)
-    setError(null)
-    try {
-      console.log('[ConnectedBanks] API 호출 시작: /api/users/me/mydata/connections')
-      const response = await fetch('/api/users/me/mydata/connections')
-      console.log('[ConnectedBanks] API 응답 상태:', response.status)
-      
-      const data: ApiResponse = await response.json()
-      console.log('[ConnectedBanks] API 응답 데이터:', data)
-      
-      if (data.success) {
-        console.log('[ConnectedBanks] 연결 설정:', data.data.connections)
-        setConnections(data.data.connections)
-      } else {
-        setError('연결된 금융사 정보를 불러올 수 없습니다.')
-      }
-    } catch (err) {
-      setError('네트워크 오류가 발생했습니다.')
-      console.error('Failed to fetch connections:', err)
-    } finally {
-      setLoading(false)
-    }
-  }
+  // 연동된 계좌 데이터 타입은 UserAccount[]
 
-  // 계좌 연결 목록 새로고침 (AccountConnectionDetail에서 사용)
-  const refreshConnections = () => {
-    fetchConnections()
-  }
+  // 은행별 색상 매핑
+  const getBankColor = (bankCode: string): string => {
+    const colorMap: Record<string, string> = {
+      '004': '#FFB400', // KB국민은행
+      '088': '#0066CC', // 신한은행  
+      '020': '#004A9C', // 우리은행
+      '081': '#009639', // 하나은행
+      '011': '#00A651', // NH농협은행
+      '027': '#E60012', // 씨티은행
+      '089': '#005AA0', // 케이뱅크
+      '090': '#FF6900', // 카카오뱅크
+      '002': '#003876', // 산업은행
+      '003': '#ED1C24', // 기업은행
+    };
+    return colorMap[bankCode] || '#1976d2';
+  };
 
-  // 모달이 열릴 때 데이터 로드
+  // 연동된 계좌 목록을 BankConnection 형태로 변환
   useEffect(() => {
-    if (visible) {
-      fetchConnections()
+    if (linkedAccounts) {
+      const converted: BankConnection[] = (linkedAccounts as UserAccount[]).map(account => ({
+        accountId: account.accountId,
+        bankCode: account.bankCode,
+        bankName: account.bankName,
+        bankColor: getBankColor(account.bankCode),
+        accountNumber: account.accountNo,
+        accountType: '일반계좌', // 기본값
+        accountName: account.accountAlias || '연동된 계좌',
+        connectionDate: '2024-01-01', // 기본값
+        expiryDate: '2025-12-31', // 기본값
+        status: 'active' as const,
+        balance: account.balance || 0,
+      }))
+      setConnections(converted)
     }
-  }, [visible])
+  }, [linkedAccounts])
+
+  // 마이데이터 재연동
+  const handleRefreshMyData = async () => {
+    try {
+      await refreshMyDataMutation.mutateAsync()
+      // 성공 시에는 별도 알림 없이 목록이 자동 갱신됨
+    } catch (error) {
+      Alert.alert('오류', '마이데이터 재연동에 실패했습니다.')
+    }
+  }
+
+  // 계좌 삭제
+  const handleDeleteAccount = async (accountId: string) => {
+    Alert.alert(
+      '계좌 연동 해제',
+      '이 계좌의 연동을 해제하시겠습니까?',
+      [
+        { text: '취소', style: 'cancel' },
+        {
+          text: '해제',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await deleteAccountMutation.mutateAsync(accountId)
+              // 성공 시에는 별도 알림 없이 목록에서 자동 제거됨
+            } catch (error) {
+              Alert.alert('오류', '계좌 연동 해제에 실패했습니다.')
+            }
+          }
+        }
+      ]
+    )
+  }
+
+  // 모달이 열릴 때는 자동으로 데이터가 로드됨 (React Query)
+  // 별도 로직 불필요
 
   // 은행별로 그룹화
   const bankGroups = (connections || []).reduce((groups, connection) => {
@@ -136,9 +169,11 @@ export default function ConnectedBanks({ visible, onClose }: Props) {
           ) : error ? (
             <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingTop: 100 }}>
               <Ionicons name="alert-circle-outline" size={48} color="#FF3B30" />
-              <ThemedText style={{ marginTop: 16, color: '#666', textAlign: 'center' }}>{error}</ThemedText>
+              <ThemedText style={{ marginTop: 16, color: '#666', textAlign: 'center' }}>
+                {error?.message || '데이터를 불러오는 중 오류가 발생했습니다.'}
+              </ThemedText>
               <Pressable
-                onPress={fetchConnections}
+                onPress={handleRefreshMyData}
                 style={{
                   backgroundColor: '#007AFF',
                   borderRadius: 8,
@@ -150,10 +185,22 @@ export default function ConnectedBanks({ visible, onClose }: Props) {
                 <ThemedText style={{ color: 'white', fontWeight: '600' }}>다시 시도</ThemedText>
               </Pressable>
             </View>
-          ) : Object.keys(bankGroups).length === 0 ? (
+          ) : (!connections || connections.length === 0) ? (
             <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingTop: 100 }}>
               <Ionicons name="wallet-outline" size={48} color="#999" />
               <ThemedText style={{ marginTop: 16, color: '#666', textAlign: 'center' }}>연결된 금융사가 없습니다</ThemedText>
+              <Pressable
+                onPress={handleRefreshMyData}
+                style={{
+                  backgroundColor: '#007AFF',
+                  borderRadius: 8,
+                  paddingHorizontal: 16,
+                  paddingVertical: 8,
+                  marginTop: 16
+                }}
+              >
+                <ThemedText style={{ color: 'white', fontWeight: '600' }}>마이데이터 연동하기</ThemedText>
+              </Pressable>
             </View>
           ) : (
             <>
@@ -268,7 +315,9 @@ export default function ConnectedBanks({ visible, onClose }: Props) {
           visible={!!selectedConnection}
           onClose={() => setSelectedConnection(null)}
           connection={selectedConnection}
-          onConnectionUpdated={refreshConnections}
+          onConnectionUpdated={() => {
+            // React Query가 자동으로 캐시를 무효화하므로 별도 처리 불필요
+          }}
         />
       )}
     </Modal>
