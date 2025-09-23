@@ -3,14 +3,13 @@ import ConnectedBanks from '@/app/(tabs)/profile/ConnectedBanks';
 import PinChangeModal from '@/app/(tabs)/profile/PinChangeModal';
 import PrivacyPolicy from '@/app/(tabs)/profile/PrivacyPolicy';
 import TermsOfService from '@/app/(tabs)/profile/TermsOfService';
-import { SettingCard } from '@/components/SettingCard';
-import { SettingRow } from '@/components/SettingRow';
+import { CommonCard } from '@/src/components';
 import { ThemedText } from '@/components/ThemedText';
 import { Toggle } from '@/components/Toggle';
 import { monitoringService } from '@/src/services/monitoringService';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useState } from 'react';
-import { Alert, Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Alert, Modal, Pressable, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 type Props = { visible: boolean; onClose: () => void };
@@ -61,51 +60,121 @@ export default function Settings({ visible, onClose }: Props) {
         >
           {/* 알림 설정 */}
           <ThemedText style={styles.sectionTitle}>{'알림 설정'}</ThemedText>
-          <SettingCard>
-            <SettingRow
-              leftIconName="notifications-outline"
-              leftIconColor="#1976d2"
-              title="푸시알림 설정"
-              right={<Toggle value={pushEnabled} onValueChange={async (v) => {
+          <CommonCard variant="outlined" padding="none">
+            <View style={styles.settingRow}>
+              <View style={[styles.iconWrap, { backgroundColor: '#e3f2fd' }]}>
+                <Ionicons name="notifications-outline" size={18} color="#1976d2" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <ThemedText style={styles.settingTitle}>푸시알림 설정</ThemedText>
+              </View>
+              <Toggle value={pushEnabled} onValueChange={async (v) => {
                 setPushEnabled(v);
                 monitoringService.logUserInteraction('setting_change', { key: 'push', enabled: v });
                 await fetch('/api/users/me/settings/notifications/push', { method: 'PATCH', body: JSON.stringify({ enabled: v }) });
-              }} />}
-            />
-            <SettingRow
-              leftIconName="megaphone-outline"
-              leftIconColor="#9e9e9e"
-              title="마케팅 알림 설정"
-              right={<Toggle value={marketingEnabled} onValueChange={async (v) => {
+              }} />
+            </View>
+            <View style={[styles.settingRow, styles.settingRowBorder]}>
+              <View style={[styles.iconWrap, { backgroundColor: '#f5f5f5' }]}>
+                <Ionicons name="megaphone-outline" size={18} color="#9e9e9e" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <ThemedText style={styles.settingTitle}>마케팅 알림 설정</ThemedText>
+              </View>
+              <Toggle value={marketingEnabled} onValueChange={async (v) => {
                 setMarketingEnabled(v);
                 monitoringService.logUserInteraction('setting_change', { key: 'marketing', enabled: v });
                 await fetch('/api/users/me/settings/notifications/marketing', { method: 'PATCH', body: JSON.stringify({ enabled: v }) });
-              }} />}
-            />
-          </SettingCard>
+              }} />
+            </View>
+          </CommonCard>
 
           {/* 인증/보안 */}
           <ThemedText style={styles.sectionTitle}>{'인증/보안'}</ThemedText>
-          <SettingCard>
-            <SettingRow leftIconName="lock-closed-outline" leftIconColor="#616161" title="비밀번호 변경" onPress={() => setPinModalVisible(true)} />
-            <SettingRow leftIconName="finger-print-outline" leftIconColor="#616161" title="생체 인증" onPress={() => setBiometricModalVisible(true)} />
-          </SettingCard>
+          <CommonCard variant="outlined" padding="none">
+            <TouchableOpacity style={styles.settingRow} onPress={() => setPinModalVisible(true)}>
+              <View style={[styles.iconWrap, { backgroundColor: '#f5f5f5' }]}>
+                <Ionicons name="lock-closed-outline" size={18} color="#616161" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <ThemedText style={styles.settingTitle}>비밀번호 변경</ThemedText>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color="#bbb" />
+            </TouchableOpacity>
+            <TouchableOpacity style={[styles.settingRow, styles.settingRowBorder]} onPress={() => setBiometricModalVisible(true)}>
+              <View style={[styles.iconWrap, { backgroundColor: '#f5f5f5' }]}>
+                <Ionicons name="finger-print-outline" size={18} color="#616161" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <ThemedText style={styles.settingTitle}>생체 인증</ThemedText>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color="#bbb" />
+            </TouchableOpacity>
+          </CommonCard>
 
           {/* 마이데이터 관리 */}
           <ThemedText style={styles.sectionTitle}>{'마이데이터 관리'}</ThemedText>
-          <SettingCard>
-            <SettingRow leftIconName="wallet-outline" leftIconColor="#388e3c" title="연결 금융사 관리" onPress={() => setConnectedBanksVisible(true)} />
-            <SettingRow leftIconName="sync-outline" leftIconColor="#1976d2" title="마이데이터 재연동" onPress={() => {}} />
-            <SettingRow leftIconName="ban-outline" leftIconColor="#d32f2f" title="마이데이터 서비스 해지" onPress={() => {}} />
-          </SettingCard>
+          <CommonCard variant="outlined" padding="none">
+            <TouchableOpacity style={styles.settingRow} onPress={() => setConnectedBanksVisible(true)}>
+              <View style={[styles.iconWrap, { backgroundColor: '#e8f5e8' }]}>
+                <Ionicons name="wallet-outline" size={18} color="#388e3c" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <ThemedText style={styles.settingTitle}>연결 금융사 관리</ThemedText>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color="#bbb" />
+            </TouchableOpacity>
+            <TouchableOpacity style={[styles.settingRow, styles.settingRowBorder]} onPress={() => {}}>
+              <View style={[styles.iconWrap, { backgroundColor: '#e3f2fd' }]}>
+                <Ionicons name="sync-outline" size={18} color="#1976d2" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <ThemedText style={styles.settingTitle}>마이데이터 재연동</ThemedText>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color="#bbb" />
+            </TouchableOpacity>
+            <TouchableOpacity style={[styles.settingRow, styles.settingRowBorder]} onPress={() => {}}>
+              <View style={[styles.iconWrap, { backgroundColor: '#ffebee' }]}>
+                <Ionicons name="ban-outline" size={18} color="#d32f2f" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <ThemedText style={styles.settingTitle}>마이데이터 서비스 해지</ThemedText>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color="#bbb" />
+            </TouchableOpacity>
+          </CommonCard>
 
           {/* 기타 설정 */}
           <ThemedText style={styles.sectionTitle}>{'기타 설정'}</ThemedText>
-          <SettingCard>
-            <SettingRow leftIconName="document-text-outline" leftIconColor="#616161" title="개인정보 처리방침" onPress={() => setPrivacyPolicyVisible(true)} />
-            <SettingRow leftIconName="reader-outline" leftIconColor="#616161" title="이용약관" onPress={() => setTermsOfServiceVisible(true)} />
-            <SettingRow leftIconName="log-out-outline" leftIconColor="#d32f2f" title="회원 탈퇴" titleColor="#d32f2f" onPress={() => { Alert.alert('경고', '회원 탈퇴 처리'); }} />
-          </SettingCard>
+          <CommonCard variant="outlined" padding="none">
+            <TouchableOpacity style={styles.settingRow} onPress={() => setPrivacyPolicyVisible(true)}>
+              <View style={[styles.iconWrap, { backgroundColor: '#f5f5f5' }]}>
+                <Ionicons name="document-text-outline" size={18} color="#616161" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <ThemedText style={styles.settingTitle}>개인정보 처리방침</ThemedText>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color="#bbb" />
+            </TouchableOpacity>
+            <TouchableOpacity style={[styles.settingRow, styles.settingRowBorder]} onPress={() => setTermsOfServiceVisible(true)}>
+              <View style={[styles.iconWrap, { backgroundColor: '#f5f5f5' }]}>
+                <Ionicons name="reader-outline" size={18} color="#616161" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <ThemedText style={styles.settingTitle}>이용약관</ThemedText>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color="#bbb" />
+            </TouchableOpacity>
+            <TouchableOpacity style={[styles.settingRow, styles.settingRowBorder]} onPress={() => { Alert.alert('경고', '회원 탈퇴 처리'); }}>
+              <View style={[styles.iconWrap, { backgroundColor: '#ffebee' }]}>
+                <Ionicons name="log-out-outline" size={18} color="#d32f2f" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <ThemedText style={[styles.settingTitle, { color: '#d32f2f' }]}>회원 탈퇴</ThemedText>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color="#bbb" />
+            </TouchableOpacity>
+          </CommonCard>
 
           {/* 개발용 PIN 조회 */}
           {__DEV__ && (
@@ -187,5 +256,28 @@ const styles = StyleSheet.create({
     padding: 10,
     backgroundColor: '#f0f0f5',
     borderRadius: 8,
+  },
+  settingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+  },
+  settingRowBorder: {
+    borderTopWidth: 1,
+    borderTopColor: '#f0f0f0',
+  },
+  iconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  settingTitle: {
+    fontWeight: '600',
+    fontSize: 15,
+    color: '#222',
   },
 });

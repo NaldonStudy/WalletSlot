@@ -1,10 +1,11 @@
 import { Ionicons } from '@expo/vector-icons'
 import React, { useState } from 'react'
-import { ActivityIndicator, Alert, Modal, Pressable, ScrollView, View } from 'react-native'
+import { Alert, Modal, Pressable, ScrollView, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { ThemedText } from '@/components/ThemedText'
 import { ThemedView } from '@/components/ThemedView'
+import { SimpleLoadingIndicator } from '@/src/components'
 
 type BankConnection = {
   accountId: string
@@ -211,7 +212,9 @@ export default function AccountConnectionDetail({ visible, onClose, connection, 
               }}
             >
               {isDisconnecting && (
-                <ActivityIndicator size="small" color="#FF3B30" style={{ marginRight: 8 }} />
+                <View style={{ marginRight: 8 }}>
+                  <SimpleLoadingIndicator color="#FF3B30" />
+                </View>
               )}
               <ThemedText style={{ fontSize: 16, fontWeight: '600', color: '#FF3B30' }}>
                 {isDisconnecting ? '연결 해제 중...' : '계좌 연결 해제'}

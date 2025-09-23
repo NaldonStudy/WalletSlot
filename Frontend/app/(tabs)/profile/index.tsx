@@ -1,17 +1,18 @@
 import Settings from '@/app/(tabs)/profile/Settings';
 import { ThemedView } from '@/components/ThemedView';
 import { queryKeys } from '@/src/api';
+import { BottomSheet, CommonModal, PickerModal } from '@/src/components';
 import {
-  useConfirmEmailVerification,
-  useConfirmPhoneVerification,
-  useSendEmailVerification,
-  useSendPhoneVerification,
-  useUpdateAvatar,
-  useUpdateEmail,
-  useUpdateJob,
-  useUpdateMonthlyIncome,
-  useUpdateName,
-  useUserProfile,
+    useConfirmEmailVerification,
+    useConfirmPhoneVerification,
+    useSendEmailVerification,
+    useSendPhoneVerification,
+    useUpdateAvatar,
+    useUpdateEmail,
+    useUpdateJob,
+    useUpdateMonthlyIncome,
+    useUpdateName,
+    useUserProfile,
 } from '@/src/hooks';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -20,16 +21,15 @@ import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useEffect, useState } from 'react';
 import {
-  Alert,
-  Image,
-  Modal,
-  ScrollView,
-  StatusBar,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View
+    Alert,
+    Image,
+    ScrollView,
+    StatusBar,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View
 } from 'react-native';
 interface EditModalProps {
   visible: boolean;
@@ -49,19 +49,19 @@ interface VerificationModalProps {
   onSuccess: () => void;
 }
 
-const JOB_LIST = [
-  '개발자',
-  '디자이너',
-  '기획자',
-  '마케팅',
-  '영업',
-  '교사',
-  '의사',
-  '간호사',
-  '자영업',
-  '학생',
-  '무직',
-  '기타',
+const JOB_OPTIONS = [
+  { label: '개발자', value: '개발자' },
+  { label: '디자이너', value: '디자이너' },
+  { label: '기획자', value: '기획자' },
+  { label: '마케팅', value: '마케팅' },
+  { label: '영업', value: '영업' },
+  { label: '교사', value: '교사' },
+  { label: '의사', value: '의사' },
+  { label: '간호사', value: '간호사' },
+  { label: '자영업', value: '자영업' },
+  { label: '학생', value: '학생' },
+  { label: '무직', value: '무직' },
+  { label: '기타', value: '기타' },
 ];
 
 const JobPicker: React.FC<{
@@ -70,33 +70,20 @@ const JobPicker: React.FC<{
   onCancel: () => void;
   onSelect: (job: string) => void;
 }> = ({ visible, value, onCancel, onSelect }) => {
-  const [selected, setSelected] = useState(value);
-
-  useEffect(() => setSelected(value), [value, visible]);
-
   return (
-    <Modal visible={visible} animationType="slide" transparent onRequestClose={onCancel}>
-      <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={onCancel}>
-        <View style={styles.modalContent}>
-          <View style={styles.modalHeader}>
-            <TouchableOpacity onPress={onCancel}>
-              <Ionicons name="close" size={24} color="#666" />
-            </TouchableOpacity>
-            <Text style={styles.modalTitle}>직업 선택</Text>
-            <TouchableOpacity onPress={() => { onSelect(selected); onCancel(); }}>
-              <Text style={styles.saveText}>선택</Text>
-            </TouchableOpacity>
-          </View>
-          <View style={{ padding: 16 }}>
-            {JOB_LIST.map((job) => (
-              <TouchableOpacity key={job} style={[styles.menuItem, selected === job && { borderColor: '#667eea', borderWidth: 1 }]} onPress={() => setSelected(job)}>
-                <Text style={styles.menuLabel}>{job}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
-      </TouchableOpacity>
-    </Modal>
+    <PickerModal
+      visible={visible}
+      title="직업 선택"
+      options={JOB_OPTIONS}
+      selectedValue={value}
+      onClose={onCancel}
+      onCancel={onCancel}
+      onSelect={(selectedValue) => {
+        onSelect(selectedValue);
+        onCancel();
+      }}
+      singleSelect={true}
+    />
   );
 };
 
@@ -133,33 +120,50 @@ const EditModal: React.FC<EditModalProps> = ({ visible, title, value, onSave, on
   };
 
   return (
-    <Modal visible={visible} animationType="slide" transparent onRequestClose={onCancel}>
-      <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={onCancel}>
-        <View style={styles.modalContent}>
-          <View style={styles.modalHeader}>
-            <TouchableOpacity onPress={onCancel}>
-              <Ionicons name="close" size={24} color="#666" />
-            </TouchableOpacity>
-            <Text style={styles.modalTitle}>{title}</Text>
-            <TouchableOpacity onPress={handleSave} disabled={!!errorMessage || !hasChanged}>
-              <Text style={[styles.saveText, (!!errorMessage || !hasChanged) && { color: '#ccc' }]}>저장</Text>
-            </TouchableOpacity>
-          </View>
-          <TextInput
-            style={styles.modalInput}
-            value={inputValue}
-            onChangeText={(text) => {
-              if (keyboardType === 'numeric') setInputValue(formatNumberWithCommas(text));
-              else setInputValue(text);
-            }}
-            placeholder={placeholder}
-            keyboardType={keyboardType}
-            autoFocus
-          />
-          {errorMessage ? <Text style={styles.inlineError}>{errorMessage}</Text> : null}
+    <BottomSheet
+      visible={visible}
+      title={title}
+      onClose={onCancel}
+      height="auto"
+    >
+      <View style={{ padding: 16 }}>
+        <TextInput
+          style={styles.modalInput}
+          value={inputValue}
+          onChangeText={(text) => {
+            if (keyboardType === 'numeric') setInputValue(formatNumberWithCommas(text));
+            else setInputValue(text);
+          }}
+          placeholder={placeholder}
+          keyboardType={keyboardType}
+          autoFocus
+        />
+        {errorMessage ? <Text style={styles.inlineError}>{errorMessage}</Text> : null}
+        
+        <View style={{ flexDirection: 'row', gap: 12, marginTop: 20 }}>
+          <TouchableOpacity 
+            style={[styles.menuItem, { backgroundColor: '#f5f5f5', flex: 1, justifyContent: 'center' }]} 
+            onPress={onCancel}
+          >
+            <Text style={[styles.menuLabel, { color: '#666', textAlign: 'center' }]}>취소</Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={[
+              styles.menuItem, 
+              { 
+                backgroundColor: (!!errorMessage || !hasChanged) ? '#ccc' : '#667eea', 
+                flex: 1,
+                justifyContent: 'center'
+              }
+            ]} 
+            onPress={handleSave} 
+            disabled={!!errorMessage || !hasChanged}
+          >
+            <Text style={[styles.menuLabel, { color: '#fff', textAlign: 'center' }]}>저장</Text>
+          </TouchableOpacity>
         </View>
-      </TouchableOpacity>
-    </Modal>
+      </View>
+    </BottomSheet>
   );
 };
 
@@ -235,7 +239,13 @@ const VerificationModal: React.FC<VerificationModalProps> = ({ visible, type, va
   };
 
   return (
-    <Modal visible={visible} animationType="slide" transparent={false} onRequestClose={handleCancel}>
+    <CommonModal 
+      visible={visible} 
+      animationType="slide" 
+      position="fullscreen" 
+      onClose={handleCancel}
+      closeOnOverlayPress={false}
+    >
       <View style={{ flex: 1, backgroundColor: '#fff' }}>
         <View style={styles.modalHeader}>
           <TouchableOpacity onPress={handleCancel}>
@@ -294,7 +304,7 @@ const VerificationModal: React.FC<VerificationModalProps> = ({ visible, type, va
           )}
         </View>
       </View>
-    </Modal>
+    </CommonModal>
   );
 };
 

@@ -1,11 +1,11 @@
-import React, { useState, memo } from 'react';
-import { View, Text, StyleSheet, useColorScheme, ActivityIndicator } from 'react-native';
-import { Image } from 'expo-image';
-import { UserAccount } from '@/src/types';
+import { SimpleLoadingIndicator } from '@/src/components';
 import { BANK_CODES } from '@/src/constants/banks';
-import { Colors, Spacing, Typography } from '@/src/constants/theme';
-import { themes } from '@/src/constants/theme';
+import { Spacing, themes, Typography } from '@/src/constants/theme';
+import { UserAccount } from '@/src/types';
 import { format } from '@/src/utils';
+import { Image } from 'expo-image';
+import React, { memo, useState } from 'react';
+import { StyleSheet, Text, useColorScheme, View } from 'react-native';
 
 type AccountSummaryProps = {
     account: UserAccount;
@@ -34,10 +34,10 @@ export const AccountSummary = memo(({ account }: AccountSummaryProps) => {
                 <View style={styles.row}>
                     <View style={styles.logoWrapper}>
                         {!imageLoaded && (
-                            <ActivityIndicator 
+                            <SimpleLoadingIndicator 
                                 size="small" 
-                                color={theme.colors.text.secondary} 
-                                style={styles.loadingIndicator}
+                                color={theme.colors.text.secondary}
+                                testID="account-logo-loading"
                             />
                         )}
                         <Image 

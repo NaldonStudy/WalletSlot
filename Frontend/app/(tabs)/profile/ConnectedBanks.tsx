@@ -1,10 +1,11 @@
 import { Ionicons } from '@expo/vector-icons'
 import React, { useEffect, useState } from 'react'
-import { ActivityIndicator, Alert, Modal, Pressable, ScrollView, View } from 'react-native'
+import { Alert, Modal, Pressable, ScrollView, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { ThemedText } from '@/components/ThemedText'
 import { ThemedView } from '@/components/ThemedView'
+import { LoadingIndicator } from '@/src/components'
 import AccountConnectionDetail from './AccountConnectionDetail'
 
 type Props = {
@@ -131,10 +132,7 @@ export default function ConnectedBanks({ visible, onClose }: Props) {
           showsVerticalScrollIndicator={false}
         >
           {loading ? (
-            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingTop: 100 }}>
-              <ActivityIndicator size="large" color="#007AFF" />
-              <ThemedText style={{ marginTop: 16, color: '#666' }}>연결된 금융사 정보를 불러오는 중...</ThemedText>
-            </View>
+            <LoadingIndicator text="연결된 금융사 정보를 불러오는 중..." />
           ) : error ? (
             <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingTop: 100 }}>
               <Ionicons name="alert-circle-outline" size={48} color="#FF3B30" />
