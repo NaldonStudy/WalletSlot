@@ -1,11 +1,20 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, StyleSheet, KeyboardAvoidingView, Platform, TouchableOpacity, Modal, Animated, ScrollView } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
 import { useSignupStore } from '@/src/store/signupStore';
+import { router } from 'expo-router';
+import React, { useEffect, useState } from 'react';
+import { Animated, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function PhoneScreen() {
-  const [phone, setPhone] = useState('010-');
+  // URL 파라미터로 프로필 수정 모드 확인
+  const { useLocalSearchParams } = require('expo-router');
+  const params = useLocalSearchParams();
+  const isProfileUpdate = params.mode === 'profile_update';
+  const currentPhone = params.currentPhone as string;
+  const currentName = params.currentName as string;
+  const currentBirthDate = params.currentBirthDate as string;
+  const currentGender = params.currentGender as string;
+
+  const [phone, setPhone] = useState(isProfileUpdate ? (currentPhone || '010-') : '010-');
   const [selectedCarrier, setSelectedCarrier] = useState<string>('');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [showTermsModal, setShowTermsModal] = useState(false);
@@ -42,15 +51,25 @@ export default function PhoneScreen() {
 
   // 컴포넌트 마운트 시 스토어 값으로 로컬 상태 초기화
   useEffect(() => {
-    if (carrier) {
-      setSelectedCarrier(carrier);
+    if (isProfileUpdate && currentPhone) {
+      // 프로필 수정 모드일 때는 현재 휴대폰 번호 사용
+      const digits = currentPhone.replace(/[^0-9]/g, '');
+      if (digits.length === 11) {
+        const formatted = `${digits.slice(0, 3)}-${digits.slice(3, 7)}-${digits.slice(7)}`;
+        setPhone(formatted);
+      }
+    } else {
+      // 일반 회원가입 모드일 때는 스토어 값 사용
+      if (carrier) {
+        setSelectedCarrier(carrier);
+      }
+      if (phone && phone.length === 11) {
+        // 스토어의 phone은 숫자만 저장되어 있으므로 포맷팅 (11자리일 때만)
+        const formatted = `010-${phone.slice(3, 7)}-${phone.slice(7)}`;
+        setPhone(formatted);
+      }
     }
-    if (phone && phone.length === 11) {
-      // 스토어의 phone은 숫자만 저장되어 있으므로 포맷팅 (11자리일 때만)
-      const formatted = `010-${phone.slice(3, 7)}-${phone.slice(7)}`;
-      setPhone(formatted);
-    }
-  }, []);
+  }, [isProfileUpdate, currentPhone]);
 
   // 컴포넌트 마운트 시 애니메이션 실행
   useEffect(() => {
@@ -140,12 +159,27 @@ export default function PhoneScreen() {
   };
 
   const handleVerifyIdentity = () => {
-    if (!isPhoneValid()) {
+    // 기본 검증
+    const phoneNumber = phone.replace(/[^0-9]/g, '');
+    if (!selectedCarrier || !phoneNumber || phoneNumber.length !== 11) {
       alert('통신사와 휴대폰 번호를 모두 입력해주세요!');
       return;
     }
     
-    // 약관 동의 모달 표시
+    if (isProfileUpdate) {
+      // 프로필 수정 모드: 약관 동의 없이 바로 인증 페이지로
+      router.push({
+        pathname: '/(auth)/(signup)/phone-verification' as any,
+        params: {
+          phoneNumber,
+          purpose: 'PROFILE_UPDATE',
+          mode: 'profile_update'
+        }
+      });
+      return;
+    }
+    
+    // 일반 회원가입 모드: 약관 동의 모달 표시
     setShowTermsModal(true);
     
     // 모달 애니메이션 시작
@@ -268,7 +302,18 @@ export default function PhoneScreen() {
     <SafeAreaView style={styles.safeArea}>
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <View style={styles.container}>
-          <Text style={styles.title}>휴대폰 번호를 입력해주세요.</Text>
+          {/* 프로필 수정 모드일 때 닫기 버튼 추가 */}
+          {isProfileUpdate && (
+            <View style={styles.profileHeader}>
+              <TouchableOpacity onPress={() => router.back()} style={styles.profileCloseButton}>
+                <Text style={styles.profileCloseButtonText}>✕</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+          
+          <Text style={styles.title}>
+            {isProfileUpdate ? '휴대폰 번호 변경' : '휴대폰 번호를 입력해주세요.'}
+          </Text>
 
           {/* 휴대폰 번호 입력칸 */}
           <Animated.View 
@@ -334,92 +379,142 @@ export default function PhoneScreen() {
             )}
           </Animated.View>
 
-          {/* 주민등록번호 표시 (아래로 슬라이드 + 드롭다운 오프셋) */}
-          <Animated.View 
-            style={[
-              styles.fieldBlock,
-              {
-                transform: [
-                  { translateY: residentIdFieldTranslateY },
-                  { translateY: dropdownOffset }
-                ],
-              },
-            ]}
-          >
-            <Text style={styles.label}>주민등록번호</Text>
-            <TouchableOpacity 
-              style={styles.residentIdContainer}
-              onPress={() => {
-                // 주민등록번호와 휴대폰 번호 초기화
-                clearResidentId();
-                clearPhone();
-                // 로컬 상태도 초기화
-                setPhone('010-');
-                setSelectedCarrier('');
-                router.push('/(auth)/(signup)/resident-id');
-              }}
-              activeOpacity={0.7}
-            >
-              <TextInput
-                value={residentFront6 || ''}
-                editable={false}
-                style={[styles.residentIdInput, styles.disabledInput]}
-                pointerEvents="none"
-              />
-              <Text style={styles.hyphen}>-</Text>
-              <TextInput
-                value={residentBack1 ? residentBack1 + '●●●●●●●' : ''}
-                editable={false}
-                style={[styles.residentIdInput, styles.disabledInput]}
-                pointerEvents="none"
-              />
-            </TouchableOpacity>
-          </Animated.View>
 
-          {/* 이름 표시 (아래로 슬라이드 + 드롭다운 오프셋) */}
-          <Animated.View 
-            style={[
-              styles.fieldBlock,
-              {
-                transform: [
-                  { translateY: nameFieldTranslateY },
-                  { translateY: dropdownOffset }
-                ],
-              },
-            ]}
-          >
-            <Text style={styles.label}>이름</Text>
-            <TouchableOpacity 
-              style={styles.inputContainer}
-              onPress={() => {
-                // 이름, 주민등록번호, 휴대폰 번호 모두 초기화
-                clearName();
-                clearResidentId();
-                clearPhone();
-                // 로컬 상태도 초기화
-                setPhone('010-');
-                setSelectedCarrier('');
-                router.push('/(auth)/(signup)/name');
-              }}
-              activeOpacity={0.7}
-            >
-              <TextInput
-                value={name || ''}
-                editable={false}
-                style={[styles.input, styles.disabledInput]}
-                pointerEvents="none"
-              />
-            </TouchableOpacity>
-          </Animated.View>
+
+          {/* 프로필 수정 모드에서는 기존 정보 읽기 전용으로 표시 */}
+          {isProfileUpdate ? (
+            <>
+              {/* 프로필 수정용 - 이름 (읽기 전용) */}
+              <View style={styles.fieldBlock}>
+                <Text style={styles.label}>이름</Text>
+                <View style={[styles.inputContainer, styles.disabledContainer]}>
+                  <TextInput
+                    value={currentName || ''}
+                    editable={false}
+                    style={[styles.input, styles.disabledInput]}
+                  />
+                </View>
+              </View>
+
+              {/* 프로필 수정용 - 생년월일 (읽기 전용) */}
+              <View style={styles.fieldBlock}>
+                <Text style={styles.label}>생년월일</Text>
+                <View style={[styles.inputContainer, styles.disabledContainer]}>
+                  <TextInput
+                    value={currentBirthDate || ''}
+                    editable={false}
+                    style={[styles.input, styles.disabledInput]}
+                  />
+                </View>
+              </View>
+
+              {/* 프로필 수정용 - 성별 (읽기 전용) */}
+              <View style={styles.fieldBlock}>
+                <Text style={styles.label}>성별</Text>
+                <View style={[styles.inputContainer, styles.disabledContainer]}>
+                  <TextInput
+                    value={currentGender === 'MAN' ? '남성' : 
+                           currentGender === 'WOMAN' ? '여성' : 
+                           currentGender === 'OTHER' ? '기타' : '미입력'}
+                    editable={false}
+                    style={[styles.input, styles.disabledInput]}
+                  />
+                </View>
+              </View>
+            </>
+          ) : (
+            <>
+              {/* 회원가입용 - 주민등록번호 표시 (아래로 슬라이드 + 드롭다운 오프셋) */}
+              <Animated.View 
+                style={[
+                  styles.fieldBlock,
+                  {
+                    transform: [
+                      { translateY: residentIdFieldTranslateY },
+                      { translateY: dropdownOffset }
+                    ],
+                  },
+                ]}
+              >
+                <Text style={styles.label}>주민등록번호</Text>
+                <TouchableOpacity 
+                  style={styles.residentIdContainer}
+                  onPress={() => {
+                    // 주민등록번호와 휴대폰 번호 초기화
+                    clearResidentId();
+                    clearPhone();
+                    // 로컬 상태도 초기화
+                    setPhone('010-');
+                    setSelectedCarrier('');
+                    router.push('/(auth)/(signup)/resident-id');
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <TextInput
+                    value={residentFront6 || ''}
+                    editable={false}
+                    style={[styles.residentIdInput, styles.disabledInput]}
+                    pointerEvents="none"
+                  />
+                  <Text style={styles.hyphen}>-</Text>
+                  <TextInput
+                    value={residentBack1 ? residentBack1 + '●●●●●●●' : ''}
+                    editable={false}
+                    style={[styles.residentIdInput, styles.disabledInput]}
+                    pointerEvents="none"
+                  />
+                </TouchableOpacity>
+              </Animated.View>
+
+              {/* 이름 표시 (아래로 슬라이드 + 드롭다운 오프셋) */}
+              <Animated.View 
+                style={[
+                  styles.fieldBlock,
+                  {
+                    transform: [
+                      { translateY: nameFieldTranslateY },
+                      { translateY: dropdownOffset }
+                    ],
+                  },
+                ]}
+              >
+                <Text style={styles.label}>이름</Text>
+                <TouchableOpacity 
+                  style={styles.inputContainer}
+                  onPress={() => {
+                    // 이름, 주민등록번호, 휴대폰 번호 모두 초기화
+                    clearName();
+                    clearResidentId();
+                    clearPhone();
+                    // 로컬 상태도 초기화
+                    setPhone('010-');
+                    setSelectedCarrier('');
+                    router.push('/(auth)/(signup)/name');
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <TextInput
+                    value={name || ''}
+                    editable={false}
+                    style={[styles.input, styles.disabledInput]}
+                    pointerEvents="none"
+                  />
+                </TouchableOpacity>
+              </Animated.View>
+            </>
+          )}
 
           {/* 하단 고정 영역으로 버튼 이동 */}
           <View style={styles.spacer} />
-          {isPhoneValid() && (
+          {/* 프로필 수정 모드에서는 간단한 검증, 회원가입 모드에서는 기존 검증 */}
+          {(isProfileUpdate ? (selectedCarrier && phone !== '010-') : isPhoneValid()) && (
             <TouchableOpacity
               style={styles.verifyButton}
               onPress={handleVerifyIdentity}
             >
-              <Text style={styles.verifyButtonText}>본인 인증 하기</Text>
+              <Text style={styles.verifyButtonText}>
+                {isProfileUpdate ? '휴대폰 번호 인증' : '본인 인증 하기'}
+              </Text>
             </TouchableOpacity>
           )}
         </View>
@@ -632,6 +727,22 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingTop: 64,
   },
+  profileHeader: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginBottom: 16,
+    marginTop: -48,
+  },
+  profileCloseButton: {
+    width: 32,
+    height: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  profileCloseButtonText: {
+    fontSize: 18,
+    color: '#6B7280',
+  },
   title: {
     fontSize: 20,
     fontWeight: '700',
@@ -727,6 +838,10 @@ const styles = StyleSheet.create({
   disabledInput: {
     backgroundColor: '#F9FAFB',
     color: '#6B7280',
+  },
+  disabledContainer: {
+    backgroundColor: '#F9FAFB',
+    borderColor: '#E5E7EB',
   },
   verifyButton: {
     backgroundColor: '#3B82F6',

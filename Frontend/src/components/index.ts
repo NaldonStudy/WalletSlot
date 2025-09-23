@@ -22,6 +22,17 @@ export type { ButtonProps } from './Button';
 export { InputField } from './InputField';
 export type { InputFieldProps } from './InputField';
 
+// 공통 UI 컴포넌트
+export { CommonCard } from './common';
+export type { CommonCardProps } from './common';
+
+export { LoadingIndicator, SimpleLoadingIndicator } from './common';
+export type { LoadingIndicatorProps } from './common';
+
+// 모달 시스템
+export { AlertDialog, AuthKeypad, AuthPinEntry, BottomSheet, CommonModal, PickerModal } from './common';
+export type { AlertDialogProps, AuthKeypadProps, AuthPinEntryProps, BottomSheetProps, CommonModalProps, PickerModalProps, PickerOption } from './common';
+
 // 알림 관련 컴포넌트
 export { NotificationFilters } from './NotificationFilters';
 export { NotificationRow } from './NotificationItem';

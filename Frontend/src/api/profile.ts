@@ -1,134 +1,145 @@
-import type { UpdateProfileRequest, UserProfile } from '@/src/types';
+import type { MePatchRequestDto, UpdateProfileRequest, UserProfile } from '@/src/types';
 import { apiClient } from './client';
 import { fetchJsonFallback, isAmbiguousAxiosBody } from './responseNormalizer';
 
-export const getUserProfile = async (): Promise<UserProfile> => {
-  const response = await apiClient.get<UserProfile>('/api/users/me');
-  // apiClient.parseOrReturn는 가능한 한 { success, data } 형태를 반환하도록 보장합니다.
-  if (!response || isAmbiguousAxiosBody(response)) {
-    console.warn('[PROFILE_API] getUserProfile - 비정상 응답 수신, 폴백 fetch 시도');
-    const json = await fetchJsonFallback('/api/users/me');
-    if (json && typeof json === 'object' && (json.data || json.name)) {
-      // json이 BaseResponse 형태이거나 바로 UserProfile인 경우 처리
-      if (json.data) return json.data as UserProfile;
-      return json as UserProfile;
-    }
-    console.warn('[PROFILE_API] getUserProfile - 폴백 실패, 하드코드된 Fallback 데이터 반환');
-    return {
-      name: '김싸피 (Fallback)',
-      phone: '010-1234-5678',
-      gender: 'M',
-      dateOfBirth: '1995-03-15',
-      email: 'kim.ssafy@example.com',
-      job: '개발자',
-      monthlyIncome: 4500000,
-      avatar: null,
-    };
-  }
-  return response.data as unknown as UserProfile;
-};
-
-export const updateProfile = async (data: UpdateProfileRequest): Promise<UserProfile> => {
-  const response = await apiClient.patch<UserProfile>('/api/users/me', data);
-  return response.data;
-};
-
-export const updateName = async (name: string): Promise<{ name: string }> => {
-  const response = await apiClient.patch<{ name: string }>('/api/users/me/name', { name });
-  return response.data;
-};
-
-export const updateDateOfBirth = async (dateOfBirth: string): Promise<{ dateOfBirth: string }> => {
-  const response = await apiClient.patch<{ dateOfBirth: string }>('/api/users/me/birth', { dateOfBirth });
-  return response.data;
-};
-
-export const updateGender = async (gender: 'M' | 'F' | 'O'): Promise<{ gender: string }> => {
-  const response = await apiClient.patch<{ gender: string }>('/api/users/me/gender', { gender });
-  return response.data;
-};
-
-export const sendPhoneVerification = async (phone: string): Promise<{ verificationId: string }> => {
-  const response = await apiClient.post<{ verificationId: string }>('/api/users/me/phone-number/verification', { phone });
-  return response.data;
-};
-
-export const confirmPhoneVerification = async (
-  verificationId: string,
-  code: string,
-  phone: string
-): Promise<{ phone: string }> => {
-  const response = await apiClient.post<{ phone: string }>('/api/users/me/phone-number/verification/confirm', { verificationId, code, phone });
-  return response.data;
-};
-
-export const updateEmail = async (email: string): Promise<{ email: string }> => {
-  const response = await apiClient.patch<{ email: string }>('/api/users/me/email', { email });
-  return response.data;
-};
-
-export const sendEmailVerification = async (email: string): Promise<{ verificationId: string }> => {
-  const response = await apiClient.post<{ verificationId: string }>('/api/users/me/email/verification', { email });
-  return response.data;
-};
-
-export const confirmEmailVerification = async (
-  verificationId: string,
-  code: string,
-  email: string
-): Promise<{ email: string }> => {
-  const response = await apiClient.post<{ email: string }>('/api/users/me/email/verification/confirm', { verificationId, code, email });
-  return response.data;
-};
-
-export const updateJob = async (job: string): Promise<{ job: string }> => {
-  const response = await apiClient.patch<{ job: string }>('/api/users/me/job', { job });
-  return response.data;
-};
-
-export const updateMonthlyIncome = async (monthlyIncome: number): Promise<{ monthlyIncome: number }> => {
-  const response = await apiClient.patch<{ monthlyIncome: number }>('/api/users/me/monthly-income', { monthlyIncome });
-  return response.data;
-};
-
-export const updateAvatar = async (avatar: string): Promise<{ avatar: string }> => {
-  // 입력이 data URI(base64)인 경우 기존 PATCH 경로를 사용
-  if (typeof avatar === 'string' && avatar.startsWith('data:')) {
-    const response = await apiClient.patch<{ avatar: string }>('/api/users/me/avatar', { avatar });
-    return response.data;
-  }
-
-  // 그 외(예: 로컬 파일 URI)를 받는 경우 FormData 업로드 시도
-  try {
-    const form = new FormData();
-    form.append('avatar', { uri: avatar, name: 'avatar.jpg', type: 'image/jpeg' } as any);
-    const res = await apiClient.upload<{ avatar: string }>('/api/users/me/avatar', form);
-    return res.data;
-  } catch (e) {
-    // 마지막으로 폴백: 기존 PATCH 시도
-    const response = await apiClient.patch<{ avatar: string }>('/api/users/me/avatar', { avatar });
-    return response.data;
-  }
-};
-
-export const removeAvatar = async (): Promise<null> => {
-  const response = await apiClient.delete<null>('/api/users/me/avatar');
-  return response.data;
-};
-
+/**
+ * Profile API - 사용자 프로필 관련 API
+ * API 명세: /api/users/me (GET, PATCH)
+ */
 export const profileApi = {
-  getUserProfile,
-  updateProfile,
-  updateName,
-  updateDateOfBirth,
-  updateGender,
-  sendPhoneVerification,
-  confirmPhoneVerification,
-  updateEmail,
-  sendEmailVerification,
-  confirmEmailVerification,
-  updateJob,
-  updateMonthlyIncome,
-  updateAvatar,
-  removeAvatar,
+  /**
+   * 9-1-1 내 정보 조회
+   * GET /api/users/me
+   */
+  getMe: async (): Promise<UserProfile> => {
+    const response = await apiClient.get<UserProfile>('/api/users/me');
+    
+    // BaseResponse 형태로 응답이 오는 경우
+    if (response && typeof response === 'object' && 'success' in response && 'data' in response) {
+      if (response.success && response.data) {
+        return response.data;
+      }
+      throw new Error((response as any).message || 'Failed to get profile');
+    }
+    
+    // 비정상 응답 처리 (폴백)
+    if (!response || isAmbiguousAxiosBody(response)) {
+      console.warn('[PROFILE_API] getMe - 비정상 응답 수신, 폴백 fetch 시도');
+      const json = await fetchJsonFallback('/api/users/me');
+      if (json && typeof json === 'object' && (json.data || json.name)) {
+        // json이 BaseResponse 형태이거나 바로 UserProfile인 경우 처리
+        if (json.data) return json.data as UserProfile;
+        return json as UserProfile;
+      }
+      console.warn('[PROFILE_API] getMe - 폴백 실패, 하드코드된 Fallback 데이터 반환');
+      return {
+        id: 1,
+        uuid: 'fallback-uuid',
+        name: '김싸피 (Fallback)',
+        phoneNumber: '010-1234-5678',
+        gender: 'MAN',
+        birthDate: '1995-03-15',
+        baseDay: 10,
+        job: '개발자',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        email: 'kim.ssafy@example.com',
+        monthlyIncome: 4500000,
+      };
+    }
+    
+    // 직접 UserProfile이 오는 경우 (일부 환경에서)
+    return (response as any).data as UserProfile;
+  },
+
+  /**
+   * 9-1-2 내 정보 수정(통합)
+   * PATCH /api/users/me
+   * null은 변경 없음. email/phoneNumber 변경은 인증 토큰 필요(추후 연동).
+   */
+  updateMe: async (data: MePatchRequestDto): Promise<UserProfile> => {
+    const response = await apiClient.patch<UserProfile>('/api/users/me', data);
+    
+    // BaseResponse 형태로 응답이 오는 경우
+    if (response && typeof response === 'object' && 'success' in response && 'data' in response) {
+      if (response.success && response.data) {
+        return response.data;
+      }
+      throw new Error((response as any).message || 'Failed to update profile');
+    }
+    
+    // 직접 UserProfile이 오는 경우 (일부 환경에서)
+    return (response as any).data as UserProfile;
+  },
+};
+
+// 레거시 호환성을 위한 개별 export
+export const getUserProfile: () => Promise<UserProfile> = profileApi.getMe;
+
+/**
+ * 레거시 updateProfile 함수 (기존 코드와의 호환성)
+ */
+export const updateProfile = async (data: UpdateProfileRequest): Promise<UserProfile> => {
+  // UpdateProfileRequest를 MePatchRequestDto로 변환
+  const patchData: MePatchRequestDto = {};
+  
+  if (data.name !== undefined) patchData.name = data.name;
+  if (data.email !== undefined) patchData.email = data.email;
+  if (data.job !== undefined) patchData.job = data.job;
+  if (data.monthlyIncome !== undefined) patchData.monthlyIncome = data.monthlyIncome;
+  if (data.baseDay !== undefined) patchData.baseDay = data.baseDay;
+  
+  // 레거시 필드 변환
+  if (data.phone !== undefined) patchData.phoneNumber = data.phone;
+  if (data.dateOfBirth !== undefined) patchData.birthDate = data.dateOfBirth;
+  if (data.gender !== undefined) {
+    // 레거시 gender 형식을 API 형식으로 변환
+    const genderMap: Record<string, string> = {
+      'M': 'MAN',
+      'F': 'WOMAN', 
+      'O': 'OTHER',
+      'unknown': 'OTHER'
+    };
+    patchData.gender = genderMap[data.gender] || data.gender;
+  }
+  
+  return profileApi.updateMe(patchData);
+};
+
+// 편의 함수들 (통합 API 사용)
+export const updateName = async (name: string): Promise<UserProfile> => {
+  return profileApi.updateMe({ name });
+};
+
+export const updateDateOfBirth = async (dateOfBirth: string): Promise<UserProfile> => {
+  return profileApi.updateMe({ birthDate: dateOfBirth });
+};
+
+export const updateGender = async (gender: 'M' | 'F' | 'O'): Promise<UserProfile> => {
+  const genderMap: Record<string, string> = {
+    'M': 'MAN',
+    'F': 'WOMAN', 
+    'O': 'OTHER'
+  };
+  return profileApi.updateMe({ gender: genderMap[gender] || gender });
+};
+
+export const updateJob = async (job: string): Promise<UserProfile> => {
+  return profileApi.updateMe({ job });
+};
+
+export const updateMonthlyIncome = async (monthlyIncome: number): Promise<UserProfile> => {
+  return profileApi.updateMe({ monthlyIncome });
+};
+
+export const updateEmail = async (email: string): Promise<UserProfile> => {
+  return profileApi.updateMe({ email });
+};
+
+export const updatePhoneNumber = async (phoneNumber: string, phoneVerificationToken?: string): Promise<UserProfile> => {
+  return profileApi.updateMe({ phoneNumber, phoneVerificationToken });
+};
+
+export const updateBaseDay = async (baseDay: number): Promise<UserProfile> => {
+  return profileApi.updateMe({ baseDay });
 };

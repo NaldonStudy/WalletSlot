@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { SlotData } from '@/src/types';
 import { themes } from '@/src/constants/theme';
@@ -6,13 +6,17 @@ import { useColorScheme } from '@/hooks/useColorScheme';
 import { Spacing } from '@/src/constants';
 import CircularProgress from '../common/CircularProgress';
 import WarningIcon from '@/src/assets/icons/common/warning.svg';
-
+import ActionTooltip from '../common/ActionTooltip';
 
 type SlotItemProps = {
   slot: SlotData;
+  isTooltipOpen?: boolean;
+  onMenuPress?: () => void;
+  onEdit?: () => void;
+  onHistory?: () => void;
 };
 
-const SlotItem = ({ slot }: SlotItemProps) => {
+const SlotItem = ({ slot, isTooltipOpen = false, onMenuPress, onEdit, onHistory }: SlotItemProps) => {
   const colorScheme = useColorScheme() ?? 'light';
   const theme = themes[colorScheme];
 
@@ -53,13 +57,36 @@ const SlotItem = ({ slot }: SlotItemProps) => {
           )}
         </View>
 
-        <TouchableOpacity style={styles.menuButton}>
-          <View style={styles.menuDots}>
-            <View style={[styles.dot, { backgroundColor: theme.colors.text.secondary }]} />
-            <View style={[styles.dot, { backgroundColor: theme.colors.text.secondary }]} />
-            <View style={[styles.dot, { backgroundColor: theme.colors.text.secondary }]} />
-          </View>
-        </TouchableOpacity>
+        <View style={styles.menuContainer}>
+          <TouchableOpacity 
+            style={styles.menuButton}
+            onPress={(e) => {
+              e.stopPropagation();
+              onMenuPress?.();
+            }}
+          >
+            <View style={styles.menuDots}>
+              <View style={[styles.dot, { backgroundColor: theme.colors.text.secondary }]} />
+              <View style={[styles.dot, { backgroundColor: theme.colors.text.secondary }]} />
+              <View style={[styles.dot, { backgroundColor: theme.colors.text.secondary }]} />
+            </View>
+          </TouchableOpacity>
+
+          {isTooltipOpen && (
+            <View style={styles.tooltipWrapper}>
+              <ActionTooltip
+                onEdit={() => {
+                  onEdit?.();
+                  
+                }}
+                onHistory={() => {
+                  onHistory?.();
+                  console.log("History Clicked");
+                }}
+              />
+            </View>
+          )}
+        </View>
       </View>
 
       {/* 카드 하단: 원형 progress bar와 예산 정보 */}
@@ -126,10 +153,20 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     textAlign: 'center',
   },
-  menuButton: {
+  menuContainer: {
     position: 'absolute',
     right: 0,
-    padding: 4,
+    top: 0,
+  },
+  menuButton: {
+    padding: 8,
+    borderRadius: 20,
+  },
+  tooltipWrapper: {
+    position: 'absolute',
+    top: 0,
+    right: 20, // 메뉴 버튼에 더 가까이 위치
+    zIndex: 1000,
   },
   menuDots: {
     flexDirection: 'column',

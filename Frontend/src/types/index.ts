@@ -1,19 +1,8 @@
 import { SLOT_CATEGORIES } from "../constants/slots";
 export * from './account';
+export * from './profile';
 export * from './report';
 export * from './slot';
-
-// ===== 로컬 저장소용 타입들 =====
-
-/**
- * AsyncStorage에 저장할 사용자 정보 (간소화)
- * User 인터페이스에서 민감 정보 제외
- */
-export interface LocalUser {
-  userId: number;
-  userName: string;
-  isPushEnabled: boolean;
-}
 
 /**
  * 앱 설정 정보 (AsyncStorage 저장용)
@@ -83,32 +72,7 @@ export interface User {
   updatedAt: string; // update_at -> updatedAt, datetime -> string
 }
 
-/**
- * 사용자 프로필 정보 (마이페이지용)
- */
-export interface UserProfile {
-  name: string;
-  phone: string;
-  gender: 'M' | 'F' | 'O' | 'unknown';
-  dateOfBirth: string; // YYYY-MM-DD 형식
-  email: string | null;
-  job: string | null;
-  monthlyIncome: number | null; // 원 단위
-  avatar: string | null; // 프로필 이미지 URL
-  baseDay?: number; // 기준일 (1-31)
-}
 
-/**
- * 프로필 수정 요청
- */
-export interface UpdateProfileRequest {
-  name?: string;
-  email?: string;
-  job?: string;
-  monthlyIncome?: number;
-  avatar?: string; // base64 이미지 또는 파일 URL
-  baseDay?: number; // 기준일 (1-31)
-}
 
 /**
  * 은행 정보 인터페이스 (banks 테이블)
@@ -359,14 +323,15 @@ export interface TransactionCategory {
  * 알림 항목 인터페이스
  */
 export interface NotificationItem {
-  id: string;
+  id: string; // notificationUuid in API
   title: string;
-  message: string;
-  type: 'budget_exceeded' | 'goal_achieved' | 'spending_pattern' | 'system' | 'account_sync';
+  message: string; // content in API
+  type: 'SYSTEM' | 'DEVICE' | 'BUDGET' | 'TRANSACTION' | 'MARKETING';
   isRead: boolean;
   createdAt: string;
   slotId?: number;
   accountId?: number;
+  transactionId?: string;
   pushData?: {
     action?: string;        // 알림 클릭 시 액션
     targetScreen?: string;  // 이동할 화면
@@ -375,8 +340,72 @@ export interface NotificationItem {
 }
 
 // ===== 푸시 알림 관련 =====
+// ===== Push Endpoint API Types (Based on Swagger) =====
+
 /**
- * 최초 토큰 등록 요청 (알림 권한 허용시)
+ * 푸시 엔드포인트 등록/갱신 요청 (POST /api/push/endpoints)
+ */
+export interface RegisterDeviceRequestDto {
+  deviceId?: string;
+  platform: 'ANDROID' | 'IOS';
+  token?: string;
+  pushEnabled?: boolean;
+}
+
+/**
+ * 푸시 엔드포인트 등록/갱신 응답
+ */
+export interface RegisterDeviceResponseDto {
+  success: boolean;
+  message?: string;
+  data: {
+    device: {
+      deviceId: string;
+      platform: 'ANDROID' | 'IOS';
+      status: 'ACTIVE' | 'LOGGED_OUT' | 'ACCOUNT_LOCKED' | 'USER_WITHDRAW';
+      pushEnabled: boolean;
+      tokenPresent: boolean;
+    };
+  };
+}
+
+/**
+ * 디바이스 목록 조회 응답 (GET /api/push/endpoints)
+ */
+export interface GetDeviceListResponseDto {
+  success: boolean;
+  message?: string;
+  data: {
+    devices: Array<{
+      deviceId: string;
+      platform: 'ANDROID' | 'IOS';
+      status: 'ACTIVE' | 'LOGGED_OUT' | 'ACCOUNT_LOCKED' | 'USER_WITHDRAW';
+      pushEnabled: boolean;
+      tokenPresent: boolean;
+    }>;
+  };
+}
+
+/**
+ * 디바이스 업데이트 요청 (PATCH /api/push/endpoints/{deviceId})
+ */
+export interface UpdateDeviceRequestDto {
+  remoteLogout?: boolean;
+  pushEnabled?: boolean;
+  token?: string;
+  platform?: 'ANDROID' | 'IOS';
+  status?: 'ACTIVE' | 'LOGGED_OUT' | 'ACCOUNT_LOCKED' | 'USER_WITHDRAW';
+}
+
+/**
+ * 토큰 교체 요청 (POST /api/devices/{deviceId}/token)
+ */
+export interface ReplaceTokenRequestDto {
+  token?: string;
+}
+
+/**
+ * 최초 토큰 등록 요청 (알림 권한 허용시) - 레거시 호환용
  */
 export interface InitialTokenRequest {
   token: string;     // FCM/APNS 푸시 토큰
@@ -384,14 +413,14 @@ export interface InitialTokenRequest {
 }
 
 /**
- * 최초 토큰 등록 응답
+ * 최초 토큰 등록 응답 - 레거시 호환용
  */
 export interface InitialTokenResponse extends BaseResponse {
   deviceId: string;  // 서버에서 생성한 디바이스 고유 식별자
 }
 
 /**
- * 토큰 갱신 요청 (앱 실행시 토큰이 변경된 경우)
+ * 토큰 갱신 요청 (앱 실행시 토큰이 변경된 경우) - 레거시 호환용
  */
 export interface UpdateTokenRequest {
   token: string;     // 새로운 FCM/APNS 푸시 토큰
@@ -411,8 +440,69 @@ export interface NotificationSettings {
   systemAlertsEnabled: boolean;
 }
 
+// ===== Notification API Types (Based on Swagger) =====
+
 /**
- * 푸시 알림 전송 요청 (테스트용)
+ * 알림 생성 요청 (POST /api/notifications)
+ */
+export interface CreateNotificationRequestDto {
+  targetUserId: number;
+  title?: string;
+  content?: string;
+  type: 'SYSTEM' | 'DEVICE' | 'BUDGET' | 'TRANSACTION' | 'MARKETING';
+}
+
+/**
+ * 알림 목록 조회 응답 (GET /api/notifications)
+ */
+export interface GetNotificationPageResponseDto {
+  success: boolean;
+  message?: string;
+  data: {
+    content: NotificationItem[];
+    page: {
+      number: number;
+      size: number;
+      totalElements: number;
+      totalPages: number;
+      first: boolean;
+      last: boolean;
+    };
+  };
+}
+
+/**
+ * 미전송 Pull 응답 (POST /api/notifications/pull)
+ */
+export interface PullNotificationListResponseDto {
+  success: boolean;
+  message?: string;
+  data: {
+    notifications: NotificationItem[];
+  };
+}
+
+/**
+ * 미읽음 개수 조회 응답 (GET /api/notifications/unread-count)
+ */
+export interface CountUnreadResponseDto {
+  success: boolean;
+  message?: string;
+  data: {
+    count: number;
+  };
+}
+
+/**
+ * 간단한 OK 응답
+ */
+export interface SimpleOkResponseDto {
+  success: boolean;
+  message?: string;
+}
+
+/**
+ * 푸시 알림 전송 요청 (테스트용) - 레거시 호환용
  */
 export interface SendNotificationRequest {
   userIds?: number[];

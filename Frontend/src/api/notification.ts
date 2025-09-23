@@ -2,10 +2,18 @@ import { featureFlags } from '@/src/config/featureFlags';
 import { ENABLE_NOTIFICATION_FALLBACK } from '@/src/constants/api';
 import type {
     BaseResponse,
+    CountUnreadResponseDto,
+    CreateNotificationRequestDto,
+    GetNotificationPageResponseDto,
     NotificationItem,
     NotificationSettings,
     PaginatedResponse,
+    PullNotificationListResponseDto,
+    RegisterDeviceRequestDto,
+    RegisterDeviceResponseDto,
     SendNotificationRequest,
+    SimpleOkResponseDto,
+    UpdateDeviceRequestDto,
     UpdateTokenRequest
 } from '@/src/types';
 import { apiClient } from './client';
@@ -15,17 +23,87 @@ import { fetchNotificationsFallback, isAmbiguousAxiosBody, normalizeNotification
  * 푸시 알림 관련 API 함수들
  */
 export const notificationApi = {
+  // ===== Push Endpoint Management =====
+  
   /**
-   * 특정 사용자에게 알림 생성 (POST /api/notifications)
+   * 푸시 엔드포인트 등록/갱신 (POST /api/push/endpoints)
    */
-  createNotification: async (data: {
-    title: string;
-    message: string;
-    type: NotificationItem['type'];
-    slotId?: number;
-    accountId?: number;
-    pushData?: any;
-  }): Promise<BaseResponse<NotificationItem>> => {
+  registerPushEndpoint: async (data: RegisterDeviceRequestDto): Promise<RegisterDeviceResponseDto> => {
+    try {
+      const response = await apiClient.post('/api/push/endpoints', data);
+      return response as RegisterDeviceResponseDto;
+    } catch (error) {
+      console.error('[NOTIF_API] 푸시 엔드포인트 등록 실패:', error);
+      return {
+        success: false,
+        message: '푸시 엔드포인트 등록에 실패했습니다.',
+        data: {
+          device: {
+            deviceId: '',
+            platform: data.platform,
+            status: 'LOGGED_OUT',
+            pushEnabled: false,
+            tokenPresent: false
+          }
+        }
+      };
+    }
+  },
+
+  /**
+   * 내 푸시 엔드포인트 목록 조회 (GET /api/push/endpoints)
+   */
+  getPushEndpoints: async () => {
+    try {
+      return await apiClient.get('/api/push/endpoints');
+    } catch (error) {
+      console.error('[NOTIF_API] 푸시 엔드포인트 목록 조회 실패:', error);
+      return {
+        success: false,
+        data: { devices: [] },
+        message: '푸시 엔드포인트 목록 조회에 실패했습니다.'
+      };
+    }
+  },
+
+  /**
+   * 푸시 엔드포인트 부분 수정 (PATCH /api/push/endpoints/{deviceId})
+   */
+  updatePushEndpoint: async (deviceId: string, data: UpdateDeviceRequestDto) => {
+    try {
+      return await apiClient.patch(`/api/push/endpoints/${deviceId}`, data);
+    } catch (error) {
+      console.error('[NOTIF_API] 푸시 엔드포인트 수정 실패:', error);
+      return {
+        success: false,
+        data: null,
+        message: '푸시 엔드포인트 수정에 실패했습니다.'
+      };
+    }
+  },
+
+  /**
+   * 푸시 엔드포인트 삭제 (DELETE /api/push/endpoints/{deviceId})
+   */
+  deletePushEndpoint: async (deviceId: string) => {
+    try {
+      return await apiClient.delete(`/api/push/endpoints/${deviceId}`);
+    } catch (error) {
+      console.error('[NOTIF_API] 푸시 엔드포인트 삭제 실패:', error);
+      return {
+        success: false,
+        data: null,
+        message: '푸시 엔드포인트 삭제에 실패했습니다.'
+      };
+    }
+  },
+
+  // ===== Notification Management =====
+
+  /**
+   * 알림 생성 (POST /api/notifications)
+   */
+  createNotification: async (data: CreateNotificationRequestDto): Promise<BaseResponse<NotificationItem>> => {
     try {
       return await apiClient.post('/api/notifications', data);
     } catch (error) {
@@ -39,55 +117,110 @@ export const notificationApi = {
   },
 
   /**
-   * 앱 접속 시 "미접속 알림" 일괄 조회 후 전송 처리 (POST /api/notifications/pull)
+   * 미전송 Pull + delivered 처리 (POST /api/notifications/pull)
    */
-  pullNotifications: async (): Promise<BaseResponse<NotificationItem[]>> => {
+  pullNotifications: async (): Promise<PullNotificationListResponseDto> => {
     try {
-      return await apiClient.post('/api/notifications/pull');
+      const response = await apiClient.post('/api/notifications/pull');
+      return response as PullNotificationListResponseDto;
     } catch (error) {
-      console.error('[NOTIF_API] 미접속 알림 조회 실패:', error);
+      console.error('[NOTIF_API] 미전송 알림 Pull 실패:', error);
       return {
         success: false,
-        data: [],
-        message: '미접속 알림 조회에 실패했습니다.'
+        data: { notifications: [] },
+        message: '미전송 알림 조회에 실패했습니다.'
       };
     }
   },
 
   /**
-   * 알림 하나 전송 처리 (PATCH /api/notifications/{notificationId}/delivered)
+   * 단건 delivered 처리 (PATCH /api/notifications/{notificationUuid}/delivered)
    */
-  markAsDelivered: async (notificationId: string): Promise<BaseResponse<void>> => {
+  markAsDelivered: async (notificationUuid: string): Promise<SimpleOkResponseDto> => {
     try {
-      return await apiClient.patch(`/api/notifications/${notificationId}/delivered`);
+      const response = await apiClient.patch(`/api/notifications/${notificationUuid}/delivered`);
+      return response as SimpleOkResponseDto;
     } catch (error) {
       console.error('[NOTIF_API] 알림 전송 처리 실패:', error);
       return {
         success: false,
-        data: undefined,
         message: '알림 전송 처리에 실패했습니다.'
       };
     }
   },
 
   /**
-   * 푸시 토큰 갱신 (앱 실행시 토큰이 변경된 경우)
+   * 푸시 토큰 갱신 (레거시 호환용 - 새로운 API 사용 권장)
    */
   updatePushToken: async (data: UpdateTokenRequest): Promise<BaseResponse<void>> => {
     try {
-      return await apiClient.put('/notifications/update-token', data);
+      // 새로운 API 엔드포인트 사용
+      await apiClient.post(`/api/devices/${data.deviceId}/token`, {
+        token: data.token
+      });
+      return {
+        success: true,
+        data: undefined,
+        message: '푸시 토큰이 성공적으로 갱신되었습니다.'
+      };
     } catch (error) {
       console.error('[NOTIF_API] 푸시 토큰 갱신 실패:', error);
-      throw error;
+      return {
+        success: false,
+        data: undefined,
+        message: '푸시 토큰 갱신에 실패했습니다.'
+      };
     }
   },
 
 
 
   /**
-   * 사용자의 알림 목록 조회
+   * 알림 목록 조회 (GET /api/notifications)
+   * type 필터 및 페이지네이션 지원
    */
   getNotifications: async (params?: {
+    type?: 'SYSTEM' | 'DEVICE' | 'BUDGET' | 'TRANSACTION' | 'MARKETING';
+    page?: number;
+    size?: number;
+    sort?: string[];
+  }): Promise<GetNotificationPageResponseDto> => {
+    try {
+      // API 명세에 맞춰 파라미터 구성
+      const queryParams: any = {};
+      if (params?.type) queryParams.type = params.type;
+      if (params?.page !== undefined) queryParams.page = params.page;
+      if (params?.size !== undefined) queryParams.size = params.size;
+      if (params?.sort) queryParams.sort = params.sort;
+
+      const response = await apiClient.get('/api/notifications', queryParams);
+      console.log('[NOTIF_API] getNotifications response:', response);
+      
+      return response as GetNotificationPageResponseDto;
+    } catch (error) {
+      console.error('[NOTIF_API] 알림 목록 조회 실패:', error);
+      return {
+        success: false,
+        message: '알림 목록 조회에 실패했습니다.',
+        data: {
+          content: [],
+          page: {
+            number: params?.page || 0,
+            size: params?.size || 20,
+            totalElements: 0,
+            totalPages: 0,
+            first: true,
+            last: true
+          }
+        }
+      };
+    }
+  },
+
+  /**
+   * 레거시 호환용 알림 목록 조회 (기존 인터페이스 유지)
+   */
+  getNotificationsLegacy: async (params?: {
     page?: number;
     limit?: number;
     unreadOnly?: boolean;
@@ -101,13 +234,13 @@ export const notificationApi = {
      */
     try {
       const raw: any = await apiClient.get('/api/notifications', params);
-  console.log('[NOTIF_API] getNotifications raw(type, keys)=', typeof raw, raw && typeof raw === 'object' ? Object.keys(raw) : 'n/a');
+      console.log('[NOTIF_API] getNotificationsLegacy raw(type, keys)=', typeof raw, raw && typeof raw === 'object' ? Object.keys(raw) : 'n/a');
 
       // 모호한 응답이면 fallback fetch 시도
         // 런타임 토글 가능한 feature flag 우선 사용, 없으면 빌드타임 상수
         const enableFallback = featureFlags.isNotificationFallbackEnabled() ?? ENABLE_NOTIFICATION_FALLBACK;
         if (enableFallback && isAmbiguousAxiosBody(raw)) {
-  console.log('[NOTIF_API] ambiguous axios body detected -> fallback fetch');
+          console.log('[NOTIF_API] ambiguous axios body detected -> fallback fetch');
         const fallback = await fetchNotificationsFallback(params as any);
         if (fallback) return fallback;
       }
@@ -115,7 +248,7 @@ export const notificationApi = {
       // 정상 경로: 정규화
       return normalizeNotificationList(raw, params);
     } catch (error) {
-  console.error('[NOTIF_API] 알림 목록 조회 실패:', error);
+      console.error('[NOTIF_API] 알림 목록 조회 실패:', error);
       return {
         success: false,
         data: [],
@@ -131,54 +264,48 @@ export const notificationApi = {
   },
 
   /**
-   * 특정 알림을 읽음으로 표시 (PATCH /api/notifications/{notificationId}/read)
+   * 단건 읽음 처리 (PATCH /api/notifications/{notificationUuid}/read)
    */
-  markAsRead: async (notificationId: string): Promise<BaseResponse<void>> => {
+  markAsRead: async (notificationUuid: string): Promise<SimpleOkResponseDto> => {
     try {
-      return await apiClient.patch(`/api/notifications/${notificationId}/read`, {
-        isRead: true,
-        readAt: new Date().toISOString()
-      });
+      const response = await apiClient.patch(`/api/notifications/${notificationUuid}/read`);
+      return response as SimpleOkResponseDto;
     } catch (error) {
-  console.error('[NOTIF_API] 알림 읽음 처리 실패:', error);
+      console.error('[NOTIF_API] 알림 읽음 처리 실패:', error);
       return {
         success: false,
-        data: undefined,
         message: '알림 읽음 처리에 실패했습니다.'
       };
     }
   },
 
   /**
-   * 특정 알림을 안읽음으로 표시 (PATCH /api/notifications/{notificationId}/read)
+   * 단건 안읽음 처리 (PATCH /api/notifications/{notificationUuid}/unread)
    */
-  markAsUnread: async (notificationId: string): Promise<BaseResponse<void>> => {
+  markAsUnread: async (notificationUuid: string): Promise<SimpleOkResponseDto> => {
     try {
-      return await apiClient.patch(`/api/notifications/${notificationId}/read`, {
-        isRead: false,
-        readAt: null
-      });
+      const response = await apiClient.patch(`/api/notifications/${notificationUuid}/unread`);
+      return response as SimpleOkResponseDto;
     } catch (error) {
-  console.error('[NOTIF_API] 알림 안읽음 처리 실패:', error);
+      console.error('[NOTIF_API] 알림 안읽음 처리 실패:', error);
       return {
         success: false,
-        data: undefined,
         message: '알림 안읽음 처리에 실패했습니다.'
       };
     }
   },
 
   /**
-   * 모든 알림을 읽음으로 표시 (POST /api/notifications/read-all)
+   * 전체 읽음 처리 (POST /api/notifications/read-all)
    */
-  markAllAsRead: async (): Promise<BaseResponse<void>> => {
+  markAllAsRead: async (): Promise<SimpleOkResponseDto> => {
     try {
-      return await apiClient.post('/api/notifications/read-all');
+      const response = await apiClient.post('/api/notifications/read-all');
+      return response as SimpleOkResponseDto;
     } catch (error) {
-  console.error('[NOTIF_API] 전체 알림 읽음 처리 실패:', error);
+      console.error('[NOTIF_API] 전체 알림 읽음 처리 실패:', error);
       return {
         success: false,
-        data: undefined,
         message: '전체 알림 읽음 처리에 실패했습니다.'
       };
     }
@@ -247,52 +374,36 @@ export const notificationApi = {
   },
 
   /**
-   * 알림 삭제 (DELETE /api/notifications/{notificationId})
+   * 알림 삭제 (DELETE /api/notifications/{notificationUuid})
    */
-  deleteNotification: async (notificationId: string): Promise<BaseResponse<void>> => {
+  deleteNotification: async (notificationUuid: string) => {
     try {
-      return await apiClient.delete(`/api/notifications/${notificationId}`);
+      return await apiClient.delete(`/api/notifications/${notificationUuid}`);
     } catch (error) {
-  console.error('[NOTIF_API] 알림 삭제 실패:', error);
+      console.error('[NOTIF_API] 알림 삭제 실패:', error);
       return {
         success: false,
-        data: undefined,
+        data: null,
         message: '알림 삭제에 실패했습니다.'
       };
     }
   },
 
   /**
-   * 읽지 않은 알림 개수 조회
+   * 미읽음 개수 조회 (GET /api/notifications/unread-count)
    */
-  getUnreadCount: async (): Promise<BaseResponse<{ count: number }>> => {
+  getUnreadCount: async (): Promise<CountUnreadResponseDto> => {
     try {
-      const raw = await apiClient.get('/api/notifications/unread-count') as any;
-      console.log('[NOTIF_API] getUnreadCount raw:', raw);
-
-      // apiClient는 가능한 한 { success, data } 형태로 반환합니다.
-      if (raw && typeof raw === 'object') {
-        if (raw.success && raw.data && typeof raw.data.count === 'number') {
-          return { success: true, data: { count: raw.data.count }, message: raw.message || '읽지 않은 알림 개수 조회 완료' };
-        }
-        // MSW가 직접 { count }로 반환한 경우도 고려
-        if (typeof raw.count === 'number') {
-          return { success: true, data: { count: raw.count }, message: '읽지 않은 알림 개수 조회 완료' };
-        }
-        // 그 외에는 raw.data 자체를 시도
-        if (raw.data && typeof raw.data.count === 'number') {
-          return { success: true, data: { count: raw.data.count }, message: raw.message || '읽지 않은 알림 개수 조회 완료' };
-        }
-      }
-
-      // 안전한 기본값
-      return { success: true, data: { count: 0 }, message: '읽지 않은 알림 개수 조회 완료' };
+      const response = await apiClient.get('/api/notifications/unread-count');
+      console.log('[NOTIF_API] getUnreadCount response:', response);
+      
+      return response as CountUnreadResponseDto;
     } catch (error) {
-  console.error('[NOTIF_API] 읽지 않은 알림 개수 조회 실패:', error);
+      console.error('[NOTIF_API] 미읽음 알림 개수 조회 실패:', error);
       return {
         success: false,
         data: { count: 0 },
-        message: '읽지 않은 알림 개수 조회에 실패했습니다.'
+        message: '미읽음 알림 개수 조회에 실패했습니다.'
       };
     }
   },

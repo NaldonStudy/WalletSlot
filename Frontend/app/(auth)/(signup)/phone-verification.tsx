@@ -19,6 +19,7 @@ export default function PhoneVerificationScreen() {
   const params = useLocalSearchParams();
   const phoneNumber = params.phoneNumber as string;
   const purpose = (params.purpose as string) || 'DEVICE_VERIFY';
+  const mode = params.mode as string;
 
   // 상태 관리
   const [verificationId, setVerificationId] = useState<string>('');
@@ -201,6 +202,9 @@ export default function PhoneVerificationScreen() {
               if (purpose === 'FORGOT_PIN') {
                 console.log('!!!pin 재설정으로 이동!!!');
                 // TODO: 실제 PIN 재설정 화면으로 이동 연결
+              } else if (purpose === 'PROFILE_UPDATE' || mode === 'profile_update') {
+                // 프로필 수정 모드: 프로필 페이지로 돌아가기
+                router.push('/(tabs)/profile' as any);
               } else {
                 router.push('/(auth)/(signup)/account-selection' as any);
               }
