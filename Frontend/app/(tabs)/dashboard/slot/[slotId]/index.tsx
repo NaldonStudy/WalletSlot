@@ -1,4 +1,3 @@
-// app/dashboard/slot/[slotId].tsx
 import React from 'react';
 import { View, Text, StyleSheet, useColorScheme, ScrollView } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
