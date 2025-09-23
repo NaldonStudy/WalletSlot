@@ -16,7 +16,7 @@ public class Notification {
 
     // Enum
     public enum Type {
-        SYSTEM, DEVICE, BUDGET, TRANSACTION, MARKETING
+        SYSTEM, DEVICE, BUDGET, UNCATEGORIZED, SLOT, TRANSACTION, MARKETING
     }
 
     // Field

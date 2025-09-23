@@ -7,7 +7,7 @@ import com.ssafy.b108.walletslot.backend.common.util.RandomNumberGenerator;
 import com.ssafy.b108.walletslot.backend.config.security.UserPrincipal;
 import com.ssafy.b108.walletslot.backend.domain.account.entity.Account;
 import com.ssafy.b108.walletslot.backend.domain.account.repository.AccountRepository;
-import com.ssafy.b108.walletslot.backend.domain.slot.dto.external.SSAFYGetTransactionListResponseDto;
+import com.ssafy.b108.walletslot.backend.domain.transaction.dto.external.SSAFYGetTransactionListResponseDto;
 import com.ssafy.b108.walletslot.backend.domain.slot.entity.AccountSlot;
 import com.ssafy.b108.walletslot.backend.domain.slot.entity.Slot;
 import com.ssafy.b108.walletslot.backend.domain.slot.repository.AccountSlotRepository;
@@ -651,6 +651,23 @@ public class TransactionService {
                         httpEntity1,
                         SSAFYGetTransactionListResponseDto.class
                 );
+
+                // 거래내역 리스트 받기
+                List<SSAFYGetTransactionListResponseDto.Transaction> transactions = httpResponse1.getBody().getREC().getList();
+
+                for(SSAFYGetTransactionListResponseDto.Transaction transactionDto : transactions) {
+
+                    // transactionUniqueNo이 lastSyncedTransactionNo보다 큰 게 있다면 갱신
+                    if(Long.parseLong(transactionDto.getTransactionUniqueNo()) > Long.parseLong(account.getLastSyncedTransactionUniqueNo())) {
+                        account.updateLastSyncedTransactionUniqueNo(transactionDto.getTransactionUniqueNo());
+
+                        // transaction summary 보고 우리 DB에 슬롯 매핑돼있는거 있는지 검색
+                        // 있다면 그걸로 accountSlot해서 Transaction 객체 만들어서 save. + 해당 accountSlot의 예산 초과하지 않았는지 다시 조사 + 초과했다면 accountSlot의 isAlertSent = true + notification 객체 만들어서 save. + 푸시알림(성공하면 notification의 isDelivered = true)
+                        // 없다면 미분류 슬롯으로 accountSlot해서 Transaction 객체 만들어서 save. + notification 객체 만들어서 save. + 푸시알림(성공하면 notification의 isDelivered = true)
+                        // 계좌 각종 필드들 최신화
+                        //
+                    }
+                }
             }
 
 

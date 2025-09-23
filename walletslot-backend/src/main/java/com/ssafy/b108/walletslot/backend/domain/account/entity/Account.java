@@ -63,4 +63,5 @@ public class Account {
     public void updateIsPrimary(Boolean isPrimary) {
         this.isPrimary = isPrimary;
     }
+    public void updateLastSyncedTransactionUniqueNo(String lastSyncedTransactionUniqueNo) { this.lastSyncedTransactionUniqueNo = lastSyncedTransactionUniqueNo; }
 }
