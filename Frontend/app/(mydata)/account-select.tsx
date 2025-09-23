@@ -5,9 +5,9 @@ import React, { useEffect, useRef, useState } from 'react';
 import {
     Animated,
     Dimensions,
+    FlatList,
     Image,
     Modal,
-    ScrollView,
     StyleSheet,
     TouchableOpacity,
     View
@@ -214,11 +214,17 @@ export default function AccountSelectScreen() {
               </ThemedText>
             </TouchableOpacity>
 
-            {/* 은행 목록 */}
-            <ScrollView style={styles.bankList} showsVerticalScrollIndicator={false}>
-              {bankList.map((bank) => (
+            {/* 은행 목록 - 2열 그리드 */}
+            <FlatList
+              data={bankList}
+              numColumns={2}
+              keyExtractor={(item) => item.code}
+              showsVerticalScrollIndicator={true}
+              nestedScrollEnabled
+              keyboardShouldPersistTaps="handled"
+              style={styles.bankList}
+              renderItem={({ item: bank }) => (
                 <TouchableOpacity
-                  key={bank.code}
                   style={styles.bankItem}
                   onPress={() => toggleBankSelection(bank.code)}
                 >
@@ -233,20 +239,28 @@ export default function AccountSelectScreen() {
                     )}
                   </View>
                 </TouchableOpacity>
-              ))}
-            </ScrollView>
+              )}
+            />
 
             {/* 모달 하단 버튼들 */}
             <View style={styles.modalBottom}>
-              <TouchableOpacity
-                style={styles.modalConfirmButton}
-                onPress={() => setIsModalVisible(false)}
-              >
-                <ThemedText style={styles.modalConfirmButtonText}>확인</ThemedText>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.cancelButton}>
-                <ThemedText style={styles.cancelButtonText}>해지</ThemedText>
-              </TouchableOpacity>
+              {(() => {
+                const isConnectEnabled = selectedBanks.size > 0;
+                return (
+                  <TouchableOpacity
+                    disabled={!isConnectEnabled}
+                    style={[
+                      styles.connectButton,
+                      isConnectEnabled ? styles.connectEnabled : styles.connectDisabled,
+                    ]}
+                  >
+                    <ThemedText style={[
+                      styles.connectButtonText,
+                      !isConnectEnabled && styles.connectButtonTextDisabled,
+                    ]}>연결하러 가기</ThemedText>
+                  </TouchableOpacity>
+                );
+              })()}
             </View>
           </View>
         </View>
@@ -389,15 +403,22 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   bankList: {
-    maxHeight: 300,
+    maxHeight: 360,
+    paddingHorizontal: 10,
+    flexGrow: 0,
   },
   bankItem: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 20,
+    paddingHorizontal: 10,
     paddingVertical: 15,
+    marginHorizontal: 5,
+    marginVertical: 5,
     borderBottomWidth: 1,
     borderBottomColor: '#f8f9fa',
+    borderRadius: 8,
+    backgroundColor: '#f8f9fa',
   },
   bankItemIcon: {
     width: 30,
@@ -433,26 +454,24 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: '#f0f0f0',
   },
-  modalConfirmButton: {
-    backgroundColor: '#2383BD',
+  
+  connectButton: {
     paddingVertical: 15,
     borderRadius: 10,
     alignItems: 'center',
-    marginBottom: 10,
   },
-  modalConfirmButtonText: {
-    color: '#fff',
+  connectEnabled: {
+    backgroundColor: '#2383BD',
+  },
+  connectDisabled: {
+    backgroundColor: '#E9ECEF',
+  },
+  connectButtonText: {
     fontSize: 16,
     fontWeight: 'bold',
+    color: '#fff',
   },
-  cancelButton: {
-    backgroundColor: '#f8f9fa',
-    paddingVertical: 15,
-    borderRadius: 10,
-    alignItems: 'center',
-  },
-  cancelButtonText: {
-    color: '#666',
-    fontSize: 16,
+  connectButtonTextDisabled: {
+    color: '#9AA0A6',
   },
 });
