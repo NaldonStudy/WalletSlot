@@ -8,7 +8,6 @@ import CircularProgress from '../common/CircularProgress';
 import WarningIcon from '@/src/assets/icons/common/warning.svg';
 import ActionTooltip from '../common/ActionTooltip';
 
-
 type SlotItemProps = {
   slot: SlotData;
   isTooltipOpen?: boolean;
@@ -78,7 +77,7 @@ const SlotItem = ({ slot, isTooltipOpen = false, onMenuPress, onEdit, onHistory 
               <ActionTooltip
                 onEdit={() => {
                   onEdit?.();
-                  console.log("Edit Clicked");
+                  
                 }}
                 onHistory={() => {
                   onHistory?.();

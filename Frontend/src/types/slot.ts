@@ -9,6 +9,7 @@ export interface SlotData {
   slotColor: string;
   budget: number;
   remaining: number;
+  isSaving?: boolean; // 저축 슬롯 여부
 }
 
 export interface SlotsResponse {

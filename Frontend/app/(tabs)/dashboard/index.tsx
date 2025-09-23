@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback, memo } from 'react';
-import { View, Text, StyleSheet, ScrollView, useColorScheme, Animated, Dimensions, Pressable } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, useColorScheme, Animated, Dimensions } from 'react-native';
 import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { faker } from '@faker-js/faker';
@@ -49,17 +49,11 @@ export default function DashboardScreen() {
   // index state 관리
   const [selectedIndex, setSelectedIndex] = useState(0);
   const hasScrolledRef = useRef(false); // Track if carousel has been scrolled
-  const [openTooltipId, setOpenTooltipId] = useState<string | null>(null);
 
   // 즉시 업데이트를 위한 콜백
   const handleIndexChange = useCallback((index: number) => {
     setSelectedIndex(index);
     hasScrolledRef.current = true; // Mark as scrolled
-  }, []);
-
-  // 툴팁 외부 터치 핸들러
-  const handleOutsidePress = useCallback(() => {
-    setOpenTooltipId(null);
   }, []);
 
   // 스크롤 관련
@@ -187,7 +181,6 @@ export default function DashboardScreen() {
           [{ nativeEvent: { contentOffset: { y: scrollY } } }],
           { useNativeDriver: true }
         )}
-        onTouchStart={handleOutsidePress}
       >
         {/* 헤더 */}
         <DashboardHeader userData={userData} theme={theme} />
@@ -245,12 +238,7 @@ export default function DashboardScreen() {
               </Text>
             </View>
           ) : (
-            <SlotList 
-              slots={currentAccountSlots} 
-              accountId={currentAccount.accountId}
-              openTooltipId={openTooltipId}
-              setOpenTooltipId={setOpenTooltipId}
-            />
+            <SlotList slots={currentAccountSlots} accountId={currentAccount.accountId} />
           )}
         </View>
 

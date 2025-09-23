@@ -18,6 +18,7 @@ const mockSlots: SlotData[] = [
     slotColor: "#F1A791",
     budget: 400000,
     remaining: -20000,
+    isSaving: false,
   },
   {
     slotId: "18", // 데이트
@@ -26,6 +27,7 @@ const mockSlots: SlotData[] = [
     slotColor: "#F26C61",
     budget: 500000,
     remaining: 230000,
+    isSaving: false,
   },
   {
     slotId: "02", // 교통비
@@ -34,6 +36,7 @@ const mockSlots: SlotData[] = [
     slotColor: "#F5D690",
     budget: 150000,
     remaining: 45000,
+    isSaving: false,
   },
   {
     slotId: "05", // 여가비
@@ -42,6 +45,7 @@ const mockSlots: SlotData[] = [
     slotColor: "#8ECF82",
     budget: 200000,
     remaining: 120000,
+    isSaving: false,
   },
   {
     slotId: "07", // 저축
@@ -50,6 +54,7 @@ const mockSlots: SlotData[] = [
     slotColor: "#3C8182",
     budget: 1000000,
     remaining: 800000,
+    isSaving: true, // 저축 슬롯
   },
   {
     slotId: "12", // 통신비
@@ -58,6 +63,7 @@ const mockSlots: SlotData[] = [
     slotColor: "#AEDAD7",
     budget: 80000,
     remaining: 0,
+    isSaving: false,
   },
   {
     slotId: "11", // 보험비
@@ -66,6 +72,7 @@ const mockSlots: SlotData[] = [
     slotColor: "#88CDD5",
     budget: 300000,
     remaining: 300000,
+    isSaving: false,
   },
   {
     slotId: "13", // 주거비
@@ -74,6 +81,7 @@ const mockSlots: SlotData[] = [
     slotColor: "#5E9DDE",
     budget: 800000,
     remaining: 0,
+    isSaving: false,
   },
   {
     slotId: "08", // 미용
@@ -82,6 +90,7 @@ const mockSlots: SlotData[] = [
     slotColor: "#E8A87C",
     budget: 100000,
     remaining: 30000,
+    isSaving: false,
   },
   {
     slotId: "15", // 취미
@@ -90,6 +99,7 @@ const mockSlots: SlotData[] = [
     slotColor: "#A8E6CF",
     budget: 300000,
     remaining: 150000,
+    isSaving: false,
   },
   {
     slotId: "25", // 미분류 슬롯
@@ -98,6 +108,7 @@ const mockSlots: SlotData[] = [
     slotColor: "", // 색상 없음
     budget: 0, // 예산 없음
     remaining: 0, // 잔액은 동적으로 계산
+    isSaving: false,
   },
 ];
 
@@ -308,6 +319,7 @@ export const slotHandlers = [
       slotColor: "",
       budget: 0,
       remaining: uncategorizedAmount,
+      isSaving: false,
     };
 
     // 일반 슬롯과 미분류 슬롯을 합침
