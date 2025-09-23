@@ -1,6 +1,7 @@
 import { ThemedText } from '@/components/ThemedText';
 import { BANK_CODES } from '@/src/constants/banks';
 import { useSignupStore } from '@/src/store/signupStore';
+import { useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import {
     Animated,
@@ -26,8 +27,10 @@ const bankList = Object.entries(BANK_CODES).map(([code, bank]) => ({
 
 export default function AccountSelectScreen() {
   const { name } = useSignupStore();
+  const router = useRouter();
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [selectedBanks, setSelectedBanks] = useState<Set<string>>(new Set());
+  const [pendingNavigateBanks, setPendingNavigateBanks] = useState<string[] | null>(null);
   
   // 애니메이션 값들
   const row1Animation = useRef(new Animated.Value(0)).current;
@@ -82,6 +85,20 @@ export default function AccountSelectScreen() {
       animation3.stop();
     };
   }, []);
+
+  // 모달이 닫힌 후 내비게이션 수행
+  useEffect(() => {
+    if (!isModalVisible && pendingNavigateBanks && pendingNavigateBanks.length > 0) {
+      const timer = setTimeout(() => {
+        router.push({
+          pathname: '/(mydata)/mydata-consent',
+          params: { banks: JSON.stringify(pendingNavigateBanks) },
+        } as any);
+        setPendingNavigateBanks(null);
+      }, 30); // 닫힘 애니메이션 시간 대기
+      return () => clearTimeout(timer);
+    }
+  }, [isModalVisible, pendingNavigateBanks]);
 
   // 은행 선택 토글
   const toggleBankSelection = (bankCode: string) => {
@@ -253,6 +270,12 @@ export default function AccountSelectScreen() {
                       styles.connectButton,
                       isConnectEnabled ? styles.connectEnabled : styles.connectDisabled,
                     ]}
+                    onPress={() => {
+                      if (!isConnectEnabled) return;
+                      const selected = Array.from(selectedBanks);
+                      setPendingNavigateBanks(selected);
+                      setIsModalVisible(false); // 먼저 모달 닫기
+                    }}
                   >
                     <ThemedText style={[
                       styles.connectButtonText,
