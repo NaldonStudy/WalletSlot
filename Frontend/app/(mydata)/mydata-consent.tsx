@@ -14,27 +14,50 @@ export default function MyDataConsentScreen() {
 
   const [agree1, setAgree1] = useState(false); // 수집/이용 (필수)
   const [agree2, setAgree2] = useState(false); // 제공 (필수)
+  const [agreeTransfer, setAgreeTransfer] = useState(false); // 전송요구서 동의 (필수)
 
-  const canProceed = agree1 && agree2;
+  const canProceed = agreeTransfer && agree1 && agree2;
 
   return (
     <View style={styles.container}>
       <ScrollView contentContainerStyle={styles.body}>
-        <ThemedText style={styles.title}>{name || '사용자'}님의 계좌를 불러오기 위해 필요해요</ThemedText>
+        <View style={styles.headerRow}>
+          <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
+            <ThemedText style={styles.backIcon}>{'<'}</ThemedText>
+          </TouchableOpacity>
+          <ThemedText style={styles.headerTitle}>약관 동의</ThemedText>
+        </View>
+        <ThemedText style={styles.subtitle}>{name || '사용자'}님의 계좌를 불러오기 위해 필요해요</ThemedText>
 
         {/* 전송요구서 요약 */}
         <View style={styles.card}>
           <ThemedText style={styles.cardTitle}>전송요구서 (가입상품 목록, 상세정보)</ThemedText>
-          <View style={styles.paperPreview} />
+          <View style={styles.paperPreview}>
+            <Image
+              source={require('@/src/assets/images/mydataconsent/transmissionshort.png')}
+              style={{ width: '100%', height: '100%' }}
+              resizeMode="contain"
+            />
+          </View>
           <TouchableOpacity onPress={() => setShowDoc1(true)}>
             <ThemedText style={styles.link}>자세히 보기</ThemedText>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.checkRow} onPress={() => setAgreeTransfer(!agreeTransfer)}>
+            <View style={[styles.checkbox, agreeTransfer && styles.checkboxOn]} />
+            <ThemedText style={styles.checkText}>상기 내용을 확인하였으며 '가입상품 목록' 및 '상세정보' 전송을 요구합니다.</ThemedText>
           </TouchableOpacity>
         </View>
 
         {/* 수집/이용 동의서 (필수) */}
         <View style={styles.card}>
           <ThemedText style={styles.cardTitle}>개인(신용)정보 수집·이용 동의서 (필수)</ThemedText>
-          <View style={styles.paperPreview} />
+          <View style={styles.paperPreview}>
+            <Image
+              source={require('@/src/assets/images/mydataconsent/useConsentShort.png')}
+              style={{ width: '100%', height: '100%' }}
+              resizeMode="contain"
+            />
+          </View>
           <TouchableOpacity onPress={() => setShowDoc2(true)}>
             <ThemedText style={styles.link}>자세히 보기</ThemedText>
           </TouchableOpacity>
@@ -47,13 +70,19 @@ export default function MyDataConsentScreen() {
         {/* 제공 동의서 (필수) */}
         <View style={styles.card}>
           <ThemedText style={styles.cardTitle}>개인(신용)정보 제공 동의서 (필수)</ThemedText>
-          <View style={styles.paperPreview} />
+          <View style={styles.paperPreview}>
+            <Image
+              source={require('@/src/assets/images/mydataconsent/provideConsentShort.png')}
+              style={{ width: '100%', height: '100%' }}
+              resizeMode="contain"
+            />
+          </View>
           <TouchableOpacity onPress={() => setShowDoc3(true)}>
             <ThemedText style={styles.link}>자세히 보기</ThemedText>
           </TouchableOpacity>
           <TouchableOpacity style={styles.checkRow} onPress={() => setAgree2(!agree2)}>
             <View style={[styles.checkbox, agree2 && styles.checkboxOn]} />
-            <ThemedText style={styles.checkText}>상기 내용을 확인하였으며 개인(신용)정보 제공에 동의합니다.</ThemedText>
+            <ThemedText style={styles.checkText}>상기 내용을 확인하였으며 개인(신용)정보 제3자 제공에 동의합니다.</ThemedText>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -156,12 +185,17 @@ function DocModal({ visible, title, onClose, imageSource }: { visible: boolean; 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
   body: { padding: 20, paddingBottom: 120 },
-  title: { fontSize: 18, fontWeight: 'bold', color: '#333', marginBottom: 16 },
+  headerRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
+  backBtn: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center', marginRight: 8 },
+  backIcon: { fontSize: 20, color: '#111' },
+  headerTitle: { fontSize: 20, fontWeight: 'bold', color: '#111' },
+  subtitle: { fontSize: 16, color: '#111', marginBottom: 12 },
   card: {
     borderWidth: 1, borderColor: '#E6EAF0', borderRadius: 12, padding: 16, backgroundColor: '#fff', marginBottom: 16,
   },
   cardTitle: { fontWeight: '700', color: '#333', marginBottom: 12 },
-  paperPreview: { height: 160, borderRadius: 8, backgroundColor: '#F3F6FA', borderWidth: 1, borderColor: '#E2E8F0', marginBottom: 10 },
+  paperPreview: { height: 160, borderRadius: 8, backgroundColor: '#F3F6FA', borderWidth: 1, borderColor: '#E2E8F0', marginBottom: 10, padding: 12, justifyContent: 'center' },
+  previewText: { fontSize: 14, lineHeight: 20, color: '#4B5563' },
   link: { color: '#2383BD', fontWeight: '600' },
   checkRow: { flexDirection: 'row', alignItems: 'center', marginTop: 12 },
   checkbox: { width: 22, height: 22, borderRadius: 11, borderWidth: 2, borderColor: '#C9D1D9' },
