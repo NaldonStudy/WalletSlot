@@ -110,7 +110,8 @@ export default function AccountConnectScreen() {
       setPhase('representative');
       setRepId(null);
     } else {
-      // 대표 계좌 확정 후 처리 (추후 네비게이션/저장 로직 연결 가능)
+      // 대표 계좌 확정 후 분류 화면으로 이동
+      router.push('/(mydata)/classifySlots' as any);
     }
   };
 
