@@ -11,5 +11,9 @@ export {
 export { queryClient } from './queryClient';
 export { queryKeys } from './queryKeys';
 export { reportApi } from './report';
+export {
+    changePin, deleteDevice, deleteLinkedAccount, getDevices, getLinkedAccounts,
+    refreshMyData, updateDevice
+} from './settings';
 export { slotApi } from './slot';
 

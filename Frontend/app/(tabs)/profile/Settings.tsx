@@ -1,11 +1,13 @@
 import BiometricRegister from '@/app/(tabs)/profile/BiometricRegister';
 import ConnectedBanks from '@/app/(tabs)/profile/ConnectedBanks';
+import MyDataServiceTermination from '@/app/(tabs)/profile/MyDataServiceTermination';
 import PinChangeModal from '@/app/(tabs)/profile/PinChangeModal';
 import PrivacyPolicy from '@/app/(tabs)/profile/PrivacyPolicy';
 import TermsOfService from '@/app/(tabs)/profile/TermsOfService';
 import { ThemedText } from '@/components/ThemedText';
 import { Toggle } from '@/components/Toggle';
 import { CommonCard } from '@/src/components';
+import { useDevices, useRefreshMyData, useUpdateDevice } from '@/src/hooks';
 import { monitoringService } from '@/src/services/monitoringService';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useState } from 'react';
@@ -18,28 +20,35 @@ export default function Settings({ visible, onClose }: Props) {
   const [pinModalVisible, setPinModalVisible] = useState(false);
   const [biometricModalVisible, setBiometricModalVisible] = useState(false);
   const [connectedBanksVisible, setConnectedBanksVisible] = useState(false);
+  const [serviceTerminationVisible, setServiceTerminationVisible] = useState(false);
   const [privacyPolicyVisible, setPrivacyPolicyVisible] = useState(false);
   const [termsOfServiceVisible, setTermsOfServiceVisible] = useState(false);
   const [pushEnabled, setPushEnabled] = useState(false);
   const [marketingEnabled, setMarketingEnabled] = useState(false);
   const [biometricEnabled, setBiometricEnabled] = useState(false);
   const [devPin, setDevPin] = useState<string | null>(null);
+  const [currentDeviceId, setCurrentDeviceId] = useState<string>('');
+
+  // 디바이스 정보 조회
+  const { data: devices } = useDevices();
+  const updateDeviceMutation = useUpdateDevice();
+  const refreshMyDataMutation = useRefreshMyData();
 
   useEffect(() => {
-    if (!visible) return;
-    (async () => {
-      try {
-        const res = await fetch('/api/users/me/settings');
-        if (!res.ok) return;
-        const data = await res.json();
-        setPushEnabled(Boolean(data.notifications?.push));
-        setMarketingEnabled(Boolean(data.notifications?.marketing));
-        setBiometricEnabled(Boolean(data.biometric));
-      } catch (e) {
-        // ignore
+    if (devices && devices.length > 0) {
+      // 현재 활성 디바이스 찾기 (첫 번째 활성 디바이스로 가정)
+      const activeDevice = devices.find(d => d.status === 'ACTIVE') || devices[0];
+      if (activeDevice) {
+        setCurrentDeviceId(activeDevice.deviceId);
+        setPushEnabled(activeDevice.pushEnabled);
       }
-    })();
-  }, [visible]);
+    } else {
+      // Mock 환경에서 기본 디바이스 ID 설정
+      setCurrentDeviceId('device-001');
+      // 기본값 설정
+      setPushEnabled(false);
+    }
+  }, [devices]);
 
   return (
     <Modal animationType="slide" visible={visible} onRequestClose={onClose}>
@@ -68,11 +77,50 @@ export default function Settings({ visible, onClose }: Props) {
               <View style={{ flex: 1 }}>
                 <ThemedText style={styles.settingTitle}>푸시알림 설정</ThemedText>
               </View>
-              <Toggle value={pushEnabled} onValueChange={async (v) => {
-                setPushEnabled(v);
-                monitoringService.logUserInteraction('setting_change', { key: 'push', enabled: v });
-                await fetch('/api/users/me/settings/notifications/push', { method: 'PATCH', body: JSON.stringify({ enabled: v }) });
-              }} />
+              <Toggle 
+                value={pushEnabled} 
+                onValueChange={async (v) => {
+                  if (!currentDeviceId) {
+                    console.log('[PUSH_TOGGLE] No device ID');
+                    return;
+                  }
+
+                  // 이미 같은 값이면 무시
+                  if (pushEnabled === v) {
+                    console.log('[PUSH_TOGGLE] Same value, ignoring');
+                    return;
+                  }
+                  
+                  console.log('[PUSH_TOGGLE] Starting request: deviceId=', currentDeviceId, 'newValue=', v);
+                  monitoringService.logUserInteraction('setting_change', { key: 'push', enabled: v });
+                  
+                  // 바로 상태 업데이트 (낙관적 업데이트)
+                  setPushEnabled(v);
+                  
+                  try {
+                    const response = await fetch(`/api/devices/${currentDeviceId}`, {
+                      method: 'PATCH',
+                      headers: {
+                        'Content-Type': 'application/json',
+                      },
+                      body: JSON.stringify({ pushEnabled: v }),
+                    });
+                    
+                    if (!response.ok) {
+                      throw new Error('API 요청 실패');
+                    }
+                    
+                    const result = await response.json();
+                    console.log('[PUSH_TOGGLE] Success:', result);
+                    // 성공 시에는 별도 알림 없이 토글만 변경
+                  } catch (error) {
+                    console.log('[PUSH_TOGGLE] Error:', error);
+                    // 실패 시 원래 상태로 되돌리기
+                    setPushEnabled(!v);
+                    Alert.alert('오류', '푸시 알림 설정 변경에 실패했습니다.');
+                  }
+                }} 
+              />
             </View>
             <View style={[styles.settingRow, styles.settingRowBorder]}>
               <View style={[styles.iconWrap, { backgroundColor: '#f5f5f5' }]}>
@@ -81,10 +129,11 @@ export default function Settings({ visible, onClose }: Props) {
               <View style={{ flex: 1 }}>
                 <ThemedText style={styles.settingTitle}>마케팅 알림 설정</ThemedText>
               </View>
-              <Toggle value={marketingEnabled} onValueChange={async (v) => {
+              <Toggle value={marketingEnabled} onValueChange={(v) => {
                 setMarketingEnabled(v);
                 monitoringService.logUserInteraction('setting_change', { key: 'marketing', enabled: v });
-                await fetch('/api/users/me/settings/notifications/marketing', { method: 'PATCH', body: JSON.stringify({ enabled: v }) });
+                // 마케팅 알림은 별도 설정으로 처리 (현재는 로컬 상태만 변경)
+                // TODO: 실제 마케팅 알림 설정 API 연동 필요
               }} />
             </View>
           </CommonCard>
@@ -124,7 +173,17 @@ export default function Settings({ visible, onClose }: Props) {
               </View>
               <Ionicons name="chevron-forward" size={18} color="#bbb" />
             </TouchableOpacity>
-            <TouchableOpacity style={[styles.settingRow, styles.settingRowBorder]} onPress={() => {}}>
+            <TouchableOpacity 
+              style={[styles.settingRow, styles.settingRowBorder]} 
+              onPress={async () => {
+                try {
+                  await refreshMyDataMutation.mutateAsync();
+                  Alert.alert('성공', '마이데이터가 성공적으로 재연동되었습니다.');
+                } catch (error) {
+                  Alert.alert('오류', '마이데이터 재연동에 실패했습니다.');
+                }
+              }}
+            >
               <View style={[styles.iconWrap, { backgroundColor: '#e3f2fd' }]}>
                 <Ionicons name="sync-outline" size={18} color="#1976d2" />
               </View>
@@ -133,7 +192,7 @@ export default function Settings({ visible, onClose }: Props) {
               </View>
               <Ionicons name="chevron-forward" size={18} color="#bbb" />
             </TouchableOpacity>
-            <TouchableOpacity style={[styles.settingRow, styles.settingRowBorder]} onPress={() => {}}>
+            <TouchableOpacity style={[styles.settingRow, styles.settingRowBorder]} onPress={() => setServiceTerminationVisible(true)}>
               <View style={[styles.iconWrap, { backgroundColor: '#ffebee' }]}>
                 <Ionicons name="ban-outline" size={18} color="#d32f2f" />
               </View>
@@ -208,6 +267,15 @@ export default function Settings({ visible, onClose }: Props) {
         }} />
 
         <ConnectedBanks visible={connectedBanksVisible} onClose={() => setConnectedBanksVisible(false)} />
+
+        <MyDataServiceTermination 
+          visible={serviceTerminationVisible} 
+          onClose={() => setServiceTerminationVisible(false)}
+          onManageConnections={() => {
+            setServiceTerminationVisible(false);
+            setConnectedBanksVisible(true);
+          }}
+        />
 
         <PrivacyPolicy visible={privacyPolicyVisible} onClose={() => setPrivacyPolicyVisible(false)} />
 
