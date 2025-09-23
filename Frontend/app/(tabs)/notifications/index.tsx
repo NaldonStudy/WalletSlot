@@ -4,7 +4,7 @@
 
 import { useFocusEffect } from '@react-navigation/native';
 import React, { useCallback, useEffect, useRef } from 'react';
-import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { FlatList, RefreshControl, StyleSheet, TouchableOpacity, View } from 'react-native';
 // @ts-ignore - react-native-gesture-handler Swipeable은 deprecated 마킹되었지만 여전히 안정적으로 동작함
 import { Swipeable } from 'react-native-gesture-handler';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -12,6 +12,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { useColorScheme } from '@/hooks/useColorScheme';
+import { LoadingIndicator } from '@/src/components';
 import { NotificationFilters } from '@/src/components/NotificationFilters';
 import { NotificationRow } from '@/src/components/NotificationItem';
 import { themes } from '@/src/constants/theme';
@@ -233,9 +234,7 @@ export default function NotificationsScreen() {
 
       {/* 알림 목록 */}
       {isNotificationsLoading ? (
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-          <ActivityIndicator size="large" color={theme.colors.primary[500]} />
-        </View>
+        <LoadingIndicator fullScreen />
       ) : (
         <FlatList
           style={{ flex: 1 }}
@@ -273,7 +272,7 @@ export default function NotificationsScreen() {
               <View style={[styles.footerWrapper, { paddingBottom: 24 }]}>
                 <View style={styles.loadingMore}>
                   {isLoadingMore ? (
-                    <ActivityIndicator size="small" color={theme.colors.primary[500]} />
+                    <LoadingIndicator showText={false} />
                   ) : (
                     <TouchableOpacity onPress={loadMore} style={styles.loadMoreButton}>
                       <ThemedText style={[styles.loadMoreText, { color: theme.colors.primary[600] }]}>

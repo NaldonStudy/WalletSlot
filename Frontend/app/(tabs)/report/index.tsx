@@ -1,4 +1,4 @@
-import { Button } from '@/src/components';
+import { Button, LoadingIndicator } from '@/src/components';
 import { BudgetOverview } from '@/src/components/report/BudgetOverview';
 import { BudgetSuggestionCard } from '@/src/components/report/BudgetSuggestion';
 import { CategoryAnalysis } from '@/src/components/report/CategoryAnalysis';
@@ -10,7 +10,6 @@ import { Spacing, themes, Typography } from '@/src/constants/theme';
 import { useAccounts, useSpendingReport } from '@/src/hooks';
 import React, { useState } from 'react';
 import {
-  ActivityIndicator,
   Alert,
   RefreshControl,
   ScrollView,
@@ -65,12 +64,10 @@ export default function ReportScreen() {
   if (linked.isLoading || (isLoading && !reportData)) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background.primary }]}>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={theme.colors.primary[500]} />
-          <Text style={[styles.loadingText, { color: theme.colors.text.secondary }]}>
-            {linked.isLoading ? '계좌 정보를 불러오고 있어요...' : '소비 레포트를 생성하고 있어요...'}
-          </Text>
-        </View>
+        <LoadingIndicator 
+          fullScreen
+          text={linked.isLoading ? '계좌 정보를 불러오고 있어요...' : '소비 레포트를 생성하고 있어요...'}
+        />
       </SafeAreaView>
     );
   }
@@ -155,16 +152,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.base,
     paddingTop: Spacing.sm,
     paddingBottom: Spacing['4xl'], // 하단 여백 충분히 확보
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: Spacing.lg,
-  },
-  loadingText: {
-    fontSize: Typography.fontSize.base,
-    marginTop: Spacing.base,
   },
   errorContainer: {
     flex: 1,
