@@ -1,19 +1,8 @@
 import { SLOT_CATEGORIES } from "../constants/slots";
 export * from './account';
+export * from './profile';
 export * from './report';
 export * from './slot';
-
-// ===== 로컬 저장소용 타입들 =====
-
-/**
- * AsyncStorage에 저장할 사용자 정보 (간소화)
- * User 인터페이스에서 민감 정보 제외
- */
-export interface LocalUser {
-  userId: number;
-  userName: string;
-  isPushEnabled: boolean;
-}
 
 /**
  * 앱 설정 정보 (AsyncStorage 저장용)
@@ -83,32 +72,7 @@ export interface User {
   updatedAt: string; // update_at -> updatedAt, datetime -> string
 }
 
-/**
- * 사용자 프로필 정보 (마이페이지용)
- */
-export interface UserProfile {
-  name: string;
-  phone: string;
-  gender: 'M' | 'F' | 'O' | 'unknown';
-  dateOfBirth: string; // YYYY-MM-DD 형식
-  email: string | null;
-  job: string | null;
-  monthlyIncome: number | null; // 원 단위
-  avatar: string | null; // 프로필 이미지 URL
-  baseDay?: number; // 기준일 (1-31)
-}
 
-/**
- * 프로필 수정 요청
- */
-export interface UpdateProfileRequest {
-  name?: string;
-  email?: string;
-  job?: string;
-  monthlyIncome?: number;
-  avatar?: string; // base64 이미지 또는 파일 URL
-  baseDay?: number; // 기준일 (1-31)
-}
 
 /**
  * 은행 정보 인터페이스 (banks 테이블)

@@ -3,33 +3,31 @@ import { ThemedView } from '@/components/ThemedView';
 import { queryKeys } from '@/src/api';
 import { BottomSheet, CommonModal, PickerModal } from '@/src/components';
 import {
-    useConfirmEmailVerification,
-    useConfirmPhoneVerification,
-    useSendEmailVerification,
-    useSendPhoneVerification,
-    useUpdateAvatar,
-    useUpdateEmail,
-    useUpdateJob,
-    useUpdateMonthlyIncome,
-    useUpdateName,
-    useUserProfile,
+  useConfirmEmailVerification,
+  useSendEmailVerification,
+  useUpdateAvatar,
+  useUpdateEmail,
+  useUpdateJob,
+  useUpdateMonthlyIncome,
+  useUpdateName,
+  useUserProfile
 } from '@/src/hooks';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useQueryClient } from '@tanstack/react-query';
 import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
+import { router } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
-    Alert,
-    Image,
-    ScrollView,
-    StatusBar,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View
+  Alert,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
 } from 'react-native';
 interface EditModalProps {
   visible: boolean;
@@ -50,19 +48,34 @@ interface VerificationModalProps {
 }
 
 const JOB_OPTIONS = [
-  { label: '개발자', value: '개발자' },
-  { label: '디자이너', value: '디자이너' },
-  { label: '기획자', value: '기획자' },
-  { label: '마케팅', value: '마케팅' },
-  { label: '영업', value: '영업' },
-  { label: '교사', value: '교사' },
-  { label: '의사', value: '의사' },
-  { label: '간호사', value: '간호사' },
-  { label: '자영업', value: '자영업' },
-  { label: '학생', value: '학생' },
-  { label: '무직', value: '무직' },
-  { label: '기타', value: '기타' },
+  { label: '회사원', value: 'OFFICE_WORKER' },
+  { label: '학생', value: 'STUDENT' },
+  { label: '자영업', value: 'SELF_EMPLOYED' },
+  { label: '무직', value: 'UNEMPLOYED' },
+  { label: '개발자', value: 'DEVELOPER' },
+  { label: '디자이너', value: 'DESIGNER' },
+  { label: '기획자', value: 'PLANNER' },
+  { label: '마케터', value: 'MARKETER' },
+  { label: '영업직', value: 'SALES' },
+  { label: '교사/강사', value: 'TEACHER' },
+  { label: '의사/간호사', value: 'MEDICAL' },
+  { label: '공무원', value: 'CIVIL_SERVANT' },
+  { label: '연구원', value: 'RESEARCHER' },
+  { label: '예술가/작가', value: 'ARTIST' },
+  { label: '서비스직', value: 'SERVICE' },
+  { label: '생산/제조직', value: 'MANUFACTURING' },
+  { label: '금융업', value: 'FINANCE' },
+  { label: '언론인', value: 'MEDIA' },
+  { label: '법무직', value: 'LEGAL' },
+  { label: '프리랜서', value: 'FREELANCER' },
+  { label: '기타', value: 'OTHER' },
 ];
+
+// 직업 코드를 한글 라벨로 변환하는 함수
+const getJobLabel = (jobCode: string) => {
+  const job = JOB_OPTIONS.find(option => option.value === jobCode);
+  return job ? job.label : jobCode;
+};
 
 const JobPicker: React.FC<{
   visible: boolean;
@@ -168,11 +181,16 @@ const EditModal: React.FC<EditModalProps> = ({ visible, title, value, onSave, on
 };
 
 const VerificationModal: React.FC<VerificationModalProps> = ({ visible, type, value, onCancel, onSuccess }) => {
-  const [step, setStep] = useState<'input' | 'verify'>('input');
+  // 이메일 인증만 모달로 처리, 휴대폰은 기존 인증 페이지 사용
   const [inputValue, setInputValue] = useState(value);
   const [verificationCode, setVerificationCode] = useState('');
   const [verificationId, setVerificationId] = useState('');
+  const [step, setStep] = useState<'input' | 'verify'>('input');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  const sendEmailVerification = useSendEmailVerification();
+  const confirmEmailVerification = useConfirmEmailVerification();
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     setInputValue(value);
@@ -182,12 +200,6 @@ const VerificationModal: React.FC<VerificationModalProps> = ({ visible, type, va
     setErrorMessage(null);
   }, [visible, value]);
 
-  const sendPhoneVerification = useSendPhoneVerification();
-  const confirmPhoneVerification = useConfirmPhoneVerification();
-  const sendEmailVerification = useSendEmailVerification();
-  const confirmEmailVerification = useConfirmEmailVerification();
-  const queryClient = useQueryClient();
-
   const isValidEmail = (email: string) => {
     const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return re.test(email);
@@ -195,18 +207,13 @@ const VerificationModal: React.FC<VerificationModalProps> = ({ visible, type, va
 
   const handleSendVerification = async () => {
     try {
-      if (type === 'email' && !isValidEmail(inputValue.trim())) {
+      if (!isValidEmail(inputValue.trim())) {
         setErrorMessage('유효한 이메일 주소를 입력하세요.');
         return;
       }
 
-      if (type === 'phone') {
-        const response: any = await sendPhoneVerification.mutateAsync(inputValue);
-        setVerificationId(response?.verificationId || '');
-      } else {
-        const response: any = await sendEmailVerification.mutateAsync(inputValue);
-        setVerificationId(response?.verificationId || '');
-      }
+      const response: any = await sendEmailVerification.mutateAsync(inputValue);
+      setVerificationId(response?.verificationId || '');
       setStep('verify');
       setErrorMessage(null);
       Alert.alert('인증번호 발송', `${inputValue}로 인증번호를 발송했습니다.`);
@@ -217,12 +224,8 @@ const VerificationModal: React.FC<VerificationModalProps> = ({ visible, type, va
 
   const handleConfirmVerification = async () => {
     try {
-      if (type === 'phone') {
-        await confirmPhoneVerification.mutateAsync({ verificationId, code: verificationCode, phone: inputValue });
-      } else {
-        await confirmEmailVerification.mutateAsync({ verificationId, code: verificationCode, email: inputValue });
-      }
-      Alert.alert('성공', `${type === 'phone' ? '휴대폰 번호' : '이메일'}가 변경되었습니다.`);
+      await confirmEmailVerification.mutateAsync({ verificationId, code: verificationCode, email: inputValue });
+      Alert.alert('성공', '이메일이 변경되었습니다.');
       onSuccess();
       onCancel();
       queryClient.invalidateQueries({ queryKey: queryKeys.user.profile() });
@@ -238,6 +241,11 @@ const VerificationModal: React.FC<VerificationModalProps> = ({ visible, type, va
     onCancel();
   };
 
+  // 휴대폰 인증은 렌더링하지 않음 (기존 인증 페이지 사용)
+  if (type === 'phone') {
+    return null;
+  }
+
   return (
     <CommonModal 
       visible={visible} 
@@ -251,9 +259,11 @@ const VerificationModal: React.FC<VerificationModalProps> = ({ visible, type, va
           <TouchableOpacity onPress={handleCancel}>
             <Ionicons name="close" size={24} color="#666" />
           </TouchableOpacity>
-          <Text style={styles.modalTitle}>{type === 'phone' ? '휴대폰 번호 변경' : '이메일 변경'}</Text>
-          <TouchableOpacity onPress={step === 'input' ? handleSendVerification : handleConfirmVerification} disabled={step === 'input' ? !!errorMessage || !inputValue.trim() : !verificationCode.trim()}>
-            <Text style={[styles.saveText, (step === 'input' ? !!errorMessage || !inputValue.trim() : !verificationCode.trim()) && { color: '#ccc' }]}>
+          <Text style={styles.modalTitle}>이메일 변경</Text>
+          <TouchableOpacity onPress={step === 'input' ? handleSendVerification : handleConfirmVerification} 
+            disabled={step === 'input' ? (!!errorMessage || !inputValue.trim()) : !verificationCode.trim()}>
+            <Text style={[styles.saveText, 
+              (step === 'input' ? (!!errorMessage || !inputValue.trim()) : !verificationCode.trim()) && { color: '#ccc' }]}>
               {step === 'input' ? '인증번호 발송' : '확인'}
             </Text>
           </TouchableOpacity>
@@ -262,38 +272,25 @@ const VerificationModal: React.FC<VerificationModalProps> = ({ visible, type, va
         <View style={styles.verificationStep}>
           {step === 'input' ? (
             <View>
-              <Text style={styles.verificationLabel}>새로운 {type === 'phone' ? '휴대폰 번호' : '이메일 주소'}를 입력하세요</Text>
+              <Text style={styles.verificationLabel}>새로운 이메일 주소를 입력하세요</Text>
               <TextInput
                 style={styles.modalInput}
                 value={inputValue}
                 onChangeText={(text) => {
-                  if (type === 'phone') {
-                    const digits = text.replace(/[^0-9]/g, '');
-                    let formatted = digits;
-                    if (digits.length <= 3) formatted = digits;
-                    else if (digits.length <= 7) formatted = `${digits.slice(0, 3)}-${digits.slice(3)}`;
-                    else formatted = `${digits.slice(0, 3)}-${digits.slice(3, 7)}-${digits.slice(7, 11)}`;
-                    setInputValue(formatted);
-                    // 실시간 휴대폰 검증: 최소 10자리(국내) 권장
-                    const plain = digits;
-                    if (plain.length === 0) setErrorMessage('값을 입력해주세요.');
-                    else if (plain.length < 10) setErrorMessage('유효한 휴대폰 번호를 입력하세요.');
+                  setInputValue(text);
+                  const email = text.trim();
+                  if (email === '') setErrorMessage('값을 입력해주세요.');
+                  else {
+                    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                    if (!re.test(email)) setErrorMessage('유효한 이메일 주소를 입력하세요.');
                     else setErrorMessage(null);
-                  } else {
-                    setInputValue(text);
-                    const email = text.trim();
-                    if (email === '') setErrorMessage('값을 입력해주세요.');
-                    else {
-                      const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-                      if (!re.test(email)) setErrorMessage('유효한 이메일 주소를 입력하세요.');
-                      else setErrorMessage(null);
-                    }
                   }
                 }}
-                placeholder={type === 'phone' ? '010-1234-5678' : 'example@email.com'}
-                keyboardType={type === 'phone' ? 'numeric' : 'email-address'}
+                placeholder="example@email.com"
+                keyboardType="email-address"
                 autoFocus
               />
+              
               {errorMessage ? <Text style={styles.inlineError}>{errorMessage}</Text> : null}
             </View>
           ) : (
@@ -361,16 +358,24 @@ export default function ProfileScreen() {
     value: string,
     keyboardType?: 'default' | 'numeric' | 'email-address'
   ) => {
-    // 휴대폰번호와 이메일은 인증 모달 사용
+    // 휴대폰번호는 기존 인증 페이지로 라우팅
     if (field === 'phone') {
-      setVerificationModal({
-        visible: true,
-        type: 'phone',
-        value: value || '',
+      // 기존 회원가입용 휴대폰 인증 페이지 재활용
+      router.push({
+        pathname: '/(auth)/(signup)/phone' as any,
+        params: {
+          mode: 'profile_update', // 프로필 수정 모드 표시
+          currentPhone: value || '',
+          // 기존 프로필 정보 전달 (인증용)
+          currentName: profile?.name || '',
+          currentBirthDate: profile?.birthDate || '',
+          currentGender: profile?.gender || ''
+        }
       });
       return;
     }
     
+    // 이메일은 인증 모달 사용
     if (field === 'email') {
       setVerificationModal({
         visible: true,
@@ -462,11 +467,8 @@ export default function ProfileScreen() {
         <LinearGradient colors={['#667eea', '#764ba2']} style={styles.header}>
           <View style={styles.avatarContainer}>
             <View style={styles.avatarWrapper}>
-              {profile.avatar ? (
-                <Image source={{ uri: profile.avatar }} style={styles.avatarImage} />
-              ) : (
-                <Text style={styles.avatarPlaceholder}>{profile.name?.charAt(0) || '?'}</Text>
-              )}
+              {/* 새로운 API 스펙에는 avatar가 없으므로 항상 플레이스홀더 표시 */}
+              <Text style={styles.avatarPlaceholder}>{profile.name?.charAt(0) || '?'}</Text>
             </View>
             <TouchableOpacity
               style={styles.cameraButton}
@@ -561,7 +563,7 @@ export default function ProfileScreen() {
 
           <TouchableOpacity
             style={styles.menuItem}
-            onPress={() => openEditModal('phone', '휴대폰 번호 변경', profile.phone || '', 'numeric')}
+            onPress={() => openEditModal('phone', '휴대폰 번호 변경', profile.phoneNumber || '', 'numeric')}
           >
             <View style={styles.menuLeft}>
               <View style={[styles.iconContainer, { backgroundColor: '#f3e5f5' }]}>
@@ -569,7 +571,7 @@ export default function ProfileScreen() {
               </View>
               <View style={styles.menuInfo}>
                 <Text style={styles.menuLabel}>휴대폰 번호</Text>
-                <Text style={styles.menuValue}>{profile.phone || '미입력'}</Text>
+                <Text style={styles.menuValue}>{profile.phoneNumber || '미입력'}</Text>
               </View>
             </View>
             <Ionicons name="chevron-forward" size={20} color="#ccc" />
@@ -598,7 +600,7 @@ export default function ProfileScreen() {
               </View>
               <View style={styles.menuInfo}>
                 <Text style={styles.menuLabel}>생년월일</Text>
-                <Text style={styles.menuValue}>{profile.dateOfBirth || '미입력'}</Text>
+                <Text style={styles.menuValue}>{profile.birthDate || '미입력'}</Text>
               </View>
             </View>
           </View>
@@ -611,9 +613,9 @@ export default function ProfileScreen() {
               <View style={styles.menuInfo}>
                 <Text style={styles.menuLabel}>성별</Text>
                 <Text style={styles.menuValue}>
-                  {profile.gender === 'M' ? '남성' : 
-                   profile.gender === 'F' ? '여성' : 
-                   profile.gender === 'O' ? '기타' : '미입력'}
+                  {profile.gender === 'MAN' ? '남성' : 
+                   profile.gender === 'WOMAN' ? '여성' : 
+                   profile.gender === 'OTHER' ? '기타' : '미입력'}
                 </Text>
               </View>
             </View>
@@ -631,7 +633,7 @@ export default function ProfileScreen() {
               </View>
               <View style={styles.menuInfo}>
                 <Text style={styles.menuLabel}>직업</Text>
-                <Text style={styles.menuValue}>{profile.job || '미입력'}</Text>
+                <Text style={styles.menuValue}>{profile.job ? getJobLabel(profile.job) : '미입력'}</Text>
               </View>
             </View>
             <Ionicons name="chevron-forward" size={20} color="#ccc" />
@@ -647,7 +649,7 @@ export default function ProfileScreen() {
               </View>
               <View style={styles.menuInfo}>
                 <Text style={styles.menuLabel}>월 수입</Text>
-                <Text style={styles.menuValue}>{formatIncome(profile.monthlyIncome)}</Text>
+                <Text style={styles.menuValue}>{formatIncome(profile.monthlyIncome || null)}</Text>
               </View>
             </View>
             <Ionicons name="chevron-forward" size={20} color="#ccc" />
