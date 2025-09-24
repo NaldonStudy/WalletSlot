@@ -683,7 +683,6 @@ public class TransactionService {
                     System.out.println(transactionDto.getTransactionSummary());
                     System.out.println(transactionDto.getTransactionAfterBalance());
                     System.out.println(transactionDto.getTransactionDate());
-
                 }
 
                 Transaction: for(SSAFYGetTransactionListResponseDto.Transaction transactionDto : transactions) {
@@ -836,7 +835,7 @@ public class TransactionService {
                                         }
 
                                         // 푸시알림 내용
-                                        title = "[미분류 지출발생] " + transactionDto.getTransactionSummary() + "에서 결제한 " + transactionDto.getTransactionBalance() + "원을 " + slotName + " 슬롯에서 차감할까요?☺️";
+                                        title = "[🤖AI추천] " + transactionDto.getTransactionSummary() + "에서 결제한 " + transactionDto.getTransactionBalance() + "원을 " + slotName + " 슬롯에서 차감할까요?☺️";
                                         body = "(미분류 누적금액: " + uncategorizedAccountSlot.getSpent() + "원)";
 
                                         // Notification 객체 생성
@@ -886,7 +885,7 @@ public class TransactionService {
                                     }
 
                                     // 푸시알림 내용
-                                    title = "[미분류 지출발생] " + transactionDto.getTransactionSummary() + "에서 결제한 " + transactionDto.getTransactionBalance() + "원을 " + slotName + " 슬롯에서 차감할까요?☺️";
+                                    title = "[🤖AI추천] " + transactionDto.getTransactionSummary() + "에서 결제한 " + transactionDto.getTransactionBalance() + "원을 " + slotName + " 슬롯에서 차감할까요?☺️";
                                     body = "(미분류 누적금액: " + uncategorizedAccountSlot.getSpent() + "원)";
 
                                     // Notification 객체 생성
