@@ -1,9 +1,11 @@
 package com.ssafy.b108.walletslot.backend.domain.user.controller;
 
 import com.ssafy.b108.walletslot.backend.config.security.UserPrincipal;
+import com.ssafy.b108.walletslot.backend.domain.user.dto.MeBaseDayResponseDto;
 import com.ssafy.b108.walletslot.backend.domain.user.dto.MePatchRequestDto;
 import com.ssafy.b108.walletslot.backend.domain.user.dto.MeResponseDto;
 import com.ssafy.b108.walletslot.backend.domain.user.service.UserService;
+import com.ssafy.b108.walletslot.backend.global.response.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.extensions.Extension;
 import io.swagger.v3.oas.annotations.extensions.ExtensionProperty;
@@ -40,5 +42,13 @@ public class UserRestController {
             @RequestBody @Valid MePatchRequestDto request
     ) {
         return ResponseEntity.ok(userService.patchMe(principal.userId(), request));
+    }
+
+    @GetMapping("/me/base-day")
+    @Operation(summary = "9-1-3 내 기준일 조회", description = "User의 기준일(baseDay)만 반환합니다.")
+    public ApiResponse<MeBaseDayResponseDto> getMyBaseDay(
+            @AuthenticationPrincipal UserPrincipal principal
+    ) {
+        return ApiResponse.ok(userService.getMeBaseDay(principal.userId()));
     }
 }

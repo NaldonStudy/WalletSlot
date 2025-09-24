@@ -205,11 +205,11 @@ CREATE TABLE `transaction` (
   `account_slot_id` INT UNSIGNED NOT NULL,
   `unique_no` VARCHAR(255) NOT NULL COMMENT 'transactionUniqueNo',
   `type` VARCHAR(64) NOT NULL COMMENT 'transactionType, transactionTypeName',
-  `opponent_account_no` BIGINT UNSIGNED COMMENT 'transactionAccountNo',
+  `opponent_account_no` VARCHAR(255) COMMENT 'transactionAccountNo',
   `summary` VARCHAR(255) NOT NULL COMMENT 'transactionSummary',
   `amount` BIGINT UNSIGNED NOT NULL COMMENT 'transactionBalance',
   `balance` BIGINT UNSIGNED NOT NULL,
-  `transaction_at` VARCHAR(64) NOT NULL COMMENT 'transactionDate, transactionTime',
+  `transaction_at` DATETIME NOT NULL COMMENT 'transactionDate, transactionTime',
   CONSTRAINT `fk_transaction_account_id`
     FOREIGN KEY (`account_id`) REFERENCES `account`(`id`)
       ON DELETE CASCADE
@@ -247,12 +247,12 @@ CREATE TABLE `notification` (
   `uuid` VARCHAR(64) NOT NULL,
   `user_id` INT UNSIGNED NOT NULL,
   `title` VARCHAR(255) NOT NULL,
-  `content` TINYTEXT,
+  `body` TINYTEXT,
   `is_delivered` BOOLEAN,
   `delivered_at` DATETIME,
   `is_read` BOOLEAN DEFAULT FALSE NOT NULL,
   `read_at` DATETIME,
-  `type` ENUM('SYSTEM','DEVICE','BUDGET','TRANSACTION','MARKETING') DEFAULT NULL,
+  `type` ENUM('SYSTEM', 'DEVICE', 'BUDGET', 'SLOT', 'UNCATEGORIZED', 'TRANSACTION', 'MARKETING') DEFAULT NULL,
   CONSTRAINT `fk_notification_user_id`
     FOREIGN KEY (`user_id`) REFERENCES `user`(`id`)
       ON DELETE CASCADE
@@ -332,3 +332,19 @@ CREATE TABLE IF NOT EXISTS `phone_verify_ticket` (
   KEY `idx_phone_purpose_active` (`phone`, `purpose`, `consumed_at`, `expires_at`),
   KEY `idx_expires` (`expires_at`)
 ) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS merchant_slot_decision (
+    merchant_code     VARCHAR(64) PRIMARY KEY,
+    merchant_name     VARCHAR(255) NULL,
+    slot_id           INT UNSIGNED,
+    slot_name         VARCHAR(100),
+    slot_confidence   DECIMAL(4,2),
+    method            VARCHAR(64) NOT NULL,
+    decided_at        TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at        TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+                                 ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_msd_slot FOREIGN KEY (slot_id)
+        REFERENCES slot(id)
+        ON UPDATE CASCADE
+        ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

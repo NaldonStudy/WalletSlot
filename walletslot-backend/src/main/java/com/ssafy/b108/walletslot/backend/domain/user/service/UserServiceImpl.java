@@ -1,5 +1,6 @@
 package com.ssafy.b108.walletslot.backend.domain.user.service;
 
+import com.ssafy.b108.walletslot.backend.domain.user.dto.MeBaseDayResponseDto;
 import com.ssafy.b108.walletslot.backend.domain.user.dto.MePatchRequestDto;
 import com.ssafy.b108.walletslot.backend.domain.user.dto.MeResponseDto;
 import com.ssafy.b108.walletslot.backend.domain.user.dto.UserDtoAssembler;
@@ -73,6 +74,23 @@ public class UserServiceImpl implements UserService {
 
         String currentEmail = resolveCurrentEmail(u);
         return UserDtoAssembler.toMeResponse(u, currentEmail, "수정 성공");
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public MeBaseDayResponseDto getMeBaseDay(long userId) {
+        User u = userRepo.findById(userId)
+                .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "user"));
+
+        Integer baseDay = (u.getBaseDay() == null ? null : u.getBaseDay().intValue());
+
+        return MeBaseDayResponseDto.builder()
+                .success(true)
+                .message("기준일 조회 성공")
+                .data(MeBaseDayResponseDto.Data.builder()
+                        .baseDay(baseDay)
+                        .build())
+                .build();
     }
 
     // ===== 내부 유틸 =====
