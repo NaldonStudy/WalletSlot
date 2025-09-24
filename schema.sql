@@ -332,3 +332,19 @@ CREATE TABLE IF NOT EXISTS `phone_verify_ticket` (
   KEY `idx_phone_purpose_active` (`phone`, `purpose`, `consumed_at`, `expires_at`),
   KEY `idx_expires` (`expires_at`)
 ) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS merchant_slot_decision (
+    merchant_code     VARCHAR(64) PRIMARY KEY,
+    merchant_name     VARCHAR(255) NULL,
+    slot_id           INT UNSIGNED,
+    slot_name         VARCHAR(100),
+    slot_confidence   DECIMAL(4,2),
+    method            VARCHAR(64) NOT NULL,
+    decided_at        TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at        TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+                                 ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_msd_slot FOREIGN KEY (slot_id)
+        REFERENCES slot(id)
+        ON UPDATE CASCADE
+        ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
