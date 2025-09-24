@@ -14,7 +14,11 @@ public class SmsVerifyRequest {
     @NotBlank
     private String phone;
 
-    @Schema(example = "LOGIN")
+    @Schema(
+            description = "인증 목적 ENUM",
+            example = "LOGIN",
+            allowableValues = {"LOGIN", "DEVICE_VERIFY", "PIN_RESET", "SIGNUP"}
+    )
     @NotBlank
     private String purpose;
 

@@ -71,6 +71,7 @@ VALUES
 -- SLOT
 INSERT INTO `slot` (id, uuid, name, is_saving, icon, color, `rank`)
 VALUES
+(0, UUID(), '미분류', FALSE, NULL, NULL, NULL),
 (1, UUID(), '식비', FALSE, NULL, NULL, NULL),
 (2, UUID(), '교통비', FALSE, NULL, NULL, NULL),
 (3, UUID(), '의류/잡화', FALSE, NULL, NULL, NULL),
@@ -94,8 +95,8 @@ VALUES
 (21, UUID(), '경조사', FALSE, NULL, NULL, NULL),
 (22, UUID(), '회비', FALSE, NULL, NULL, NULL),
 (23, UUID(), '후원', FALSE, NULL, NULL, NULL),
-(24, UUID(), '여행/숙박', FALSE, NULL, NULL, NULL),
-(25, UUID(), '미분류', FALSE, NULL, NULL, NULL);
+(24, UUID(), '여행/숙박', FALSE, NULL, NULL, NULL);
+
 
 -- ACCOUNT_SLOT
 INSERT INTO `account_slot` (id, uuid, account_id, slot_id, initial_budget, current_budget, spent, budget_change_count, is_budget_exceeded, is_custom, custom_name)
