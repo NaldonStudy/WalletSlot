@@ -13,21 +13,13 @@ import { isAmbiguousAxiosBody, fetchAccountsFallback, fetchAccountBalanceFallbac
  * 계좌 관련 API 서비스
  */
 export const accountApi = {
+
   /**
    * 사용자 연동 계좌 목록 조회
    */
   getLinkedAccounts: async (): Promise<BaseResponse<AccountsResponse>> => {
     const res = await apiClient.get('/api/accounts/link');
-
-    // MSW-Axios 호환성 문제 감지 및 fallback 처리
-    if (isAmbiguousAxiosBody(res.data)) {
-      const fallbackResult = await fetchAccountsFallback();
-      if (fallbackResult) {
-        return fallbackResult;
-      }
-    }
-    
-    return res.data as BaseResponse<AccountsResponse>;
+    return res as BaseResponse<AccountsResponse>;
   },
 
   /**

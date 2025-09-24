@@ -34,7 +34,13 @@ class ApiClient {
         
         // X-Device-Id 헤더 추가 (모든 요청에 필수)
         try {
-          headers['X-Device-Id'] = await getOrCreateDeviceId();
+          // 개발 모드에서는 하드코딩된 디바이스 ID 사용
+          if (__DEV__) {
+            headers['X-Device-Id'] = '1234';
+            console.log('[API] 개발 모드: X-Device-Id = 1234');
+          } else {
+            headers['X-Device-Id'] = await getOrCreateDeviceId();
+          }
         } catch (error) {
           console.error('[API] DeviceId 조회 실패:', error);
           // deviceId 조회 실패 시에도 요청은 계속 진행 (fallback 처리)

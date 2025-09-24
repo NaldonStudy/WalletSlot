@@ -56,7 +56,7 @@ export default function TransferScreen() {
   const newBudgetAmount = Number(newBudget.replace(/,/g, '')) || 0;
 
   // 예산 차이 계산
-  const budgetDifference = newBudgetAmount - (currentSlot?.budget || 0);
+  const budgetDifference = newBudgetAmount - (currentSlot?.currentBudget || 0);
 
   // 숫자만 추출하고 천 단위 콤마 포맷팅
   const formatAmount = (value: string) => {
@@ -80,7 +80,7 @@ export default function TransferScreen() {
       return;
     }
 
-    if (newBudgetAmount === currentSlot.budget) {
+    if (newBudgetAmount === currentSlot.currentBudget) {
       Alert.alert('알림', '현재 예산과 동일합니다.');
       return;
     }
@@ -130,13 +130,13 @@ export default function TransferScreen() {
 
           {/* 현재 슬롯 */}
           <SlotInfoCard
-            slotName={currentSlot.slotName}
+            slotName={currentSlot.name}
             badgeText="현재"
             badgeColor="#3B82F6"
-            currentBudget={currentSlot.budget}
-            currentRemaining={currentSlot.remaining}
+            currentBudget={currentSlot.currentBudget}
+            currentRemaining={currentSlot.remainingBudget}
             newBudget={newBudgetAmount > 0 && budgetDifference !== 0 ? newBudgetAmount : undefined}
-            newRemaining={newBudgetAmount > 0 && budgetDifference !== 0 ? currentSlot.remaining + budgetDifference : undefined}
+            newRemaining={newBudgetAmount > 0 && budgetDifference !== 0 ? currentSlot.remainingBudget + budgetDifference : undefined}
             showChanges={newBudgetAmount > 0 && budgetDifference !== 0}
             isSaving={currentSlot.isSaving}
             theme={theme}
@@ -186,7 +186,7 @@ export default function TransferScreen() {
                 styles.differenceText,
                 budgetDifference > 0 ? styles.increaseText : styles.decreaseText
               ]}>
-                {budgetDifference > 0 ? '증액' : '축소'}: {Math.abs(budgetDifference).toLocaleString()}원
+                {budgetDifference > 0 ? '증액' : '축소'}: {Math.abs(budgetDifference ?? 0).toLocaleString()}원
               </Text>
               <Text style={styles.differenceSubtext}>
                 {budgetDifference > 0
@@ -204,17 +204,17 @@ export default function TransferScreen() {
         <View style={styles.quickAmountSection}>
           <View style={styles.quickAmountRow}>
             {[
-              currentSlot.budget * 0.8, // 20% 감소
-              currentSlot.budget * 1.2, // 20% 증가
-              currentSlot.budget * 1.5, // 50% 증가
+              currentSlot.currentBudget * 0.8, // 20% 감소
+              currentSlot.currentBudget * 1.2, // 20% 증가
+              currentSlot.currentBudget * 1.5, // 50% 증가
             ].map((quickAmount, index) => (
               <TouchableOpacity
                 key={index}
                 style={[styles.quickAmountButton, { backgroundColor: theme.colors.background.secondary }]}
-                onPress={() => setNewBudget(Math.round(quickAmount).toLocaleString())}
+                onPress={() => setNewBudget(Math.round(quickAmount ?? 0).toLocaleString())}
               >
                 <Text style={[styles.quickAmountText, { color: theme.colors.text.primary }]}>
-                  {Math.round(quickAmount).toLocaleString()}원
+                  {Math.round(quickAmount ?? 0).toLocaleString()}원
                 </Text>
               </TouchableOpacity>
             ))}
@@ -228,10 +228,10 @@ export default function TransferScreen() {
         <TouchableOpacity
           style={[
             styles.button,
-            (newBudgetAmount <= 0 || newBudgetAmount === currentSlot.budget) && styles.buttonDisabled
+            (newBudgetAmount <= 0 || newBudgetAmount === currentSlot.currentBudget) && styles.buttonDisabled
           ]}
           onPress={handleTransfer}
-          disabled={newBudgetAmount <= 0 || newBudgetAmount === currentSlot.budget || isLoading}
+          disabled={newBudgetAmount <= 0 || newBudgetAmount === currentSlot.currentBudget || isLoading}
         >
           <Text style={styles.buttonText}>
             {isLoading ? '처리 중...' : '예산 변경'}

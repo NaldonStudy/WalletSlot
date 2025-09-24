@@ -1,10 +1,10 @@
 import React from 'react';
 import { View, Text, StyleSheet, useColorScheme, TouchableOpacity } from 'react-native';
-import { Image } from 'expo-image';
 import { Spacing, themes, Typography } from '@/src/constants/theme';
+import { SvgProps } from 'react-native-svg';
 
 type EditSlotItemProps = {
-  icon: any; // require() 또는 URL
+  icon?: React.ComponentType<SvgProps>; // SVG 컴포넌트
   slotName: string;
   budget: number;
   remaining: number;
@@ -37,17 +37,22 @@ const EditSlotItem: React.FC<EditSlotItemProps> = ({
     >
       <View style={styles.content}>
         <View style={styles.iconWrapper}>
-          <Image source={icon} style={styles.icon} />
+          {icon && React.createElement(icon, {
+            width: 40,
+            height: 40,
+            fill: '#F1A791',
+            color: '#F1A791',
+          })}
         </View>
         <View style={styles.info}>
           <Text style={styles.slotName}>{slotName}</Text>
           <View style={styles.row}>
             <Text style={styles.label}>총 예산</Text>
-            <Text style={styles.value}>{budget.toLocaleString()}원</Text>
+            <Text style={styles.value}>{(budget ?? 0).toLocaleString()}원</Text>
           </View>
           <View style={styles.row}>
             <Text style={styles.label}>잔여 금액</Text>
-            <Text style={styles.value}>{remaining.toLocaleString()}원</Text>
+            <Text style={styles.value}>{(remaining ?? 0).toLocaleString()}원</Text>
           </View>
         </View>
       </View>
@@ -71,10 +76,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: Spacing.base,
-  },
-  icon: {
-    width: 40,
-    height: 40,
   },
   info: {
     flex: 1,

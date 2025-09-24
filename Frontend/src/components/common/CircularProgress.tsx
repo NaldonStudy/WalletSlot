@@ -3,6 +3,7 @@ import { View, StyleSheet } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
 import { Image } from 'expo-image';
 import { ImageSourcePropType } from 'react-native';
+import { SvgProps } from 'react-native-svg';
 
 type CircularProgressProps = {
   progress: number; // 0-1 사이의 값
@@ -10,8 +11,9 @@ type CircularProgressProps = {
   strokeWidth?: number;
   color?: string;
   backgroundColor?: string;
-  icon?: ImageSourcePropType; // require()로 가져온 아이콘
+  icon?: React.ComponentType<SvgProps>; // SVG 컴포넌트
   iconSize?: number;
+  iconColor?: string; // 아이콘 색상
 };
 
 const CircularProgress = ({
@@ -22,11 +24,15 @@ const CircularProgress = ({
   backgroundColor = '#E5E5E5',
   icon,
   iconSize = 24,
+  iconColor,
 }: CircularProgressProps) => {
+  // NaN 체크 및 안전한 progress 값 보장
+  const safeProgress = isNaN(progress) ? 0 : Math.max(0, Math.min(1, progress));
+  
   const radius = (size - strokeWidth) / 2;
   const circumference = radius * 2 * Math.PI;
   const strokeDasharray = circumference;
-  const strokeDashoffset = circumference - (progress * circumference);
+  const strokeDashoffset = circumference - (safeProgress * circumference);
 
   return (
     <View style={[styles.container, { width: size, height: size }]}>
@@ -58,12 +64,12 @@ const CircularProgress = ({
       {/* 중앙 아이콘 */}
       {icon && (
         <View style={styles.iconContainer}>
-          <Image 
-            source={icon} 
-            style={[styles.icon, { width: iconSize, height: iconSize }]}
-            contentFit="contain"
-            transition={200}
-          />
+          {React.createElement(icon, {
+            width: iconSize,
+            height: iconSize,
+            fill: iconColor,
+            color: iconColor,
+          })}
         </View>
       )}
     </View>
