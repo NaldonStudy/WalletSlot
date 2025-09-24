@@ -5,6 +5,7 @@ import com.ssafy.b108.walletslot.backend.domain.slot.entity.AccountSlot;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
@@ -33,7 +34,7 @@ public class Transaction {
     private AccountSlot accountSlot;
 
     @Column(nullable = false)
-    private Long uniqueNo;
+    private String uniqueNo;
 
     @Column(nullable = false)
     private String type;
@@ -51,7 +52,7 @@ public class Transaction {
     private Long balance;
 
     @Column(nullable = false)
-    private String transactionAt;
+    private LocalDateTime transactionAt;
 
     // Method
     public void addAmount(Long amount) {

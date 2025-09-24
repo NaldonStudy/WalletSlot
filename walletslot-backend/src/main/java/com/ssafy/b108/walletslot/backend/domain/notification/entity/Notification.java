@@ -16,7 +16,7 @@ public class Notification {
 
     // Enum
     public enum Type {
-        SYSTEM, DEVICE, BUDGET, TRANSACTION, MARKETING
+        SYSTEM, DEVICE, BUDGET, UNCATEGORIZED, SLOT, TRANSACTION, MARKETING
     }
 
     // Field
@@ -37,10 +37,10 @@ public class Notification {
 
     @Lob
     @Column(columnDefinition = "TINYTEXT")
-    private String content;
+    private String body;
 
     @Column(nullable = false)
-    private boolean isRead;
+    private boolean isRead = false;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -48,9 +48,12 @@ public class Notification {
     private Type type = Type.SYSTEM;
 
     private LocalDateTime readAt;
-    private Boolean isDelivered;
-    private LocalDateTime deliveredAt;
 
+    @Column(nullable = false)
+    @Builder.Default
+    private Boolean isDelivered = false;
+
+    private LocalDateTime deliveredAt;
 
     public void markDelivered() {
         if (Boolean.TRUE.equals(this.isDelivered))

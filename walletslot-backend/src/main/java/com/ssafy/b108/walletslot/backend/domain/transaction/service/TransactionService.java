@@ -1,7 +1,24 @@
 package com.ssafy.b108.walletslot.backend.domain.transaction.service;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.ssafy.b108.walletslot.backend.common.dto.Header;
+import com.ssafy.b108.walletslot.backend.common.util.AESUtil;
+import com.ssafy.b108.walletslot.backend.common.util.LocalDateTimeFormatter;
+import com.ssafy.b108.walletslot.backend.common.util.RandomNumberGenerator;
 import com.ssafy.b108.walletslot.backend.domain.account.entity.Account;
 import com.ssafy.b108.walletslot.backend.domain.account.repository.AccountRepository;
+import com.ssafy.b108.walletslot.backend.domain.notification.entity.Notification;
+import com.ssafy.b108.walletslot.backend.domain.notification.repository.NotificationRepository;
+import com.ssafy.b108.walletslot.backend.domain.notification.repository.PushEndpointRepository;
+import com.ssafy.b108.walletslot.backend.domain.transaction.dto.external.ChatGPTRequestDto;
+import com.ssafy.b108.walletslot.backend.domain.transaction.dto.external.ChatGPTResponseDto;
+import com.ssafy.b108.walletslot.backend.domain.transaction.dto.external.ChatGPTRequestDto.AccountSlotDto;
+import com.ssafy.b108.walletslot.backend.domain.slot.entity.MerchantSlotDecision;
+import com.ssafy.b108.walletslot.backend.domain.slot.repository.MerchantSlotDecisionRepository;
+import com.ssafy.b108.walletslot.backend.domain.transaction.dto.external.SSAFYGetAccountBalanceResponseDto;
+import com.ssafy.b108.walletslot.backend.domain.transaction.dto.external.SSAFYGetTransactionListResponseDto;
 import com.ssafy.b108.walletslot.backend.domain.slot.entity.AccountSlot;
 import com.ssafy.b108.walletslot.backend.domain.slot.entity.Slot;
 import com.ssafy.b108.walletslot.backend.domain.slot.repository.AccountSlotRepository;
@@ -9,14 +26,29 @@ import com.ssafy.b108.walletslot.backend.domain.slot.repository.SlotRepository;
 import com.ssafy.b108.walletslot.backend.domain.transaction.dto.*;
 import com.ssafy.b108.walletslot.backend.domain.transaction.entity.Transaction;
 import com.ssafy.b108.walletslot.backend.domain.transaction.repository.TransactionRepository;
+import com.ssafy.b108.walletslot.backend.domain.user.entity.User;
+import com.ssafy.b108.walletslot.backend.domain.user.repository.UserRepository;
 import com.ssafy.b108.walletslot.backend.global.error.AppException;
 import com.ssafy.b108.walletslot.backend.global.error.ErrorCode;
+import com.ssafy.b108.walletslot.backend.infrastructure.fcm.service.FcmService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.ResponseEntity;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
+import org.springframework.web.reactive.function.client.WebClient;
 
+import javax.crypto.SecretKey;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -28,6 +60,22 @@ public class TransactionService {
     private final AccountRepository accountRepository;
     private final AccountSlotRepository accountSlotRepository;
     private final SlotRepository slotRepository;
+    private final UserRepository userRepository;
+    private final MerchantSlotDecisionRepository merchantSlotDecisionRepository;
+    private final NotificationRepository notificationRepository;
+    private final PushEndpointRepository pushEndpointRepository;
+    private final FcmService fcmService;
+    private final RestTemplate restTemplate;
+
+    @Qualifier("ssafyGmsWebClient") private final WebClient ssafyGmsWebClient;
+    @Qualifier("fcmWebClient") private final WebClient fcmWebClient;
+
+    @Value("${api.ssafy.finance.apiKey}")
+    private String ssafyFinanceApiKey;
+
+    private String lastSyncedDate="20250923";
+
+    private final SecretKey encryptionKey;
 
     // Method
     /**
@@ -564,4 +612,501 @@ public class TransactionService {
         // 응답
         return addDutchPayTransactionsResponseDto;
     }
+
+    @Scheduled(fixedRate = 60000)
+    public void checkTransactions() {
+
+        // 우리 서비스 전체 유저
+        List<User> users = userRepository.findAll();
+
+        for(User user : users) {
+            // 유저키 조회
+            String userKey = user.getUserKey();
+
+            // 현재 유저의 FCM 토큰과 계좌리스트 조회
+            String targetFcmToken = pushEndpointRepository.findByUser(user).orElseThrow(() -> new AppException(ErrorCode.MISSING_PUSH_ENDPOINT, "TransactionService - 000")).getToken();
+            List<Account> accounts = accountRepository.findByUser(user);
+
+            for(Account account : accounts) {
+
+                // SSAFY 금융 API >>>>> 2.4.12 계좌 거래내역 조회
+                // 요청보낼 url
+                String url1 = "https://finopenapi.ssafy.io/ssafy/api/v1/edu/demandDeposit/inquireTransactionHistoryList";
+
+                // Header 만들기
+                Map<String, String> formattedDateTime = LocalDateTimeFormatter.formatter();
+                Header header = Header.builder()
+                        .apiName("inquireTransactionHistoryList")
+                        .transmissionDate(formattedDateTime.get("date"))
+                        .transmissionTime(formattedDateTime.get("time"))
+                        .apiServiceCode("inquireTransactionHistoryList")
+                        .institutionTransactionUniqueNo(formattedDateTime.get("date") + formattedDateTime.get("time") + RandomNumberGenerator.generateRandomNumber())
+                        .apiKey(ssafyFinanceApiKey)
+                        .userKey(userKey)
+                        .build();
+
+                // body 만들기
+                Map<String, Object> body1 = new HashMap<>();
+                body1.put("Header", header);
+                try {
+                    body1.put("accountNo", AESUtil.decrypt(account.getEncryptedAccountNo(), encryptionKey));
+                } catch(Exception e) {
+                    throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "TransactionService - 001");
+                }
+
+                body1.put("startDate", lastSyncedDate);
+                body1.put("endDate", formattedDateTime.get("date"));
+                body1.put("transactionType", "A");
+                body1.put("orderByType", "ASC");
+
+                // 요청보낼 http entity 만들기
+                HttpEntity<Map<String, Object>> httpEntity1 = new HttpEntity<>(body1);
+
+                // 요청 보내기
+                ResponseEntity<SSAFYGetTransactionListResponseDto> httpResponse1 = restTemplate.exchange(
+                        url1,
+                        HttpMethod.POST,
+                        httpEntity1,
+                        SSAFYGetTransactionListResponseDto.class
+                );
+
+                // 거래내역 리스트 받기
+                List<SSAFYGetTransactionListResponseDto.Transaction> transactions = httpResponse1.getBody().getREC().getList();
+
+                // 이 계좌의 미분류 슬롯 미리 찾아두기
+                Slot uncategorizedSlot = slotRepository.findById(0L).orElseThrow(() -> new AppException(ErrorCode.MISSING_UNCATEGORIZED_SLOT, "TransactionService - 000"));
+                AccountSlot uncategorizedAccountSlot = accountSlotRepository.findBySlot(uncategorizedSlot).orElseThrow(() -> new AppException(ErrorCode.MISSING_UNCATEGORIZED_SLOT, "TransactionService - 000"));
+
+                for(SSAFYGetTransactionListResponseDto.Transaction transactionDto : transactions) {
+                    System.out.println(transactionDto.getTransactionTypeName());
+                    System.out.println(transactionDto.getTransactionUniqueNo());
+                    System.out.println(transactionDto.getTransactionSummary());
+                    System.out.println(transactionDto.getTransactionAfterBalance());
+                    System.out.println(transactionDto.getTransactionDate());
+                }
+
+                Transaction: for(SSAFYGetTransactionListResponseDto.Transaction transactionDto : transactions) {
+
+// account.getLastSyncedTransactionUniqueNo()
+
+                    // transactionUniqueNo이 lastSyncedTransactionNo보다 큰 게 있다면 갱신
+                    if(Long.parseLong(transactionDto.getTransactionUniqueNo()) > Long.parseLong("0")) {
+
+                        // 계좌 마지막 동기화 날짜 업데이트
+                        account.updateLastSyncedTransactionUniqueNo(transactionDto.getTransactionUniqueNo());
+
+                        // 거래내역 타입 받기
+                        String transactionType = transactionDto.getTransactionTypeName();
+
+                        // 이 거래내역에서 쓸 Transaction, Notification, AccountSlot 객체와 푸시알림을 보낼 때 사용할 title, body
+                        Transaction newTransaction = null;
+                        Notification notification = null;
+                        AccountSlot accountSlot = null;
+                        String title = null;
+                        String body = null;
+
+                        if(transactionType.equals("입금") || transactionType.equals("입금(이체)")) {    // 입금이면 무조건 미분류 슬롯에서 증액
+                            uncategorizedAccountSlot.addBudget(transactionDto.getTransactionBalance());
+
+                            // 푸시알림 내용
+                            title = "[입금알림] " + transactionDto.getTransactionSummary() + "님이 입금하신 " + transactionDto.getTransactionBalance() + "원을 미분류 금액으로 증액했어요!🚀";
+                            body = "(미분류 누적금액: " + uncategorizedAccountSlot.getSpent() + "원)";
+
+                            // Notification 객체 생성
+                            notification = Notification.builder()
+                                    .user(user)
+                                    .title(title)
+                                    .body(body)
+                                    .type(Notification.Type.UNCATEGORIZED)
+                                    .build();
+
+                            // Notification 객체 저장
+                            notificationRepository.save(notification);
+
+                            // accountSlot을 미분류 슬롯으로 세팅
+                            accountSlot = uncategorizedAccountSlot;
+                        } else if (transactionType.equals("출금(이체)")) {    // 출금(이체)이면 무조건 미분류 슬롯에서 차감
+                            uncategorizedAccountSlot.addSpent(transactionDto.getTransactionBalance());
+
+                            // 푸시알림 내용
+                            title = "[미분류 지출발생] " + transactionDto.getTransactionSummary() + "님에게 입금한 " + transactionDto.getTransactionBalance() + "원을 슬롯에 분배해주세요!🚀";
+                            body = "(미분류 누적금액: " + uncategorizedAccountSlot.getSpent() + "원)";
+
+                            // Notification 객체 생성
+                            notification = Notification.builder()
+                                    .user(user)
+                                    .title(title)
+                                    .body(body)
+                                    .type(Notification.Type.UNCATEGORIZED)
+                                    .build();
+
+                            // Notification 객체 저장
+                            notificationRepository.save(notification);
+
+                        } else {    // 출금이면 아래 로직 적용
+                            String merchantName = transactionDto.getTransactionSummary();    // 발생한 거래내역 거래처 이름
+
+                            // transaction summary 보고 우리 DB에 슬롯 매핑돼있는거 있는지 검색
+                            MerchantSlotDecision merchantSlotDecision = merchantSlotDecisionRepository.findByMerchantName(merchantName);
+
+                            // 우리 DB에 있는 결제처라면...
+                            if(merchantSlotDecision != null) {
+                                // 그 슬롯이 이 계좌에 개설돼있는지 조회
+                                accountSlot = accountSlotRepository.findByAccountAndSlot(account, merchantSlotDecision.getSlot()).orElse(null);
+
+                                if(accountSlot != null) { // 그 슬롯이 이 계좌에 있다면 그 슬롯으로 그대로 두고, Notification 객체 만들어서 저장
+
+                                    // accountSlot 필드 최신화
+                                    accountSlot.addSpent(transactionDto.getTransactionBalance());
+                                    if((accountSlot.getCurrentBudget() - accountSlot.getSpent()) < 0) {    // 지출이 예산을 초과했다면...
+
+                                        accountSlot.updateIsBudgetExceeded(true);
+
+                                        // 푸시알림 내용
+                                        String slotName = null;
+                                        if(accountSlot.isCustom()) {
+                                            slotName = accountSlot.getCustomName();
+                                        } else {
+                                            slotName = accountSlot.getSlot().getName();
+                                        }
+
+                                        title = "[예산초과] " + slotName + "슬롯의 예산이 초과됐어요!";
+                                        body = "(초과금액: " + (accountSlot.getSpent() - accountSlot.getCurrentBudget()) + ")";
+
+                                        // Notification 객체 만들고 저장
+                                        Notification budgetExceededNotification = Notification.builder()
+                                                .user(user)
+                                                .title(title)
+                                                .body(body)
+                                                .type(Notification.Type.BUDGET)
+                                                .build();
+
+                                        notificationRepository.save(budgetExceededNotification);
+
+                                        // 푸시알림 전송... 아휴
+                                        fcmService.sendMessage(targetFcmToken, budgetExceededNotification.getTitle(), budgetExceededNotification.getBody());
+
+                                    } else {    // 지출이 예산을 초과하지 않았다면...
+                                        accountSlot.updateIsBudgetExceeded(false);    // 혹시 모르니깐 예산초과 여부 false로 한번 더 덮어씌우기
+                                    }
+
+                                    // 슬롯 이름 받아두기
+                                    String slotName = null;
+                                    if(accountSlot.isCustom()) {
+                                        slotName = accountSlot.getCustomName();
+                                    } else {
+                                        slotName = accountSlot.getSlot().getName();
+                                    }
+
+                                    // 푸시알림 내용
+                                    title = "[지출알림] " + transactionDto.getTransactionSummary() + "에서 결제한 " + transactionDto.getTransactionBalance() + "원을 " + slotName + " 슬롯에서 차감했어요!🚀";
+
+                                    Long remainingBudget = accountSlot.getCurrentBudget() - accountSlot.getSpent();
+                                    if(remainingBudget < 0) {
+                                        body = "(⚠️" + slotName + " 슬롯 초과금액: " + (-remainingBudget) + "원)";
+                                    } else {
+                                        body = "(" + slotName + " 슬롯 현재잔액: " + remainingBudget + "원)";
+                                    }
+
+                                    // Notification 객체 생성
+                                    notification = Notification.builder()
+                                            .user(user)
+                                            .title(title)
+                                            .body(body)
+                                            .type(Notification.Type.SLOT)
+                                            .build();
+
+                                    // Notification 객체 저장
+                                    notificationRepository.save(notification);
+
+                                } else {    // 그 슬롯이 이 계좌에 개설돼있지 않다면...
+                                    AccountSlot recommededAccountSlot = recommendSlotFromGPT(account, merchantName);    //    이 계좌에 있는 슬롯들 기준으로 추천받기
+                                    if(recommededAccountSlot != null) {    // 추천된게 있으면...
+                                        // 그래도 일단 미분류 슬롯에서 차감
+                                        accountSlot = uncategorizedAccountSlot;
+                                        uncategorizedAccountSlot.addSpent(transactionDto.getTransactionBalance());
+
+                                        // 슬롯이름 미리 받아두기
+                                        String slotName = null;
+                                        if(recommededAccountSlot.isCustom()) {
+                                            slotName = recommededAccountSlot.getCustomName();
+                                        } else {
+                                            slotName = recommededAccountSlot.getSlot().getName();
+                                        }
+
+                                        // 푸시알림 내용
+                                        title = "[🤖AI추천] " + transactionDto.getTransactionSummary() + "에서 결제한 " + transactionDto.getTransactionBalance() + "원을 " + slotName + " 슬롯에서 차감할까요?☺️";
+                                        body = "(미분류 누적금액: " + uncategorizedAccountSlot.getSpent() + "원)";
+
+                                        // Notification 객체 생성
+                                        notification = Notification.builder()
+                                                .user(user)
+                                                .title(title)
+                                                .body(body)
+                                                .type(Notification.Type.UNCATEGORIZED)
+                                                .build();
+
+                                        // Notification 객체 저장
+                                        notificationRepository.save(notification);
+                                    } else {    // 추천된게 없다면...
+                                        // 미분류 슬롯에서 차감
+                                        accountSlot = uncategorizedAccountSlot;
+                                        uncategorizedAccountSlot.addSpent(transactionDto.getTransactionBalance());
+
+                                        // 푸시알림 내용
+                                        title = "[미분류 지출발생] " + transactionDto.getTransactionSummary() + "에서 결제한 " + transactionDto.getTransactionBalance() + "원을 슬롯에 분배해주세요!🚀";
+                                        body = "(미분류 누적금액: " + uncategorizedAccountSlot.getSpent() + "원)";
+
+                                        // Notification 객체 생성
+                                        notification = Notification.builder()
+                                                .user(user)
+                                                .title(title)
+                                                .body(body)
+                                                .type(Notification.Type.UNCATEGORIZED)
+                                                .build();
+
+                                        // Notification 객체 저장
+                                        notificationRepository.save(notification);
+                                    }
+                                }
+                            } else { // 우리 DB에 존재하지 않아도 GPT한테 추천받기
+                                AccountSlot recommededAccountSlot = recommendSlotFromGPT(account, merchantName);
+                                if(recommededAccountSlot != null) {    // 추천된게 있다면...
+                                    // 그래도 일단 미분류 슬롯에서 차감
+                                    accountSlot = uncategorizedAccountSlot;
+                                    uncategorizedAccountSlot.addSpent(transactionDto.getTransactionBalance());
+
+                                    // 슬롯이름 미리 받아두기
+                                    String slotName = null;
+                                    if(recommededAccountSlot.isCustom()) {
+                                        slotName = recommededAccountSlot.getCustomName();
+                                    } else {
+                                        slotName = recommededAccountSlot.getSlot().getName();
+                                    }
+
+                                    // 푸시알림 내용
+                                    title = "[🤖AI추천] " + transactionDto.getTransactionSummary() + "에서 결제한 " + transactionDto.getTransactionBalance() + "원을 " + slotName + " 슬롯에서 차감할까요?☺️";
+                                    body = "(미분류 누적금액: " + uncategorizedAccountSlot.getSpent() + "원)";
+
+                                    // Notification 객체 생성
+                                    notification = Notification.builder()
+                                            .user(user)
+                                            .title(title)
+                                            .body(body)
+                                            .type(Notification.Type.UNCATEGORIZED)
+                                            .build();
+
+                                    // Notification 객체 저장
+                                    notificationRepository.save(notification);
+                                } else {    // 추천된게 없다면...
+                                    // 미분류 슬롯에서 차감
+                                    accountSlot = uncategorizedAccountSlot;
+                                    uncategorizedAccountSlot.addSpent(transactionDto.getTransactionBalance());
+
+                                    // 푸시알림 내용
+                                    title = "[미분류 지출발생] " + transactionDto.getTransactionSummary() + "에서 결제한 " + transactionDto.getTransactionBalance() + "원을 슬롯에 분배해주세요!🚀";
+                                    body = "(미분류 누적금액: " + uncategorizedAccountSlot.getSpent() + "원)";
+
+                                    // Notification 객체 생성
+                                    notification = Notification.builder()
+                                            .user(user)
+                                            .title(title)
+                                            .body(body)
+                                            .type(Notification.Type.UNCATEGORIZED)
+                                            .build();
+
+                                    // Notification 객체 저장
+                                    notificationRepository.save(notification);
+                                }
+                            }
+
+                            // accountSlot에 들어있는 거 활용해서 Transaction 객체 만들기
+                            newTransaction = Transaction.builder()
+                                    .account(account)
+                                    .accountSlot(accountSlot)
+                                    .uniqueNo(transactionDto.getTransactionUniqueNo())
+                                    .type(transactionDto.getTransactionTypeName())
+                                    .opponentAccountNo(transactionDto.getTransactionAccountNo())
+                                    .summary(transactionDto.getTransactionSummary())
+                                    .amount(transactionDto.getTransactionBalance())
+                                    .balance(transactionDto.getTransactionAfterBalance())
+                                    .transactionAt(LocalDateTimeFormatter.StringToLocalDateTime(transactionDto.getTransactionDate(), transactionDto.getTransactionTime()))
+                                    .build();
+
+                            // Transaction 객체 저장
+                            transactionRepository.save(newTransaction);
+
+                            // 계좌 각종 필드들 최신화 (마지막 동기일, 잔액)
+                            // SSAFY 금융 API >>>>> 2.4.12 계좌 거래내역 조회
+                            // 요청보낼 url
+                            String url2 = "https://finopenapi.ssafy.io/ssafy/api/v1/edu/demandDeposit/inquireDemandDepositAccountBalance";
+
+                            // Header 만들기
+                            Map<String, String> formattedDateTime2 = LocalDateTimeFormatter.formatter();
+                            Header header2 = Header.builder()
+                                    .apiName("inquireDemandDepositAccountBalance")
+                                    .transmissionDate(formattedDateTime2.get("date"))
+                                    .transmissionTime(formattedDateTime2.get("time"))
+                                    .apiServiceCode("inquireDemandDepositAccountBalance")
+                                    .institutionTransactionUniqueNo(formattedDateTime2.get("date") + formattedDateTime2.get("time") + RandomNumberGenerator.generateRandomNumber())
+                                    .apiKey(ssafyFinanceApiKey)
+                                    .userKey(userKey)
+                                    .build();
+
+                            // body 만들기
+                            Map<String, Object> body2 = new HashMap<>();
+                            body2.put("Header", header2);
+                            try {
+                                body2.put("accountNo", AESUtil.decrypt(account.getEncryptedAccountNo(), encryptionKey));
+                            } catch(Exception e) {
+                                throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "TransactionService - 001");
+                            }
+
+                            // 요청보낼 http entity 만들기
+                            HttpEntity<Map<String, Object>> httpEntity2 = new HttpEntity<>(body2);
+
+                            // 요청 보내기
+                            ResponseEntity<SSAFYGetAccountBalanceResponseDto> httpResponse2 = restTemplate.exchange(
+                                    url2,
+                                    HttpMethod.POST,
+                                    httpEntity2,
+                                    SSAFYGetAccountBalanceResponseDto.class
+                            );
+
+                            // account 필드들 최신화
+                            account.updateLastSyncedAt(LocalDateTime.now());
+                            account.updateBalance(httpResponse2.getBody().getREC().getAccountBalance());
+
+                            // lastSyncedDate 변수 최신화
+                            lastSyncedDate = formattedDateTime.get("date");
+
+                            // 위에서 만든 notification 푸시알림 보내기
+                            targetFcmToken = pushEndpointRepository.findByUser(user).orElseThrow(() -> new AppException(ErrorCode.MISSING_PUSH_ENDPOINT, "TransactionService - 000")).getToken();
+                            fcmService.sendMessage(targetFcmToken, notification.getTitle(), notification.getBody());
+
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * ChatGPT API 연결해서 단건 결제처에 대하여 슬롯 추천받는 메서드
+     */
+    private AccountSlot recommendSlotFromGPT(Account account, String merchantName) {
+        // gpt한테 요청보내기
+        // SSAFY GMS >>>>> gpt-5-nano
+        // body 만들기
+        // body > messages
+        List<ChatGPTRequestDto.Message> messages = new ArrayList<>();
+
+        ChatGPTRequestDto.Message message1 = ChatGPTRequestDto.Message.builder()
+                .role("developer")
+                .content("""
+                        너는 대한민국의 어느 가맹점 이름을 보고 이게 어느 업종일지 추측하는 엔진 역할을 해.
+                        나는 우리 서비스에서 제공하는 슬롯 리스트를 JSON 형태로 제공할거야. 거래처가 어느 업종일지는 이 슬롯 리스트 중에서 가장 가까워 보이는 걸로 추측해주면 돼. 절대 이 슬롯 리스트에 없는 업종으로 추측하면 안돼. 꼭 이 슬롯 리스트 중에서 가장 적절해 보이는 걸로 골라야 해.
+                        """)
+                .build();
+        messages.add(message1);
+
+        // gpt한테 보내기 위해 이 계좌 slot 전체조회
+        List<AccountSlot> accountSlots = accountSlotRepository.findByAccount(account);
+
+        // 계좌 슬롯 담을 Dto 리스트
+        List<AccountSlotDto> accountSlotDtos = new ArrayList<>();
+        for(AccountSlot accountSlot : accountSlots){
+
+            ChatGPTRequestDto.AccountSlotDto accountSlotDto = ChatGPTRequestDto.AccountSlotDto.builder()
+                    .slotName(accountSlot.getSlot().getName())
+                    .alias(accountSlot.getCustomName())
+                    .build();
+
+            accountSlotDtos.add(accountSlotDto);
+        }
+
+        // gpt한테 보내기 위해 accountSlotDtos를 json으로 직렬화
+        ObjectMapper objectMapper = new ObjectMapper();
+        String accountSlotsData = null;
+        try {
+            accountSlotsData = objectMapper.writeValueAsString(accountSlotDtos);
+        } catch(Exception e) {
+            e.printStackTrace();
+            throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "TransactionService - 025");
+        }
+
+        // user 프롬프트 만들기
+        String userPrompt = String.format("""
+        [요구사항]
+        1. 내가 제공한 가맹점 이름은 대한민국에 있는 한 가맹점의 이름이야.
+        2. 이 가맹점이 내가 제공한 슬롯 리스트 중 어디에 가장 적절한지 딱 1개만 추천해줘.
+        3. 답변은 인사말이나 다른 말 절대 덧붙이지 말고 딱 내가 보여준 반환 데이터 예시처럼 JSON 형태로만 해.
+        4. 참고로, 나는 핀테크 서비스를 운영 중이야. 우리는 사용자가 마이데이터로 계좌를 연동하면, 해당 계좌에서 결제가 발생하면 그걸 감지해서 해당 결제의 결제처에 가장 적절한 슬롯에서 그 지출금액을 차감시켜주는 기능을 구현하고 있어. 우리가 미리 준비해둔 가맹점 DB에 존재하는 가맹점이면 거기에서 매핑되는 슬롯에서 금액을 차감시켜 주는데, 없는 가맹점이라면 ChatGPT에게 추천받아서 그걸 사용자에게 추천할거야.
+        
+        [입력 데이터]
+        "merchantName" : %s,
+        
+        [슬롯 리스트]
+        "slots": "%s"
+        
+        [반환 데이터 예시]
+        {
+            "recommendedSlot": {
+                "name": "식비"
+            }
+        }
+        """,
+                merchantName, accountSlotsData
+        );
+
+        ChatGPTRequestDto.Message message2 = ChatGPTRequestDto.Message.builder()
+                .role("user")
+                .content(userPrompt)
+                .build();
+        messages.add(message2);
+
+        ChatGPTRequestDto body = ChatGPTRequestDto.builder()
+                .model("gpt-5-nano")
+                .messages(messages)
+                .build();
+
+        // 요청보내기
+        ChatGPTResponseDto httpResponse = callGMS(body);
+
+        // gpt로부터 받은 응답 역직렬화
+        JsonNode node;
+        ChatGPTResponseDto.RecommendedSlotDto recommendedSlot;
+        try {
+            node = objectMapper.readTree(httpResponse.getChoices().get(0).getMessage().getContent());
+            JsonNode slotsNode = node.get("recommendedSlot");
+
+            recommendedSlot = objectMapper.readValue(
+                    slotsNode.toString(),
+                    new TypeReference<ChatGPTResponseDto.RecommendedSlotDto>(){}
+            );
+        } catch(Exception e) {
+            throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "[SlotService - 026]");
+        }
+
+        // 추천받은 슬롯 이름
+        String recommendedSlotName = recommendedSlot.getName();
+
+        // 슬롯 객체 조회
+        Slot slot = slotRepository.findByName(recommendedSlotName);
+        AccountSlot accountSlot = accountSlotRepository.findByAccountAndSlot(account, slot).orElse(null);
+
+        return accountSlot;
+    }
+
+    // ChatGPT 호출할 때 쓸 메서드
+    private ChatGPTResponseDto callGMS(ChatGPTRequestDto body) {
+        return ssafyGmsWebClient.post()
+                .uri("/chat/completions")
+                .bodyValue(body)
+                .retrieve()
+                .bodyToMono(ChatGPTResponseDto.class)
+                .block();
+    }
+
+
 }

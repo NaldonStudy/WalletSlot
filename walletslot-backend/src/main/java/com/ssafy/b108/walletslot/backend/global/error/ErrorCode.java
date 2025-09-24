@@ -20,6 +20,7 @@ public enum ErrorCode {
     // Slot
     ALLOCATABLE_BUDGET_EXCEEDED("할당 가능한 예산을 초과했습니다.", HttpStatus.UNPROCESSABLE_ENTITY),
     THRIFT_BUDGET_EXCEEDED("지난 달에 절약한 금액 한도 내에서만 다음달 슬롯 예산을 늘릴 수 있습니다.", HttpStatus.UNPROCESSABLE_ENTITY),
+    MISSING_UNCATEGORIZED_SLOT("미분류 슬롯이 존재하지 않습니다. 미분류 슬롯을 개설 후 다시 시도해주세요.", HttpStatus.UNPROCESSABLE_ENTITY),
 
     // User
     LOGIN_FAILED("로그인에 실패했습니다.", HttpStatus.BAD_REQUEST),
@@ -33,7 +34,9 @@ public enum ErrorCode {
     TOKEN_INVALID("유효하지 않은 액세스 토큰입니다.", HttpStatus.UNAUTHORIZED),
 
     // Transaction
-    INVALID_SPLIT_AMOUNT("나눈 금액들의 합이 원래 금액과 일치하지 않습니다.", HttpStatus.BAD_REQUEST);
+    INVALID_SPLIT_AMOUNT("나눈 금액들의 합이 원래 금액과 일치하지 않습니다.", HttpStatus.BAD_REQUEST),
+    MISSING_PUSH_ENDPOINT("Push Endpoint 기기가 등록돼있지 않은 사용자가 존재합니다.", HttpStatus.INTERNAL_SERVER_ERROR),
+    MISSING_FCM_TOKEN("FCM 토큰이 등록돼있지 않은 사용자가 존재합니다.", HttpStatus.INTERNAL_SERVER_ERROR);
 
     private final String message;
     private final HttpStatus status;

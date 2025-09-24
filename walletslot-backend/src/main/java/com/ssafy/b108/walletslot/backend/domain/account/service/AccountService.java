@@ -41,13 +41,9 @@ public class AccountService {
     private final AccountRepository accountRepository;
     private final UserRepository userRepository;
     private final BankRepository bankRepository;
-    private final EmailRepository emailRepository;
 
     @Value("${api.ssafy.finance.apiKey}")
     private String ssafyFinanceApiKey;
-
-    @Value("${api.ssafy.finance.userKey}")
-    private String ssafyFinanceUserKey; // 혹시 몰라서 살려둠
 
     private final SecretKey encryptionKey;
     private final RestTemplate restTemplate;

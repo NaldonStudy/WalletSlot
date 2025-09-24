@@ -18,4 +18,12 @@ public class WebClientConfig {
                 .defaultHeader(HttpHeaders.AUTHORIZATION, "Bearer " + ssafyGmsKey)
                 .build();
     }
+
+    @Bean
+    public WebClient fcmWebClient(@Value("${fcm.server.project-id}") String projectId) {
+        return WebClient.builder()
+                .baseUrl("https://fcm.googleapis.com/v1/projects/" + projectId + "/messages:send")
+                .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                .build();
+    }
 }

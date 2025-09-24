@@ -1,5 +1,6 @@
 package com.ssafy.b108.walletslot.backend.domain.slot.repository;
 
+import com.ssafy.b108.walletslot.backend.domain.account.entity.Account;
 import com.ssafy.b108.walletslot.backend.domain.slot.entity.Slot;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
