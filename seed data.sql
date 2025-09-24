@@ -25,7 +25,7 @@ SET FOREIGN_KEY_CHECKS = 1;
 INSERT INTO `user` (id, uuid, name, user_key, phone_number, gender, birth_date, base_day, job)
 VALUES
 (1, UUID(), '전해지', 'd022c753-e3f0-4d58-a405-ee8a058fd199', '01012345678', 'FEMALE', '2000-02-24 00:00:00', 26, 'STUDENT'),
-(2, UUID(), '김영희', 'e733b8b5-1a2f-4b88-b3b3-2e8a0c28d111', '01098765432', 'FEMALE', '1998-07-15 00:00:00', 17, 'OFFICE_WORKER');
+(2, UUID(), '김영희', 'e251137a-6b9c-4c87-8516-0f9a1ff1f96e', '01098765432', 'FEMALE', '1998-07-15 00:00:00', 17, 'OFFICE_WORKER');
 
 -- PEPPER_KEYS
 INSERT INTO `pepper_keys` (id, key_alias, status)
@@ -64,9 +64,13 @@ VALUES
 -- ACCOUNT
 INSERT INTO `account` (id, uuid, user_id, bank_id, alias, encrypted_account_no, balance, is_primary)
 VALUES
-(1, UUID(), 1, 3, NULL, 'BEblrFzS1Bw8CjTFwO3LDQ==', 5000000, TRUE),
-(2, UUID(), 1, 4, '비상금통장', 'Bv/MvZaXq/O/XObHTutrOw==', 2000000, FALSE),
-(3, UUID(), 2, 5, NULL, 'M3MSb/198l1CldcxjmiWKA==', 1000000, TRUE);
+(1, UUID(), 1, 3, NULL, 'XBaVgD2G8YWC6otR70CIB+QEUyihPrjpOEKmwzPhgco=', 5000000, TRUE),
+(2, UUID(), 1, 4, '비상금통장', '+XuHwQ48eiy4J3rSoCToieQEUyihPrjpOEKmwzPhgco=', 2000000, FALSE),
+(3, UUID(), 1, 5, NULL, 'iNmlCNGeZOAHc7k6ar6PFOQEUyihPrjpOEKmwzPhgco=', 1000000, TRUE),
+(4, UUID(), 1, 5, NULL, '3zkMX7fMlQXCAsR/mEnkR+QEUyihPrjpOEKmwzPhgco=', 1000000, TRUE),
+(5, UUID(), 1, 5, NULL, 'FqNF3m7Kc6hNMZ5c+22vkuQEUyihPrjpOEKmwzPhgco=', 1000000, TRUE),
+(6, UUID(), 1, 5, NULL, 'tSlPBJlPzR182rcfPeGQleQEUyihPrjpOEKmwzPhgco=', 1000000, TRUE),
+(7, UUID(), 1, 5, NULL, 'E6QSXu7oSvcgX3wr8U8wKuQEUyihPrjpOEKmwzPhgco=', 1000000, TRUE);
 
 SET @OLD_SQL_MODE := @@sql_mode;
 SET sql_mode = CONCAT(@@sql_mode, IF(@@sql_mode='', '', ','), 'NO_AUTO_VALUE_ON_ZERO');
@@ -183,7 +187,7 @@ VALUES
 (2, 2, 'device-5678', 'IOS', 'fcm_token_def456', 'ACTIVE', TRUE);
 
 -- NOTIFICATION  (ENUM: SYSTEM, DEVICE, BUDGET, TRANSACTION, MARKETING)
-INSERT INTO `notification` (id, uuid, user_id, title, content, is_delivered, delivered_at, is_read, read_at, type)
+INSERT INTO `notification` (id, uuid, user_id, title, body, is_delivered, delivered_at, is_read, read_at, type)
 VALUES
 (1, UUID(), 1, '예산 초과 알림', '식비 예산을 초과했습니다.', TRUE, '2025-09-20 15:00:03', FALSE, NULL, 'BUDGET'),
 (2, UUID(), 2, '로그인 알림', '새로운 기기에서 로그인되었습니다.', TRUE, '2025-09-20 14:02:15', FALSE, NULL, 'DEVICE');

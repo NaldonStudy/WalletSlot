@@ -26,4 +26,6 @@ public interface EmailRepository extends JpaRepository<Email, Long> {
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("update Email e set e.primary = false where e.user = :user and e.primary = true")
     int clearPrimary(User user);
+
+    Optional<Email> findByUser(User user);
 }
