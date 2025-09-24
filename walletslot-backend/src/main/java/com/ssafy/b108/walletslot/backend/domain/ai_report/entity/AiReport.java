@@ -1,10 +1,11 @@
-package com.ssafy.b108.walletslot.backend.domain.ai_report;
+package com.ssafy.b108.walletslot.backend.domain.ai_report.entity;
 
 import com.ssafy.b108.walletslot.backend.domain.account.entity.Account;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.Type;
 import io.hypersistence.utils.hibernate.type.json.JsonType;
+import com.fasterxml.jackson.databind.JsonNode;
 
 import java.time.LocalDateTime;
 import java.util.Map;
@@ -12,20 +13,19 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "ai_report")
-@Getter @Setter
+@Getter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
 public class AiReport {
 
-    // Field
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, unique = true, length = 64)
+    @Column(nullable = false, length = 64)
     @Builder.Default
-    private String uuid =  UUID.randomUUID().toString();
+    private String uuid = UUID.randomUUID().toString();
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "account_id", nullable = false)
@@ -33,8 +33,17 @@ public class AiReport {
 
     @Type(JsonType.class)
     @Column(columnDefinition = "json", nullable = false)
-    private Map<String, Object> content;
+    private JsonNode content;   // ✅ JsonNode로 변경
 
-    @Column(nullable = false, insertable = false, updatable = false)
+
+    @Column(name = "created_at", nullable = false, insertable = false, updatable = false)
     private LocalDateTime createdAt;
+
+    // 안전장치: 빌더 외 경로로 persist될 때 uuid가 null인 경우 대비
+    @PrePersist
+    private void ensureUuid() {
+        if (this.uuid == null || this.uuid.isBlank()) {
+            this.uuid = UUID.randomUUID().toString();
+        }
+    }
 }

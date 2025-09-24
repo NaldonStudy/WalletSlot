@@ -192,7 +192,7 @@ public class SlotService {
             if(exceededBudget < 0L) {
                 exceededBudget = 0L;    // exceededBudget이 음수라면 0으로 처리
             }
-            
+
             GetAccountSlotListResponseDto.SlotDto slotDto = GetAccountSlotListResponseDto.SlotDto.builder()
                     .slotId(slot.getUuid())
                     .name(slot.getName())
@@ -316,14 +316,14 @@ public class SlotService {
         } catch(Exception e) {
             throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "[SlotService - 024]");
         }
-        
+
         Map<String, String> date = LocalDateTimeFormatter.fomatterWithMonthsAgo(period);
         System.out.println("dateWithMonthsAgo:" + date.get("dateMonthsAgo"));
         body1.put("startDate", date.get("dateMonthsAgo"));
         body1.put("endDate", date.get("date"));
         body1.put("transactionType", "D");
         body1.put("orderByType", "ASC");
-        
+
         // 요청보낼 http entity 만들기
         HttpEntity<Map<String, Object>> httpEntity1 = new HttpEntity<>(body1);
 
@@ -358,7 +358,7 @@ public class SlotService {
             e.printStackTrace();
             throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "SlotService - 025");
         }
-        
+
         // gpt한테 요청보내기
         // SSAFY GMS >>>>> gpt-5-nano
         // body 만들기
@@ -526,7 +526,7 @@ public class SlotService {
         List<AccountSlot> accountSlotList = account.getAccountSlots();
         Set<String> slotUuidList = new HashSet<>();
         for(AccountSlot accountSlot : accountSlotList){
-           slotUuidList.add(accountSlot.getSlot().getUuid());
+            slotUuidList.add(accountSlot.getSlot().getUuid());
         }
 
         // accountSlotList.size() == 0 이면 최초 슬롯등록 / > 0 이면 슬롯추가

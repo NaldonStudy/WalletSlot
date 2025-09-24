@@ -13,4 +13,9 @@ public interface AccountRepository extends JpaRepository<Account, Long> {
     Optional<Account> findByUserAndIsPrimaryTrue(User user);
     Optional<Account> findByUuid(String uuid);
     void deleteByUuid(String uuid);
+
+    Optional<Account> findByUserIdAndUuid(Long userId, String uuid);
+
+    // 권한 체크 등에 유용 (선택)
+    boolean existsByUuidAndUser_Id(String uuid, Long userId);
 }

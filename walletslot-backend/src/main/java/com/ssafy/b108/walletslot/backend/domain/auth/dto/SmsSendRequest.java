@@ -13,7 +13,11 @@ public class SmsSendRequest {
     @NotBlank
     private String phone;
 
-    @Schema(description = "LOGIN / DEVICE_VERIFY / PIN_RESET", example = "LOGIN")
+    @Schema(
+            description = "인증 목적 ENUM",
+            example = "LOGIN",
+            allowableValues = {"LOGIN", "DEVICE_VERIFY", "PIN_RESET", "SIGNUP"}
+    )
     @NotBlank
     private String purpose;
 

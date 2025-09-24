@@ -4,42 +4,66 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.*;
 import lombok.*;
 
-@Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
+@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class SignupRequest {
+
+    @Schema(example = "김싸피")
     @NotBlank
     private String name;
 
+    @Schema(example = "01012345678")
     @NotBlank
     private String phone;
 
+    @Schema(
+            description = "성별 ENUM",
+            example = "MAN",
+            allowableValues = {"FEMALE", "MAN"}
+    )
     @NotBlank
-    @Schema(example = "MAN")
-    private String gender; // FEMALE / MAN
+    private String gender;
 
+    @Schema(description = "yyyy-MM-dd", example = "1999-09-09")
     @NotBlank
-    @Schema(example = "1999-09-09")
-    private String birthDate; // yyyy-MM-dd
+    private String birthDate;
 
+    @Schema(description = "SIGNUP 검증 후 발급된 티켓", example = "3af3-....")
     @NotBlank
-    @Schema(description = "POST /api/auth/sms/verify-signup 에서 발급된 티켓")
     private String signupTicket;
 
-    @Pattern(regexp = "^[0-9]{4}$")
+    @Schema(description = "숫자 4자리", example = "1234")
+    @NotBlank
     private String pin;
 
-    @Min(1)
-    @Max(28)
+    @Schema(description = "1~28 사이 권장", example = "10")
+    @Min(1) @Max(28)
     private Integer baseDay;
 
-    private String job; // ENUM 문자열
+    @Schema(
+            description = "직업 ENUM",
+            example = "OFFICE_WORKER",
+            allowableValues = {
+                    "STUDENT","HOMEMAKER","OFFICE_WORKER","SOLDIER",
+                    "SELF_EMPLOYED","FREELANCER","UNEMPLOYED","OTHER"
+            }
+    )
+    private String job;
 
+    @Schema(example = "A1B2C3D4")
     @NotBlank
     private String deviceId;
-    private String platform; // ANDROID/IOS (선택)
-    private String pushToken; // (선택)
-    private Boolean pushEnabled; // (선택)
+
+    @Schema(
+            description = "플랫폼 ENUM",
+            example = "ANDROID",
+            allowableValues = {"ANDROID","IOS"} // 필요 시 WEB 추가
+    )
+    @NotBlank
+    private String platform;
+
+    @Schema(description = "FCM 토큰 등", example = "fcm-xxx")
+    private String pushToken;
+
+    @Schema(description = "푸시 허용 여부", example = "true", defaultValue = "true")
+    private Boolean pushEnabled;
 }
