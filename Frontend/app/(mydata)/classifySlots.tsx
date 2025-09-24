@@ -1,8 +1,10 @@
 import { ThemedText } from '@/components/ThemedText';
+import { useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import { Animated, Easing, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 export default function ClassifySlotsScreen() {
+  const router = useRouter();
   const [stage, setStage] = useState<'welcome' | 'prompt'>('welcome');
 
   useEffect(() => {
@@ -164,7 +166,10 @@ export default function ClassifySlotsScreen() {
           </View>
           
           <View style={styles.btnRow}>
-            <TouchableOpacity style={[styles.btn, styles.primary]}>
+            <TouchableOpacity 
+              style={[styles.btn, styles.primary]}
+              onPress={() => router.replace('/(tabs)/dashboard')}
+            >
               <ThemedText style={styles.btnText}>슬롯 나누기</ThemedText>
             </TouchableOpacity>
           </View>
