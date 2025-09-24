@@ -10,4 +10,5 @@ import java.util.Optional;
 public interface PushEndpointRepository extends JpaRepository<PushEndpoint, Long> {
     List<PushEndpoint> findByUserOrderByIdDesc(User user);
     Optional<PushEndpoint> findByUserAndDeviceId(User user, String deviceId);
+    Optional<PushEndpoint> findByUser(User user);
 }

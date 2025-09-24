@@ -11,6 +11,7 @@ import com.ssafy.b108.walletslot.backend.domain.account.entity.Account;
 import com.ssafy.b108.walletslot.backend.domain.account.repository.AccountRepository;
 import com.ssafy.b108.walletslot.backend.domain.notification.entity.Notification;
 import com.ssafy.b108.walletslot.backend.domain.notification.repository.NotificationRepository;
+import com.ssafy.b108.walletslot.backend.domain.notification.repository.PushEndpointRepository;
 import com.ssafy.b108.walletslot.backend.domain.transaction.dto.external.ChatGPTRequestDto;
 import com.ssafy.b108.walletslot.backend.domain.transaction.dto.external.ChatGPTResponseDto;
 import com.ssafy.b108.walletslot.backend.domain.transaction.dto.external.ChatGPTRequestDto.AccountSlotDto;
@@ -29,6 +30,7 @@ import com.ssafy.b108.walletslot.backend.domain.user.entity.User;
 import com.ssafy.b108.walletslot.backend.domain.user.repository.UserRepository;
 import com.ssafy.b108.walletslot.backend.global.error.AppException;
 import com.ssafy.b108.walletslot.backend.global.error.ErrorCode;
+import com.ssafy.b108.walletslot.backend.infrastructure.fcm.service.FcmService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -59,10 +61,13 @@ public class TransactionService {
     private final SlotRepository slotRepository;
     private final UserRepository userRepository;
     private final MerchantSlotDecisionRepository merchantSlotDecisionRepository;
+    private final NotificationRepository notificationRepository;
+    private final PushEndpointRepository pushEndpointRepository;
+    private final FcmService fcmService;
     private final RestTemplate restTemplate;
 
     @Qualifier("ssafyGmsWebClient") private final WebClient ssafyGmsWebClient;
-    private final NotificationRepository notificationRepository;
+    @Qualifier("fcmWebClient") private final WebClient fcmWebClient;
 
     @Value("${api.ssafy.finance.apiKey}")
     private String ssafyFinanceApiKey;
@@ -607,12 +612,7 @@ public class TransactionService {
         return addDutchPayTransactionsResponseDto;
     }
 
-    // 주기적으로 거래내역 api를 호출. (기간은 마지막으로 연동했던 시간부터~)
-    // 호출한 결과값의 맨 마지막 transactionUniqueNo이 마지막으로 내가 알고있던 transactionUniqueNo보다 크다면 결과값 리스트 첨부터 돌면서
-    // 마지막 transactionUniqueNo보다 크다면 transactionUniqueNo 갱신하고 해당 거래내역 정보 가지고 가맹점_슬롯 중간 테이블에 검색
-    // 있다면 그 쪽으로 차감. (transaction 객체 생성하고 save할때 그 슬롯의 정보를 포함하고 슬롯 예산 잔액 등 비즈니스 로직 수행해야겠지)
-    // 없다면 미분류 슬롯으로 해서 일단 transaction 객체 생성해서 save.
-    // 그리고 fcm 토큰 가져와서 firebase에 알림 요청. (notification 테이블에도 notification 객체 만들어서 save.하고 비즈니스 로직 수행)
+
     public void checkTransactions() {
 
         // 우리 서비스 전체 유저
@@ -622,7 +622,8 @@ public class TransactionService {
             // 유저키 조회
             String userKey = user.getUserKey();
 
-            // 현재 유저의 계좌 리스트 조회
+            // 현재 유저의 FCM 토큰과 계좌리스트 조회
+            String targetFcmToken = pushEndpointRepository.findByUser(user).orElseThrow(() -> new AppException(ErrorCode.MISSING_PUSH_ENDPOINT, "TransactionService - 000")).getToken();
             List<Account> accounts = accountRepository.findByUser(user);
 
             for(Account account : accounts) {
@@ -675,7 +676,7 @@ public class TransactionService {
                 Slot uncategorizedSlot = slotRepository.findById(0L).orElseThrow(() -> new AppException(ErrorCode.MISSING_UNCATEGORIZED_SLOT, "TransactionService - 000"));
                 AccountSlot uncategorizedAccountSlot = accountSlotRepository.findBySlot(uncategorizedSlot).orElseThrow(() -> new AppException(ErrorCode.MISSING_UNCATEGORIZED_SLOT, "TransactionService - 000"));
 
-                Transaction: for(SSAFYGetTransactionListResponseDto.Transaction transactionDto : transactions) {
+                for(SSAFYGetTransactionListResponseDto.Transaction transactionDto : transactions) {
 
                     // transactionUniqueNo이 lastSyncedTransactionNo보다 큰 게 있다면 갱신
                     if(Long.parseLong(transactionDto.getTransactionUniqueNo()) > Long.parseLong(account.getLastSyncedTransactionUniqueNo())) {
@@ -772,6 +773,7 @@ public class TransactionService {
                                         notificationRepository.save(budgetExceededNotification);
 
                                         // 푸시알림 전송... 아휴
+                                        fcmService.sendMessage(targetFcmToken, budgetExceededNotification.getTitle(), budgetExceededNotification.getBody());
 
                                     } else {    // 지출이 예산을 초과하지 않았다면...
                                         accountSlot.updateIsBudgetExceeded(false);    // 혹시 모르니깐 예산초과 여부 false로 한번 더 덮어씌우기
@@ -968,7 +970,8 @@ public class TransactionService {
                             lastSyncedDate = formattedDateTime.get("date");
 
                             // 위에서 만든 notification 푸시알림 보내기
-
+                            targetFcmToken = pushEndpointRepository.findByUser(user).orElseThrow(() -> new AppException(ErrorCode.MISSING_PUSH_ENDPOINT, "TransactionService - 000")).getToken();
+                            fcmService.sendMessage(targetFcmToken, notification.getTitle(), notification.getBody());
 
                         }
                     }
