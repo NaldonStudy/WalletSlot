@@ -1,14 +1,12 @@
 export interface UserAccount {
+    accountId: string;
     bankCode: string;
     bankName: string;
-    accountId: string;
-    accountAlias: string;
     accountNo: string;
-    accountFormat: number[];
-    balance: number;
+    alias: string;
+    accountBalance: number;
 }
 
 export interface AccountsResponse {
     accounts: UserAccount[];
 }
-  

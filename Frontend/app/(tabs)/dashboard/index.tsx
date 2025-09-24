@@ -14,9 +14,7 @@ import AccountCarousel from '@/src/components/account/AccountCarousel';
 import { UncategorizedSlotCard } from '@/src/components/slot/UncategorizedSlotCard';
 import SlotList from '@/src/components/slot/SlotList';
 import { useAccountBalance } from '@/src/hooks';
-
-// 상수 정의
-const UNCATEGORIZED_SLOT_ID = "25"; // 미분류 슬롯 ID
+import { UNCATEGORIZED_SLOT_ID } from '@/src/constants/slots';
 
 // 헤더 컴포넌트 분리 (메모이제이션)
 const DashboardHeader = memo(({ userData, theme }: { userData: any, theme: any }) => (
@@ -83,20 +81,20 @@ export default function DashboardScreen() {
   // 슬롯 데이터를 일반 슬롯과 미분류 슬롯으로 분리
   const currentAccountSlots = allSlots.filter(slot => slot.slotId !== UNCATEGORIZED_SLOT_ID);
   const uncategorizedSlot = allSlots.find(slot => slot.slotId === UNCATEGORIZED_SLOT_ID);
-  const uncategorizedAmount = uncategorizedSlot?.remaining || 0;
+  const uncategorizedAmount = uncategorizedSlot?.remainingBudget || 0;
   
   // AccountSummary용 데이터 (UserAccount 직접 사용)
   const currentAccountForSummary: UserAccount | undefined = currentAccount ? {
     ...currentAccount,
-    balance: realtimeBalance ?? currentAccount.balance, // 실시간 잔액 우선, 없으면 초기 잔액
+    accountBalance: realtimeBalance ?? currentAccount.accountBalance, // 실시간 잔액 우선, 없으면 초기 잔액
   } : undefined;
   
   // AccountCarousel용 데이터 변환 (React Query가 자동으로 최신 잔액 관리)
   const linkedAccountsForCarousel = rawAccounts.map((account: UserAccount) => ({
     bankCode: account.bankCode as keyof typeof BANK_CODES,
-    accountName: account.accountAlias || account.bankName,
+    accountName: account.alias || account.bankName,
     accountNumber: account.accountNo,
-    balance: account.balance, // React Query가 자동으로 최신 잔액으로 업데이트
+    balance: account.accountBalance, // 이미 숫자 타입이므로 그대로 사용
   }));
   
 

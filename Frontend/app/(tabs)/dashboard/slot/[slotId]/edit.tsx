@@ -9,6 +9,7 @@ import { useSlots } from '@/src/hooks/slots/useSlots';
 import EditSlotItem from '@/src/components/slot/EditSlotItem';
 import SavingSlotWarningModal from '@/src/components/modal/SavingSlotWarningModal';
 import UncategorizedSlotWarningModal from '@/src/components/modal/UncategorizedSlotWarningModal';
+import { UNCATEGORIZED_SLOT_ID, SLOT_CATEGORIES } from '@/src/constants/slots';
 
 
 export default function EditSlotScreen() {
@@ -41,7 +42,7 @@ export default function EditSlotScreen() {
       setShowSavingWarningModal(true);
     } 
     // 미분류 슬롯인지 확인
-    else if (slotId === "25") {
+    else if (slotId === UNCATEGORIZED_SLOT_ID) {
       setPendingSlotId(slotId);
       setShowUncategorizedWarningModal(true);
     } 
@@ -58,9 +59,9 @@ export default function EditSlotScreen() {
       pathname: `/dashboard/slot/${selectedSlot?.slotId}/transfer` as any,
       params: {
         fromSlotId: slotId,
-        fromSlotName: selectedSlotInfo?.slotName || '',
-        fromSlotBudget: selectedSlotInfo?.budget?.toString() || '0',
-        fromSlotRemaining: selectedSlotInfo?.remaining?.toString() || '0',
+        fromSlotName: selectedSlotInfo?.name || '',
+        fromSlotBudget: selectedSlotInfo?.currentBudget?.toString() || '0',
+        fromSlotRemaining: selectedSlotInfo?.remainingBudget?.toString() || '0',
       }
     });
   };
@@ -123,10 +124,10 @@ export default function EditSlotScreen() {
         {/* 현재 슬롯 정보 */}
         <View style={styles.currentSlotSection}>
           <EditSlotItem
-            icon={selectedSlot.slotIcon}
-            slotName={selectedSlot.slotName}
-            budget={selectedSlot.budget}
-            remaining={selectedSlot.remaining}
+            icon={SLOT_CATEGORIES[selectedSlot.slotId as keyof typeof SLOT_CATEGORIES]?.icon}
+            slotName={selectedSlot.name}
+            budget={selectedSlot.currentBudget}
+            remaining={selectedSlot.remainingBudget}
           />
         </View>
 
@@ -139,10 +140,10 @@ export default function EditSlotScreen() {
           {otherSlots.map((slot) => (
             <EditSlotItem
               key={slot.slotId}
-              icon={slot.slotIcon}
-              slotName={slot.slotName}
-              budget={slot.budget}
-              remaining={slot.remaining}
+              icon={SLOT_CATEGORIES[slot.slotId as keyof typeof SLOT_CATEGORIES]?.icon}
+              slotName={slot.name}
+              budget={slot.currentBudget}
+              remaining={slot.remainingBudget}
               onPress={() => handleSelectSlot(slot.slotId)}
             />
           ))}
@@ -155,7 +156,7 @@ export default function EditSlotScreen() {
       {/* 저축 슬롯 경고 모달 */}
       <SavingSlotWarningModal
         visible={showSavingWarningModal}
-        slotName={otherSlots.find(slot => slot.slotId === pendingSlotId)?.slotName || ''}
+        slotName={otherSlots.find(slot => slot.slotId === pendingSlotId)?.name || ''}
         onCancel={handleSavingWarningCancel}
         onConfirm={handleSavingWarningConfirm}
         theme={theme}
@@ -164,7 +165,7 @@ export default function EditSlotScreen() {
       {/* 미분류 슬롯 경고 모달 */}
       <UncategorizedSlotWarningModal
         visible={showUncategorizedWarningModal}
-        slotName={otherSlots.find(slot => slot.slotId === pendingSlotId)?.slotName || ''}
+        slotName={otherSlots.find(slot => slot.slotId === pendingSlotId)?.name || ''}
         onCancel={handleUncategorizedWarningCancel}
         onConfirm={handleUncategorizedWarningConfirm}
         theme={theme}

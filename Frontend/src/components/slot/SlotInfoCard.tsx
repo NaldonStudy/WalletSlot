@@ -43,7 +43,7 @@ export default function SlotInfoCard({
             {isSaving ? '목표 금액' : '현재 예산'}
           </Text>
           <Text style={[styles.slotInfoValue, { color: theme.colors.text.primary }]}>
-            {currentBudget.toLocaleString()}원
+            {(currentBudget ?? 0).toLocaleString()}원
           </Text>
         </View>
         <View style={styles.slotInfoRow}>
@@ -51,7 +51,7 @@ export default function SlotInfoCard({
             현재 잔액
           </Text>
           <Text style={[styles.slotInfoValue, { color: theme.colors.text.primary }]}>
-            {currentRemaining.toLocaleString()}원
+            {(currentRemaining ?? 0).toLocaleString()}원
           </Text>
         </View>
         {showChanges && newBudget !== undefined && newRemaining !== undefined && (
@@ -70,7 +70,7 @@ export default function SlotInfoCard({
                       : theme.colors.text.primary // 변화 없으면 기본색
                 }
               ]}>
-                {newBudget.toLocaleString()}원
+                {(newBudget ?? 0).toLocaleString()}원
               </Text>
             </View>
             <View style={styles.slotInfoRow}>
@@ -87,7 +87,7 @@ export default function SlotInfoCard({
                       : theme.colors.text.primary // 변화 없으면 기본색
                 }
               ]}>
-                {newRemaining.toLocaleString()}원
+                {(newRemaining ?? 0).toLocaleString()}원
               </Text>
             </View>
           </>

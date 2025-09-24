@@ -29,6 +29,15 @@ export const queryKeys = {
     byAccount: (accountId: string) => [...queryKeys.slots.all, 'byAccount', accountId] as const,
     dailySpending: (accountId: string, slotId: string) =>
       [...queryKeys.slots.all, 'dailySpending', accountId, slotId] as const,
+    transactions: (accountId: string, accountSlotId: string, params?: any) => {
+      if (!params) return [...queryKeys.slots.all, 'transactions', accountId, accountSlotId] as const;
+      const norm: Record<string, any> = {};
+      if (params.page != null) norm.page = params.page;
+      if (params.pageSize != null) norm.pageSize = params.pageSize;
+      if (params.startDate) norm.startDate = params.startDate;
+      if (params.endDate) norm.endDate = params.endDate;
+      return [...queryKeys.slots.all, 'transactions', accountId, accountSlotId, norm] as const;
+    },
   },
 
   // 알림 관련

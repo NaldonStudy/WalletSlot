@@ -1,3 +1,4 @@
+import { SLOT_CATEGORIES } from '@/src/constants/slots';
 import { themes } from '@/src/constants/theme';
 import { SlotData } from '@/src/types';
 import React, { memo } from "react";
@@ -11,8 +12,7 @@ type AccountDonutChartProps = {
 const AccountDonutChart = memo(({ data }: AccountDonutChartProps) => {
     const colorScheme = useColorScheme() ?? 'light';
     const theme = themes[colorScheme];
-    
-    const totalBudget = data.reduce((sum, slot) => sum + slot.budget, 0);
+    const totalBudget = data.reduce((sum, slot) => sum + slot.currentBudget, 0);
     const size = 180;
     const innerRadius = 60;
     const outerRadius = 80;
@@ -37,11 +37,12 @@ const AccountDonutChart = memo(({ data }: AccountDonutChartProps) => {
      
      let currentAngle = -90; // -90도부터 시작 (12시 방향)
      const slots = data.map((slot, index) => {
-         const budgetRatio = slot.budget / totalBudget;
+         const budgetRatio = slot.currentBudget / totalBudget;
          const angle = budgetRatio * availableAngle; // 간격을 제외한 각도
-         const remainRatio = slot.budget > 0 ? slot.remaining / slot.budget : 0;
+        const remainRatio = slot.currentBudget > 0 ? slot.remainingBudget / slot.currentBudget : 0;
 
-         const isOverBudget = slot.remaining < 0;
+        const isOverBudget = slot.remainingBudget < 0;
+        const slotColor = SLOT_CATEGORIES[slot.slotId as keyof typeof SLOT_CATEGORIES]?.color || '#F1A791';
          const slotData = {
              ...slot,
              startAngle: currentAngle,
@@ -49,7 +50,7 @@ const AccountDonutChart = memo(({ data }: AccountDonutChartProps) => {
              budgetRatio,
              remainRatio,
              isOverBudget,
-             displayColor: isOverBudget ? '#FF4444' : slot.slotColor,
+             displayColor: isOverBudget ? '#FF4444' : slotColor,
          };
 
          currentAngle += angle + gapAngle; // 각도 + 간격
@@ -200,14 +201,15 @@ const AccountDonutChart = memo(({ data }: AccountDonutChartProps) => {
             {/* 범례 */}
             <View style={styles.legend}>
                 {data.map((slot) => {
-                    const remainPercentage = (slot.remaining / slot.budget * 100).toFixed(0);
-                    const isOverBudget = slot.remaining < 0;
+                    const remainPercentage = (slot.remainingBudget / slot.currentBudget * 100).toFixed(0);
+                    const isOverBudget = slot.remainingBudget < 0;
+                    const slotColor = SLOT_CATEGORIES[slot.slotId as keyof typeof SLOT_CATEGORIES]?.color || '#F1A791';
                     return (
                         <View key={slot.slotId} style={[styles.legendItem, isOverBudget && styles.legendItemOverBudget]}>
                             <View style={[
                                 styles.legendColor, 
                                 { 
-                                    backgroundColor: isOverBudget ? '#FF4444' : slot.slotColor,
+                                    backgroundColor: isOverBudget ? '#FF4444' : slotColor,
                                     borderWidth: isOverBudget ? 2 : 0,
                                     borderColor: isOverBudget ? '#CC0000' : 'transparent',
                                     shadowColor: isOverBudget ? '#FF4444' : 'transparent',
@@ -223,7 +225,7 @@ const AccountDonutChart = memo(({ data }: AccountDonutChartProps) => {
                                     fontWeight: isOverBudget ? 'bold' : 'normal',
                                 }
                             ]}>
-                                {slot.slotName} {remainPercentage}%
+                                {slot.name} {remainPercentage}%
                                 {isOverBudget && ' ⚠️'}
                             </Text>
                         </View>
@@ -239,10 +241,9 @@ const AccountDonutChart = memo(({ data }: AccountDonutChartProps) => {
     return prevProps.data.every((slot, index) => {
         const nextSlot = nextProps.data[index];
         return slot.slotId === nextSlot.slotId &&
-               slot.slotName === nextSlot.slotName &&
-               slot.budget === nextSlot.budget &&
-               slot.remaining === nextSlot.remaining &&
-               slot.slotColor === nextSlot.slotColor;
+               slot.name === nextSlot.name &&
+               slot.currentBudget === nextSlot.currentBudget &&
+               slot.remainingBudget === nextSlot.remainingBudget;
     });
 });
 

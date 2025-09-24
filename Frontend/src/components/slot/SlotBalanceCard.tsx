@@ -6,16 +6,12 @@ type SlotBalanceCardProps = {
   remaining: number;
   budget: number;
   color?: string;
-  startDate?: string;
-  endDate?: string;
 };
 
 const SlotBalanceCard: React.FC<SlotBalanceCardProps> = ({
   remaining,
   budget,
   color = "#F59E0B",
-  startDate,
-  endDate,
 }) => {
   const colorScheme = useColorScheme() ?? "light";
   const theme = themes[colorScheme];
@@ -35,16 +31,6 @@ const SlotBalanceCard: React.FC<SlotBalanceCardProps> = ({
       ]}
     >
       {/* 기간 정보 */}
-      {(startDate || endDate) && (
-        <View style={styles.periodSection}>
-          <Text style={styles.periodText}>
-            {startDate && endDate 
-              ? `${startDate} ~ ${endDate}`
-              : startDate || endDate
-            }
-          </Text>
-        </View>
-      )}
 
       <View style={styles.content}>
         <View style={styles.balanceSection}>
