@@ -7,10 +7,12 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.LocalDateTime;   // ✅ 추가
 import java.util.List;
 import java.util.Optional;
 
-public interface TransactionRepository extends JpaRepository<Transaction,Long> {
+public interface TransactionRepository extends JpaRepository<Transaction, Long> {
+
     List<Transaction> findByAccount(Account account);
     List<Transaction> findByAccountSlot(AccountSlot accountSlot);
     Optional<Transaction> findByUuid(String transactionUuid);
@@ -19,12 +21,12 @@ public interface TransactionRepository extends JpaRepository<Transaction,Long> {
            select t
            from Transaction t
            where t.account.id = :accountId
-             and t.transactionAt between :start and :end
+             and t.transactionAt between :startAt and :endAt
            order by t.transactionAt asc
            """)
     List<Transaction> findByAccountIdAndTransactionAtBetween(
             @Param("accountId") Long accountId,
-            @Param("start") String startInclusive,
-            @Param("end")   String endInclusive
+            @Param("startAt") LocalDateTime startInclusive,   // ✅ String → LocalDateTime
+            @Param("endAt")   LocalDateTime endInclusive      // ✅ String → LocalDateTime
     );
 }

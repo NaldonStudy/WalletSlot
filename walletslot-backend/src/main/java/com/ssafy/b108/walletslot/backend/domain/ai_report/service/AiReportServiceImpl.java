@@ -89,8 +89,8 @@ public class AiReportServiceImpl implements AiReportService {
         }
 
         // 거래 조회/집계
-        final List<Transaction> rangeTx = txRepo.findByAccountIdAndTransactionAtBetween(
-                account.getId(), startStr, endStr);
+        final List<Transaction> rangeTx =
+                txRepo.findByAccountIdAndTransactionAtBetween(account.getId(), start, end);
         log.debug("[AiReport - 008] fetched transactions count={}", rangeTx.size());
 
         final Map<Long, Long> spentByAsId = new HashMap<>();
@@ -105,10 +105,12 @@ public class AiReportServiceImpl implements AiReportService {
                 merchantSum.merge(t.getSummary(), nz(t.getAmount()), Long::sum);
             }
             try {
-                LocalDateTime when = LocalDateTime.parse(t.getTransactionAt(), TS);
-                int dow = when.getDayOfWeek().getValue(); // 1~7
-                dowByAsId.computeIfAbsent(asId, k -> new HashMap<>())
-                        .merge(dow, nz(t.getAmount()), Long::sum);
+                LocalDateTime when = t.getTransactionAt();
+                if (when != null) {
+                    int dow = when.getDayOfWeek().getValue(); // 1~7
+                    dowByAsId.computeIfAbsent(asId, k -> new HashMap<>())
+                            .merge(dow, nz(t.getAmount()), Long::sum);
+                }
             } catch (Exception ignore) {}
         }
 
