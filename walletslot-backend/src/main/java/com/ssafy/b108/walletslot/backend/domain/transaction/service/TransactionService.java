@@ -677,14 +677,6 @@ public class TransactionService {
                 Slot uncategorizedSlot = slotRepository.findById(0L).orElseThrow(() -> new AppException(ErrorCode.MISSING_UNCATEGORIZED_SLOT, "TransactionService - 000"));
                 AccountSlot uncategorizedAccountSlot = accountSlotRepository.findBySlot(uncategorizedSlot).orElseThrow(() -> new AppException(ErrorCode.MISSING_UNCATEGORIZED_SLOT, "TransactionService - 000"));
 
-                for(SSAFYGetTransactionListResponseDto.Transaction transactionDto : transactions) {
-                    System.out.println(transactionDto.getTransactionTypeName());
-                    System.out.println(transactionDto.getTransactionUniqueNo());
-                    System.out.println(transactionDto.getTransactionSummary());
-                    System.out.println(transactionDto.getTransactionAfterBalance());
-                    System.out.println(transactionDto.getTransactionDate());
-                }
-
                 Transaction: for(SSAFYGetTransactionListResponseDto.Transaction transactionDto : transactions) {
 
 // account.getLastSyncedTransactionUniqueNo()
