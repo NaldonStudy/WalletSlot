@@ -247,12 +247,12 @@ CREATE TABLE `notification` (
   `uuid` VARCHAR(64) NOT NULL,
   `user_id` INT UNSIGNED NOT NULL,
   `title` VARCHAR(255) NOT NULL,
-  `content` TINYTEXT,
+  `body` TINYTEXT,
   `is_delivered` BOOLEAN,
   `delivered_at` DATETIME,
   `is_read` BOOLEAN DEFAULT FALSE NOT NULL,
   `read_at` DATETIME,
-  `type` ENUM('SYSTEM','DEVICE','BUDGET','TRANSACTION','MARKETING') DEFAULT NULL,
+  `type` ENUM('SYSTEM', 'DEVICE', 'BUDGET', 'SLOT', 'UNCATEGORIZED', 'TRANSACTION', 'MARKETING') DEFAULT NULL,
   CONSTRAINT `fk_notification_user_id`
     FOREIGN KEY (`user_id`) REFERENCES `user`(`id`)
       ON DELETE CASCADE
