@@ -151,15 +151,6 @@ export const getMyDataConnections = http.get('/api/users/me/mydata/connections',
   // 삭제되지 않은 연결만 반환
   const activeConnections = mockConnections.filter(conn => conn.status !== 'deleted')
   
-  console.log('[MSW] 🏦 연결된 금융사 목록 조회 요청 받음')
-  console.log('[MSW] 🏦 전체 데이터 수:', mockConnections.length)
-  console.log('[MSW] 🏦 활성 데이터 수:', activeConnections.length)
-  console.log('[MSW] 🏦 반환할 데이터:', {
-    총연결수: activeConnections.length,
-    활성계좌: activeConnections.filter(c => c.status === 'active').length,
-    데이터샘플: activeConnections.slice(0, 2)
-  })
-  
   const responseData = {
     success: true,
     data: {
@@ -168,8 +159,6 @@ export const getMyDataConnections = http.get('/api/users/me/mydata/connections',
       activeCount: activeConnections.filter(c => c.status === 'active').length
     }
   }
-  
-  console.log('[MSW] 🏦 최종 응답 데이터:', responseData)
   
   return HttpResponse.json(responseData)
 })
