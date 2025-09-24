@@ -6,6 +6,11 @@ export const format = {
    * 숫자를 통화 형식으로 포맷팅
    */
   currency(amount: number, showUnit = true): string {
+    // NaN 체크
+    if (isNaN(amount) || amount === null || amount === undefined) {
+      return showUnit ? '0원' : '0';
+    }
+    
     const formatted = new Intl.NumberFormat('ko-KR').format(amount);
     return showUnit ? `${formatted}원` : formatted;
   },

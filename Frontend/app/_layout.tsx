@@ -14,16 +14,16 @@ import 'react-native-reanimated';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { queryClient } from '@/src/api/queryClient';
 import CustomSplashScreen from '@/src/components/CustomSplashScreen';
-import { initializeMSW } from '@/src/mocks';
+// import { initializeMSW } from '@/src/mocks';
 import { appService } from '@/src/services/appService';
 import { getOrCreateDeviceId } from '@/src/services/deviceIdService';
 import { unifiedPushService } from '@/src/services/unifiedPushService';
 // import { monitoringService } from '@/src/services';
 
-// ✅ 개발 모드에서만 MSW를 초기화합니다.
-if (__DEV__) {
-  initializeMSW();
-}
+// ✅ MSW 완전 비활성화 - 실제 API 사용
+// if (__DEV__) {
+//   initializeMSW();
+// }
 
 // 리소스(폰트, 온보딩 상태)를 가져오는 동안 스플래시 화면을 유지합니다.
 SplashScreen.preventAutoHideAsync();

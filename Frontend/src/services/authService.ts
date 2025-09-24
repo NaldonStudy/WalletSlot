@@ -71,6 +71,17 @@ export const authService = {
     // AccessToken 조회(AsyncStorage)
     async getAccessToken(): Promise<string | null> {
         try {
+            // // 개발 중 하드코딩된 토큰 사용
+            // if (__DEV__) {
+            //     // 현재 디바이스 ID 확인
+            //     const currentDeviceId = '1234';
+            //     console.log('[🔑AUTH_SERVICE] 현재 디바이스 ID:', currentDeviceId);
+                
+            //     const hardcodedToken = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxIiwidWlkIjoxLCJleHAiOjE3NTg3ODAyMDcsImlhdCI6MTc1ODY5MzgwNywiZGlkIjoiMTIzNCIsImp0aSI6ImI0NGNiZGIyLTMyZmYtNGVkZC1iOWM5LTY3NjUwMTczYmFiMiJ9.XJI_oAJaRgkjhBGPuB8rlI8OlQNBDhx_OKH76FQirR8';
+            //     console.log('[🔑AUTH_SERVICE] 개발 모드: 하드코딩된 토큰 사용');
+            //     return hardcodedToken;
+            // }
+            
             return await AsyncStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
         } catch (error) {
             console.error('[🔑AUTH_SERVICE] ❌AccessToken 조회 실패:', error);

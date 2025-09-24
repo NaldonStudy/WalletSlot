@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { accountApi, queryKeys } from "@/src/api";
 import type { UserAccount, AccountsResponse, BaseResponse } from "@/src/types";
 
@@ -10,6 +10,8 @@ type UseLinkedAccountsOptions = {
   };
 
 export const useLinkedAccounts = ({ enabled = true }: UseLinkedAccountsOptions = {}) => {
+  const queryClient = useQueryClient();
+  
   const {
     data: accounts,
     isLoading,
@@ -51,11 +53,17 @@ export const useLinkedAccounts = ({ enabled = true }: UseLinkedAccountsOptions =
     console.error('[useLinkedAccounts] 에러 발생:', error.message);
   }
 
+  // 계좌 수정 후 캐시 무효화 함수
+  const invalidateAccounts = () => {
+    queryClient.invalidateQueries({ queryKey: queryKeys.accounts.linked() });
+  };
+
   return {
     accounts: accounts || [],
     isLoading,
     isError,
     error,
     refetch,
+    invalidateAccounts, // 계좌 수정 후 호출할 함수
   };
 };

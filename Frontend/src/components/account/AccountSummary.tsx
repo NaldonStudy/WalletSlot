@@ -55,15 +55,15 @@ export const AccountSummary = memo(({ account }: AccountSummaryProps) => {
                 </View>
             </View>
             {/* 잔액 */}
-            <Text style={[styles.balance, { color: textColor.color }]}>{format.currency(account.balance)}</Text>
+            <Text style={[styles.balance, { color: textColor.color }]}>{format.currency(account.accountBalance)}</Text>
         </View>
     )
 }, (prevProps, nextProps) => {
     // 계좌 정보가 같으면 리렌더링하지 않음
     return prevProps.account.bankCode === nextProps.account.bankCode &&
-           prevProps.account.accountAlias === nextProps.account.accountAlias &&
+           prevProps.account.alias === nextProps.account.alias &&
            prevProps.account.accountNo === nextProps.account.accountNo &&
-           prevProps.account.balance === nextProps.account.balance;
+           prevProps.account.accountBalance === nextProps.account.accountBalance;
 });
 
 AccountSummary.displayName = 'AccountSummary';

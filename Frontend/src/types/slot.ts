@@ -4,12 +4,18 @@ import { ImageSourcePropType } from 'react-native';
 // 슬롯 기본 정보
 export interface SlotData {
   slotId: string;
-  slotName: string;
-  slotIcon: ImageSourcePropType;  
-  slotColor: string;
-  budget: number;
-  remaining: number;
-  isSaving?: boolean; // 저축 슬롯 여부
+  name: string;
+  accountSlotId: string;
+  customName: string;  // 사용자가 설정한 이름 -> null 이면 name 사용용
+  initialBudget: number; // 초기 예산
+  currentBudget: number; // 변경한 예산
+  spent: number; // 지출 합계
+  remainingBudget: number; // 잔액
+  exceededBudget: number; // 초과 금액
+  budgetChangeCount: number; // 예산 변경 횟수
+  isSaving: boolean; // 저축슬롯 여부
+  isCustom: boolean;
+  isBudgetExceeded: boolean; // 예산 초과 여부부
 }
 
 export interface SlotsResponse {
@@ -30,11 +36,12 @@ export interface SlotDailySpendingResponse {
 // 개별 거래내역
 export interface SlotTransaction {
   transactionId: string;
-  date: string;       // YYYY-MM-DD
+  type: string;
+  opponentAccountNo: string // 이체일때 상대방 계좌번호
+  transactionAt: string;       // YYYY-MM-DD (DateTime)
   amount: number;     // 금액 (+/-)
-  remaining: number; // 잔액
+  balance: number; // 잔액
   summary: string // 거래처
-  category?: string;   // 선택적으로 카테고리
 }
 
 export interface SlotTransactionsResponse {
