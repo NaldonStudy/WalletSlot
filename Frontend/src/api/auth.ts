@@ -6,6 +6,12 @@ import {
   AccountVerificationVerifyResponse,
   CompleteSignupRequest,
   CompleteSignupResponse,
+  LoginRequest,
+  LoginResponse,
+  RequestPinResetRequest,
+  RequestPinResetResponse,
+  ResetPinRequest,
+  ResetPinResponse,
   SmsSendRequest,
   SmsSendResponse,
   SmsVerifyRequest,
@@ -18,6 +24,14 @@ import {
  * 인증 관련 API 서비스
  */
 export const authApi = {
+  /**
+   * 로그인 (PIN 포함 전체 로그인)
+   * POST /api/auth/login/full
+   */
+  loginFull: async (data: LoginRequest): Promise<LoginResponse> => {
+    return apiClient.post('/api/auth/login/full', data);
+  },
+
   /**
    * SMS 인증코드 발송
    * POST /api/auth/sms/send
@@ -40,6 +54,22 @@ export const authApi = {
    */
   verifySms: async (data: SmsVerifyRequest): Promise<SmsVerifyResponse> => {
     return apiClient.post('/api/auth/sms/verify', data);
+  },
+
+  /**
+   * PIN 재설정
+   * POST /api/auth/password/reset
+   */
+  resetPin: async (data: ResetPinRequest): Promise<ResetPinResponse> => {
+    return apiClient.post('/api/auth/password/reset', data);
+  },
+
+  /**
+   * PIN 재설정 요청 (SMS 발송)
+   * POST /api/auth/password/reset-request
+   */
+  requestPinReset: async (data: RequestPinResetRequest): Promise<RequestPinResetResponse> => {
+    return apiClient.post('/api/auth/password/reset-request', data);
   },
   /**
    * 1원 인증 요청
@@ -66,6 +96,6 @@ export const authApi = {
    * POST /api/auth/signup
    */
   completeSignup: async (data: CompleteSignupRequest): Promise<CompleteSignupResponse> => {
-    return apiClient.post('/api/auth/signup', data);
+    return apiClient.postWithConfig('/api/auth/signup', data, { skipAuth: true, disableRetry: true });
   },
 };

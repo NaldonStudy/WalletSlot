@@ -1,6 +1,5 @@
 // ✅ 1. 폴리필을 다른 어떤 코드보다 먼저 import 합니다.
 import '@/src/polyfills';
-import AsyncStorage from '@react-native-async-storage/async-storage'; //개발 디버그 함수용
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { useFonts } from 'expo-font';
@@ -14,27 +13,40 @@ import 'react-native-reanimated';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { queryClient } from '@/src/api/queryClient';
 import CustomSplashScreen from '@/src/components/CustomSplashScreen';
-// import { initializeMSW } from '@/src/mocks';
+import { DEV_AUTH_BYPASS } from '@/src/config/devAuthBypass';
+import { initializeMSW, isMSWEnabled } from '@/src/mocks';
 import { appService } from '@/src/services/appService';
-import { getOrCreateDeviceId } from '@/src/services/deviceIdService';
-import { getAccessToken, needsRefreshSoon } from '@/src/services/tokenService';
+import { getOrCreateDeviceId, setDeviceId } from '@/src/services/deviceIdService';
+import { getAccessToken, needsRefreshSoon, saveAccessToken, saveRefreshToken } from '@/src/services/tokenService';
 import { unifiedPushService } from '@/src/services/unifiedPushService';
 import { useAuthStore } from '@/src/store/authStore';
-// import { monitoringService } from '@/src/services';
+import { useLocalUserStore } from '@/src/store/localUserStore';
 
-// ✅ MSW 완전 비활성화 - 실제 API 사용
-// if (__DEV__) {
-//   initializeMSW();
-// }
+// 개발 환경에서 MSW(mock service worker) 활성화
+if (__DEV__) {
+  try {
+    if (isMSWEnabled()) {
+      initializeMSW();
+    }
+  } catch {}
+}
 
 // 리소스(폰트, 온보딩 상태)를 가져오는 동안 스플래시 화면을 유지합니다.
 SplashScreen.preventAutoHideAsync();
 
+/**
+ * 앱의 루트 레이아웃 컴포넌트
+ * - 폰트 로딩 및 온보딩 상태 관리
+ * - 스플래시 화면 제어
+ * - 기기 ID 초기화 및 인증 토큰 선제 갱신
+ */
 export default function RootLayout() {
   const colorScheme = useColorScheme();
+  // 인증 상태
+  const isLoggedIn = useAuthStore(state => state.isLoggedIn);
+  const authLoading = useAuthStore(state => state.isLoading);
   const [loaded, error] = useFonts({
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
-    // ... (다른 폰트 추가 가능)
   });
   // 온보딩 완료 여부: 직접 AsyncStorage에서 관리
   const [onboardingDone, setOnboardingDone] = useState<boolean | null>(null);
@@ -43,105 +55,6 @@ export default function RootLayout() {
   // 커스텀 스플래시 화면 표시 여부
   const [showCustomSplash, setShowCustomSplash] = useState(true);
 
-  // 🐛 디버그용 함수: 온보딩을 다시 보기 위해 false로 설정
-  const resetOnboarding = async () => {
-    console.log('🔄 온보딩 리셋 시작');
-    await appService.setOnboardingCompleted(false);
-    setOnboardingDone(false);
-    console.log('✅ 온보딩 리셋 완료 - onboardingDone:', false);
-  };
-
-  // 🐛 디버그용 함수: 온보딩 완료 상태로 설정
-  const completeOnboarding = async () => {
-    console.log('✅ 온보딩 완료 설정');
-    await appService.setOnboardingCompleted(true);
-    setOnboardingDone(true);
-    console.log('✅ 온보딩 완료 설정됨 - onboardingDone:', true);
-  };
-
-  // 🧹 디버그용 함수: 회원가입 임시 데이터(예: 이름) 제거
-  const clearSignupName = async () => {
-    try {
-      await AsyncStorage.removeItem('signup:name');
-      console.log('🧹 signup:name cleared');
-    } catch (e) {
-      console.warn('Failed to clear signup:name', e);
-    }
-  };
-
-  // 🧨 디버그용 함수: AsyncStorage 전체 비우기 (주의)
-  const clearAsyncStorage = async () => {
-    try {
-      await AsyncStorage.clear();
-      console.log('🧨 AsyncStorage cleared');
-    } catch (e) {
-      console.warn('Failed to clear AsyncStorage', e);
-    }
-  };
-
-  // 🐛 디버그용 함수: 현재 상태 확인
-  const checkOnboardingStatus = async () => {
-    const status = await appService.getOnboardingCompleted();
-    console.log('📊 현재 온보딩 상태:', status);
-    console.log('📊 현재 onboardingDone state:', onboardingDone);
-  };
-
-  // 🐛 디버그용 함수: deviceId 상태 확인
-  const checkDeviceId = async () => {
-    try {
-      const deviceId = await getOrCreateDeviceId();
-      console.log('📱 현재 DeviceId:', deviceId);
-    } catch (error) {
-      console.error('❌ DeviceId 조회 실패:', error);
-    }
-  };
-
-  // 🔍 디버그용 함수: AsyncStorage에 저장된 모든 데이터 조회
-  const checkAllAsyncStorageData = async () => {
-    try {
-      console.log('🔍 AsyncStorage 전체 데이터 조회 시작');
-      const keys = await AsyncStorage.getAllKeys();
-      console.log('📋 저장된 키 목록:', keys);
-      
-      const allData = await AsyncStorage.multiGet(keys);
-      console.log('📊 모든 데이터:');
-      allData.forEach(([key, value]) => {
-        console.log(`  ${key}: ${value}`);
-      });
-      
-      console.log('✅ AsyncStorage 전체 데이터 조회 완료');
-    } catch (error) {
-      console.error('❌ AsyncStorage 데이터 조회 실패:', error);
-    }
-  };
-
-  // 🚀 디버그용 함수: 푸시 알림 서비스 초기화 테스트
-  const initializePushService = async () => {
-    console.log('🚀 푸시 서비스 초기화 시작');
-    try {
-      const result = await unifiedPushService.initialize();
-      console.log('✅ 푸시 서비스 초기화 결과:', result);
-      console.log('📊 푸시 서비스 상태:', unifiedPushService.getStatus());
-    } catch (error) {
-      console.error('❌ 푸시 서비스 초기화 실패:', error);
-    }
-  };
-
-
-
-  // 전역 객체에 디버그 함수 등록 (개발 환경에서만)
-  if (__DEV__) {
-    (global as any).resetOnboarding = resetOnboarding;
-    (global as any).completeOnboarding = completeOnboarding;
-    (global as any).checkOnboardingStatus = checkOnboardingStatus;
-    (global as any).checkDeviceId = checkDeviceId;
-    (global as any).checkAllAsyncStorageData = checkAllAsyncStorageData;
-    (global as any).clearSignupName = clearSignupName;
-    (global as any).clearAsyncStorage = clearAsyncStorage;
-    (global as any).initializePushService = initializePushService;
-    (global as any).getPushStatus = () => unifiedPushService.getStatus();
-  }
-  
   // Expo Router는 Error Boundary를 사용해 네비게이션 트리의 에러를 처리합니다.
   useEffect(() => {
     if (error) throw error;
@@ -151,16 +64,55 @@ export default function RootLayout() {
   useEffect(() => {
     (async () => {
       try {
-        // deviceId 초기화 (없으면 생성, 있으면 기존 값 사용)
         const deviceId = await getOrCreateDeviceId();
-        console.log('✅ DeviceId 초기화 완료:', deviceId);
-        
         // 온보딩 완료 여부 조회
         const completed = await appService.getOnboardingCompleted();
         setOnboardingDone(completed);
+        // 인증 상태 초기 확인
+        await useAuthStore.getState().checkAuthStatus();
+
+        // 개발용 로그인 바이패스
+        if (DEV_AUTH_BYPASS.enabled) {
+          try {
+            // 디바이스 ID 강제 지정 (예: 서버에 등록된 1234와 맞추기 위함)
+            if (DEV_AUTH_BYPASS.deviceIdOverride !== undefined && DEV_AUTH_BYPASS.deviceIdOverride !== null) {
+              await setDeviceId(DEV_AUTH_BYPASS.deviceIdOverride as any);
+            }
+            // 토큰 저장
+            await saveAccessToken(DEV_AUTH_BYPASS.tokens.accessToken);
+            await saveRefreshToken(DEV_AUTH_BYPASS.tokens.refreshToken);
+            // 온보딩 완료 처리
+            await appService.setOnboardingCompleted(true);
+            setOnboardingDone(true);
+            // 로컬 사용자 세팅 (localUserStore)
+            const setUser = useLocalUserStore.getState().setUser;
+            await setUser({
+              userName: DEV_AUTH_BYPASS.user.userName,
+              isPushEnabled: DEV_AUTH_BYPASS.user.isPushEnabled,
+              deviceId: (DEV_AUTH_BYPASS.deviceIdOverride as any) ?? deviceId,
+            });
+
+            // AuthService에도 LocalUser 저장하여 authStore가 로그인 상태로 인식
+            const { authService } = await import('@/src/services/authService');
+            await authService.saveUser({
+              userName: DEV_AUTH_BYPASS.user.userName,
+              isPushEnabled: DEV_AUTH_BYPASS.user.isPushEnabled,
+              deviceId: (DEV_AUTH_BYPASS.deviceIdOverride as any) ?? deviceId,
+            });
+
+            // 인증 스토어 상태 강제 갱신
+            await useAuthStore.getState().checkAuthStatus();
+            // 푸시 등록 보장
+            unifiedPushService
+              .initialize()
+              .then(() => firebasePushEnsure())
+              .catch(() => {});
+          } catch (e) {
+            console.error('[DEV_AUTH_BYPASS] 초기화 실패:', e);
+          }
+        }
       } catch (error) {
-        console.error('❌ 앱 초기화 실패:', error);
-        // deviceId 초기화 실패해도 앱은 계속 실행
+        console.error('앱 초기화 중 오류:', error);
         const completed = await appService.getOnboardingCompleted();
         setOnboardingDone(completed);
       }
@@ -198,8 +150,7 @@ export default function RootLayout() {
     (async () => {
       try {
         const { setNotificationHandler } = await import('expo-notifications');
-        
-        // 포그라운드 알림 표시 방식 설정 (iOS, Android 공통)
+        // 포그라운드 알림 표시 방식 설정
         setNotificationHandler({
           handleNotification: async () => ({
             shouldShowBanner: true,
@@ -208,52 +159,31 @@ export default function RootLayout() {
             shouldSetBadge: Platform.OS === 'ios',
           }),
         });
-        
         // 안드로이드 알림 채널 설정
         if (Platform.OS === 'android') {
           const Notifications = await import('expo-notifications');
-          
           await Notifications.setNotificationChannelAsync('default', {
             name: 'WalletSlot 알림',
             importance: Notifications.AndroidImportance.HIGH,
-            vibrationPattern: [0, 250, 250, 250],
-            sound: 'default',
-            showBadge: true,
           });
-
-          // Firebase 전용 채널
           await Notifications.setNotificationChannelAsync('firebase', {
             name: 'Firebase 푸시 알림',
             importance: Notifications.AndroidImportance.HIGH,
-            vibrationPattern: [0, 250, 250, 250],
-            sound: 'default',
-            showBadge: true,
           });
-          
-          console.log('✅ 안드로이드 알림 채널 설정 완료');
-        }
-        
-        console.log(`✅ ${Platform.OS} 알림 핸들러 설정 완료`);
-      } catch (error) {
-        console.error(`❌ ${Platform.OS} 알림 핸들러 설정 실패:`, error);
-      }
-    })();
+          // Android 알림 채널 설정 완료
+         }
+        // 알림 핸들러 설정 완료
+       } catch (error) {
+        console.error('알림 설정 중 오류:', error);
+       }
+     })();
     
-    // 푸시 서비스 자동 초기화 (온보딩 완료 후) - 주석처리
-    // 알림 동의 화면에서만 FCM 토큰을 발급하도록 변경
-    /*
+    // 푸시 서비스 자동 초기화 (온보딩 완료 후)
     if (onboardingDone) {
-      (async () => {
-        try {
-          console.log('🔄 앱 시작 시 푸시 서비스 자동 초기화');
-          const result = await unifiedPushService.initialize();
-          console.log('✅ 푸시 서비스 자동 초기화 완료:', result);
-        } catch (error) {
-          console.error('❌ 푸시 서비스 자동 초기화 실패:', error);
-        }
-      })();
+      unifiedPushService.initialize()
+        .then(result => console.log('✅ 푸시 서비스 초기화 완료:', result))
+        .catch(e => console.error('❌ 푸시 서비스 초기화 오류:', e));
     }
-    */
 
     // 선제 갱신: 앱 시작 시 1회 체크, 포그라운드 복귀 시마다 체크
     const maybeSilentRefresh = async () => {
@@ -261,10 +191,9 @@ export default function RootLayout() {
         const at = await getAccessToken();
         if (!at) return;
         if (!needsRefreshSoon(at, 90)) return;
-        console.log('🔄 AccessToken 만료 임박 → 선제 갱신 시도');
         await useAuthStore.getState().refreshAccessToken();
       } catch (e) {
-        console.log('선제 갱신 실패(무시 가능):', e);
+        console.error('토큰 선제 갱신 실패:', e);
       }
     };
 
@@ -282,13 +211,21 @@ export default function RootLayout() {
     };
   }, [onboardingDone]);
 
+  // 푸시 서버 등록 보장 헬퍼
+  const firebasePushEnsure = async () => {
+    try {
+      const { firebasePushService } = await import('@/src/services/firebasePushService');
+      await firebasePushService.ensureServerRegistration();
+    } catch {}
+  };
+
   // 커스텀 스플래시 화면 표시
   if (showCustomSplash) {
     return <CustomSplashScreen />;
   }
 
-  // 폰트 로딩 중이거나 온보딩 상태 확인 중일 때는 스플래시 화면 유지
-  if (!loaded || onboardingDone === null) {
+  // 폰트 로딩, 온보딩 상태, 또는 인증 상태 확인 중일 때 스플래시 유지
+  if (!loaded || onboardingDone === null || authLoading) {
     return <CustomSplashScreen />;
   }
 
@@ -303,7 +240,8 @@ export default function RootLayout() {
     return '(tabs)';
   };
 
-  const initialRoute = getInitialRoute();
+  // 인증된 사용자는 항상 메인으로 이동
+  const initialRoute = isLoggedIn ? '(tabs)' : getInitialRoute();
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>

@@ -30,8 +30,8 @@ export { LoadingIndicator, SimpleLoadingIndicator } from './common';
 export type { LoadingIndicatorProps } from './common';
 
 // 모달 시스템
-export { AlertDialog, AuthKeypad, AuthPinEntry, BottomSheet, CommonModal, PickerModal } from './common';
-export type { AlertDialogProps, AuthKeypadProps, AuthPinEntryProps, BottomSheetProps, CommonModalProps, PickerModalProps, PickerOption } from './common';
+export { AlertDialog, AuthKeypad, BottomSheet, CommonModal, PickerModal, PinDots } from './common';
+export type { AlertDialogProps, AuthKeypadProps, BottomSheetProps, CommonModalProps, PickerModalProps, PickerOption, PinDotsProps } from './common';
 
 // 알림 관련 컴포넌트
 export { NotificationFilters } from './NotificationFilters';
@@ -54,3 +54,4 @@ export * from './report';
 
 // 스플래시 화면 컴포넌트
 export { default as CustomSplashScreen } from './CustomSplashScreen';
+

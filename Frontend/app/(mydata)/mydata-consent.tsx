@@ -1,4 +1,5 @@
 import { ThemedText } from '@/components/ThemedText';
+import { mydataApi } from '@/src/api/mydata';
 import { useBankSelectionStore } from '@/src/store/bankSelectionStore';
 import { useLocalUserStore } from '@/src/store/localUserStore';
 import { useRouter } from 'expo-router';
@@ -23,6 +24,38 @@ export default function MyDataConsentScreen() {
 
   const [showCertModal, setShowCertModal] = useState(false);
   const [selectedCert, setSelectedCert] = useState<string | null>(null);
+  const [creatingConsent, setCreatingConsent] = useState(false);
+  const [hasActiveConsent, setHasActiveConsent] = useState<boolean | null>(null);
+
+  React.useEffect(() => {
+    let mounted = true;
+    mydataApi
+      .listConsents('ACTIVE')
+      .then(list => {
+        if (!mounted) return;
+        setHasActiveConsent(list && list.length > 0);
+      })
+      .catch(() => setHasActiveConsent(false));
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const handleProceed = async () => {
+    if (!canProceed || creatingConsent) return;
+    try {
+      setCreatingConsent(true);
+      if (!hasActiveConsent) {
+        await mydataApi.createConsent({ consentFormUuid: 'mydata-v1' });
+      }
+      setShowCertModal(true);
+    } catch (e) {
+      console.warn('[MYDATA] 동의 생성 실패', e);
+      setShowCertModal(true);
+    } finally {
+      setCreatingConsent(false);
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -52,7 +85,7 @@ export default function MyDataConsentScreen() {
             <View style={[styles.checkbox, agreeTransfer && styles.checkboxOn]}>
               {agreeTransfer && (<ThemedText style={styles.checkmark}>✓</ThemedText>)}
             </View>
-            <ThemedText style={styles.checkText}>상기 내용을 확인하였으며 '가입상품 목록' 및 '상세정보' 전송을 요구합니다.</ThemedText>
+            <ThemedText style={styles.checkText}>상기 내용을 확인하였으며 &lsquo;가입상품 목록&rsquo; 및 &lsquo;상세정보&rsquo; 전송을 요구합니다.</ThemedText>
           </TouchableOpacity>
         </View>
 
@@ -104,7 +137,7 @@ export default function MyDataConsentScreen() {
         <TouchableOpacity
           disabled={!canProceed}
           style={[styles.primaryBtn, canProceed ? styles.primaryOn : styles.primaryOff]}
-          onPress={() => setShowCertModal(true)}
+          onPress={handleProceed}
         >
           <ThemedText style={[styles.primaryText, !canProceed && styles.primaryTextOff]}>동의하고 불러오기</ThemedText>
         </TouchableOpacity>
@@ -174,7 +207,7 @@ export default function MyDataConsentScreen() {
               onPress={() => {
                 if (!selectedCert) return;
                 setShowCertModal(false);
-                router.push('/(mydata)/authenticationPin' as any);
+                router.push({ pathname: '/(mydata)/authenticationPin', params: { banks: selectedBankCodes?.join(',') || '' } } as any);
               }}
             >
               <ThemedText style={[styles.primaryText, !selectedCert && styles.primaryTextOff]}>확인</ThemedText>

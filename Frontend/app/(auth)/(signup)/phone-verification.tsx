@@ -1,7 +1,7 @@
 import { authApi } from '@/src/api/auth';
 import { getOrCreateDeviceId } from '@/src/services/deviceIdService';
 import { useSignupStore } from '@/src/store/signupStore';
-import type { SmsSendRequest, SmsVerifySignupRequest } from '@/src/types';
+import type { SmsSendRequest, SmsVerifyRequest, SmsVerifySignupRequest } from '@/src/types';
 import { router, useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import {
@@ -112,10 +112,11 @@ export default function PhoneVerificationScreen() {
       // 디바이스 ID 가져오기
       const deviceId = await getOrCreateDeviceId();
       
-      // API 요청 데이터 구성
+      // API 요청 데이터 구성 (FORGOT_PIN은 서버 명세상 PIN_RESET으로 매핑)
+      const mappedPurpose = (purpose === 'FORGOT_PIN' ? 'PIN_RESET' : purpose) as 'LOGIN' | 'SIGNUP' | 'DEVICE_VERIFY' | 'PIN_RESET' | 'PROFILE_UPDATE';
       const requestData: SmsSendRequest = {
         phone: phoneNumber,
-        purpose: purpose as 'LOGIN' | 'SIGNUP' | 'FORGOT_PIN' | 'PROFILE_UPDATE' | 'DEVICE_VERIFY',
+        purpose: mappedPurpose as any,
         deviceId: deviceId
       };
       
@@ -123,7 +124,21 @@ export default function PhoneVerificationScreen() {
       
       // 실제 API 호출
       console.log('[SMS Screen] API 호출 시작...');
-      const response = await authApi.sendSms(requestData);
+      let response: any;
+      if (purpose === 'FORGOT_PIN') {
+        try {
+          response = await authApi.requestPinReset({ phone: phoneNumber });
+          if (!response?.success || !(response as any).data?.sent) {
+            // Fallback to generic sendSms with PIN_RESET for MSW/dev compatibility
+            response = await authApi.sendSms({ ...requestData, purpose: 'PIN_RESET' } as any);
+          }
+        } catch (e) {
+          // Fallback path on error
+          response = await authApi.sendSms({ ...requestData, purpose: 'PIN_RESET' } as any);
+        }
+      } else {
+        response = await authApi.sendSms(requestData);
+      }
       
       // 응답 상세 로그
       console.log('[SMS Screen] API 응답 전체:', response);
@@ -132,7 +147,7 @@ export default function PhoneVerificationScreen() {
       console.log('[SMS Screen] data 값:', response.data);
       console.log('[SMS Screen] error 값:', response.error);
       
-      if (response.success && response.data.sent) {
+  if (response.success && (response as any).data?.sent) {
         console.log('[SMS Screen] SMS 발송 성공');
         
         // 상태 업데이트 (실제 API에서는 만료시간을 서버에서 관리)
@@ -214,44 +229,58 @@ export default function PhoneVerificationScreen() {
     try {
       console.log('[SMS Screen] 인증 시도:', { phoneNumber, purpose, code });
       
-      // API 요청 데이터 구성
-      const requestData: SmsVerifySignupRequest = {
-        phone: phoneNumber,
-        purpose: purpose as 'SIGNUP' | 'LOGIN',
-        code: code
-      };
-      
-      console.log('[SMS Screen] API 요청 데이터:', requestData);
-      
-      // 실제 API 호출
-      const response = await authApi.verifySmsSignup(requestData);
-      
-      if (response.success && response.data.verified) {
-        console.log('[SMS Screen] SMS 인증 성공, signupTicket:', response.data.signupTicket);
-        
-        // signupTicket을 스토어에 저장
-        setSignupTicket(response.data.signupTicket);
-        
-        // 인증 성공 - 목적에 따라 분기
+  // 목적에 따라 다른 검증 엔드포인트 사용
+  if (purpose === 'SIGNUP') {
+        const requestData: SmsVerifySignupRequest = {
+          phone: phoneNumber,
+          purpose: 'SIGNUP',
+          code,
+        };
+        const response = await authApi.verifySmsSignup(requestData);
+        if (response.success && response.data.verified) {
+          setSignupTicket(response.data.signupTicket);
+          // TODO(1원 인증): 1원 인증 구현 시 아래 라우팅을 `/(auth)/(signup)/account-selection` 등 1원 인증 단계로 변경하세요.
+          Alert.alert('인증 완료', '휴대폰 인증이 완료되었습니다.', [
+            {
+              text: '확인',
+              onPress: () => router.push('/(auth)/(signup)/password-setup' as any),
+            },
+          ]);
+        } else {
+          setError(response.error?.message || '인증코드가 일치하지 않습니다. 다시 입력해주세요.');
+        }
+      } else if (purpose === 'FORGOT_PIN') {
+        // 재설정은 verify를 호출하지 않고 코드 전달로 진행
         Alert.alert('인증 완료', '휴대폰 인증이 완료되었습니다.', [
           {
             text: '확인',
-            onPress: () => {
-              if (purpose === 'FORGOT_PIN') {
-                console.log('!!!pin 재설정으로 이동!!!');
-                // TODO: 실제 PIN 재설정 화면으로 이동 연결
-              } else if (purpose === 'PROFILE_UPDATE' || mode === 'profile_update') {
-                // 프로필 수정 모드: 프로필 페이지로 돌아가기
-                router.push('/(tabs)/profile' as any);
-              } else {
-                // 회원가입 모드: 계좌 선택 화면으로 이동
-                router.push('/(auth)/(signup)/account-selection' as any);
-              }
-            },
+            onPress: () => router.replace({ pathname: '/(auth)/(login)/reset-pin', params: { phoneNumber, resetCode: code } } as any),
           },
         ]);
       } else {
-        setError(response.error?.message || '인증코드가 일치하지 않습니다. 다시 입력해주세요.');
+        const requestData: SmsVerifyRequest = {
+          phone: phoneNumber,
+          // 명세 상: 'LOGIN' | 'DEVICE_VERIFY' | 'PIN_RESET' | 'SIGNUP'
+          purpose: purpose === 'FORGOT_PIN' ? 'PIN_RESET' : (purpose as any),
+          code,
+        };
+        const response = await authApi.verifySms(requestData);
+        if (response.success && response.data.verified) {
+          Alert.alert('인증 완료', '휴대폰 인증이 완료되었습니다.', [
+            {
+              text: '확인',
+              onPress: () => {
+                if (purpose === 'PROFILE_UPDATE' || mode === 'profile_update') {
+                  router.push('/(tabs)/profile' as any);
+                } else {
+                  router.push('/(auth)/(signup)/account-selection' as any);
+                }
+              },
+            },
+          ]);
+        } else {
+          setError(response.error?.message || '인증코드가 일치하지 않습니다. 다시 입력해주세요.');
+        }
       }
     } catch (error: any) {
       console.error('[SMS Screen] 인증 오류:', error);

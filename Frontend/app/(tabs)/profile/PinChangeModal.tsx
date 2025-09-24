@@ -1,8 +1,9 @@
-import { AuthPinEntry, CommonModal } from '@/src/components'
+import { AuthKeypad, CommonModal, PinDots } from '@/src/components'
 import { useChangePin } from '@/src/hooks'
 import { monitoringService } from '@/src/services/monitoringService'
 import React, { useMemo, useState } from 'react'
-import { Alert, StyleSheet } from 'react-native'
+import { Alert, KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, View } from 'react-native'
+import { SafeAreaView } from 'react-native-safe-area-context'
 
 type Props = {
   visible: boolean
@@ -104,82 +105,130 @@ export default function PinChangeModal({ visible, onClose, onSuccess }: Props) {
       onClose={onClose}
       closeOnOverlayPress={false}
     >
-      {step === 'verify' && (
-        <AuthPinEntry
-          title="비밀번호 변경"
-          subtitle="현재 비밀번호를 입력해주세요."
-          length={6}
-          value={currentPin}
-          showBack={false}
-          onClose={onClose}
-          onDigitPress={(d: string) => {
-            const next = currentPin + d
-            if (next.length <= 6) setCurrentPin(next)
-            if (next.length === 6) handleVerify(next)
-          }}
-          onDelete={() => setCurrentPin(currentPin.slice(0, -1))}
-          onClear={() => setCurrentPin('')}
-          onForgot={() => Alert.alert('비밀번호를 잊으셨나요?', '지원팀에 문의해주세요.')}
-          keypadConfig={{
-            fakeTouch: true,
-            animation: true,
-            size: 'medium'
-          }}
-        />
-      )}
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.headerBar}>
+          <View style={styles.headerSide} />
+          <Text style={styles.headerTitle}>비밀번호 변경</Text>
+          <Pressable hitSlop={10} onPress={onClose} style={styles.headerSide}>
+            <Text style={styles.headerClose}>✕</Text>
+          </Pressable>
+        </View>
+        <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+          {step === 'verify' && (
+            <PinStep
+              title="현재 PIN 6자리를 입력해주세요."
+              subtitle=""
+              value={currentPin}
+              onDigit={(d) => {
+                const next = currentPin + d
+                if (next.length <= 6) setCurrentPin(next)
+                if (next.length === 6) handleVerify(next)
+              }}
+              onBackspace={() => setCurrentPin(currentPin.slice(0, -1))}
+              onClear={() => setCurrentPin('')}
+              onForgot={() => Alert.alert('비밀번호를 잊으셨나요?', '지원팀에 문의해주세요.')}
+            />
+          )}
 
-      {step === 'new' && (
-        <AuthPinEntry
-          title="새 비밀번호"
-          subtitle="새 비밀번호를 입력하세요"
-          length={6}
-          value={newPin}
-          showBack={false}
-          onClose={onClose}
-          onDigitPress={(d: string) => {
-            const next = newPin + d
-            if (next.length <= 6) setNewPin(next)
-            if (next.length === 6) handleSetNew(next)
-          }}
-          onDelete={() => setNewPin(newPin.slice(0, -1))}
-          onClear={() => setNewPin('')}
-          onForgot={() => Alert.alert('비밀번호를 잊으셨나요?', '지원팀에 문의해주세요.')}
-          keypadConfig={{
-            fakeTouch: true,
-            animation: true,
-            size: 'medium'
-          }}
-        />
-      )}
+          {step === 'new' && (
+            <PinStep
+              title="새 PIN 6자리를 입력해주세요."
+              subtitle=""
+              value={newPin}
+              onDigit={(d) => {
+                const next = newPin + d
+                if (next.length <= 6) setNewPin(next)
+                if (next.length === 6) handleSetNew(next)
+              }}
+              onBackspace={() => setNewPin(newPin.slice(0, -1))}
+              onClear={() => setNewPin('')}
+              onForgot={() => Alert.alert('비밀번호를 잊으셨나요?', '지원팀에 문의해주세요.')}
+            />
+          )}
 
-      {step === 'confirm' && (
-        <AuthPinEntry
-          title="비밀번호 확인"
-          subtitle="새 비밀번호를 확인하세요"
-          length={6}
-          value={confirmPin}
-          showBack={true}
-          onBack={() => setStep('new')}
-          onClose={onClose}
-          onDigitPress={(d: string) => {
-            const next = confirmPin + d
-            if (next.length <= 6) setConfirmPin(next)
-            if (next.length === 6) handleConfirm(next)
-          }}
-          onDelete={() => setConfirmPin(confirmPin.slice(0, -1))}
-          onClear={() => setConfirmPin('')}
-          onForgot={() => Alert.alert('비밀번호를 잊으셨나요?', '지원팀에 문의해주세요.')}
-          keypadConfig={{
-            fakeTouch: true,
-            animation: true,
-            size: 'medium'
-          }}
-        />
-      )}
+          {step === 'confirm' && (
+            <PinStep
+              title="확인을 위해 한 번 더 입력해주세요."
+              subtitle=""
+              value={confirmPin}
+              onDigit={(d) => {
+                const next = confirmPin + d
+                if (next.length <= 6) setConfirmPin(next)
+                if (next.length === 6) handleConfirm(next)
+              }}
+              onBack={() => setStep('new')}
+              onBackspace={() => setConfirmPin(confirmPin.slice(0, -1))}
+              onClear={() => setConfirmPin('')}
+              onForgot={() => Alert.alert('비밀번호를 잊으셨나요?', '지원팀에 문의해주세요.')}
+            />
+          )}
+        </KeyboardAvoidingView>
+      </SafeAreaView>
     </CommonModal>
   )
 }
 
 const styles = StyleSheet.create({
-  // 스타일은 이제 AuthPinEntry 컴포넌트에서 처리됩니다
+  safeArea: { flex: 1, backgroundColor: '#F3F4F6' },
+  headerBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderColor: '#E5E7EB', backgroundColor: '#F3F4F6' },
+  headerTitle: { fontSize: 16, fontWeight: '700', color: '#111827', textAlign: 'center', flex: 1 },
+  headerClose: { fontSize: 18, color: '#111827', textAlign: 'right' },
+  headerSide: { width: 24 },
+  container: { flex: 1, justifyContent: 'center' },
+  content: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+  },
+  title: { fontSize: 20, fontWeight: '700', color: '#111827', textAlign: 'center', marginBottom: 8 },
+  subtitle: { fontSize: 20, fontWeight: '700', color: '#111827', textAlign: 'center', marginBottom: 48 },
+  pinContainer: { flexDirection: 'row', justifyContent: 'center', marginBottom: 48 },
+  keypadContainer: { backgroundColor: '#F3F4F6', paddingVertical: 20, paddingHorizontal: 24 },
 })
+
+type PinStepProps = {
+  title: string
+  subtitle: string
+  value: string
+  onDigit: (d: string) => void
+  onBackspace: () => void
+  onClear: () => void
+  onForgot?: () => void
+  onBack?: () => void
+}
+
+function PinStep({ title, subtitle, value, onDigit, onBackspace, onClear, onForgot, onBack }: PinStepProps) {
+  return (
+    <>
+      <View style={styles.content}>
+        <Text style={styles.title}>{title}</Text>
+        <Text style={styles.subtitle}>{subtitle}</Text>
+        <View style={styles.pinContainer}>
+          <PinDots length={6} filled={value.length} size="md" />
+        </View>
+      </View>
+      <View style={styles.keypadContainer}>
+        <AuthKeypad
+          onDigitPress={onDigit}
+          onBackspace={onBackspace}
+          onClear={onClear}
+          shuffle
+          fakeTouch
+          animation
+          size="medium"
+        />
+        {onForgot && (
+          <Text onPress={onForgot} style={{ color: '#6B7280', textAlign: 'center', marginTop: 8 }}>
+            비밀번호를 잊으셨나요?
+          </Text>
+        )}
+        {onBack && (
+          <Text onPress={onBack} style={{ color: '#6B7280', textAlign: 'center', marginTop: 8 }}>
+            뒤로가기
+          </Text>
+        )}
+      </View>
+    </>
+  )
+}

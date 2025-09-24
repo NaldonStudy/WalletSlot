@@ -78,7 +78,7 @@ export default function PrivacyPolicy({ visible, onClose }: Props) {
             <ThemedText style={{ fontSize: 18, fontWeight: '700', color: '#333', marginBottom: 12 }}>거부 권리 및 불이익</ThemedText>
             <ThemedText style={{ fontSize: 14, lineHeight: 22, color: '#333', marginBottom: 16 }}>
               귀하는 개인(신용)정보 수집･이용에 관한 동의를 거부하실 수 있습니다. 
-              다만, "수집･이용에 관한 동의", "필수 항목에 대한 수집･이용에 관한 동의"는 본인신용정보 통합조회, 데이터분석 서비스의 이용을 위한 필수적 사항이므로 동의를 거부하실 경우 본인신용정보 통합조회, 데이터분석 서비스의 이용이 제한될 수 있습니다.
+              다만, &quot;수집･이용에 관한 동의&quot;, &quot;필수 항목에 대한 수집･이용에 관한 동의&quot;는 본인신용정보 통합조회, 데이터분석 서비스의 이용을 위한 필수적 사항이므로 동의를 거부하실 경우 본인신용정보 통합조회, 데이터분석 서비스의 이용이 제한될 수 있습니다.
             </ThemedText>
           </View>
 

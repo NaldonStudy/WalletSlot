@@ -35,6 +35,8 @@ export default function NotificationConsentScreen() {
     signupTicket, 
     pin, 
     setPushEnabled,
+    clearSignupTicket,
+    clearPin,
     reset: resetSignupStore // signupStore 초기화용
   } = useSignupStore();
   
@@ -50,7 +52,8 @@ export default function NotificationConsentScreen() {
       }
 
       // 주민등록번호에서 성별과 생년월일 추출
-      const { gender, birthDate } = extractGenderAndBirthDate(residentFront6, residentBack1);
+  const { gender, birthDate } = extractGenderAndBirthDate(residentFront6, residentBack1);
+  const backendGender = gender === 'WOMAN' ? 'FEMALE' : 'MAN';
       
       // 디바이스 ID 가져오기
       const deviceId = await getOrCreateDeviceId();
@@ -58,21 +61,28 @@ export default function NotificationConsentScreen() {
   // 플랫폼 정보 (타입을 명시하여 CompleteSignupRequest의 유니온에 맞춥니다)
   const platform: 'ANDROID' | 'IOS' = Platform.OS === 'ios' ? 'IOS' : 'ANDROID';
       
-      // 회원가입 요청 데이터 구성
-      const signupData = {
-        name,
-        phone,
-        gender,
+      // 입력 정규화 및 안전값 구성
+      const normalizedName = String(name || '').trim();
+      const normalizedPhone = String(phone || '').replace(/\D/g, '');
+      const baseDay = 10; // 정책 상수화(1~28 범위)
+      const safeBaseDay = Math.min(Math.max(baseDay, 1), 28);
+      const job: 'STUDENT' | 'OFFICE_WORKER' | 'FREELANCER' | 'BUSINESS_OWNER' | 'HOUSEWIFE' | 'UNEMPLOYED' | 'OTHER' | null = 'OTHER';
+
+      // 회원가입 요청 데이터 구성 (pushToken은 존재할 때만 포함)
+      const signupData: any = {
+        name: normalizedName,
+        phone: normalizedPhone,
+  gender: backendGender,
         birthDate,
         signupTicket,
         pin,
-        baseDay: 10, // 기본값 (필요시 사용자 입력으로 변경)
-        job: null, // 기본값 null
+        baseDay: safeBaseDay,
+        job,
         deviceId,
         platform,
-        pushToken: fcmToken,
-        pushEnabled
+        pushEnabled,
       };
+      if (fcmToken) signupData.pushToken = fcmToken;
 
       console.log('회원가입 요청 데이터:', {
         ...signupData,
@@ -80,8 +90,8 @@ export default function NotificationConsentScreen() {
         pushToken: fcmToken ? `${fcmToken.substring(0, 20)}...` : 'null'
       });
 
-      // 회원가입 API 호출
-      const response = await authApi.completeSignup(signupData);
+  // 회원가입 API 호출
+  const response = await authApi.completeSignup(signupData);
       
   if (response.success) {
         console.log('✅ 회원가입 성공:', {
@@ -108,18 +118,64 @@ export default function NotificationConsentScreen() {
         // 4. welcome 화면으로 이동
         router.push('/(auth)/(signup)/welcome');
       } else {
-        // CompleteSignupResponse는 BaseResponse 형태이므로 `error` 필드 대신 `message`를 사용합니다.
-        throw new Error(response.message || '회원가입에 실패했습니다.');
+        const msg = response.message || '회원가입에 실패했습니다.';
+        throw new Error(msg);
       }
     } catch (error: any) {
       console.error('회원가입 API 호출 실패:', error);
-      Alert.alert('회원가입 실패', error.message || '회원가입 중 오류가 발생했습니다.');
+      // 에러 코드/메시지에 따른 사용자 안내 매핑
+      const code: string | undefined = error?.code || error?.details?.errorCode || error?.details?.code;
+      let title = '회원가입 실패';
+      let message = error?.message || '회원가입 중 오류가 발생했습니다.';
+
+      // 403/권한/티켓 관련 패턴 처리
+      if (code === 'HTTP_403' || code === 'FORBIDDEN' || code === 'SIGNUP_TICKET_FORBIDDEN' || /403/.test(String(code))) {
+        title = '가입이 불가합니다';
+        if (/expired|만료/i.test(message)) {
+          message = '인증 시간이 지났습니다. SMS 인증부터 다시 진행해주세요.';
+        } else if (/used|이미 사용|already/i.test(message)) {
+          message = '이미 사용된 인증입니다. SMS 인증을 다시 받아서 진행해주세요.';
+        } else if (/policy|정책|조건/i.test(message)) {
+          message = '가입 조건을 충족하지 않아 진행할 수 없습니다.';
+        } else {
+          message = '보안 정책으로 인해 가입을 진행할 수 없습니다. SMS 인증부터 다시 진행해주세요.';
+        }
+        // 티켓/핀 정리 후 휴대폰 인증 화면으로 이동
+        try {
+          clearSignupTicket();
+          clearPin();
+        } catch {}
+        Alert.alert(title, message, [
+          {
+            text: '확인',
+            onPress: () => {
+              try {
+                router.replace('/(auth)/(signup)/phone' as any);
+              } catch {}
+            },
+          },
+        ]);
+        return; // 처리 완료: 재throw로 인한 중복 Alert 방지
+      }
+
+      // 500/서버 내부 오류는 요청 ID와 함께 안내
+      if (code === 'HTTP_500' || /500/.test(String(code))) {
+      const reqId = error?.details?.requestId;
+      const userMsg = reqId
+        ? `${message}\n\n요청 ID: ${reqId}\n다시 시도하거나, 지속 시 관리자에게 문의해주세요.`
+        : `${message}\n\n다시 시도하거나, 지속 시 관리자에게 문의해주세요.`;
+      Alert.alert('서버 오류', userMsg);
+      return;
+      }
+
+      Alert.alert(title, message);
       throw error;
     }
   };
 
   // 알림 허용 처리
   const handleAllow = async () => {
+    if (isLoading) return; // 이중 제출 방지
     setIsLoading(true);
     
     try {
@@ -151,9 +207,12 @@ export default function NotificationConsentScreen() {
       }
       await completeSignup(true, fcmToken);
       
-    } catch (error) {
+    } catch (error: any) {
       console.error('알림 허용 처리 중 오류:', error);
-      Alert.alert('오류', '알림 설정 중 오류가 발생했습니다.');
+      const code: string | undefined = error?.code || error?.details?.errorCode || error?.details?.code;
+      if (code !== 'HTTP_403' && code !== 'FORBIDDEN') {
+        Alert.alert('오류', '알림 설정 중 오류가 발생했습니다.');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -161,6 +220,7 @@ export default function NotificationConsentScreen() {
 
   // 알림 거부 처리
   const handleDeny = async () => {
+    if (isLoading) return; // 이중 제출 방지
     setIsLoading(true);
     
     try {
@@ -176,9 +236,12 @@ export default function NotificationConsentScreen() {
       console.log('알림 거부 - FCM 토큰 발급하지 않음');
       await completeSignup(false, undefined);
       
-    } catch (error) {
+    } catch (error: any) {
       console.error('알림 거부 처리 중 오류:', error);
-      Alert.alert('오류', '알림 설정 중 오류가 발생했습니다.');
+      const code: string | undefined = error?.code || error?.details?.errorCode || error?.details?.code;
+      if (code !== 'HTTP_403' && code !== 'FORBIDDEN') {
+        Alert.alert('오류', '알림 설정 중 오류가 발생했습니다.');
+      }
     } finally {
       setIsLoading(false);
     }

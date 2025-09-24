@@ -95,6 +95,8 @@ export const useDeleteLinkedAccount = () => {
         if (!oldData) return oldData;
         return oldData.filter((account: any) => account.accountId !== accountId);
       });
+      // 대시보드에서 사용하는 계정 캐시도 무효화
+      queryClient.invalidateQueries({ queryKey: queryKeys.accounts.linked() });
     },
     onError: (error, accountId) => {
       console.error('[DELETE_ACCOUNT] 실패:', accountId, error);
@@ -120,7 +122,9 @@ export const useRefreshMyData = () => {
       return data.data?.accounts || [];
     },
     onSuccess: () => {
+      // 설정/대시보드 양쪽 캐시 모두 무효화하여 동기화
       queryClient.invalidateQueries({ queryKey: queryKeys.settings.linkedAccounts() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.accounts.linked() });
     },
   });
 };

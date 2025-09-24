@@ -75,7 +75,7 @@ export default function MyDataServiceTermination({ visible, onClose, onManageCon
           <View style={styles.infoContainer}>
             <Text style={styles.infoTitle}>해지를 원하시는 이유가 있다면?</Text>
             <Text style={styles.infoText}>
-              개별 금융사 연결해제를 원하신다면 "연결 금융사 관리"를 통해{'\n'}
+              개별 금융사 연결해제를 원하신다면 &quot;연결 금융사 관리&quot;를 통해{'\n'}
               원하는 금융사만 해제할 수 있습니다.
             </Text>
           </View>
