@@ -1,14 +1,15 @@
 package com.ssafy.b108.walletslot.backend.domain.account.dto.external;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
 
-    @Getter
-    @Setter
-    @NoArgsConstructor
-    @AllArgsConstructor
-    @Builder
-public class SSAFYverifyAccountResponseDto {
+@Getter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+@Schema(name = "SSAFYVerifyAccountResponseDto")
+public class SSAFYVerifyAccountResponseDto {
 
     // Field
     @JsonProperty("REC")
@@ -16,10 +17,10 @@ public class SSAFYverifyAccountResponseDto {
 
     // Nested Class
     @Getter
-    @Setter
     @NoArgsConstructor
     @AllArgsConstructor
     @Builder
+    @Schema(name = "SSAFYVerifyAccountResponseDto_Rec")
     public static class Rec {
 
         // Field

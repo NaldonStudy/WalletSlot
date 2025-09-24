@@ -10,9 +10,7 @@ import com.ssafy.b108.walletslot.backend.domain.account.entity.Account;
 import com.ssafy.b108.walletslot.backend.domain.account.repository.AccountRepository;
 import com.ssafy.b108.walletslot.backend.domain.bank.entity.Bank;
 import com.ssafy.b108.walletslot.backend.domain.bank.repository.BankRepository;
-import com.ssafy.b108.walletslot.backend.domain.user.entity.Email;
 import com.ssafy.b108.walletslot.backend.domain.user.entity.User;
-import com.ssafy.b108.walletslot.backend.domain.user.repository.EmailRepository;
 import com.ssafy.b108.walletslot.backend.domain.user.repository.UserRepository;
 import com.ssafy.b108.walletslot.backend.global.error.AppException;
 import com.ssafy.b108.walletslot.backend.global.error.ErrorCode;
@@ -26,7 +24,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
 import javax.crypto.SecretKey;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -269,14 +266,14 @@ public class AccountService {
     public RequestVerificationResponseDto requestVerification(long userId, String bankUuid, String accountNo) {
 
         // user 조회 -> userKey 획득하기
-        User user = userRepository.findById(userId).orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "[AccountService]"));
+        User user = userRepository.findById(userId).orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "AccountService - 001"));
         String userKey = user.getUserKey();
 
         // SSAFY 금융 API >>>>> 2.4.6 예금주 조회
         // 방금 조회한 사용자의 이름 != 예금주 명이면 403 보내야 함
 
         // 1원 송금받는 사용자 통장내역에 찍힐 기업명 만들기
-        Bank bank = bankRepository.findByUuid(bankUuid).orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "[AccountService - 000]"));
+        Bank bank = bankRepository.findByUuid(bankUuid).orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "AccountService - 002"));
         String bankName = bank.getName();
 
         // SSAFY 금융 API >>>>> 2.9.1 1원 송금
@@ -293,26 +290,59 @@ public class AccountService {
                 .userKey(userKey)
                 .build();
 
+        Map<String, Object> body = new HashMap<>();
+        body.put("Header", header);
+        body.put("accountNo", accountNo);
+        body.put("authText", bankName);
+
+        // 요청보낼 http entity 만들기
+        HttpEntity<Map<String, Object>> httpEntity = new HttpEntity<>(body);
+
+        // 요청 보내기
+        ResponseEntity<SSAFYRequestVerificationResponseDto> httpResponse = restTemplate.exchange(
+                url,
+                HttpMethod.POST,
+                httpEntity,
+                SSAFYRequestVerificationResponseDto.class
+        );
+
+        // 프론트한테 줄 인증번호 알아내기
+
+        // SSAFY 금융 API >>>>> 2.4.13 계좌 거래 내역 조회(단건)
+        // 요청보낼 url
+        String url2 = "https://finopenapi.ssafy.io/ssafy/api/v1/edu/demandDeposit/inquireTransactionHistory";
+        Map<String, String> formattedDateTime2 = LocalDateTimeFormatter.formatter();
+        Header header2 = Header.builder()
+                .apiName("inquireTransactionHistory")
+                .transmissionDate(formattedDateTime2.get("date"))
+                .transmissionTime(formattedDateTime2.get("time"))
+                .apiServiceCode("inquireTransactionHistory")
+                .institutionTransactionUniqueNo(formattedDateTime2.get("date") + formattedDateTime2.get("time") + RandomNumberGenerator.generateRandomNumber())
+                .apiKey(ssafyFinanceApiKey)
+                .userKey(userKey)
+                .build();
+
         Map<String, Object> body2 = new HashMap<>();
-        body2.put("Header", header);
-        body2.put("accountNo", accountNo);
-        body2.put("authText", bankName);
+        body2.put("Header", header2);
+        body2.put("accountNo", httpResponse.getBody().getREC().getAccountNo());
+        body2.put("transactionUniqueNo", httpResponse.getBody().getREC().getTransactionUniqueNo());
 
         // 요청보낼 http entity 만들기
         HttpEntity<Map<String, Object>> httpEntity2 = new HttpEntity<>(body2);
 
         // 요청 보내기
-        restTemplate.exchange(
-                url,
+        ResponseEntity<SSAFYGetTransactionResponseDto> httpResponse2 = restTemplate.exchange(
+                url2,
                 HttpMethod.POST,
                 httpEntity2,
-                Void.class
+                SSAFYGetTransactionResponseDto.class
         );
 
         // dto 조립
         RequestVerificationResponseDto requestVerificationResponseDto = RequestVerificationResponseDto.builder()
                 .success(true)
                 .message("[AccountService - 000] 1원인증 요청 성공")
+                .data(RequestVerificationResponseDto.Data.builder().authIdentifier(httpResponse2.getBody().getREC().getTransactionSummary()).build())
                 .build();
 
         return requestVerificationResponseDto;
@@ -322,7 +352,7 @@ public class AccountService {
     public VerifyAccountResponseDto verifyAccount(long userId, String accountNo, String authText, String authCode) {
 
         // user 조회 -> userKey 획득하기
-        User user = userRepository.findById(userId).orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "[AccountService]"));
+        User user = userRepository.findById(userId).orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "AccountService - 003"));
         String userKey = user.getUserKey();
 
         // SSAFY 금융 API >>>>> 2.9.2 1원 송금 검증
@@ -349,11 +379,11 @@ public class AccountService {
         HttpEntity<Map<String, Object>> httpEntity = new HttpEntity<>(body2);
 
         // 요청 보내기
-        ResponseEntity<SSAFYverifyAccountResponseDto> httpResponse2 = restTemplate.exchange(
+        ResponseEntity<SSAFYVerifyAccountResponseDto> httpResponse2 = restTemplate.exchange(
                 url,
                 HttpMethod.POST,
                 httpEntity,
-                SSAFYverifyAccountResponseDto.class
+                SSAFYVerifyAccountResponseDto.class
         );
 
         // dto 만들기 (SUCCESS 키 값에 따라 분기처리)
@@ -378,7 +408,7 @@ public class AccountService {
 
             return verifyAccountResponseDto;
         } else {
-            throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "[AccountService - 000]");
+            throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "AccountService - 004");
         }
     }
 
@@ -392,7 +422,7 @@ public class AccountService {
         for(AddAccountRequestDto.AccountDto accountDto : accounts) {
 
             // user 조회 -> userKey 획득하기
-            User user = userRepository.findById(userId).orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "[AccountService]"));
+            User user = userRepository.findById(userId).orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "AccountService - 005"));
             String userKey = user.getUserKey();
 
             // 싸피 금융 API에 요청보낼 바디 만들기

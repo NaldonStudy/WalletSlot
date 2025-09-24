@@ -1,5 +1,6 @@
 package com.ssafy.b108.walletslot.backend.domain.account.dto;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
 
 @Getter
@@ -7,10 +8,24 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@Schema(name = "RequestVerificationResponseDto")
 public class RequestVerificationResponseDto {
 
     // Field
     private boolean success;
     private String message;
-    private Void data;
+    private Data data;
+
+    // Nested Class
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    @Schema(name = "RequestVerificationResponseDto_Data")
+    public static class Data {
+
+        // Field
+        private String authIdentifier;
+    }
 }
