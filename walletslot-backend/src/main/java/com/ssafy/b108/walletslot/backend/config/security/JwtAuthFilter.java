@@ -10,7 +10,6 @@ import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
-import org.springframework.util.AntPathMatcher;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
@@ -23,25 +22,35 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     private static final String AUTH_HEADER   = "Authorization";
     private static final String BEARER_PREFIX = "Bearer ";
 
-    // 인증을 통과시킬 경로 프리픽스
+    // 1원 인증 경로
+    private static final String VERIFY_PREFIX = "/api/accounts/verification/";
+
+    // 공개 프리픽스들(스웨거/헬스 등)
     private static final Set<String> WHITELIST_PREFIX = Set.of(
-            "/swagger-ui/",
+            "/swagger-ui",
             "/v3/api-docs",
             "/swagger-resources",
-            "/webjars/",
+            "/webjars",
             "/actuator/health",
-            "/error"
+            "/error",
+            "/api/ping/public",
+            "/api/dev"
     );
 
     private final JwtProvider jwtProvider;
-    private final AntPathMatcher pathMatcher = new AntPathMatcher();
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
         // CORS Preflight는 항상 패스
         if (HttpMethod.OPTIONS.matches(request.getMethod())) return true;
 
-        final String path = request.getRequestURI();
+        // 컨텍스트 패스 제외한 서블릿 경로로 비교 (프록시/서블릿 컨텍스트 대비 안전)
+        final String path = request.getServletPath();
+
+        // 1원 인증 경로는 필터 자체를 아예 타지 않게 스킵
+        if (path.startsWith(VERIFY_PREFIX)) return true;
+
+        // Swagger/헬스 등 공개 프리픽스도 스킵
         return isWhitelisted(path);
     }
 
@@ -53,10 +62,9 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         if (token != null && jwtProvider.validate(token)) {
             final Authentication auth = jwtProvider.getAuthentication(token);
             if (auth != null) {
-                // 토큰의 deviceId(did)를 details에 심어 DeviceBindingFilter가 활용하도록 함
                 if (auth instanceof AbstractAuthenticationToken aat) {
                     String did = safelyExtractDid(token); // 실패해도 null 허용
-                    aat.setDetails(did);
+                    aat.setDetails(did);                  // DeviceBindingFilter 보조용
                 }
                 SecurityContextHolder.getContext().setAuthentication(auth);
             }
@@ -68,7 +76,8 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     /* ------------------------ helpers ------------------------ */
 
     private boolean isWhitelisted(String path) {
-        return WHITELIST_PREFIX.stream().anyMatch(pattern -> pathMatcher.match(pattern, path));
+        if (path == null) return false;
+        return WHITELIST_PREFIX.stream().anyMatch(path::startsWith);
     }
 
     private String resolveBearerToken(HttpServletRequest req) {
@@ -81,7 +90,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         try {
             return jwtProvider.extractDeviceId(token);
         } catch (Exception ignored) {
-            return null; // details 없음 → DeviceBindingFilter에서 토큰 재파싱 fallback
+            return null;
         }
     }
 }
