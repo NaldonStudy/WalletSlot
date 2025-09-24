@@ -38,6 +38,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -72,7 +73,7 @@ public class TransactionService {
     @Value("${api.ssafy.finance.apiKey}")
     private String ssafyFinanceApiKey;
 
-    private String lastSyncedDate;
+    private String lastSyncedDate="20250923";
 
     private final SecretKey encryptionKey;
 
@@ -612,7 +613,7 @@ public class TransactionService {
         return addDutchPayTransactionsResponseDto;
     }
 
-
+    @Scheduled(fixedRate = 60000)
     public void checkTransactions() {
 
         // 우리 서비스 전체 유저
@@ -677,9 +678,20 @@ public class TransactionService {
                 AccountSlot uncategorizedAccountSlot = accountSlotRepository.findBySlot(uncategorizedSlot).orElseThrow(() -> new AppException(ErrorCode.MISSING_UNCATEGORIZED_SLOT, "TransactionService - 000"));
 
                 for(SSAFYGetTransactionListResponseDto.Transaction transactionDto : transactions) {
+                    System.out.println(transactionDto.getTransactionTypeName());
+                    System.out.println(transactionDto.getTransactionUniqueNo());
+                    System.out.println(transactionDto.getTransactionSummary());
+                    System.out.println(transactionDto.getTransactionAfterBalance());
+                    System.out.println(transactionDto.getTransactionDate());
+
+                }
+
+                Transaction: for(SSAFYGetTransactionListResponseDto.Transaction transactionDto : transactions) {
+
+// account.getLastSyncedTransactionUniqueNo()
 
                     // transactionUniqueNo이 lastSyncedTransactionNo보다 큰 게 있다면 갱신
-                    if(Long.parseLong(transactionDto.getTransactionUniqueNo()) > Long.parseLong(account.getLastSyncedTransactionUniqueNo())) {
+                    if(Long.parseLong(transactionDto.getTransactionUniqueNo()) > Long.parseLong("0")) {
 
                         // 계좌 마지막 동기화 날짜 업데이트
                         account.updateLastSyncedTransactionUniqueNo(transactionDto.getTransactionUniqueNo());
@@ -944,7 +956,7 @@ public class TransactionService {
 
                             // body 만들기
                             Map<String, Object> body2 = new HashMap<>();
-                            body2.put("Header", header);
+                            body2.put("Header", header2);
                             try {
                                 body2.put("accountNo", AESUtil.decrypt(account.getEncryptedAccountNo(), encryptionKey));
                             } catch(Exception e) {

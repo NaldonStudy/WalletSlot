@@ -32,7 +32,7 @@ public class NotificationDto {
         return NotificationDto.builder()
                 .uuid(n.getUuid())
                 .title(n.getTitle())
-                .content(n.getContent())
+                .content(n.getBody())
                 .type(n.getType())
                 .read(n.isRead())
                 .readAt(n.getReadAt())

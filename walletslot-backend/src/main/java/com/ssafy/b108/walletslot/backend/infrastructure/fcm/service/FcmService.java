@@ -23,10 +23,13 @@ public class FcmService {
     @Qualifier("fcmWebClient")
     private final WebClient fcmWebClient;
 
+    private final GoogleAccessTokenUtil googleAccessTokenUtil;
+
     // Method
     public void sendMessage(String targetFcmToken, String title, String body) {
+
         // AccessToken 발급
-        String accessToken = GoogleAccessTokenUtil.getAccessToken();
+        String accessToken = googleAccessTokenUtil.getAccessToken();
 
         // 전송할 메시지 구조 (FCM v1)
         Map<String, Object> message = Map.of(
