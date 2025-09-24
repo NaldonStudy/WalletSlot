@@ -4,8 +4,6 @@ import com.ssafy.b108.walletslot.backend.config.security.UserPrincipal;
 import com.ssafy.b108.walletslot.backend.domain.account.dto.*;
 import com.ssafy.b108.walletslot.backend.domain.account.service.AccountService;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.extensions.Extension;
-import io.swagger.v3.oas.annotations.extensions.ExtensionProperty;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -15,7 +13,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.http.ResponseEntity;
 
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -31,7 +28,7 @@ public class AccountRestController {
     @GetMapping
     @Operation(
             summary = "4-1-1 마이데이터 연동",
-            description = "현재 사용자의 마이데이터를 불러옵니다. (from. SSAFY 교육용 금융망 API)",
+            description = "사용자의 마이데이터를 불러옵니다. (from. SSAFY 교육용 금융망 API)",
             responses = {
                     @ApiResponse(
                             responseCode = "200",
@@ -47,7 +44,7 @@ public class AccountRestController {
     @GetMapping("/link")
     @Operation(
             summary = "4-1-2 연동 계좌목록 조회",
-            description = "현재 사용자가 우리 서비스에 연동한 계좌목록을 조회합니다.",
+            description = "사용자가 우리 서비스에 연동한 계좌목록을 조회합니다.",
             responses = {
                     @ApiResponse(
                             responseCode = "200",
@@ -63,7 +60,7 @@ public class AccountRestController {
     @GetMapping("/{accountId}")
     @Operation(
             summary = "4-1-3 계좌 상세조회",
-            description = "특정 계좌의 정보를 상세조회합니다.",
+            description = "계좌를 상세조회합니다.",
             responses = {
                     @ApiResponse(
                             responseCode = "200",
@@ -79,7 +76,7 @@ public class AccountRestController {
     @GetMapping("/primary")
     @Operation(
             summary = "4-1-4 대표계좌 상세조회",
-            description = "현재 사용자의 대표 계좌의 정보를 상세조회합니다.",
+            description = "사용자의 대표 계좌를 상세조회합니다.",
             responses = {
                     @ApiResponse(
                             responseCode = "200",
@@ -92,10 +89,26 @@ public class AccountRestController {
         return ResponseEntity.status(HttpStatus.OK).body(accountService.getPrimaryAccount(principal.userId()));
     }
 
+    @GetMapping("/{accountId}/balance")
+    @Operation(
+            summary = "4-1-5 계좌 잔액조회",
+            description = "계좌의 잔액을 조회합니다.",
+            responses = {
+                    @ApiResponse(
+                            responseCode = "200",
+                            description = "[AccountService - 000] 계좌 잔액 조회 성공",
+                            content = @Content(schema = @Schema(implementation = GetAccountBalanceResponseDto.class))
+                    )
+            }
+    )
+    public ResponseEntity<GetAccountBalanceResponseDto> getBalance(@AuthenticationPrincipal UserPrincipal principal, @PathVariable String accountId) {
+        return ResponseEntity.status(HttpStatus.OK).body(accountService.getAccountBalance(principal.userId(), accountId));
+    }
+
     @DeleteMapping("/{accountId}")
     @Operation(
             summary = "4-1-5 연동된 계좌 삭제",
-            description = "현재 사용자가 우리 서비스에 연동했던 계좌를 연동 해제합니다.",
+            description = "사용자가 우리 서비스에 연동했던 계좌를 연동 해제합니다.",
             responses = {
                     @ApiResponse(
                             responseCode = "200",

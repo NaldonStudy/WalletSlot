@@ -205,11 +205,11 @@ CREATE TABLE `transaction` (
   `account_slot_id` INT UNSIGNED NOT NULL,
   `unique_no` VARCHAR(255) NOT NULL COMMENT 'transactionUniqueNo',
   `type` VARCHAR(64) NOT NULL COMMENT 'transactionType, transactionTypeName',
-  `opponent_account_no` BIGINT UNSIGNED COMMENT 'transactionAccountNo',
+  `opponent_account_no` VARCHAR(255) COMMENT 'transactionAccountNo',
   `summary` VARCHAR(255) NOT NULL COMMENT 'transactionSummary',
   `amount` BIGINT UNSIGNED NOT NULL COMMENT 'transactionBalance',
   `balance` BIGINT UNSIGNED NOT NULL,
-  `transaction_at` VARCHAR(64) NOT NULL COMMENT 'transactionDate, transactionTime',
+  `transaction_at` DATETIME NOT NULL COMMENT 'transactionDate, transactionTime',
   CONSTRAINT `fk_transaction_account_id`
     FOREIGN KEY (`account_id`) REFERENCES `account`(`id`)
       ON DELETE CASCADE

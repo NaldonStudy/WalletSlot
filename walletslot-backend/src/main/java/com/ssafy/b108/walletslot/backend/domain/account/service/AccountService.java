@@ -10,7 +10,10 @@ import com.ssafy.b108.walletslot.backend.domain.account.entity.Account;
 import com.ssafy.b108.walletslot.backend.domain.account.repository.AccountRepository;
 import com.ssafy.b108.walletslot.backend.domain.bank.entity.Bank;
 import com.ssafy.b108.walletslot.backend.domain.bank.repository.BankRepository;
+import com.ssafy.b108.walletslot.backend.domain.transaction.dto.external.SSAFYGetAccountBalanceResponseDto;
+import com.ssafy.b108.walletslot.backend.domain.user.entity.Email;
 import com.ssafy.b108.walletslot.backend.domain.user.entity.User;
+import com.ssafy.b108.walletslot.backend.domain.user.repository.EmailRepository;
 import com.ssafy.b108.walletslot.backend.domain.user.repository.UserRepository;
 import com.ssafy.b108.walletslot.backend.global.error.AppException;
 import com.ssafy.b108.walletslot.backend.global.error.ErrorCode;
@@ -38,6 +41,7 @@ public class AccountService {
     private final AccountRepository accountRepository;
     private final UserRepository userRepository;
     private final BankRepository bankRepository;
+    private final EmailRepository emailRepository;
 
     @Value("${api.ssafy.finance.apiKey}")
     private String ssafyFinanceApiKey;
@@ -223,6 +227,112 @@ public class AccountService {
 
         // 응답
         return getPrimaryAccountResponseDto;
+    }
+
+    /**
+     * 4-1-5 계좌 잔액 조회
+     */
+    public GetAccountBalanceResponseDto getAccountBalance(Long userId, String accountUuid) {
+
+        // user, account 조회 (없으면 404)
+        User user = userRepository.findById(userId).orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "AccountService - 000"));
+        Account account = accountRepository.findByUuid(accountUuid).orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "AccountService - 000"));
+
+        // userId != account userId 이면 403 응답
+        if(userId != account.getUser().getId()) {
+            throw new AppException(ErrorCode.FORBIDDEN, "AccountService - 000");
+        }
+
+        // SSAFY 금융 API >>>>> 2.4.6 예금주 조회
+        // 사용할 userKey와 accountNo
+        String userkey = user.getUserKey();
+        String accountNo;
+        try{
+            accountNo = AESUtil.decrypt(account.getEncryptedAccountNo(), encryptionKey);
+        } catch(Exception e) {
+            e.printStackTrace();
+            throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "AccountService - 000");
+        }
+
+        // 요청보낼 url
+        String url = "https://finopenapi.ssafy.io/ssafy/api/v1/edu/demandDeposit/inquireDemandDepositAccountHolderName";
+
+        // body 만들기
+        Map<String, String> formattedDateTime = LocalDateTimeFormatter.formatter();
+        Header header = Header.builder()
+                .apiName("inquireDemandDepositAccountHolderName")
+                .transmissionDate(formattedDateTime.get("date"))
+                .transmissionTime(formattedDateTime.get("time"))
+                .apiServiceCode("inquireDemandDepositAccountHolderName")
+                .institutionTransactionUniqueNo(formattedDateTime.get("date") + formattedDateTime.get("time") + RandomNumberGenerator.generateRandomNumber())
+                .apiKey(ssafyFinanceApiKey)
+                .userKey(user.getUserKey())
+                .build();
+
+        Map<String, Object> body = new HashMap<>();
+        body.put("Header", header);
+        body.put("accountNo", accountNo);
+
+        // 요청보낼 http entity 만들기
+        HttpEntity<Map<String, Object>> httpEntity = new HttpEntity<>(body);
+
+        // 요청 보내기
+        ResponseEntity<SSAFYGetAccountHolderNameResponseDto> httpResponse = restTemplate.exchange(
+                url,
+                HttpMethod.POST,
+                httpEntity,
+                SSAFYGetAccountHolderNameResponseDto.class
+        );
+
+        // 사용자 이름과 예금주 명이 불일치하면 403 응답
+        Email email = emailRepository.findByUser(user).orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "AccountService - 000"));
+        String emailStr = email.getEmail();
+        int atIndex = emailStr.indexOf("@");
+        String userName = emailStr.substring(0, atIndex);
+
+        if(!userName.equals(httpResponse.getBody().getREC().getUserName())) {
+            throw new AppException(ErrorCode.ACCOUNT_HOLDER_NAME_MISMATCH, "AccountService - 000");
+        }
+        
+        // SSAFY 금융 API >>>>> 2.4.7 계좌 잔액 조회
+        // 요청보낼 url
+        String url2 = "https://finopenapi.ssafy.io/ssafy/api/v1/edu/demandDeposit/inquireDemandDepositAccountBalance";
+
+        // body 만들기
+        Map<String, String> formattedDateTime2 = LocalDateTimeFormatter.formatter();
+        Header header2 = Header.builder()
+                .apiName("inquireDemandDepositAccountBalance")
+                .transmissionDate(formattedDateTime2.get("date"))
+                .transmissionTime(formattedDateTime2.get("time"))
+                .apiServiceCode("inquireDemandDepositAccountBalance")
+                .institutionTransactionUniqueNo(formattedDateTime2.get("date") + formattedDateTime2.get("time") + RandomNumberGenerator.generateRandomNumber())
+                .apiKey(ssafyFinanceApiKey)
+                .userKey(user.getUserKey())
+                .build();
+
+        Map<String, Object> body2 = new HashMap<>();
+        body2.put("Header", header2);
+        body2.put("accountNo", accountNo);
+
+        // 요청보낼 http entity 만들기
+        HttpEntity<Map<String, Object>> httpEntity2 = new HttpEntity<>(body2);
+
+        // 요청 보내기
+        ResponseEntity<SSAFYGetAccountBalanceResponseDto> httpResponse2 = restTemplate.exchange(
+                url2,
+                HttpMethod.POST,
+                httpEntity2,
+                SSAFYGetAccountBalanceResponseDto.class
+        );
+
+        // dto 조립하고 응답
+        GetAccountBalanceResponseDto getAccountBalanceResponseDto = GetAccountBalanceResponseDto.builder()
+                .success(true)
+                .message("[AccountService - 000] 계좌 잔액 조회 성공")
+                .data(GetAccountBalanceResponseDto.Data.builder().accountId(accountUuid).balance(httpResponse2.getBody().getREC().getAccountBalance()).build())
+                .build();
+
+        return getAccountBalanceResponseDto;
     }
 
     // 4-1-5

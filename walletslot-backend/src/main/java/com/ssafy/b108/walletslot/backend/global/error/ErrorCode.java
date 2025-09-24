@@ -17,6 +17,9 @@ public enum ErrorCode {
     NOT_FOUND("리소스를 찾을 수 없습니다.", HttpStatus.NOT_FOUND),
     INTERNAL_SERVER_ERROR("알 수 없는 오류가 발생했습니다. 서버관리자에게 문의하세요.", HttpStatus.INTERNAL_SERVER_ERROR), // 서버에서 로그확인 필요
 
+    // Account
+    ACCOUNT_HOLDER_NAME_MISMATCH("현재 사용자명과 예금주명이 일치하지 않습니다. 자신의 계좌의 잔액만 조회할 수 있습니다.", HttpStatus.FORBIDDEN),
+
     // Slot
     ALLOCATABLE_BUDGET_EXCEEDED("할당 가능한 예산을 초과했습니다.", HttpStatus.UNPROCESSABLE_ENTITY),
     THRIFT_BUDGET_EXCEEDED("지난 달에 절약한 금액 한도 내에서만 다음달 슬롯 예산을 늘릴 수 있습니다.", HttpStatus.UNPROCESSABLE_ENTITY),
