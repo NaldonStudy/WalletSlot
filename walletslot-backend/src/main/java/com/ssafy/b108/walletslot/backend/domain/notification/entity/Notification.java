@@ -40,6 +40,7 @@ public class Notification {
     private String body;
 
     @Column(nullable = false)
+    @Builder.Default
     private boolean isRead = false;
 
     @Enumerated(EnumType.STRING)
