@@ -8,7 +8,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.List;
 import java.util.Optional;
 
-public interface AccountSlotRepository extends JpaRepository<AccountSlot, Integer> {
+public interface AccountSlotRepository extends JpaRepository<AccountSlot, Long> {
 
     Optional<List<AccountSlot>> findByAccount(Account account);
     void deleteByAccount(Account account);
