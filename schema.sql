@@ -240,7 +240,7 @@ CREATE TABLE `wishlist` (
 DROP TABLE IF EXISTS `email`;
 CREATE TABLE `email` (
   `id` INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
-  `user_id` INT UNSIGNED NOT NULL,
+  `user_id` INT UNSIGNED,
   `name` VARCHAR(64) NOT NULL,
   `email` VARCHAR(128) NOT NULL,
   `is_primary` TINYINT(1) NOT NULL DEFAULT 0,                 -- ✅ 기본 이메일 여부
