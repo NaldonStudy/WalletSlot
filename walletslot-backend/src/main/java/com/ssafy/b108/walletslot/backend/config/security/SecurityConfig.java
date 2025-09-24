@@ -63,6 +63,10 @@ public class SecurityConfig {
                         // devController를 위한
                         .requestMatchers("/api/dev/**").permitAll()
 
+                        // 1원 인증: 회원가입 전 공개
+                        .requestMatchers("/api/accounts/verification/**").permitAll()
+
+                        // 인증 필요한 API
                         .requestMatchers("/api/auth/me").authenticated()
 
                         // 헬스체크 & 인증 엔드포인트
