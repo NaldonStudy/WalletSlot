@@ -451,6 +451,26 @@ export const notificationHandlers = [
 
   // ===== Device Management APIs =====
   
+  // FCM 토큰 등록 (POST /api/notifications/register-fcm-token)
+  http.post('/api/notifications/register-fcm-token', async ({ request }) => {
+    const data = await request.json() as any;
+    console.log('[MSW] FCM 토큰 등록:', {
+      deviceId: data.deviceId,
+      platform: data.platform,
+      hasToken: !!data.fcmToken
+    });
+    
+    return HttpResponse.json({
+      success: true,
+      message: 'FCM 토큰이 성공적으로 등록되었습니다.',
+      data: {
+        deviceId: data.deviceId,
+        registered: true,
+        tokenUpdated: true
+      }
+    });
+  }),
+  
   // FCM/WebPush 토큰 교체 (POST /api/devices/{deviceId}/token)
   http.post('/api/devices/:deviceId/token', async ({ params, request }) => {
     const { deviceId } = params;

@@ -22,3 +22,25 @@ export const BACKEND_AVAILABLE = (() => {
 
 // 알림 목록 axios 모호 응답 시 fetch fallback 사용 여부 (원인 해결 후 false 권장)
 export const ENABLE_NOTIFICATION_FALLBACK = (process.env.EXPO_PUBLIC_ENABLE_NOTIFICATION_FALLBACK ?? 'true') === 'true';
+
+// API 엔드포인트 상수
+export const API_ENDPOINTS = {
+  // Device Management
+  DEVICES: '/api/devices',
+  DEVICE_BY_ID: (deviceId: string) => `/api/devices/${deviceId}`,
+  DEVICE_TOKEN: (deviceId: string) => `/api/devices/${deviceId}/token`,
+  
+  // Push Endpoints
+  PUSH_ENDPOINTS: '/api/push/endpoints',
+  PUSH_ENDPOINT_BY_ID: (deviceId: string) => `/api/push/endpoints/${deviceId}`,
+  
+  // Auth
+  PIN_CHANGE: '/api/auth/pin',
+  
+  // Accounts
+  ACCOUNTS_LINK: '/api/accounts/link',
+  ACCOUNT_BY_ID: (accountId: string) => `/api/accounts/${accountId}`,
+  
+  // User Profile
+  USER_ME: '/api/users/me',
+} as const;

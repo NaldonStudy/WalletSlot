@@ -13,6 +13,7 @@ import { mydataHttpHandlers } from './mydataHttpHandlers';
 import { notificationHandlers } from './notifications';
 import { profileHandlers } from './profile';
 import { reportHandlers } from './report';
+import { settingsHandlers } from './settings';
 import { settingsHttpHandlers } from './settingsHttpHandlers';
 import { slotHandlers } from './slots';
 
@@ -59,6 +60,7 @@ export const handlers = [
   ...notificationHandlers,
   ...profileHandlers,
   ...reportHandlers,
+  ...settingsHandlers, // 새로운 설정 API 핸들러
   ...mydataHttpHandlers, // 상세한 mydata 핸들러를 먼저
   ...settingsHttpHandlers,
 ];

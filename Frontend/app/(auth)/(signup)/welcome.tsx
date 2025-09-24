@@ -1,20 +1,20 @@
-import React from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  TouchableOpacity, 
-  SafeAreaView,
-  Dimensions
-} from 'react-native';
 import { router } from 'expo-router';
+import React from 'react';
+import {
+  Dimensions,
+  SafeAreaView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
+} from 'react-native';
 
 const { width } = Dimensions.get('window');
 
 export default function WelcomeScreen() {
   const handleGetStarted = () => {
-    // 대시보드로 이동
-    router.replace('/(tabs)/dashboard');
+    // 은행 선택 화면으로 이동
+    router.replace('/(mydata)/bank-select');
   };
 
   return (

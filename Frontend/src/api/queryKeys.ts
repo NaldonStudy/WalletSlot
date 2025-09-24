@@ -69,4 +69,11 @@ export const queryKeys = {
     all: ['reports'] as const,
     spending: () => [...queryKeys.reports.all, 'spending'] as const,
   },
+
+  // 설정 관련
+  settings: {
+    all: ['settings'] as const,
+    devices: () => [...queryKeys.settings.all, 'devices'] as const,
+    linkedAccounts: () => [...queryKeys.settings.all, 'linkedAccounts'] as const,
+  },
 } as const;

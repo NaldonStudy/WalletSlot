@@ -1,4 +1,5 @@
 import { AuthPinEntry, CommonModal } from '@/src/components'
+import { useChangePin } from '@/src/hooks'
 import { monitoringService } from '@/src/services/monitoringService'
 import React, { useMemo, useState } from 'react'
 import { Alert, StyleSheet } from 'react-native'
@@ -15,6 +16,8 @@ export default function PinChangeModal({ visible, onClose, onSuccess }: Props) {
   const [currentPin, setCurrentPin] = useState('')
   const [newPin, setNewPin] = useState('')
   const [confirmPin, setConfirmPin] = useState('')
+  
+  const changePinMutation = useChangePin()
 
   // 모달이 열릴 때마다 상태 초기화
   React.useEffect(() => {
@@ -77,19 +80,18 @@ export default function PinChangeModal({ visible, onClose, onSuccess }: Props) {
       return 
     }
     try {
-      const res = await fetch('/api/auth/pin', { method: 'PATCH', body: JSON.stringify({ currentPin, newPin }) })
-      if (!res.ok) { 
-        Alert.alert('오류', 'PIN 변경에 실패했습니다.')
-        setConfirmPin('') // PIN 초기화
-        return 
-      }
+      await changePinMutation.mutateAsync({
+        currentPin,
+        newPin
+      })
+      
       monitoringService.logUserInteraction('setting_change', { key: 'pin_change', success: true })
       setNewPin('')
       setConfirmPin('')
       onClose()
       if (onSuccess) onSuccess()
     } catch (e) {
-      Alert.alert('오류', '서버와 통신 중 오류가 발생했습니다.')
+      Alert.alert('오류', 'PIN 변경에 실패했습니다.')
       setConfirmPin('') // PIN 초기화
     }
   }
