@@ -1,13 +1,14 @@
 import { ThemedText } from '@/components/ThemedText';
 import { useBankSelectionStore } from '@/src/store/bankSelectionStore';
-import { useSignupStore } from '@/src/store/signupStore';
+import { useLocalUserStore } from '@/src/store/localUserStore';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { Image, Modal, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 export default function MyDataConsentScreen() {
   const router = useRouter();
-  const { name } = useSignupStore();
+  const { user } = useLocalUserStore();
+  const displayName = user?.userName || '사용자';
   const selectedBankCodes = useBankSelectionStore(s => s.selectedBankCodes);
 
   const [showDoc1, setShowDoc1] = useState(false); // 전송요구서
@@ -32,7 +33,7 @@ export default function MyDataConsentScreen() {
           </TouchableOpacity>
           <ThemedText style={styles.headerTitle}>약관 동의</ThemedText>
         </View>
-        <ThemedText style={styles.subtitle}>{name || '사용자'}님의 계좌를 불러오기 위해 필요해요</ThemedText>
+        <ThemedText style={styles.subtitle}>{displayName}님의 계좌를 불러오기 위해 필요해요</ThemedText>
 
         {/* 전송요구서 요약 */}
         <View style={styles.card}>

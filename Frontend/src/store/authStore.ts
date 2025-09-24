@@ -1,7 +1,8 @@
-import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { queryClient } from '@/src/api/queryClient';
 import { authService } from '@/src/services/authService';
 import type { LocalUser } from '@/src/types';
+import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 
 interface AuthState {
   // 상태
@@ -60,6 +61,40 @@ export const useAuthStore = create<AuthState>()(
           
           // authService를 통해 모든 데이터 삭제
           await authService.clearAll();
+
+          // React Query 캐시 초기화 (사용 중인 경우 안전하게 전체 초기화)
+          try {
+            await queryClient.clear();
+          } catch (e) {
+            console.warn('[🔐AUTH_STORE] React Query clear skip:', e);
+          }
+
+          // 사용자 종속 Zustand 스토어 초기화 (존재 시 안전 호출)
+          try {
+            const { useLocalUserStore } = await import('@/src/store/localUserStore');
+            await useLocalUserStore.getState().clearUser();
+          } catch (e) {
+            console.warn('[🔐AUTH_STORE] localUserStore reset skip:', e);
+          }
+          try {
+            const { useBankSelectionStore } = await import('@/src/store/bankSelectionStore');
+            useBankSelectionStore.getState().setSelectedBanks([]);
+            useBankSelectionStore.getState().setSelectedBankCodes([]);
+          } catch (e) {
+            console.warn('[🔐AUTH_STORE] bankSelectionStore reset skip:', e);
+          }
+          try {
+            const { useSignupStore } = await import('@/src/store/signupStore');
+            useSignupStore.getState().reset?.();
+          } catch (e) {
+            console.warn('[🔐AUTH_STORE] signupStore reset skip:', e);
+          }
+          try {
+            const { useSlotStore } = await import('@/src/store/useSlotStore');
+            useSlotStore.getState().reset?.();
+          } catch (e) {
+            console.warn('[🔐AUTH_STORE] slotStore reset skip:', e);
+          }
           
           // 푸시 서비스 정리 제거! (authService.clearAll()에서 처리됨)
           

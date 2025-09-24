@@ -1,7 +1,7 @@
 import { ThemedText } from '@/components/ThemedText';
 import { BANK_CODES } from '@/src/constants/banks';
 import { useBankSelectionStore } from '@/src/store/bankSelectionStore';
-import { useSignupStore } from '@/src/store/signupStore';
+import { useLocalUserStore } from '@/src/store/localUserStore';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import {
@@ -27,7 +27,8 @@ const bankList = Object.entries(BANK_CODES).map(([code, bank]) => ({
 }));
 
 export default function AccountSelectScreen() {
-  const { name } = useSignupStore();
+  const { user } = useLocalUserStore();
+  const displayName = user?.userName || '사용자';
   const router = useRouter();
   const saveSelectedBanks = useBankSelectionStore(s => s.setSelectedBanks);
   const selectedBanks = useBankSelectionStore(s => s.selectedBanks);
@@ -159,7 +160,7 @@ export default function AccountSelectScreen() {
       {/* 헤더 */}
       <View style={styles.header}>
         <ThemedText style={styles.title}>
-          {name || '사용자'}님의{'\n'}
+          {displayName}님의{'\n'}
            계좌를 한 번에 찾아보세요
         </ThemedText>
       </View>

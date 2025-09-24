@@ -1,18 +1,21 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { 
-  View, 
-  Text, 
-  TextInput, 
-  StyleSheet, 
-  TouchableOpacity, 
+import { authApi } from '@/src/api/auth';
+import { useSignupStore } from '@/src/store/signupStore';
+import type { AccountVerificationVerifyRequest } from '@/src/types';
+import { router, useLocalSearchParams } from 'expo-router';
+import React, { useEffect, useRef, useState } from 'react';
+import {
   Alert,
-  KeyboardAvoidingView,
-  Platform,
   Dimensions,
-  Modal
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router, useLocalSearchParams } from 'expo-router';
 
 const { width } = Dimensions.get('window');
 
@@ -21,6 +24,9 @@ export default function AccountVerificationScreen() {
   const bankName = params.bankName as string;
   const accountNumber = params.accountNumber as string;
   const displayFormat = params.displayFormat as string;
+  const bankId = params.bankId as string;
+  const pin = params.pin as string; // 백엔드에서 받은 4자리 인증번호 식별자
+  const {} = useSignupStore();
 
   // 상태 관리
   const [verificationCode, setVerificationCode] = useState<string[]>(['', '', '', '']);
@@ -72,9 +78,10 @@ export default function AccountVerificationScreen() {
 
   // 1원 입금 시뮬레이션 (실제로는 API 호출)
   useEffect(() => {
-    console.log('1원 입금 시뮬레이션 시작:', {
+    console.log('[Account Verification] 1원 입금 시뮬레이션 시작:', {
       bankName,
-      accountNumber: formatAccountNumber(accountNumber, displayFormat)
+      accountNumber: formatAccountNumber(accountNumber, displayFormat),
+      pin: pin // 백엔드에서 받은 PIN
     });
   }, []);
 
@@ -120,22 +127,41 @@ export default function AccountVerificationScreen() {
     setIsLoading(true);
     
     try {
-      // Mock 인증 (실제로는 API 호출)
-      console.log('계좌 인증 시도:', { code, bankName, accountNumber });
+      console.log('[Account Verification] 1원 인증 검증 시도:', { 
+        code, 
+        bankName, 
+        accountNumber,
+        bankId 
+      });
       
-      // 성공 시뮬레이션
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // 1원 인증 검증 API 호출
+      const requestData: AccountVerificationVerifyRequest = {
+        accountNo: accountNumber,
+        authIdentifier: code // 4자리 인증번호
+      };
+
+      console.log('[Account Verification] API 요청 데이터:', requestData);
+      const response = await authApi.verifyAccountVerification(requestData);
       
-       Alert.alert('인증 완료', '계좌 인증이 완료되었습니다.', [
-         {
-           text: '확인',
-           onPress: () => {
-             router.push('/(auth)/(signup)/password-setup');
-           }
-         }
-       ]);
-    } catch (error) {
-      Alert.alert('인증 실패', '인증번호를 다시 확인해주세요.');
+      console.log('[Account Verification] API 응답:', response);
+
+      if (response.success) {
+        console.log('[Account Verification] 1원 인증 검증 성공');
+        
+        Alert.alert('인증 완료', '계좌 인증이 완료되었습니다.', [
+          {
+            text: '확인',
+            onPress: () => {
+              router.push('/(auth)/(signup)/password-setup');
+            }
+          }
+        ]);
+      } else {
+        throw new Error((response as any).message || (response as any).error?.message || '인증번호가 일치하지 않습니다.');
+      }
+    } catch (error: any) {
+      console.error('[Account Verification] 1원 인증 검증 오류:', error);
+      Alert.alert('인증 실패', error.message || '인증번호를 다시 확인해주세요.');
     } finally {
       setIsLoading(false);
     }

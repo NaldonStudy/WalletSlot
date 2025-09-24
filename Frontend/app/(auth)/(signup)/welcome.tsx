@@ -1,5 +1,7 @@
+import { getAccessToken, getJwtExp } from '@/src/services/tokenService';
+import { useLocalUserStore } from '@/src/store/localUserStore';
 import { router } from 'expo-router';
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
   Dimensions,
   SafeAreaView,
@@ -12,6 +14,30 @@ import {
 const { width } = Dimensions.get('window');
 
 export default function WelcomeScreen() {
+  // 로컬 사용자 정보 가져오기
+  const { user, isLoggedIn } = useLocalUserStore();
+
+  useEffect(() => {
+    // 회원가입 완료 후 로그인 상태 확인
+    console.log('환영 화면 - 사용자 정보:', {
+      userName: user?.userName,
+      isLoggedIn
+    });
+
+    // DEBUG: accessToken exp 실측 로그
+    (async () => {
+      try {
+        const at = await getAccessToken();
+        const exp = at ? getJwtExp(at) : null;
+        const now = Math.floor(Date.now() / 1000);
+        const remain = exp ? exp - now : null;
+        console.log('[DEBUG] accessToken exp:', exp, 'remainSec:', remain);
+      } catch (e) {
+        console.warn('[DEBUG] accessToken exp 확인 실패:', e);
+      }
+    })();
+  }, [user, isLoggedIn]);
+
   const handleGetStarted = () => {
     // 은행 선택 화면으로 이동
     router.replace('/(mydata)/bank-select');

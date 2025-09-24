@@ -1,15 +1,15 @@
-import React, { useState, useRef } from 'react';
+import { appService } from '@/src/services/appService';
+import { router } from 'expo-router';
+import React, { useRef, useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  FlatList,
-  Dimensions,
-  TouchableOpacity
+    Dimensions,
+    FlatList,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
-import { appService } from '@/src/services/appService';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -58,6 +58,12 @@ export default function OnboardingScreen() {
 
   const handleSkip = () => {
     handleComplete();
+  };
+
+  const handleGoLogin = async () => {
+    // 온보딩 완료 여부는 유지(건너뛰기와 동일하게 처리할지 정책에 따라 다름)
+    await appService.setOnboardingCompleted(true);
+    router.replace('/(auth)/(login)/login');
   };
 
   const handleComplete = async () => {
@@ -118,9 +124,14 @@ export default function OnboardingScreen() {
           </TouchableOpacity>
           
           {currentIndex < onboardingData.length - 1 && (
-            <TouchableOpacity style={styles.skipButton} onPress={handleSkip}>
-              <Text style={styles.skipButtonText}>건너뛰기</Text>
-            </TouchableOpacity>
+            <>
+              <TouchableOpacity style={styles.secondaryButton} onPress={handleGoLogin}>
+                <Text style={styles.secondaryButtonText}>기존 회원 로그인 하러가기</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.skipButton} onPress={handleSkip}>
+                <Text style={styles.skipButtonText}>건너뛰기</Text>
+              </TouchableOpacity>
+            </>
           )}
         </View>
       </View>
@@ -182,6 +193,14 @@ const styles = StyleSheet.create({
   },
   buttonContainer: {
     alignItems: 'center',
+  },
+  secondaryButton: {
+    paddingVertical: 8,
+  },
+  secondaryButtonText: {
+    color: '#007AFF',
+    fontSize: 16,
+    marginBottom: 8,
   },
   nextButton: {
     backgroundColor: '#007AFF',

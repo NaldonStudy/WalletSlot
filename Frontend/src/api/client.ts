@@ -46,11 +46,7 @@ class ApiClient {
           headers.Authorization = `Bearer ${token}`;
         }
 
-        // RefreshToken Cookie 헤더 추가 (토큰이 있을 때만)
-        const refreshToken = await authService.getRefreshToken();
-        if (refreshToken) {
-          headers.Cookie = `refreshToken=${refreshToken}`;
-        }
+        // RefreshToken은 재발급 전용이며 일반 요청에 포함하지 않음 (보안/사양 일치)
 
         // headers 할당
         config.headers = headers;
@@ -105,6 +101,31 @@ class ApiClient {
           } finally {
             this.isRefreshing = false;
           }
+        }
+
+        // ===== Generic retry (network/5xx/429) with exponential backoff =====
+        try {
+          const status = error.response?.status;
+          const isNetworkError = !error.response; // request made but no response (timeout, offline, etc.)
+          const shouldRetry = isNetworkError || status === 429 || (typeof status === 'number' && status >= 500 && status < 600);
+
+          // Avoid retrying uploads/multipart blindly (simple heuristic)
+          const isMultipart = (originalRequest?.headers?.['Content-Type'] || originalRequest?.headers?.['content-type'])?.includes('multipart/form-data');
+
+          if (shouldRetry && !isMultipart) {
+            originalRequest._retryCount = originalRequest._retryCount || 0;
+            if (originalRequest._retryCount < 2) {
+              originalRequest._retryCount += 1;
+              const base = 300 * Math.pow(2, originalRequest._retryCount - 1); // 300ms, 600ms
+              const jitter = Math.floor(Math.random() * 200); // +0~200ms
+              const delayMs = base + jitter;
+              console.log(`[API] Retry #${originalRequest._retryCount} in ${delayMs}ms (status: ${status ?? 'network'})`);
+              await new Promise((r) => setTimeout(r, delayMs));
+              return this.client(originalRequest);
+            }
+          }
+        } catch (_) {
+          // fallthrough to error handling
         }
         return Promise.reject(this.handleError(error));
       }
@@ -210,8 +231,8 @@ class ApiClient {
     return { success: true, data };
   }
   
-  private async fetchViaNative<T>(method: string, url: string, data?: any, headers?: Record<string, string>): Promise<any> {
-    const token = await this.getAccessToken();
+  private async fetchViaNative<T>(method: string, url: string, data?: any, headers?: Record<string, string>, includeAuth: boolean = true): Promise<any> {
+    const token = includeAuth ? await this.getAccessToken() : null;
     const finalHeaders: Record<string, string> = {
       'Content-Type': 'application/json',
       ...(headers || {}),
@@ -230,18 +251,36 @@ class ApiClient {
     }
 
     try {
+      const debugHeaders = { ...finalHeaders } as any;
+      if (debugHeaders.Authorization) {
+        debugHeaders.Authorization = 'Bearer ****';
+      }
       console.log(`[API][fetch] ${method} ${url}`, data || {});
+      console.log('[API][fetch] request headers:', debugHeaders);
       const res = await fetch(url, opts as RequestInit);
+      
+      // 응답 상태 로그
+      console.log(`[API][fetch] 응답 상태: ${res.status} ${res.statusText}`);
+      console.log(`[API][fetch] 응답 헤더:`, Object.fromEntries(res.headers.entries()));
+      
       const text = await res.text();
+      console.log(`[API][fetch] 원본 응답 텍스트:`, text);
+      console.log(`[API][fetch] 응답 텍스트 길이:`, text.length);
+      console.log(`[API][fetch] 응답 텍스트 타입:`, typeof text);
+      
       if (!text || text.trim() === '') {
         console.warn(`[API][fetch] ${method} 메서드에서 빈 문자열 응답 감지.`);
         return { success: true, data: {} };
       }
+      
       try {
         const json = JSON.parse(text);
+        console.log(`[API][fetch] JSON 파싱 성공:`, json);
         return json;
       } catch (e) {
         console.warn(`[API][fetch] ${method} 응답 JSON 파싱 실패, 원본 텍스트 반환`);
+        console.warn(`[API][fetch] 파싱 실패 원인:`, e);
+        console.warn(`[API][fetch] 원본 텍스트 (처음 500자):`, text.substring(0, 500));
         return { success: true, data: text };
       }
     } catch (e) {
@@ -260,12 +299,21 @@ class ApiClient {
     return this.parseOrReturn('GET', response);
   }
 
-  async post<T>(url: string, data?: any): Promise<BaseResponse<T>> {
+  async post<T>(url: string, data?: any, config?: { headers?: Record<string, string> }): Promise<BaseResponse<T>> {
     if (USE_MSW) {
-      return this.fetchViaNative('POST', url, data);
+      return this.fetchViaNative('POST', url, data, config?.headers);
     }
-    const response = await this.client.post(url, data);
+    const response = await this.client.post(url, data, config);
     return this.parseOrReturn('POST', response);
+  }
+
+  /**
+   * 공통 헤더(Authorization, X-Device-Id) 없이 보내는 전용 POST
+   *  - 1원 인증 요청/검증과 같이 비로그인, 무공통헤더 호출 전용
+   */
+  async postNoAuth<T>(url: string, data?: any): Promise<BaseResponse<T>> {
+    const absoluteUrl = USE_MSW ? url : `${API_CONFIG.BASE_URL}${url}`;
+    return this.fetchViaNative('POST', absoluteUrl, data, { 'Content-Type': 'application/json' }, false);
   }
 
   async put<T>(url: string, data?: any): Promise<BaseResponse<T>> {

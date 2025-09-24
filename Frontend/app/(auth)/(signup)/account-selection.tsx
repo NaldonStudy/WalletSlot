@@ -1,20 +1,23 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  View, 
-  Text, 
-  TextInput, 
-  StyleSheet, 
-  TouchableOpacity, 
-  Modal,
-  FlatList,
-  KeyboardAvoidingView,
-  Platform,
+import { authApi } from '@/src/api/auth';
+import { useSignupStore } from '@/src/store/signupStore';
+import type { AccountVerificationRequestRequest } from '@/src/types';
+import { router } from 'expo-router';
+import React, { useEffect, useState } from 'react';
+import {
+  Alert,
   Animated,
-  Image
+  FlatList,
+  Image,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
-import { useSignupStore } from '@/src/store/signupStore';
 
 // 금융기관 데이터
 const banks = [
@@ -73,22 +76,22 @@ export default function AccountSelectionScreen() {
   // 계좌번호 포맷팅 함수
   const formatAccountNumber = (text: string, format: string): string => {
     const numbers = text.replace(/\D/g, ''); // 숫자만 추출
-    
+
     if (format === '4-2-7') {
-      // 카카오뱅크: 4-2-7
+      // 예: 1234-56-나머지 전체
       if (numbers.length <= 4) return numbers;
       if (numbers.length <= 6) return `${numbers.slice(0, 4)}-${numbers.slice(4)}`;
-      return `${numbers.slice(0, 4)}-${numbers.slice(4, 6)}-${numbers.slice(6, 13)}`;
+      return `${numbers.slice(0, 4)}-${numbers.slice(4, 6)}-${numbers.slice(6)}`;
     } else if (format === '6-7') {
-      // 시중은행: 6-7
+      // 예: 123456-나머지 전체
       if (numbers.length <= 6) return numbers;
-      return `${numbers.slice(0, 6)}-${numbers.slice(6, 13)}`;
+      return `${numbers.slice(0, 6)}-${numbers.slice(6)}`;
     } else if (format === '3-4-4-2') {
-      // 특수은행: 3-4-4-2
+      // 예: 123-4567-8901-나머지 전체
       if (numbers.length <= 3) return numbers;
       if (numbers.length <= 7) return `${numbers.slice(0, 3)}-${numbers.slice(3)}`;
       if (numbers.length <= 11) return `${numbers.slice(0, 3)}-${numbers.slice(3, 7)}-${numbers.slice(7)}`;
-      return `${numbers.slice(0, 3)}-${numbers.slice(3, 7)}-${numbers.slice(7, 11)}-${numbers.slice(11, 13)}`;
+      return `${numbers.slice(0, 3)}-${numbers.slice(3, 7)}-${numbers.slice(7, 11)}-${numbers.slice(11)}`;
     }
     return numbers;
   };
@@ -111,24 +114,48 @@ export default function AccountSelectionScreen() {
   };
 
   // 계좌 인증 요청
-  const handleAccountVerification = () => {
+  const handleAccountVerification = async () => {
     if (!canSubmit) return;
 
-    console.log('계좌 인증 요청:', {
+    console.log('[Account Selection] 1원 인증 요청 시작:', {
       bank: selectedBankData?.name,
       accountNumber, // 하이픈 없는 숫자만 저장된 값
       displayFormat: selectedBankData?.format
     });
 
-    // 계좌 인증 화면으로 이동
-    router.push({
-      pathname: '/(auth)/(signup)/account-verification' as any,
-      params: {
-        bankName: selectedBankData?.name || '',
-        accountNumber: accountNumber,
-        displayFormat: selectedBankData?.format || ''
+    try {
+      // 1원 인증 요청 API 호출
+      const requestData: AccountVerificationRequestRequest = {
+        bankId: selectedBank, // 은행 ID
+        accountNo: accountNumber // 계좌번호
+      };
+
+      console.log('[Account Selection] API 요청 데이터:', requestData);
+      const response = await authApi.requestAccountVerification(requestData);
+      
+      console.log('[Account Selection] API 응답:', response);
+
+      if (response.success) {
+        console.log('[Account Selection] 1원 인증 요청 성공, authIdentifier:', response.data.authIdentifier);
+        
+        // 계좌 인증 화면으로 이동 (계좌 정보는 URL 파라미터로만 전달)
+        router.push({
+          pathname: '/(auth)/(signup)/account-verification' as any,
+          params: {
+            bankName: selectedBankData?.name || '',
+            accountNumber: accountNumber,
+            displayFormat: selectedBankData?.format || '',
+            bankId: selectedBank,
+            pin: response.data.authIdentifier // 백엔드에서 받은 4자리 인증번호 식별자
+          }
+        });
+      } else {
+        throw new Error((response as any).message || (response as any).error?.message || '1원 인증 요청에 실패했습니다.');
       }
-    });
+    } catch (error: any) {
+      console.error('[Account Selection] 1원 인증 요청 오류:', error);
+      Alert.alert('인증 요청 실패', error.message || '1원 인증 요청 중 오류가 발생했습니다.');
+    }
   };
 
   // 금융기관 아이템 렌더링
@@ -188,7 +215,7 @@ export default function AccountSelectionScreen() {
                 placeholder={selectedBankData ? `` : "계좌번호"}
                 keyboardType="number-pad"
                 style={styles.input}
-                maxLength={20}
+                maxLength={30}
                 returnKeyType="done"
               />
             </View>

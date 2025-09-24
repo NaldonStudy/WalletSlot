@@ -270,7 +270,7 @@ export default function PhoneScreen() {
       pathname: '/(auth)/(signup)/phone-verification' as any,
       params: {
         phoneNumber,
-        purpose: 'DEVICE_VERIFY'
+        purpose: 'SIGNUP' // 회원가입용으로 변경
       }
     });
   };

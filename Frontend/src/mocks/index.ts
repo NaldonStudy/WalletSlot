@@ -21,7 +21,7 @@ interface MSWConfig {
 
 // 환경별 MSW 설정
 const mswConfig: MSWConfig = {
-  enabled: __DEV__, // 개발 환경에서만 활성화
+  enabled: false, // 개발 환경에서만 활성화
   logging: __DEV__,
   delay: 0, // 기본값: 지연 없음
 };

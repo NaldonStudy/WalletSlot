@@ -17,7 +17,9 @@ import CustomSplashScreen from '@/src/components/CustomSplashScreen';
 import { initializeMSW } from '@/src/mocks';
 import { appService } from '@/src/services/appService';
 import { getOrCreateDeviceId } from '@/src/services/deviceIdService';
+import { getAccessToken, needsRefreshSoon } from '@/src/services/tokenService';
 import { unifiedPushService } from '@/src/services/unifiedPushService';
+import { useAuthStore } from '@/src/store/authStore';
 // import { monitoringService } from '@/src/services';
 
 // ✅ 개발 모드에서만 MSW를 초기화합니다.
@@ -187,7 +189,7 @@ export default function RootLayout() {
     }
   }, [loaded, onboardingDone, splashMinTimeElapsed]);
   
-  // 앱 시작 시 기타 초기화 로직
+  // 앱 시작 시 기타 초기화 로직 + 선제 토큰 갱신
   useEffect(() => {
     // TODO: 실제 사용자 ID를 받아온 후 설정
     // monitoringService.setUserId('user_123');
@@ -237,7 +239,9 @@ export default function RootLayout() {
       }
     })();
     
-    // 푸시 서비스 자동 초기화 (온보딩 완료 후)
+    // 푸시 서비스 자동 초기화 (온보딩 완료 후) - 주석처리
+    // 알림 동의 화면에서만 FCM 토큰을 발급하도록 변경
+    /*
     if (onboardingDone) {
       (async () => {
         try {
@@ -249,6 +253,33 @@ export default function RootLayout() {
         }
       })();
     }
+    */
+
+    // 선제 갱신: 앱 시작 시 1회 체크, 포그라운드 복귀 시마다 체크
+    const maybeSilentRefresh = async () => {
+      try {
+        const at = await getAccessToken();
+        if (!at) return;
+        if (!needsRefreshSoon(at, 90)) return;
+        console.log('🔄 AccessToken 만료 임박 → 선제 갱신 시도');
+        await useAuthStore.getState().refreshAccessToken();
+      } catch (e) {
+        console.log('선제 갱신 실패(무시 가능):', e);
+      }
+    };
+
+    maybeSilentRefresh();
+
+    const { AppState } = require('react-native');
+    const sub = AppState.addEventListener('change', (s: string) => {
+      if (s === 'active') {
+        maybeSilentRefresh();
+      }
+    });
+
+    return () => {
+      sub?.remove?.();
+    };
   }, [onboardingDone]);
 
   // 커스텀 스플래시 화면 표시

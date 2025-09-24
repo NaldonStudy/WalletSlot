@@ -1,10 +1,10 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as SecureStore from 'expo-secure-store';
-import { User, LocalUser } from '@/src/types';
+import { notificationApi } from '@/src/api/notification';
 import { STORAGE_KEYS } from '@/src/constants';
 import { getOrCreateDeviceId } from '@/src/services/deviceIdService';
-import { notificationApi } from '@/src/api/notification';
-import { Buffer } from 'buffer';
+import { deleteAccessToken as ssDelAT, getAccessToken as ssGetAT, saveAccessToken as ssSaveAT, saveRefreshToken as ssSaveRT } from '@/src/services/tokenService';
+import { LocalUser } from '@/src/types';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as SecureStore from 'expo-secure-store';
 
 // ===== 인증 관련 헬퍼 함수들 =====
 // Set-Cookie 헤더에서 refreshToken 추출
@@ -57,21 +57,21 @@ export const authService = {
     },
 
 // ============= 토큰 관리 =============
-    // AccessToken 저장(AsyncStorage)
+    // AccessToken 저장(SecureStore)
     async saveAccessToken(token: string): Promise<void> {
         try {
-            await AsyncStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, token);
-            console.log('[🔑AUTH_SERVICE] ✅AccessToken 저장 완료');
+            await ssSaveAT(token);
+            console.log('[🔑AUTH_SERVICE] ✅AccessToken 저장 완료 (SecureStore)');
         } catch (error) {
             console.error('[🔑AUTH_SERVICE] ❌AccessToken 저장 실패:', error);
             throw error;
         }
     },
 
-    // AccessToken 조회(AsyncStorage)
+    // AccessToken 조회(SecureStore)
     async getAccessToken(): Promise<string | null> {
         try {
-            return await AsyncStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
+            return await ssGetAT();
         } catch (error) {
             console.error('[🔑AUTH_SERVICE] ❌AccessToken 조회 실패:', error);
             return null;
@@ -81,7 +81,7 @@ export const authService = {
     // RefreshToken 저장(SecureStore)
     async saveRefreshToken(token: string): Promise<void> {
         try {
-            await SecureStore.setItemAsync((STORAGE_KEYS.REFRESH_TOKEN), token);
+            await ssSaveRT(token);
             console.log('[🔒AUTH_SERVICE] ✅RefreshToken 저장 완료');
         } catch (error) {
             console.error('[🔒AUTH_SERVICE] ❌RefreshToken 저장 실패:', error);
@@ -110,39 +110,34 @@ export const authService = {
                 return null;
             }
 
-            // fetch를 사용한 재발급 요청 (Set-Cookie 처리를 위해)
+            // 명세에 따라 body로 refreshToken + deviceId 전송
             const response = await fetch('/api/auth/refresh', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'X-Device-Id': await getOrCreateDeviceId(),
-                    'Cookie': `refreshToken=${refreshToken}`, //cookie로 refreshToken 자동 첨부
                 },
+                body: JSON.stringify({ refreshToken, deviceId: await getOrCreateDeviceId() }),
             });
 
             if (!response.ok) {
-                const errorData = await response.json();
-                console.error('[🔑AUTH_SERVICE] ❌토큰 재발급 실패:', response.status, errorData.message);
-                await this.clearAll();
-                return null;
-            }
-            
-            // 정상 응답 시 aceesToken과 refreshToken 추출
-            const newData = await response.json();
-
-            // 새로운 AccessToken 발급 & 저장
-            const newAccessToken = newData.data.accessToken;
-            await this.saveAccessToken(newAccessToken);
-            
-            // Set-Cookie에서 새로운 refreshToken 추출하여 저장
-            const setCookieHeader = response.headers.get('Set-Cookie');
-            if (setCookieHeader) {
-                const newRefreshToken = extractRefreshTokenFromCookie(setCookieHeader);
-                if (newRefreshToken) {
-                    await this.saveRefreshToken(newRefreshToken);
-                    console.log('[🔄AUTH_SERVICE] ✅RefreshToken 회전 완료');
+                // 상태별 분기 처리
+                if (response.status === 401 || response.status === 403) {
+                    console.error('[🔑AUTH_SERVICE] ❌토큰 재발급 실패(권한):', response.status);
+                    await this.clearAll();
+                    return null;
                 }
+                // 네트워크/서버 오류는 상위에서 재시도할 수 있도록 throw
+                const txt = await response.text();
+                throw new Error(`[REFRESH_FAIL_${response.status}] ${txt || 'refresh failed'}`);
             }
+
+            // 정상 응답: body로 accessToken/refreshToken 제공
+            const newData = await response.json();
+            const newAccessToken = newData.data?.accessToken;
+            const newRefreshToken = newData.data?.refreshToken;
+            if (newAccessToken) await this.saveAccessToken(newAccessToken);
+            if (newRefreshToken) await this.saveRefreshToken(newRefreshToken);
             
             console.log('[🔄AUTH_SERVICE] ✅AccessToken 재발급 완료');
             return newAccessToken;
@@ -209,7 +204,7 @@ export const authService = {
         try {
             await Promise.all([
                 this.clearUser(),
-                AsyncStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN),
+                ssDelAT(),
                 SecureStore.deleteItemAsync(STORAGE_KEYS.REFRESH_TOKEN),
             ]);
             console.log('[😢AUTH_SERVICE] ✅로그아웃 데이터 삭제 완료');

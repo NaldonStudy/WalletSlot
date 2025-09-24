@@ -1,13 +1,14 @@
 import { AuthKeypad } from '@/src/components';
+import { useSignupStore } from '@/src/store/signupStore';
 import { router } from 'expo-router';
 import React, { useState } from 'react';
 import {
-    KeyboardAvoidingView,
-    Platform,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  KeyboardAvoidingView,
+  Platform,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -18,6 +19,9 @@ export default function PasswordSetupScreen() {
   const [isConfirming, setIsConfirming] = useState<boolean>(false);
   const [firstPin, setFirstPin] = useState<string>('');
   const [error, setError] = useState<string>('');
+  
+  // 스토어에서 PIN 저장 함수 가져오기
+  const { setPin: savePin } = useSignupStore();
   
   // 키패드 랜덤 배치를 위한 트리거
   const [shuffleTrigger, setShuffleTrigger] = useState<number>(Math.random());
@@ -59,9 +63,9 @@ export default function PasswordSetupScreen() {
     } else {
       // 두 번째 PIN 입력 완료 - 비교
       if (firstPin === pin) {
-        // PIN 일치 - 임시 저장 후 알림 동의 화면으로 이동
-        // TODO: PIN을 임시 저장 (useState 또는 Zustand)
+        // PIN 일치 - 스토어에 임시 저장 후 알림 동의 화면으로 이동
         console.log('PIN 설정 완료:', pin);
+        savePin(pin); // 스토어에 PIN 저장
         
         // 알림 동의 화면으로 이동
         router.push('/(auth)/(signup)/notification-consent');

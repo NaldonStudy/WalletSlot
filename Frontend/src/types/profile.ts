@@ -67,7 +67,8 @@ export interface UpdateProfileRequest {
  * UserProfile에서 민감 정보 제외
  */
 export interface LocalUser {
-  userId: number;
   userName: string;
   isPushEnabled: boolean;
+  deviceId?: string; // 디바이스 ID (옵션)
+  accessToken?: string; // 액세스 토큰 (옵션)
 }

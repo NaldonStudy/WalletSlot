@@ -6,7 +6,7 @@ export const API_CONFIG = {
 } as const;
 
 // MSW 사용 여부 결정
-export const USE_MSW = __DEV__; // 개발 환경에서 MSW 사용
+export const USE_MSW = false; // MSW 비활성화 (실제 API 사용)
 
 // 백엔드 사용 가능 여부 (MSW 사용 시 false)
 export const BACKEND_AVAILABLE = (() => {
