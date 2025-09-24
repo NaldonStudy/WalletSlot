@@ -7,6 +7,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Getter
@@ -47,7 +48,7 @@ public class AddSplitTransactionsResponseDto {
         private String opponentAccountNo;
         private String summary;
         private Long amount;
-        private String transactionAt;
+        private LocalDateTime transactionAt;
     }
 
     @Getter

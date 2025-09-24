@@ -138,6 +138,7 @@ CREATE TABLE `account` (
   `encrypted_account_no` VARCHAR(255) NOT NULL,
   `balance` BIGINT UNSIGNED NOT NULL DEFAULT 0,
   `is_primary` BOOLEAN NOT NULL DEFAULT FALSE,
+  `last_synced_transaction_unique_no` VARCHAR(255),
   `last_synced_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT `fk_account_user_id`
     FOREIGN KEY (`user_id`) REFERENCES `user`(`id`)
@@ -202,7 +203,7 @@ CREATE TABLE `transaction` (
   `uuid` VARCHAR(64) NOT NULL,
   `account_id` INT UNSIGNED NOT NULL,
   `account_slot_id` INT UNSIGNED NOT NULL,
-  `unique_no` BIGINT UNSIGNED NOT NULL COMMENT 'transactionUniqueNo',
+  `unique_no` VARCHAR(255) NOT NULL COMMENT 'transactionUniqueNo',
   `type` VARCHAR(64) NOT NULL COMMENT 'transactionType, transactionTypeName',
   `opponent_account_no` BIGINT UNSIGNED COMMENT 'transactionAccountNo',
   `summary` VARCHAR(255) NOT NULL COMMENT 'transactionSummary',
@@ -281,7 +282,7 @@ CREATE TABLE `wishlist` (
 DROP TABLE IF EXISTS `email`;
 CREATE TABLE `email` (
   `id` INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
-  `user_id` INT UNSIGNED NOT NULL,
+  `user_id` INT UNSIGNED,
   `name` VARCHAR(64) NOT NULL,
   `email` VARCHAR(128) NOT NULL,
   `is_primary` TINYINT(1) NOT NULL DEFAULT 0,

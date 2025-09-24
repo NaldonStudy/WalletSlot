@@ -10,10 +10,10 @@ import java.util.Optional;
 
 public interface AccountSlotRepository extends JpaRepository<AccountSlot, Long> {
 
-    Optional<List<AccountSlot>> findByAccount(Account account);
+    List<AccountSlot> findByAccount(Account account);
     void deleteByAccount(Account account);
     Optional<AccountSlot> findByAccountAndSlot(Account account, Slot slot);
-    void deleteByAccountAndSlot(Account account, Slot slot);
     Optional<AccountSlot> findByUuid(String accountSlotUuid);
     void deleteByUuid(String accountSlotUuid);
+    Optional<AccountSlot> findBySlot(Slot uncategorizedSlot);
 }

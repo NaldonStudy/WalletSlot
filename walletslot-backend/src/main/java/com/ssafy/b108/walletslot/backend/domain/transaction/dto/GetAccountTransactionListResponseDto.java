@@ -3,6 +3,7 @@ package com.ssafy.b108.walletslot.backend.domain.transaction.dto;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Getter
@@ -43,6 +44,6 @@ public class GetAccountTransactionListResponseDto {
         private String summary;
         private Long amount;
         private Long balance;
-        private String transactionAt;
+        private LocalDateTime transactionAt;
     }
 }

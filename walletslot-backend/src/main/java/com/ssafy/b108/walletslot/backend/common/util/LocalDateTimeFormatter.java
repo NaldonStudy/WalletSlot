@@ -19,6 +19,23 @@ public class LocalDateTimeFormatter {
     }
 
     /**
+     * yyyyMMddHHmmss을 LocalDateTime으로 파싱
+     */
+    public static LocalDateTime StringToLocalDateTime(String date, String time) {
+
+        // 문자열 조립
+        String dateTimeStr = date + time;
+
+        // 포맷 정의
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
+
+        // LocalDateTime 파싱
+        LocalDateTime localDateTime = LocalDateTime.parse(dateTimeStr, formatter);
+
+        return localDateTime;
+    }
+
+    /**
      * 개월 수를 받아서 해당 개월 수 만큼 전의 날짜를 반환해주는 메서드
      */
     public static Map<String, String> fomatterWithMonthsAgo(Short period) {
