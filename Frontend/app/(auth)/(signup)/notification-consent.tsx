@@ -55,8 +55,8 @@ export default function NotificationConsentScreen() {
       // 디바이스 ID 가져오기
       const deviceId = await getOrCreateDeviceId();
       
-      // 플랫폼 정보
-      const platform = Platform.OS === 'ios' ? 'IOS' : 'ANDROID';
+  // 플랫폼 정보 (타입을 명시하여 CompleteSignupRequest의 유니온에 맞춥니다)
+  const platform: 'ANDROID' | 'IOS' = Platform.OS === 'ios' ? 'IOS' : 'ANDROID';
       
       // 회원가입 요청 데이터 구성
       const signupData = {
@@ -83,7 +83,7 @@ export default function NotificationConsentScreen() {
       // 회원가입 API 호출
       const response = await authApi.completeSignup(signupData);
       
-      if (response.success) {
+  if (response.success) {
         console.log('✅ 회원가입 성공:', {
           userId: response.data.userId,
           hasAccessToken: !!response.data.accessToken,
@@ -108,7 +108,8 @@ export default function NotificationConsentScreen() {
         // 4. welcome 화면으로 이동
         router.push('/(auth)/(signup)/welcome');
       } else {
-        throw new Error(response.error?.message || '회원가입에 실패했습니다.');
+        // CompleteSignupResponse는 BaseResponse 형태이므로 `error` 필드 대신 `message`를 사용합니다.
+        throw new Error(response.message || '회원가입에 실패했습니다.');
       }
     } catch (error: any) {
       console.error('회원가입 API 호출 실패:', error);
@@ -130,7 +131,7 @@ export default function NotificationConsentScreen() {
           console.log('FCM 토큰 발급 시작...(로그인 모드)');
           await unifiedPushService.initialize();
         } catch {}
-        router.replace('/(tabs)');
+  router.replace('/(tabs)' as any);
         return;
       }
 
@@ -166,7 +167,7 @@ export default function NotificationConsentScreen() {
       if (fromLogin) {
         setPushEnabled(false);
         console.log('알림 거부(로그인 모드) - 스토어에 저장');
-        router.replace('/(tabs)');
+  router.replace('/(tabs)' as any);
         return;
       }
 

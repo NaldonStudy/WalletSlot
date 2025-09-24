@@ -1,20 +1,17 @@
-import React, { useState, useRef, useEffect, useMemo, useCallback, memo } from 'react';
-import { View, Text, StyleSheet, ScrollView, useColorScheme, Animated, Dimensions } from 'react-native';
-import { Image } from 'expo-image';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { faker } from '@faker-js/faker';
-import { Button } from '@/src/components';
-import { themes, Spacing, Typography } from '@/src/constants/theme';
-import { AccountSummary } from '@/src/components/account/AccountSummary';
-import { BANK_CODES } from '@/src/constants/banks';
-import { useAccounts, useSlots } from '@/src/hooks';
-import type { UserAccount } from '@/src/types';
-import AccountDonutChart from '@/src/components/chart/AccountDonutChart';
 import AccountCarousel from '@/src/components/account/AccountCarousel';
-import { UncategorizedSlotCard } from '@/src/components/slot/UncategorizedSlotCard';
+import { AccountSummary } from '@/src/components/account/AccountSummary';
+import AccountDonutChart from '@/src/components/chart/AccountDonutChart';
 import SlotList from '@/src/components/slot/SlotList';
-import { useAccountBalance } from '@/src/hooks';
+import { UncategorizedSlotCard } from '@/src/components/slot/UncategorizedSlotCard';
+import { BANK_CODES } from '@/src/constants/banks';
 import { UNCATEGORIZED_SLOT_ID } from '@/src/constants/slots';
+import { Spacing, themes, Typography } from '@/src/constants/theme';
+import { useAccountBalance, useAccounts, useSlots } from '@/src/hooks';
+import type { UserAccount } from '@/src/types';
+import { faker } from '@faker-js/faker';
+import React, { memo, useCallback, useMemo, useRef, useState } from 'react';
+import { Animated, StyleSheet, Text, useColorScheme, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 // 헤더 컴포넌트 분리 (메모이제이션)
 const DashboardHeader = memo(({ userData, theme }: { userData: any, theme: any }) => (
@@ -86,15 +83,15 @@ export default function DashboardScreen() {
   // AccountSummary용 데이터 (UserAccount 직접 사용)
   const currentAccountForSummary: UserAccount | undefined = currentAccount ? {
     ...currentAccount,
-    accountBalance: realtimeBalance ?? currentAccount.accountBalance, // 실시간 잔액 우선, 없으면 초기 잔액
-  } : undefined;
+    balance: realtimeBalance ?? currentAccount.balance, // 실시간 잔액 우선
+  } as UserAccount : undefined;
   
   // AccountCarousel용 데이터 변환 (React Query가 자동으로 최신 잔액 관리)
-  const linkedAccountsForCarousel = rawAccounts.map((account: UserAccount) => ({
+  const linkedAccountsForCarousel = (rawAccounts || []).map((account: UserAccount) => ({
     bankCode: account.bankCode as keyof typeof BANK_CODES,
     accountName: account.alias || account.bankName,
     accountNumber: account.accountNo,
-    balance: account.accountBalance, // 이미 숫자 타입이므로 그대로 사용
+    balance: account.balance ?? 0,
   }));
   
 

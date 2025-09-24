@@ -17,7 +17,7 @@ export interface LinkedAccount {
   bankName: string;
   accountNo: string;
   alias: string;
-  accountBalance: string;
+  balance: number;
 }
 
 export interface UpdateDeviceRequest {
@@ -125,8 +125,8 @@ function convertUserAccountsToLinkedAccounts(userAccounts: any[]): LinkedAccount
     bankCode: account.bankCode,
     bankName: account.bankName,
     accountNo: account.accountNo,
-    alias: account.accountAlias || '연동된 계좌', // accountAlias -> alias
-    accountBalance: String(account.balance || 0), // number -> string
+    alias: account.alias || '연동된 계좌',
+    balance: Number(account.balance || 0),
   }));
 }
 

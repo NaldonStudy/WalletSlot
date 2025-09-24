@@ -68,11 +68,11 @@ export default function ConnectedBanks({ visible, onClose }: Props) {
         bankColor: getBankColor(account.bankCode),
         accountNumber: account.accountNo,
         accountType: '일반계좌', // 기본값
-        accountName: account.accountAlias || '연동된 계좌',
+        accountName: account.alias || '연동된 계좌',
         connectionDate: '2024-01-01', // 기본값
         expiryDate: '2025-12-31', // 기본값
         status: 'active' as const,
-        balance: account.balance || 0,
+        balance: account.balance ?? 0,
       }))
       setConnections(converted)
     }

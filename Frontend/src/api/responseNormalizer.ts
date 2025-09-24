@@ -6,7 +6,7 @@
  * 격리하여 fallback fetch 로직을 캡슐화합니다.
  */
 
-import type { PaginatedResponse, UserAccount, BaseResponse, AccountsResponse, SlotsResponse, SlotData, SlotDailySpendingResponse } from '@/src/types';
+import type { AccountsResponse, BaseResponse, PaginatedResponse, SlotDailySpendingResponse, SlotData, SlotsResponse } from '@/src/types';
 
 /** 알림 목록 응답 형태 후보 타입 (느슨한 any 구조) */
 export type RawNotificationListResponse = any; // 다양한 케이스 수용
@@ -372,7 +372,19 @@ export function normalizeSlotDetail(raw: RawSlotsResponse): BaseResponse<SlotDat
     message: '슬롯 상세 조회 성공',
     data: {
       slotId: '',
+      name: '',
       slotName: '',
+      accountSlotId: '',
+      customName: '',
+      initialBudget: 0,
+      currentBudget: 0,
+      spent: 0,
+      remainingBudget: 0,
+      exceededBudget: 0,
+      budgetChangeCount: 0,
+      isSaving: false,
+      isCustom: false,
+      isBudgetExceeded: false,
       slotIcon: { uri: '' },
       slotColor: '',
       budget: 0,

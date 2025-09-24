@@ -67,6 +67,8 @@ export interface UpdateProfileRequest {
  * UserProfile에서 민감 정보 제외
  */
 export interface LocalUser {
+  // 백엔드에서 전달되는 고유 사용자 ID
+  userId?: number;
   userName: string;
   isPushEnabled: boolean;
   deviceId?: string; // 디바이스 ID (옵션)

@@ -91,7 +91,7 @@ export const useAuthStore = create<AuthState>()(
           }
           try {
             const { useSlotStore } = await import('@/src/store/useSlotStore');
-            useSlotStore.getState().reset?.();
+            (useSlotStore.getState() as any).reset?.();
           } catch (e) {
             console.warn('[🔐AUTH_STORE] slotStore reset skip:', e);
           }
