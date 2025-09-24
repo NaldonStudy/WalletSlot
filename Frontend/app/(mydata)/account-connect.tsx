@@ -1,7 +1,7 @@
 import { ThemedText } from '@/components/ThemedText';
 import { BANK_CODES } from '@/src/constants/banks';
 import { useBankSelectionStore } from '@/src/store/bankSelectionStore';
-import { useSignupStore } from '@/src/store/signupStore';
+import { useLocalUserStore } from '@/src/store/localUserStore';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
@@ -11,7 +11,8 @@ const SELECT_BLUE = '#2383BD';
 
 export default function AccountConnectScreen() {
   const router = useRouter();
-  const { name } = useSignupStore();
+  const { user } = useLocalUserStore();
+  const displayName = user?.userName || '사용자';
   const banks = useBankSelectionStore(s => s.selectedBanks);
   const data = banks || [];
 
@@ -119,7 +120,7 @@ export default function AccountConnectScreen() {
     <View style={styles.container}>
       {isLoading ? (
         <>
-          <ThemedText style={styles.title}>{name || '사용자'}님의 계좌를 불러오고 있어요.</ThemedText>
+          <ThemedText style={styles.title}>{displayName}님의 계좌를 불러오고 있어요.</ThemedText>
           <FlatList
             data={data}
             keyExtractor={(_, idx) => `${idx}`}
@@ -138,7 +139,7 @@ export default function AccountConnectScreen() {
             <ThemedText style={styles.backIcon}>{'<'}</ThemedText>
           </TouchableOpacity>
 
-          <ThemedText style={styles.title}>{name || '사용자'}님의 계좌가 연결되었습니다</ThemedText>
+          <ThemedText style={styles.title}>{displayName}님의 계좌가 연결되었습니다</ThemedText>
           <ThemedText style={styles.subtitle}>{phase === 'multi' ? '서비스에 사용할 계좌를 선택해주세요' : '대표로 사용할 계좌를 선택해주세요'}</ThemedText>
 
           {/* 모두 선택 (멀티 단계에서만) */}

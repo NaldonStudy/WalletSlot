@@ -1,3 +1,7 @@
+import { authApi } from '@/src/api/auth';
+import { getOrCreateDeviceId } from '@/src/services/deviceIdService';
+import { useSignupStore } from '@/src/store/signupStore';
+import type { SmsSendRequest, SmsVerifySignupRequest } from '@/src/types';
 import { router, useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import {
@@ -28,7 +32,9 @@ export default function PhoneVerificationScreen() {
   const [digits, setDigits] = useState<string[]>(['', '', '', '', '', '']);
   const [error, setError] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [correctCode, setCorrectCode] = useState<string>(''); // 발송된 올바른 코드 저장
+  
+  // 스토어에서 signupTicket 관리 함수 가져오기
+  const { setSignupTicket } = useSignupStore();
 
   // 참조
   const inputRefs = useRef<(TextInput | null)[]>([]);
@@ -91,7 +97,7 @@ export default function PhoneVerificationScreen() {
     };
   }, []);
 
-  // SMS 발송 (Mock)
+  // SMS 발송 (실제 API 호출)
   const sendSms = async () => {
     if (!phoneNumber) {
       console.log('[SMS Screen] phoneNumber 없음');
@@ -103,28 +109,47 @@ export default function PhoneVerificationScreen() {
     setError('');
     
     try {
-      // Mock SMS 발송 (나중에 API 연결)
-      const mockVerificationId = `verif_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-      const mockCode = String(Math.floor(100000 + Math.random() * 900000));
-      const mockExpiresIn = 180; // 3분
-      const mockResendAvailableIn = 30; // 30초
+      // 디바이스 ID 가져오기
+      const deviceId = await getOrCreateDeviceId();
       
-      console.log(`[MOCK][SMS] ${purpose} 인증코드 발송:`, { 
-        phoneNumber, 
-        code: mockCode, 
-        verificationId: mockVerificationId,
-        expiresIn: `${Math.floor(mockExpiresIn/60)}:${String(mockExpiresIn%60).padStart(2,'0')}`
-      });
+      // API 요청 데이터 구성
+      const requestData: SmsSendRequest = {
+        phone: phoneNumber,
+        purpose: purpose as 'LOGIN' | 'SIGNUP' | 'FORGOT_PIN' | 'PROFILE_UPDATE' | 'DEVICE_VERIFY',
+        deviceId: deviceId
+      };
       
-      // 상태 업데이트
-      setVerificationId(mockVerificationId);
-      setExpiresIn(mockExpiresIn);
-      setCooldown(mockResendAvailableIn);
-      setDigits(['', '', '', '', '', '']);
-      setError('');
-      setCorrectCode(mockCode); // 올바른 코드 저장
+      console.log('[SMS Screen] API 요청 데이터:', requestData);
       
-      console.log('[SMS Screen] 상태 업데이트 완료 - expiresIn:', mockExpiresIn);
+      // 실제 API 호출
+      console.log('[SMS Screen] API 호출 시작...');
+      const response = await authApi.sendSms(requestData);
+      
+      // 응답 상세 로그
+      console.log('[SMS Screen] API 응답 전체:', response);
+      console.log('[SMS Screen] 응답 타입:', typeof response);
+      console.log('[SMS Screen] success 값:', response.success);
+      console.log('[SMS Screen] data 값:', response.data);
+      console.log('[SMS Screen] error 값:', response.error);
+      
+      if (response.success && response.data.sent) {
+        console.log('[SMS Screen] SMS 발송 성공');
+        
+        // 상태 업데이트 (실제 API에서는 만료시간을 서버에서 관리)
+        const mockExpiresIn = 180; // 3분 (실제로는 서버에서 관리)
+        const mockResendAvailableIn = 30; // 30초
+        
+        setVerificationId(`verif_${Date.now()}`); // 임시 ID
+        setExpiresIn(mockExpiresIn);
+        setCooldown(mockResendAvailableIn);
+        setDigits(['', '', '', '', '', '']);
+        setError('');
+        
+        console.log('[SMS Screen] 상태 업데이트 완료 - expiresIn:', mockExpiresIn);
+      } else {
+        console.error('[SMS Screen] SMS 발송 실패 - 응답:', response);
+        throw new Error(response.error?.message || 'SMS 발송에 실패했습니다.');
+      }
     } catch (error: any) {
       console.error('[SMS Screen] SMS 발송 오류:', error);
       setError(error.message || 'SMS 발송 중 오류가 발생했습니다.');
@@ -160,7 +185,7 @@ export default function PhoneVerificationScreen() {
     }
   };
 
-  // 인증코드 검증
+  // 인증코드 검증 (실제 API 호출)
   const handleVerify = async () => {
     // 6자리 입력 확인
     if (code.length !== 6) {
@@ -187,13 +212,26 @@ export default function PhoneVerificationScreen() {
     setError('');
     
     try {
-      console.log('[SMS Screen] 인증 시도:', { verificationId, code, correctCode });
+      console.log('[SMS Screen] 인증 시도:', { phoneNumber, purpose, code });
       
-      // Mock 인증 (나중에 API 연결)
-      // 실제로는 서버에서 검증해야 함
-      const mockVerified = code === correctCode; // 입력한 코드와 발송된 코드 비교
+      // API 요청 데이터 구성
+      const requestData: SmsVerifySignupRequest = {
+        phone: phoneNumber,
+        purpose: purpose as 'SIGNUP' | 'LOGIN',
+        code: code
+      };
       
-      if (mockVerified) {
+      console.log('[SMS Screen] API 요청 데이터:', requestData);
+      
+      // 실제 API 호출
+      const response = await authApi.verifySmsSignup(requestData);
+      
+      if (response.success && response.data.verified) {
+        console.log('[SMS Screen] SMS 인증 성공, signupTicket:', response.data.signupTicket);
+        
+        // signupTicket을 스토어에 저장
+        setSignupTicket(response.data.signupTicket);
+        
         // 인증 성공 - 목적에 따라 분기
         Alert.alert('인증 완료', '휴대폰 인증이 완료되었습니다.', [
           {
@@ -206,13 +244,14 @@ export default function PhoneVerificationScreen() {
                 // 프로필 수정 모드: 프로필 페이지로 돌아가기
                 router.push('/(tabs)/profile' as any);
               } else {
+                // 회원가입 모드: 계좌 선택 화면으로 이동
                 router.push('/(auth)/(signup)/account-selection' as any);
               }
             },
           },
         ]);
       } else {
-        setError('인증코드가 일치하지 않습니다. 다시 입력해주세요.');
+        setError(response.error?.message || '인증코드가 일치하지 않습니다. 다시 입력해주세요.');
       }
     } catch (error: any) {
       console.error('[SMS Screen] 인증 오류:', error);

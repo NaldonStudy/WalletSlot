@@ -9,6 +9,9 @@ type SignupState = {
     residentBack1: string | null;
     phone: string | null;
     carrier: Carrier | null;
+    signupTicket: string | null; // SMS 인증 완료 후 받은 signupTicket
+    pin: string | null; // PIN 설정 완료 후 임시 저장
+    isPushEnabled: boolean | null; // 알림 동의 여부
 };
 
 // 액션 타입 정의
@@ -18,10 +21,16 @@ type SignupActions = {
     setResidentFront6: (front6: string) => void;
     setResidentBack1: (back1: string) => void;
     setPhone: (carrier: Carrier, phone: string) => void;
+    setSignupTicket: (ticket: string) => void;
+    setPin: (pin: string) => void;
+    setPushEnabled: (enabled: boolean) => void;
     
     clearName: () => void;
     clearResidentId: () => void;
     clearPhone: () => void;
+    clearSignupTicket: () => void;
+    clearPin: () => void;
+    clearPushEnabled: () => void;
 
     reset: () => void;
 
@@ -29,6 +38,7 @@ type SignupActions = {
     isNameValid: () => boolean;
     isResidentIdValid: () => boolean;
     isPhoneValid: () => boolean;
+    hasSignupTicket: () => boolean;
 };
 
 // 전체 스토어 타입
@@ -41,6 +51,9 @@ const initial: SignupState = {
     residentBack1: null,
     phone: null,
     carrier: null,
+    signupTicket: null,
+    pin: null,
+    isPushEnabled: null,
 };
 
 export const useSignupStore = create<SignupStore>((set, get) => ({
@@ -55,10 +68,16 @@ export const useSignupStore = create<SignupStore>((set, get) => ({
         const digits = phone.replace(/\D/g, '').slice(0, 11);
         set({ carrier, phone: digits });
     },
+    setSignupTicket: (ticket) => set({ signupTicket: ticket }),
+    setPin: (pin) => set({ pin: pin }),
+    setPushEnabled: (enabled) => set({ isPushEnabled: enabled }),
 
     clearName: () => set({ name: null}),
     clearResidentId: () => set({ residentFront6: null, residentBack1: null}),
     clearPhone: () => set({ carrier: null, phone: null}),
+    clearSignupTicket: () => set({ signupTicket: null }),
+    clearPin: () => set({ pin: null }),
+    clearPushEnabled: () => set({ isPushEnabled: null }),
 
     reset: () => set({ ...initial }),
 
@@ -98,6 +117,11 @@ export const useSignupStore = create<SignupStore>((set, get) => ({
         if (!carrier || !phone) return false;
         const digits = phone.replace(/\D/g, '');
         return digits.length === 11 && digits.startsWith('010');
+    },
+
+    hasSignupTicket: () => {
+        const { signupTicket } = get();
+        return signupTicket !== null && signupTicket.length > 0;
     }
 }));
 

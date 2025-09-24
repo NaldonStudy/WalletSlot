@@ -336,26 +336,14 @@ export const usePushNotificationSystem = () => {
   const [isInitialized, setIsInitialized] = useState(false);
   const [appState, setAppState] = useState<AppStateStatus>(AppState.currentState);
 
+  // 푸시 서비스는 알림 동의 화면에서만 초기화
+  // (자동 초기화 제거 - 사용자가 알림을 허용했을 때만 FCM 토큰 발급)
   useEffect(() => {
-    const initialize = async () => {
-      try {
-        console.log('🔄 [HOOK] 푸시 서비스 초기화 시도...');
-        const result = await unifiedPushService.initialize();
-        if (result.success) {
-          setIsInitialized(true);
-          console.log('✅ [HOOK] 푸시 서비스 초기화 성공');
-        } else {
-          setIsInitialized(false);
-          console.warn('⚠️ [HOOK] 푸시 서비스 초기화 실패');
-        }
-      } catch (error) {
-        console.error('❌ [HOOK] 푸시 서비스 초기화 중 심각한 오류:', error);
-        setIsInitialized(false);
-      }
-    };
-    initialize();
+    // 초기화 상태는 false로 유지 (알림 동의 후에만 true가 됨)
+    setIsInitialized(false);
+    
     return () => {
-      unifiedPushService.cleanup();
+      // 정리 작업은 필요시에만 수행
     };
   }, []);
 

@@ -1,5 +1,6 @@
 import { SLOT_CATEGORIES } from "../constants/slots";
 export * from './account';
+export * from './auth';
 export * from './profile';
 export * from './report';
 export * from './slot';

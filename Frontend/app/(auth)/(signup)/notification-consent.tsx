@@ -1,38 +1,157 @@
+import { authApi } from '@/src/api/auth';
+import { getOrCreateDeviceId } from '@/src/services/deviceIdService';
+import { saveAccessToken, saveRefreshToken } from '@/src/services/tokenService';
+import { unifiedPushService } from '@/src/services/unifiedPushService';
+import { useLocalUserStore } from '@/src/store/localUserStore';
+import { useSignupStore } from '@/src/store/signupStore';
+import { extractGenderAndBirthDate } from '@/src/utils';
+import { router, useLocalSearchParams } from 'expo-router';
 import React, { useState } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  TouchableOpacity, 
+import {
   Alert,
+  Dimensions,
+  Platform,
   SafeAreaView,
-  Dimensions
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
 } from 'react-native';
-import { router } from 'expo-router';
 
 const { width } = Dimensions.get('window');
 
 export default function NotificationConsentScreen() {
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const params = useLocalSearchParams();
+  const fromLogin = params.from === 'login' || params.mode === 'login';
+  
+  // 스토어에서 회원가입 정보와 알림 동의 저장 함수 가져오기
+  const { 
+    name, 
+    residentFront6, 
+    residentBack1, 
+    phone, 
+    carrier, 
+    signupTicket, 
+    pin, 
+    setPushEnabled,
+    reset: resetSignupStore // signupStore 초기화용
+  } = useSignupStore();
+  
+  // 로컬 사용자 스토어
+  const { setUser } = useLocalUserStore();
+
+  // 최종 회원가입 API 호출 함수
+  const completeSignup = async (pushEnabled: boolean, fcmToken?: string) => {
+    try {
+      // 필수 정보 검증
+      if (!name || !residentFront6 || !residentBack1 || !phone || !signupTicket || !pin) {
+        throw new Error('회원가입 정보가 불완전합니다.');
+      }
+
+      // 주민등록번호에서 성별과 생년월일 추출
+      const { gender, birthDate } = extractGenderAndBirthDate(residentFront6, residentBack1);
+      
+      // 디바이스 ID 가져오기
+      const deviceId = await getOrCreateDeviceId();
+      
+      // 플랫폼 정보
+      const platform = Platform.OS === 'ios' ? 'IOS' : 'ANDROID';
+      
+      // 회원가입 요청 데이터 구성
+      const signupData = {
+        name,
+        phone,
+        gender,
+        birthDate,
+        signupTicket,
+        pin,
+        baseDay: 10, // 기본값 (필요시 사용자 입력으로 변경)
+        job: null, // 기본값 null
+        deviceId,
+        platform,
+        pushToken: fcmToken,
+        pushEnabled
+      };
+
+      console.log('회원가입 요청 데이터:', {
+        ...signupData,
+        pin: '****', // 보안을 위해 PIN은 마스킹
+        pushToken: fcmToken ? `${fcmToken.substring(0, 20)}...` : 'null'
+      });
+
+      // 회원가입 API 호출
+      const response = await authApi.completeSignup(signupData);
+      
+      if (response.success) {
+        console.log('✅ 회원가입 성공:', {
+          userId: response.data.userId,
+          hasAccessToken: !!response.data.accessToken,
+          hasRefreshToken: !!response.data.refreshToken
+        });
+        
+        // 1. 토큰을 SecureStore에 저장 (AT/RT)
+        await saveAccessToken(response.data.accessToken);
+        await saveRefreshToken(response.data.refreshToken);
+        
+        // 2. 로컬 사용자 정보를 AsyncStorage에 저장 (AT는 저장하지 않음)
+        await setUser({
+          userName: name!,
+          isPushEnabled: pushEnabled,
+          deviceId,
+        });
+        
+        // 3. signupStore 초기화 (회원가입 완료 후 더 이상 필요 없음)
+        resetSignupStore();
+        console.log('✅ signupStore 초기화 완료');
+        
+        // 4. welcome 화면으로 이동
+        router.push('/(auth)/(signup)/welcome');
+      } else {
+        throw new Error(response.error?.message || '회원가입에 실패했습니다.');
+      }
+    } catch (error: any) {
+      console.error('회원가입 API 호출 실패:', error);
+      Alert.alert('회원가입 실패', error.message || '회원가입 중 오류가 발생했습니다.');
+      throw error;
+    }
+  };
 
   // 알림 허용 처리
   const handleAllow = async () => {
     setIsLoading(true);
     
     try {
-      // TODO: 서버에 회원가입 데이터 전송
-      // - PIN (임시 저장된 것)
-      // - 알림 동의: true
-      // - 기타 회원가입 정보
+      // 로그인 경로: 동의 저장 + 푸시 초기화 후 메인으로
+      if (fromLogin) {
+        setPushEnabled(true);
+        console.log('알림 허용(로그인 모드) - 스토어에 저장');
+        try {
+          console.log('FCM 토큰 발급 시작...(로그인 모드)');
+          await unifiedPushService.initialize();
+        } catch {}
+        router.replace('/(tabs)');
+        return;
+      }
+
+      // 회원가입 경로: 기존 completeSignup 플로우
+      setPushEnabled(true);
+      console.log('알림 허용 - 스토어에 저장');
+
+      console.log('FCM 토큰 발급 시작...');
+      const pushResult = await unifiedPushService.initialize();
+      let fcmToken: string | undefined;
+      if (pushResult.success) {
+        console.log('✅ FCM 토큰 발급 및 서버 등록 성공');
+        console.log('Device ID:', pushResult.deviceId);
+        fcmToken = unifiedPushService.getFCMToken() || undefined;
+      } else {
+        console.warn('⚠️ FCM 토큰 발급 실패 (알림 기능 제한)');
+      }
+      await completeSignup(true, fcmToken);
       
-      console.log('알림 허용 - 서버 전송');
-      
-      // 성공 시뮬레이션
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // welcome 화면으로 이동
-      router.push('/(auth)/(signup)/welcome');
     } catch (error) {
+      console.error('알림 허용 처리 중 오류:', error);
       Alert.alert('오류', '알림 설정 중 오류가 발생했습니다.');
     } finally {
       setIsLoading(false);
@@ -44,19 +163,20 @@ export default function NotificationConsentScreen() {
     setIsLoading(true);
     
     try {
-      // TODO: 서버에 회원가입 데이터 전송
-      // - PIN (임시 저장된 것)
-      // - 알림 동의: false
-      // - 기타 회원가입 정보
+      if (fromLogin) {
+        setPushEnabled(false);
+        console.log('알림 거부(로그인 모드) - 스토어에 저장');
+        router.replace('/(tabs)');
+        return;
+      }
+
+      setPushEnabled(false);
+      console.log('알림 거부 - 스토어에 저장');
+      console.log('알림 거부 - FCM 토큰 발급하지 않음');
+      await completeSignup(false, undefined);
       
-      console.log('알림 거부 - 서버 전송');
-      
-      // 성공 시뮬레이션
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // welcome 화면으로 이동
-      router.push('/(auth)/(signup)/welcome');
     } catch (error) {
+      console.error('알림 거부 처리 중 오류:', error);
       Alert.alert('오류', '알림 설정 중 오류가 발생했습니다.');
     } finally {
       setIsLoading(false);

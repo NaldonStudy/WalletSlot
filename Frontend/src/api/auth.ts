@@ -1,14 +1,17 @@
 import { apiClient } from '@/src/api/client';
-import { 
-  User, 
-  UserDevice, 
-  LoginForm, 
-  RegisterForm, 
-  PhoneVerificationForm,
-  AccountVerificationForm,
-  PasswordForm,
-  AuthTokens,
-  BaseResponse 
+import {
+  AccountVerificationRequestRequest,
+  AccountVerificationRequestResponse,
+  AccountVerificationVerifyRequest,
+  AccountVerificationVerifyResponse,
+  CompleteSignupRequest,
+  CompleteSignupResponse,
+  SmsSendRequest,
+  SmsSendResponse,
+  SmsVerifyRequest,
+  SmsVerifyResponse,
+  SmsVerifySignupRequest,
+  SmsVerifySignupResponse,
 } from '@/src/types';
 
 /**
@@ -16,79 +19,53 @@ import {
  */
 export const authApi = {
   /**
-   * 로그인
+   * SMS 인증코드 발송
+   * POST /api/auth/sms/send
    */
-  login: async (data: LoginForm): Promise<BaseResponse<{ user: User; tokens: AuthTokens }>> => {
-    return apiClient.post('/auth/login', data);
+  sendSms: async (data: SmsSendRequest): Promise<SmsSendResponse> => {
+    return apiClient.post('/api/auth/sms/send', data);
   },
 
   /**
-   * 토큰 갱신
+   * 가입용 SMS 검증
+   * POST /api/auth/sms/verify-signup
    */
-  refreshToken: async (refreshToken: string): Promise<BaseResponse<AuthTokens>> => {
-    return apiClient.post('/auth/refresh', { refreshToken });
+  verifySmsSignup: async (data: SmsVerifySignupRequest): Promise<SmsVerifySignupResponse> => {
+    return apiClient.post('/api/auth/sms/verify-signup', data);
   },
 
   /**
-   * 회원가입 - 기본 정보 등록
+   * 로그인/공통 SMS 검증
+   * POST /api/auth/sms/verify
    */
-  register: async (data: RegisterForm): Promise<BaseResponse<{ userId: number }>> => {
-    return apiClient.post('/auth/register', data);
+  verifySms: async (data: SmsVerifyRequest): Promise<SmsVerifyResponse> => {
+    return apiClient.post('/api/auth/sms/verify', data);
+  },
+  /**
+   * 1원 인증 요청
+   * POST /api/accounts/verification/request
+   */
+  requestAccountVerification: async (
+    data: AccountVerificationRequestRequest,
+  ): Promise<AccountVerificationRequestResponse> => {
+    return apiClient.postNoAuth('/api/accounts/verification/request', data);
   },
 
   /**
-   * 휴대폰 인증 코드 발송
+   * 1원 인증 검증
+   * POST /api/accounts/verification/verify
    */
-  sendPhoneVerification: async (phoneNumber: string): Promise<BaseResponse<void>> => {
-    return apiClient.post('/auth/phone/send', { phoneNumber });
+  verifyAccountVerification: async (
+    data: AccountVerificationVerifyRequest,
+  ): Promise<AccountVerificationVerifyResponse> => {
+    return apiClient.postNoAuth('/api/accounts/verification/verify', data);
   },
 
   /**
-   * 휴대폰 인증 코드 확인
+   * 회원가입 완료
+   * POST /api/auth/signup
    */
-  verifyPhone: async (data: PhoneVerificationForm): Promise<BaseResponse<void>> => {
-    return apiClient.post('/auth/phone/verify', data);
-  },
-
-  /**
-   * 계좌 1원 인증 요청
-   */
-  requestAccountVerification: async (data: { accountNumber: string; bankCode: string }): Promise<BaseResponse<void>> => {
-    return apiClient.post('/auth/account/verify-request', data);
-  },
-
-  /**
-   * 계좌 1원 인증 확인
-   */
-  verifyAccount: async (data: AccountVerificationForm): Promise<BaseResponse<void>> => {
-    return apiClient.post('/auth/account/verify', data);
-  },
-
-  /**
-   * 간편 비밀번호 설정
-   */
-  setPassword: async (data: PasswordForm): Promise<BaseResponse<void>> => {
-    return apiClient.post('/auth/password/set', data);
-  },
-
-  /**
-   * 간편 비밀번호 변경
-   */
-  changePassword: async (data: { currentPassword: string; newPassword: string }): Promise<BaseResponse<void>> => {
-    return apiClient.post('/auth/password/change', data);
-  },
-
-  /**
-   * FCM 토큰 등록/갱신
-   */
-  updateFcmToken: async (data: { deviceUuid: string; fcmToken: string; platform: string }): Promise<BaseResponse<void>> => {
-    return apiClient.post('/auth/fcm-token', data);
-  },
-
-  /**
-   * 기기 정보 등록
-   */
-  registerDevice: async (data: { deviceUuid: string; fcmToken: string; platform: string }): Promise<BaseResponse<UserDevice>> => {
-    return apiClient.post('/auth/device', data);
+  completeSignup: async (data: CompleteSignupRequest): Promise<CompleteSignupResponse> => {
+    return apiClient.post('/api/auth/signup', data);
   },
 };

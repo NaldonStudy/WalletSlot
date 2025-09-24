@@ -16,8 +16,9 @@ export async function getOrCreateDeviceId(): Promise<string> {
             return existingId;
         }
 
-        // 없으면 생성
+        // 없으면 생성 -> 로그인을 위해 잠깐 하드코딩
         const newId = uuidv4();
+        // const newId = '1234';
         await AsyncStorage.setItem(DEVICE_ID_KEY, newId);
         return newId;
     } catch (error) {
