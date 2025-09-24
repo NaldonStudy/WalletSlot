@@ -24,8 +24,7 @@ SET FOREIGN_KEY_CHECKS = 1;
 -- USER
 INSERT INTO `user` (id, uuid, name, user_key, phone_number, gender, birth_date, base_day, job)
 VALUES
-(1, UUID(), '전해지', 'd022c753-e3f0-4d58-a405-ee8a058fd199', '01012345678', 'FEMALE', '2000-02-24 00:00:00', 26, 'STUDENT'),
-(2, UUID(), '김영희', 'e251137a-6b9c-4c87-8516-0f9a1ff1f96e', '01098765432', 'FEMALE', '1998-07-15 00:00:00', 17, 'OFFICE_WORKER');
+(1, UUID(), '전해지', 'd022c753-e3f0-4d58-a405-ee8a058fd199', '01012345678', 'FEMALE', '2000-02-24 00:00:00', 26, 'STUDENT');
 
 -- PEPPER_KEYS
 INSERT INTO `pepper_keys` (id, key_alias, status)
@@ -183,8 +182,7 @@ VALUES
 -- PUSH_ENDPOINT
 INSERT INTO `push_endpoint` (id, user_id, device_id, platform, token, status, is_push_enabled)
 VALUES
-(1, 1, 'device-1234', 'ANDROID', 'fcm_token_abc123', 'ACTIVE', TRUE),
-(2, 2, 'device-5678', 'IOS', 'fcm_token_def456', 'ACTIVE', TRUE);
+(1, 1, 'device-1234', 'ANDROID', 'fcmutil-firebase-adminsdk-fbsvc-ec4aa784ee.json', 'ACTIVE', TRUE);
 
 -- NOTIFICATION  (ENUM: SYSTEM, DEVICE, BUDGET, TRANSACTION, MARKETING)
 INSERT INTO `notification` (id, uuid, user_id, title, body, is_delivered, delivered_at, is_read, read_at, type)

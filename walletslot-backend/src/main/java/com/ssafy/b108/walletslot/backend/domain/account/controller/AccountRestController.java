@@ -107,7 +107,7 @@ public class AccountRestController {
 
     @DeleteMapping("/{accountId}")
     @Operation(
-            summary = "4-1-5 연동된 계좌 삭제",
+            summary = "4-1-6 연동된 계좌 삭제",
             description = "사용자가 우리 서비스에 연동했던 계좌를 연동 해제합니다.",
             responses = {
                     @ApiResponse(
