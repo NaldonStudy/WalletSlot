@@ -89,7 +89,7 @@ export default function DashboardScreen() {
   // AccountCarousel용 데이터 변환 (React Query가 자동으로 최신 잔액 관리)
   const linkedAccountsForCarousel = (rawAccounts || []).map((account: UserAccount) => ({
     bankId: account.bankId as keyof typeof BANK_CODES,
-    accountName: account.alias || account.bankName,
+    accountName: account.alias, // normalizeAccountList에서 이미 처리됨
     accountNumber: account.accountNo,
     balance: Number(account.accountBalance ?? 0),
   }));
