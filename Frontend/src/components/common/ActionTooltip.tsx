@@ -28,7 +28,6 @@ const ActionTooltip = ({ onEdit, onHistory }: ActionTooltipProps) => {
       <Pressable 
         style={styles.item} 
         onPress={() => {
-          console.log('[ActionTooltip] 예산 변경 버튼 터치됨');
           onEdit?.();
         }}
       >
