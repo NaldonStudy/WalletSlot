@@ -53,5 +53,12 @@ export interface SlotTransactionsResponse {
   pageSize: number;
 }
 
+// 거래내역 이동 API 응답 타입
+export interface MoveTransactionResponse {
+  transaction: SlotTransaction;
+  originalSlot: SlotData;
+  reassignedSlot: SlotData;
+}
+
 
 

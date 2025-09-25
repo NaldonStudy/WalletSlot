@@ -55,7 +55,6 @@ const baseHandlers = [
 export const handlers = [
   ...internalHandlers, // ✅ 2. 통과 핸들러를 가장 위에 추가
   ...baseHandlers,
-  ...accountHandlers,
   ...slotHandlers,
   ...notificationHandlers,
   ...profileHandlers,

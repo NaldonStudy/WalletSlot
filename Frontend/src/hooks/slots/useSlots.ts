@@ -19,9 +19,12 @@ export const useSlots = (accountId?: string, options: UseSlotsOptions = {}) => {
       const result = await slotApi.getSlotsByAccount(accountId!);
       return result;
     },
-    staleTime: 5 * 60 * 1000, // 5분간 캐시 유지
-    gcTime: 10 * 60 * 1000, // 10분간 가비지 컬렉션 방지
+    staleTime: 1 * 60 * 1000, // 1분간 fresh 상태 유지
+    gcTime: 5 * 60 * 1000, // 5분간 캐시 유지
     enabled: !!accountId && options.enabled !== false,
+    // 캐시 무효화 시 자동으로 refetch
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
     select: (res) => {
       // MSW 응답 구조에 따른 유연한 처리
       let slots = [];

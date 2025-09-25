@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { slotApi, queryKeys } from "@/src/api";
+import {slotApi, transactionApi, queryKeys } from "@/src/api";
 import type { SlotTransaction } from "@/src/types";
 
 /**
@@ -32,14 +32,15 @@ export const useSlotTransactions = ({
   } = useQuery({
     queryKey: queryKeys.slots.transactions(accountId, accountSlotId, params),
     queryFn: async () => {
-      console.log('[useSlotTransactions] API 호출 시작:', { accountId, accountSlotId, params });
-      const result = await slotApi.getSlotTransactions(accountId, accountSlotId, params);
-      console.log('[useSlotTransactions] API 응답:', result);
+      const result = await transactionApi.getSlotTransactions(accountId, accountSlotId, params);
       return result;
     },
-    staleTime: 0, // 항상 fresh 상태로 유지 (캐시 무시)
-    gcTime: 0, // 캐시 사용 안함
+    staleTime: 30 * 1000, // 30초간 fresh 상태 유지
+    gcTime: 5 * 60 * 1000, // 5분간 캐시 유지
     enabled: enabled && !!accountId && !!accountSlotId,
+    // 캐시 무효화 시 자동으로 refetch
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
     select: (res: any) => {
       // Case 1: 표준 구조 - res.data.transactions
       if (res && res.data && res.data.transactions) {
@@ -100,10 +101,6 @@ export const useSlotTransactions = ({
     refetch,
   };
 
-  // 디버깅용 로그 (임시)
-  if (result.transactions.length > 0) {
-    console.log('[useSlotTransactions] 거래내역 데이터:', result.transactions);
-  }
 
   return result;
 };

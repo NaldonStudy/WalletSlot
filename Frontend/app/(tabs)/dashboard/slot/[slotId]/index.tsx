@@ -11,6 +11,7 @@ import SlotSpendingChart from '@/src/components/slot/SlotSpendingChart';
 import SlotBalanceCard from '@/src/components/slot/SlotBalanceCard';
 import { useSlotDailySpending } from '@/src/hooks/slots/useSlotDailySpending';
 import { useSlotTransactions } from '@/src/hooks/slots/useSlotTransactions';
+import { useSlots } from '@/src/hooks/slots/useSlots';
 import TransactionList from '@/src/components/transaction/TransactionList';
 import { SlotTransaction } from '@/src/types/slot';
 
@@ -20,6 +21,39 @@ export default function SlotDetailScreen() {
     const { selectedSlot } = useSlotStore();
     const colorScheme = useColorScheme() ?? 'light';
     const theme = themes[colorScheme];
+
+    // API를 통해 최신 슬롯 데이터 가져오기
+    const { slots, isLoading: slotsLoading } = useSlots(selectedSlot?.accountId);
+    
+    
+    // 현재 슬롯의 최신 데이터 찾기
+    // 1. selectedSlot이 있으면 우선 사용 (정확한 슬롯 정보)
+    // 2. 없으면 API에서 가져온 슬롯 목록에서 찾기
+    let currentSlot = selectedSlot;
+    
+    if (!currentSlot && slots.length > 0) {
+        // selectedSlot이 없으면 API 데이터에서 찾기
+        const foundSlot = slots.find(slot => slot.accountSlotId === slotId);
+        if (foundSlot && selectedSlot?.accountId) {
+            currentSlot = { ...foundSlot, accountId: selectedSlot.accountId };
+        }
+    }
+    
+    // 여전히 없으면 API 데이터에서 selectedSlot과 매칭되는 슬롯 찾기
+    if (!currentSlot && selectedSlot && slots.length > 0) {
+        const foundSlot = slots.find(slot => slot.accountSlotId === selectedSlot.accountSlotId);
+        if (foundSlot) {
+            currentSlot = { ...foundSlot, accountId: selectedSlot.accountId };
+        }
+    }
+    
+    // 슬롯 이동 후 잔액 업데이트를 위해 API 데이터 우선 사용
+    if (selectedSlot && slots.length > 0) {
+        const apiSlot = slots.find(slot => slot.accountSlotId === selectedSlot.accountSlotId);
+        if (apiSlot) {
+            currentSlot = { ...apiSlot, accountId: selectedSlot.accountId }; // API에서 가져온 최신 데이터 사용
+        }
+    }
 
     const { data: dailySpending, isLoading } = useSlotDailySpending(
         selectedSlot?.accountId, // 계좌 ID
@@ -45,7 +79,16 @@ export default function SlotDetailScreen() {
     // API에서 받은 거래내역 데이터 사용
     const transactions = apiTransactions;
 
-    if (!selectedSlot || selectedSlot.slotId !== slotId) {
+    // 로딩 중이거나 슬롯 데이터가 없을 때 처리
+    if (slotsLoading) {
+        return (
+            <SafeAreaView style={styles.container}>
+                <Text style={styles.error}>슬롯 정보를 불러오는 중...</Text>
+            </SafeAreaView>
+        );
+    }
+
+    if (!currentSlot) {
         return (
             <SafeAreaView style={styles.container}>
                 <Text style={styles.error}>슬롯 정보를 불러올 수 없습니다.</Text>
@@ -69,13 +112,13 @@ export default function SlotDetailScreen() {
                 contentContainerStyle={styles.scrollContent}
             >
                 {/* SlotHeader 컴포넌트 사용 */}
-                <SlotHeader slot={selectedSlot} variant="large" />
+                <SlotHeader slot={currentSlot} variant="large" />
 
                 {/* 잔액 현황 카드 */}
                 <SlotBalanceCard
-                    remaining={selectedSlot.remainingBudget}
-                    budget={selectedSlot.currentBudget}
-                    color={SLOT_CATEGORIES[selectedSlot.slotId as keyof typeof SLOT_CATEGORIES]?.color || '#F1A791'}
+                    remaining={currentSlot.remainingBudget}
+                    budget={currentSlot.currentBudget}
+                    color={SLOT_CATEGORIES[currentSlot.slotId as keyof typeof SLOT_CATEGORIES]?.color || '#F1A791'}
                 />
 
                 {/* 누적 지출 그래프 */}
@@ -87,9 +130,9 @@ export default function SlotDetailScreen() {
                     ) : dailySpending && dailySpending.transactions ? (
                         <SlotSpendingChart
                             data={dailySpending}
-                            slotName={selectedSlot.name}
-                            color={SLOT_CATEGORIES[selectedSlot.slotId as keyof typeof SLOT_CATEGORIES]?.color || '#F1A791'}
-                            budget={selectedSlot.currentBudget}
+                            slotName={currentSlot.name}
+                            color={SLOT_CATEGORIES[currentSlot.slotId as keyof typeof SLOT_CATEGORIES]?.color || '#F1A791'}
+                            budget={currentSlot.currentBudget}
                         />
                     ) : (
                         <View style={styles.emptyCard}>

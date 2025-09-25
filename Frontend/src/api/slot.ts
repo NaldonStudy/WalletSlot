@@ -3,8 +3,7 @@ import {
   ApiError,
   BaseResponse,
   SlotDailySpendingResponse,
-  SlotsResponse,
-  SlotTransactionsResponse,
+  BaseResponse 
 } from '@/src/types';
 
 /**
@@ -46,31 +45,5 @@ export const slotApi = {
     }
   },
 
-  /**
-   * 슬롯 거래내역 전체 조회
-   */
-  getSlotTransactions: async (
-    accountId: string, 
-    accountSlotId: string,
-    params?: {
-      page?: number;
-      pageSize?: number;
-      startDate?: string;
-      endDate?: string;
-    }
-  ): Promise<BaseResponse<SlotTransactionsResponse>> => {
-    try {
-      return await apiClient.get<SlotTransactionsResponse>(
-        `/api/accounts/${accountId}/slots/${accountSlotId}/transactions`,
-        params
-      );
-    } catch (error) {
-      console.error(
-        '[getSlotTransactions] API 호출 실패:',
-        error instanceof Error ? error.message : String(error)
-      );
-      throw error;
-    }
-  },
 
 };
