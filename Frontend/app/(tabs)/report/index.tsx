@@ -10,16 +10,17 @@ import { Spacing, themes, Typography } from '@/src/constants/theme';
 import { useAccounts, useSpendingReport } from '@/src/hooks';
 import React, { useRef, useState } from 'react';
 import {
-    Alert,
-    LayoutChangeEvent,
-    NativeScrollEvent,
-    NativeSyntheticEvent,
-    RefreshControl,
-    ScrollView,
-    StyleSheet,
-    Text,
-    useColorScheme,
-    View
+  Alert,
+  LayoutChangeEvent,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  useColorScheme,
+  View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -44,18 +45,21 @@ export default function ReportScreen() {
   
   const { linked } = useAccounts();
   
+  // 현재 기간 상태 관리
+  const [currentPeriodOffset, setCurrentPeriodOffset] = useState(0); // 0: 최신, -1: 이전달, -2: 그 이전달...
+  
   const { 
     data: reportData, 
     isLoading, 
     error, 
     refetch 
-  } = useSpendingReport(!linked.isLoading);
+  } = useSpendingReport(!linked.isLoading, currentPeriodOffset);
 
   const [refreshing, setRefreshing] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
-  const [quickBarHeight, setQuickBarHeight] = useState(0);
   const [sectionY, setSectionY] = useState<Record<string, number>>({});
   const [activeKey, setActiveKey] = useState<string>('overview');
+  const [showSectionNav, setShowSectionNav] = useState(false);
 
   const sections = [
     { key: 'overview', label: '예산 요약' },
@@ -77,8 +81,32 @@ export default function ReportScreen() {
     }
   };
 
-  const onQuickBarLayout = (e: LayoutChangeEvent) => {
-    setQuickBarHeight(e.nativeEvent.layout.height);
+  // 기간 네비게이션 함수들
+  const canGoPrevious = () => {
+    // TODO: 실제로는 서버에서 사용 가능한 기간 데이터를 확인해야 함
+    return currentPeriodOffset > -12; // 최대 12개월 전까지
+  };
+
+  const canGoNext = () => {
+    return currentPeriodOffset < 0; // 최신 기간이 아닌 경우에만
+  };
+
+  const goToPreviousPeriod = () => {
+    if (canGoPrevious()) {
+      setCurrentPeriodOffset(prev => prev - 1);
+    }
+  };
+
+  const goToNextPeriod = () => {
+    if (canGoNext()) {
+      setCurrentPeriodOffset(prev => prev + 1);
+    }
+  };
+
+  const formatPeriodLabel = (offset: number) => {
+    const now = new Date();
+    const targetDate = new Date(now.getFullYear(), now.getMonth() + offset, now.getDate());
+    return `${targetDate.getFullYear()}년 ${targetDate.getMonth() + 1}월`;
   };
 
   const onSectionLayout = (key: string) => (e: LayoutChangeEvent) => {
@@ -88,15 +116,14 @@ export default function ReportScreen() {
 
   const scrollToSection = (key: string) => {
     const y = sectionY[key] ?? 0;
-    const target = Math.max(0, y - quickBarHeight - 8);
+    const target = Math.max(0, y - 80); // 고정 헤더 높이만큼 오프셋
     scrollRef.current?.scrollTo({ y: target, animated: true });
     setActiveKey(key);
   };
 
   const handleScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
     const scrollY = e.nativeEvent.contentOffset.y;
-    // Determine the section that is currently at/above the top (consider sticky quick bar)
-    const offset = quickBarHeight + 12;
+    const offset = 80; // 고정 헤더 높이
     const candidates = sections
       .map(s => ({ key: s.key, y: sectionY[s.key] ?? Number.POSITIVE_INFINITY }))
       .filter(s => Number.isFinite(s.y))
@@ -146,11 +173,38 @@ export default function ReportScreen() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background.primary }] }>
-      <ScrollView
+      {/* 간소화된 헤더: 기간 네비게이션만 */}
+      <View style={[styles.fixedHeader, { backgroundColor: theme.colors.background.primary, borderBottomColor: theme.colors.gray[200] }]}>
+        <View style={styles.periodNavigation}>
+          <TouchableOpacity
+            onPress={goToPreviousPeriod}
+            disabled={!canGoPrevious()}
+            style={[styles.periodButton, { opacity: canGoPrevious() ? 1 : 0.3 }]}
+          >
+            <Text style={[styles.periodButtonText, { color: theme.colors.primary[600] }]}>‹</Text>
+          </TouchableOpacity>
+          
+          <View style={styles.periodInfo}>
+            <Text style={[styles.pageTitle, { color: theme.colors.text.primary }]}>
+              소비 리포트
+            </Text>
+            <Text style={[styles.pageSubtitle, { color: theme.colors.text.secondary }]}>
+              {formatPeriodLabel(currentPeriodOffset)}
+            </Text>
+          </View>
+          
+          <TouchableOpacity
+            onPress={goToNextPeriod}
+            disabled={!canGoNext()}
+            style={[styles.periodButton, { opacity: canGoNext() ? 1 : 0.3 }]}
+          >
+            <Text style={[styles.periodButtonText, { color: theme.colors.primary[600] }]}>›</Text>
+          </TouchableOpacity>
+        </View>
+      </View>      <ScrollView
         ref={scrollRef}
         style={styles.scrollView}
         contentContainerStyle={[styles.scrollContent, { paddingTop: Spacing.sm, flexGrow: 1 }]}
-        stickyHeaderIndices={[0]}
         showsVerticalScrollIndicator={false}
         onScroll={handleScroll}
         scrollEventThrottle={16}
@@ -162,21 +216,6 @@ export default function ReportScreen() {
           />
         }
       >
-        <View onLayout={onQuickBarLayout} style={[styles.quickBar, { backgroundColor: theme.colors.background.primary, borderBottomColor: theme.colors.gray[200] }]}>          
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.quickBarContent}>
-            {sections.map(s => (
-              <Button
-                key={s.key}
-                title={s.label}
-                size="sm"
-                variant={activeKey === s.key ? 'primary' : 'outline'}
-                onPress={() => scrollToSection(s.key)}
-                style={styles.quickButton}
-                textStyle={styles.quickButtonText}
-              />
-            ))}
-          </ScrollView>
-        </View>
         <SpendingReportHeader 
           period={reportData.period}
           theme={theme}
@@ -218,6 +257,56 @@ export default function ReportScreen() {
           />
         </View>
       </ScrollView>
+      
+      {/* 플로팅 섹션 네비게이션 */}
+      <View style={styles.floatingNavContainer}>
+        <TouchableOpacity
+          onPress={() => setShowSectionNav(!showSectionNav)}
+          style={[
+            styles.mainFloatingButton, 
+            { 
+              backgroundColor: showSectionNav ? theme.colors.primary[600] : theme.colors.primary[500] 
+            }
+          ]}
+        >
+          <Text style={styles.floatingButtonIcon}>📊</Text>
+        </TouchableOpacity>
+        
+        {showSectionNav && (
+          <View style={[styles.sectionNavExpanded, { backgroundColor: theme.colors.background.primary }]}>
+            {sections.map((section, index) => (
+              <TouchableOpacity
+                key={section.key}
+                onPress={() => {
+                  scrollToSection(section.key);
+                  setShowSectionNav(false);
+                }}
+                style={[
+                  styles.expandedNavItem,
+                  {
+                    backgroundColor: activeKey === section.key ? theme.colors.primary[100] : 'transparent',
+                    borderColor: theme.colors.gray[200]
+                  }
+                ]}
+              >
+                <Text style={[
+                  styles.expandedNavText,
+                  { color: activeKey === section.key ? theme.colors.primary[700] : theme.colors.text.primary }
+                ]}>
+                  {section.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
+        
+        <TouchableOpacity
+          onPress={() => scrollRef.current?.scrollTo({ y: 0, animated: true })}
+          style={[styles.secondaryFloatingButton, { backgroundColor: theme.colors.gray[100] }]}
+        >
+          <Text style={styles.floatingButtonIcon}>⬆️</Text>
+        </TouchableOpacity>
+      </View>
     </SafeAreaView>
   );
 }
@@ -228,26 +317,110 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F8F9FA', // 테마 대신 고정 배경색 지정
   },
+  fixedHeader: {
+    paddingHorizontal: Spacing.base,
+    paddingVertical: Spacing.sm,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+  },
+  periodNavigation: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 8,
+  },
+  periodButton: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 20,
+    backgroundColor: 'rgba(0,0,0,0.05)',
+  },
+  periodButtonText: {
+    fontSize: 20,
+    fontWeight: 'bold',
+  },
+  periodInfo: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  pageTitle: {
+    fontSize: Typography.fontSize.xl,
+    fontWeight: Typography.fontWeight.bold,
+    textAlign: 'center',
+  },
+  pageSubtitle: {
+    fontSize: Typography.fontSize.sm,
+    textAlign: 'center',
+    marginTop: 2,
+  },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
     paddingHorizontal: Spacing.base,
-    paddingBottom: Spacing['4xl'], // 하단 여백 충분히 확보
+    paddingBottom: 100, // 하단 네비게이션 공간 확보
   },
-  quickBar: {
-    borderBottomWidth: StyleSheet.hairlineWidth,
+  floatingNavContainer: {
+    position: 'absolute',
+    bottom: 30,
+    right: 16,
+    alignItems: 'flex-end',
+  },
+  mainFloatingButton: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+    marginBottom: 8,
+  },
+  secondaryFloatingButton: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+  },
+  floatingButtonIcon: {
+    fontSize: 24,
+  },
+  sectionNavExpanded: {
+    position: 'absolute',
+    bottom: 76, // 메인 버튼 위쪽에 배치
+    right: 0,
+    width: 200,
+    borderRadius: 12,
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
     paddingVertical: 8,
   },
-  quickBarContent: {
-    paddingHorizontal: Spacing.base,
+  expandedNavItem: {
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
-  quickButton: {
-    paddingHorizontal: Spacing.base,
-    marginRight: 8,
-  },
-  quickButtonText: {
-    fontWeight: Typography.fontWeight.medium,
+  expandedNavText: {
+    fontSize: 14,
+    fontWeight: '500',
   },
   errorContainer: {
     flex: 1,
