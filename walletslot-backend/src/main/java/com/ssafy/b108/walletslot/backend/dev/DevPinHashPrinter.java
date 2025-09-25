@@ -21,7 +21,7 @@ public class DevPinHashPrinter {
         return args -> {
             String secret = "dev-secret";  // application-dev.yml 의 pepper_v1이 plain:dev-secret 일 때
             // ✅ 서버 검증과 동일한 결합 규칙: secret + pin (pepper + pin)
-            String raw1 = secret + "1234"; // 사용자1 PIN 1234
+            String raw1 = secret + "123456"; // 사용자1 PIN 1234
             String raw2 = secret + "4321"; // 사용자2 PIN 4321 (원하면)
 
             System.out.println("USER1_HASH = " + pe.encode(raw1));

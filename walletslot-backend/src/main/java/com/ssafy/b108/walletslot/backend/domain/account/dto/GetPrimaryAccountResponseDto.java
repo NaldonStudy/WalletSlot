@@ -12,5 +12,5 @@ public class GetPrimaryAccountResponseDto {
     // Field
     private boolean success;
     private String message;
-    private AccountDto data;
+    private AccountResponseDto data;
 }
