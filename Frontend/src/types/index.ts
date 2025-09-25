@@ -79,7 +79,7 @@ export interface User {
  * 은행 정보 인터페이스 (banks 테이블)
  */
 export interface Bank {
-  bankCode: string;
+  bankId: string;
   bankName: string;
   displayLabel: string | null;
   logoKey: string;
@@ -276,7 +276,7 @@ export interface PhoneVerificationForm {
  */
 export interface AccountVerificationForm {
   accountNumber: string;
-  bankCode: string;
+  bankId: string;
   verificationCode: string; // 예금주명에 포함된 3자리 숫자 (예: "국민073" → "073")
 }
 

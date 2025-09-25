@@ -21,8 +21,8 @@ const BANK_ICON_MARGIN = 15;
 const BANKS_PER_ROW = 6;
 
 // 은행 데이터를 배열로 변환
-const bankList = Object.entries(BANK_CODES).map(([code, bank]) => ({
-  code,
+const bankList = Object.entries(BANK_CODES).map(([bankId, bank]) => ({
+  bankId,
   ...bank,
 }));
 
@@ -90,19 +90,19 @@ export default function AccountSelectScreen() {
   }, []);
 
   // 선택 토글 (스토어 상태로 직접 관리)
-  const toggleBankSelection = (bankCode: string) => {
-    const set = new Set(selectedBanks.map(b => b.bankCode));
-    if (set.has(bankCode)) {
-      const next = selectedBanks.filter(b => b.bankCode !== bankCode);
+  const toggleBankSelection = (bankId: string) => {
+    const set = new Set(selectedBanks.map(b => b.bankId));
+    if (set.has(bankId)) {
+      const next = selectedBanks.filter(b => b.bankId !== bankId);
       saveSelectedBanks(next);
-      setPersistBanks(next.map(b => b.bankCode));
+      setPersistBanks(next.map(b => b.bankId));
     } else {
       const next = [
         ...selectedBanks,
-        { bankCode, bankName: BANK_CODES[bankCode as keyof typeof BANK_CODES]?.name || bankCode },
+        { bankId, bankName: BANK_CODES[bankId as keyof typeof BANK_CODES]?.name || bankId },
       ];
       saveSelectedBanks(next);
-      setPersistBanks(next.map(b => b.bankCode));
+      setPersistBanks(next.map(b => b.bankId));
     }
   };
 
@@ -126,7 +126,7 @@ export default function AccountSelectScreen() {
     ];
 
     // 선택 상태 확인용 Set
-    const selectedSet = new Set(selectedBanks.map(b => b.bankCode));
+    const selectedSet = new Set(selectedBanks.map(b => b.bankId));
 
     return (
       <Animated.View
@@ -217,9 +217,9 @@ export default function AccountSelectScreen() {
                 saveSelectedBanks([]);
                 setPersistBanks([]);
               } else {
-                const all = bankList.map(b => ({ bankCode: b.code, bankName: b.name }));
+                const all = bankList.map(b => ({ bankId: b.bankId, bankName: b.name }));
                 saveSelectedBanks(all);
-                setPersistBanks(all.map(b => b.bankCode));
+                setPersistBanks(all.map(b => b.bankId));
               }
             }}>
               <ThemedText style={styles.selectAllText}>
@@ -231,17 +231,17 @@ export default function AccountSelectScreen() {
             <FlatList
               data={bankList}
               numColumns={2}
-              keyExtractor={(item) => item.code}
+              keyExtractor={(item) => item.bankId}
               showsVerticalScrollIndicator={true}
               nestedScrollEnabled
               keyboardShouldPersistTaps="handled"
               style={styles.bankList}
               renderItem={({ item: bank }) => {
-                const isSel = selectedBanks.some(b => b.bankCode === bank.code);
+                const isSel = selectedBanks.some(b => b.bankId === bank.bankId);
                 return (
                   <TouchableOpacity
                     style={styles.bankItem}
-                    onPress={() => toggleBankSelection(bank.code)}
+                    onPress={() => toggleBankSelection(bank.bankId)}
                   >
                     <Image source={bank.logo} style={styles.bankItemIcon} resizeMode="contain" />
                     <ThemedText style={styles.bankItemName}>{bank.shortName}</ThemedText>
@@ -272,7 +272,7 @@ export default function AccountSelectScreen() {
                     onPress={() => {
                       if (!isConnectEnabled) return;
                       console.log('[Bank Select] 선택된 은행들:', selectedBanks);
-                      console.log('[Bank Select] 선택된 bankCode들:', selectedBanks.map(b => b.bankCode));
+                      console.log('[Bank Select] 선택된 bankId들:', selectedBanks.map(b => b.bankId));
                       setIsModalVisible(false);
                       router.push({ pathname: '/(mydata)/mydata-consent' } as any);
                     }}

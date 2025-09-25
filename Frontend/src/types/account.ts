@@ -1,6 +1,6 @@
 export interface UserAccount {
     accountId: string;
-    bankCode: string;
+    bankId: string; // UUID
     bankName: string;
     accountNo: string;
     // API 명세에 따라 단일 필드로 통일: `alias`와 숫자 `balance`

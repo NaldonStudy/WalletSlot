@@ -18,8 +18,8 @@ export default function AccountConnectScreen() {
   const selectedBanks = useBankSelectionStore(s => s.selectedBanks);
   const { accounts, setAccounts } = useAccountsStore();
   
-  // 선택된 은행들의 bankCode Set 생성
-  const selectedBankCodes = new Set(selectedBanks.map(bank => bank.bankCode));
+  // 선택된 은행들의 bankId Set 생성
+  const selectedBankIds = new Set(selectedBanks.map(bank => bank.bankId));
   
   // API 호출 상태 관리
   const [isApiLoading, setIsApiLoading] = useState(false);
@@ -59,15 +59,9 @@ export default function AccountConnectScreen() {
   // API로 조회한 계좌 정보 중에서 선택된 은행들만 필터링
   const data = (accounts && accounts.length > 0)
     ? accounts
-        .filter(account => {
-          // UUID bankCode를 숫자 bankCode로 매핑하여 비교
-          const mappedBankCode = Object.keys(BANK_CODES).find(key => 
-            BANK_CODES[key as keyof typeof BANK_CODES].bankCode === account.bankCode
-          );
-          return mappedBankCode && selectedBankCodes.has(mappedBankCode);
-        })
+        .filter(account => selectedBankIds.has(account.bankId))
         .map(a => ({ 
-          bankCode: a.bankCode, 
+          bankId: a.bankId, 
           bankName: a.bankName,
           accountNo: a.accountNo,
           accountId: a.accountId,
@@ -79,7 +73,7 @@ export default function AccountConnectScreen() {
   // 디버깅을 위한 로깅
   useEffect(() => {
     console.log('[Account Connect] 선택된 은행들:', selectedBanks);
-    console.log('[Account Connect] 선택된 bankCode들:', Array.from(selectedBankCodes));
+    console.log('[Account Connect] 선택된 bankId들:', Array.from(selectedBankIds));
     console.log('[Account Connect] API 계좌 정보:', accounts);
     console.log('[Account Connect] 필터링된 데이터:', data);
   }, [selectedBanks, accounts, data]);
@@ -152,9 +146,9 @@ export default function AccountConnectScreen() {
 
   const filteredData = phase === 'multi' ? data : data.filter((_, idx) => selectedIds.has(`${idx}`));
 
-  const renderItem = ({ item, index }: { item: { bankCode: string; bankName: string; accountNo?: string; accountId?: string; alias?: string; accountBalance?: string }; index: number }) => {
+  const renderItem = ({ item, index }: { item: { bankId: string; bankName: string; accountNo?: string; accountId?: string; alias?: string; accountBalance?: string }; index: number }) => {
     const id = `${index}`;
-    const bank = BANK_CODES[item.bankCode as keyof typeof BANK_CODES];
+    const bank = BANK_CODES[item.bankId as keyof typeof BANK_CODES];
     const color = bank?.color || '#E5E7EB';
     const selected = phase === 'multi' ? selectedIds.has(id) : repId === id;
     
