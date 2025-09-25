@@ -67,7 +67,9 @@ export const queryKeys = {
   // 소비 레포트 관련
   reports: {
     all: ['reports'] as const,
-    spending: () => [...queryKeys.reports.all, 'spending'] as const,
+    spending: (periodOffset?: number) => periodOffset !== undefined 
+      ? [...queryKeys.reports.all, 'spending', periodOffset] as const
+      : [...queryKeys.reports.all, 'spending'] as const,
   },
 
   // 설정 관련

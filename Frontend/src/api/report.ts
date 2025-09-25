@@ -4,12 +4,21 @@ import { fetchJsonFallback, isAmbiguousAxiosBody } from './responseNormalizer';
 
 /**
  * 전체 계좌 통합 소비 레포트를 조회합니다.
+ * @param options 조회 옵션 (기간 오프셋 등)
  * @returns 소비 레포트 데이터
  */
-const createFallbackReportData = (): SpendingReport => {
+const createFallbackReportData = (periodOffset: number = 0): SpendingReport => {
   const now = new Date();
-  const startDate = new Date(now.getFullYear(), now.getMonth(), 1);
-  const endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+  const targetDate = new Date(now.getFullYear(), now.getMonth() + periodOffset, 1);
+  const startDate = new Date(targetDate.getFullYear(), targetDate.getMonth(), 1);
+  const endDate = new Date(targetDate.getFullYear(), targetDate.getMonth() + 1, 0);
+  
+  // 기간에 따른 차별화된 데이터 생성
+  const periodMultiplier = Math.max(0.5, 1 + (periodOffset * 0.15)); // 이전 달일수록 지출 적음
+  const randomFactor = Math.sin(periodOffset * 2.5) * 0.1 + 1; // 약간의 랜덤성 추가
+  
+  const baseBudget = Math.round(3000000 * periodMultiplier);
+  const baseSpent = Math.round(baseBudget * (0.85 + Math.abs(periodOffset) * 0.05) * randomFactor);
   
   return {
     period: {
@@ -18,40 +27,40 @@ const createFallbackReportData = (): SpendingReport => {
       baseDay: 25
     },
     budgetComparison: {
-      totalBudget: 3000000,
-      totalSpent: 2750000,
-      changePercent: 8.5,
-      transactionCount: 12
+      totalBudget: baseBudget,
+      totalSpent: baseSpent,
+      changePercent: Math.round((baseSpent / baseBudget - 1) * 100 * 10) / 10,
+      transactionCount: Math.round(12 + periodOffset * -2 + Math.random() * 4)
     },
     categoryAnalysis: [
       {
         categoryId: 1,
         categoryName: '식비',
         slotName: '식비 슬롯',
-        budgetAmount: 800000,
-        spentAmount: 950000,
-        changePercent: 18.8,
-        spendingRatio: 1.1875,
-        status: 'over' as const
+        budgetAmount: Math.round(800000 * periodMultiplier),
+        spentAmount: Math.round(800000 * periodMultiplier * (1.1 + periodOffset * 0.05)),
+        changePercent: Math.round((18.8 + periodOffset * 3) * 10) / 10,
+        spendingRatio: 1.1875 + periodOffset * 0.05,
+        status: (Math.abs(periodOffset) % 3 === 0) ? 'over' as const : 'optimal' as const
       },
       {
         categoryId: 2,
         categoryName: '교통비',
         slotName: '교통비 슬롯',
-        budgetAmount: 300000,
-        spentAmount: 280000,
-        changePercent: -6.7,
-        spendingRatio: 0.933,
+        budgetAmount: Math.round(300000 * periodMultiplier),
+        spentAmount: Math.round(300000 * periodMultiplier * (0.9 + Math.abs(periodOffset) * 0.03)),
+        changePercent: Math.round((-6.7 + periodOffset * 2) * 10) / 10,
+        spendingRatio: 0.933 + Math.abs(periodOffset) * 0.02,
         status: 'optimal' as const
       },
       {
         categoryId: 3,
         categoryName: '카페/간식',
         slotName: '카페/간식 슬롯',
-        budgetAmount: 200000,
-        spentAmount: 150000,
-        changePercent: -25.0,
-        spendingRatio: 0.75,
+        budgetAmount: Math.round(200000 * periodMultiplier),
+        spentAmount: Math.round(200000 * periodMultiplier * (0.75 - periodOffset * 0.1)),
+        changePercent: Math.round((-25.0 - periodOffset * 5) * 10) / 10,
+        spendingRatio: Math.max(0.5, 0.75 - Math.abs(periodOffset) * 0.1),
         status: 'under' as const
       }
     ],
@@ -64,15 +73,15 @@ const createFallbackReportData = (): SpendingReport => {
       categories: [
         {
           categoryName: '식비',
-          mySpending: 950000,
-          peerAverage: 750000,
-          comparisonPercent: 127
+          mySpending: Math.round(800000 * periodMultiplier * (1.1 + periodOffset * 0.05)),
+          peerAverage: Math.round(750000 * periodMultiplier),
+          comparisonPercent: Math.round(127 + periodOffset * 3)
         },
         {
           categoryName: '교통비',
-          mySpending: 280000,
-          peerAverage: 320000,
-          comparisonPercent: 88
+          mySpending: Math.round(300000 * periodMultiplier * (0.9 + Math.abs(periodOffset) * 0.03)),
+          peerAverage: Math.round(320000 * periodMultiplier),
+          comparisonPercent: Math.round(88 - periodOffset * 2)
         }
       ]
     },
@@ -80,79 +89,91 @@ const createFallbackReportData = (): SpendingReport => {
       {
         categoryName: '식비',
         slotName: '식비 슬롯',
-        amount: 950000,
-        percentage: 35
+        amount: Math.round(800000 * periodMultiplier * (1.1 + periodOffset * 0.05)),
+        percentage: 35 + periodOffset
       },
       {
         categoryName: '교통비',
         slotName: '교통비 슬롯',
-        amount: 280000,
-        percentage: 10
+        amount: Math.round(300000 * periodMultiplier * (0.9 + Math.abs(periodOffset) * 0.03)),
+        percentage: Math.max(5, 10 - Math.abs(periodOffset))
       },
       {
         categoryName: '카페/간식',
         slotName: '카페/간식 슬롯',
-        amount: 150000,
-        percentage: 5
+        amount: Math.round(200000 * periodMultiplier * (0.75 - periodOffset * 0.1)),
+        percentage: Math.max(3, 5 - Math.abs(periodOffset))
       }
     ],
     budgetSuggestion: {
-      totalSuggested: 3100000,
+      totalSuggested: Math.round(baseBudget * 1.03),
       categories: [
         {
           categoryName: '식비',
-          currentBudget: 800000,
-          suggestedBudget: 750000,
-          reason: '지난달 지출 패턴을 고려한 조정'
+          currentBudget: Math.round(800000 * periodMultiplier),
+          suggestedBudget: Math.round(750000 * periodMultiplier),
+          reason: periodOffset === 0 ? '지난달 지출 패턴을 고려한 조정' : '과거 지출 데이터 기반 최적화'
         }
       ]
     },
     personalizedInsight: {
-      spendingType: '외식형',
-      spendingTypeDescription: '외식과 배달음식을 자주 이용하는 유형입니다.',
+      spendingType: periodOffset % 2 === 0 ? '외식형' : '절약형',
+      spendingTypeDescription: periodOffset % 2 === 0 ? 
+        '외식과 배달음식을 자주 이용하는 유형입니다.' : 
+        '계획적이고 절약을 잘하는 유형입니다.',
       suggestions: [
         {
-          title: '지출 최적화 제안',
-          description: '가장 효과적인 절약 방법을 제안드려요',
-          actionItems: [
+          title: periodOffset === 0 ? '지출 최적화 제안' : '과거 지출 패턴 분석',
+          description: periodOffset === 0 ? 
+            '가장 효과적인 절약 방법을 제안드려요' : 
+            '이 기간의 지출 특성을 분석했어요',
+          actionItems: periodOffset === 0 ? [
             '외식비를 주 2회로 제한해 보세요',
             '구독 서비스를 정리해 보세요'
+          ] : [
+            `${Math.abs(periodOffset)}개월 전 지출 패턴 검토`,
+            '현재와 비교하여 개선점 찾기'
           ]
         }
       ],
-      strengths: ['교통비 관리를 잘하고 있어요'],
-      improvements: ['외식비 지출이 다소 높아요']
+      strengths: periodOffset === 0 ? ['교통비 관리를 잘하고 있어요'] : ['과거 대비 지출 관리가 개선되었어요'],
+      improvements: periodOffset === 0 ? ['외식비 지출이 다소 높아요'] : ['당시 카페/간식비가 높았어요']
     }
   };
 };
 
-export const getSpendingReport = async (): Promise<SpendingReport> => {
+export const getSpendingReport = async (options?: { periodOffset?: number }): Promise<SpendingReport> => {
   try {
     // 개발 환경에서 MSW가 준비되지 않았을 경우를 대비한 대기
     if (__DEV__) {
       await new Promise(resolve => setTimeout(resolve, 1000));
     }
     
-    const response = await apiClient.get<SpendingReportResponse>(`/api/reports/spending`);
+    // 기간 오프셋이 있는 경우 쿼리 파라미터에 추가
+    const url = options?.periodOffset 
+      ? `/api/reports/spending?periodOffset=${options.periodOffset}`
+      : `/api/reports/spending`;
+    
+    const response = await apiClient.get<SpendingReportResponse>(url);
     
     // HTML 응답인지 확인 (MSW 실패 감지)
     if (response && typeof response.data === 'string' && (response.data as string).includes('<!DOCTYPE html>')) {
       if (__DEV__) {
-        return createFallbackReportData();
+        return createFallbackReportData(options?.periodOffset ?? 0);
       }
       throw new Error('MSW Mock 서버가 제대로 동작하지 않습니다. 앱을 재시작해주세요.');
     }
     
     // apiClient의 응답이 정상적이지 않은 경우 폴백 처리
     if (!response || isAmbiguousAxiosBody(response)) {
-      const json = await fetchJsonFallback(`/api/reports/spending`);
+      const json = await fetchJsonFallback(url);
       
       if (json && typeof json === 'object' && json.data) {
         return json.data as SpendingReport;
       }
       
       if (__DEV__) {
-        return createFallbackReportData();
+        return createFallbackReportData(options?.periodOffset ?? 0);
       }
       throw new Error('소비 레포트 데이터를 가져올 수 없습니다.');
     }
@@ -170,13 +191,13 @@ export const getSpendingReport = async (): Promise<SpendingReport> => {
     }
     
     if (__DEV__) {
-      return createFallbackReportData();
+      return createFallbackReportData(options?.periodOffset ?? 0);
     }
     throw new Error('소비 레포트 데이터 구조가 올바르지 않습니다.');
   } catch (error) {
     // 개발 환경에서 완전한 실패 시 더미 데이터 제공
     if (__DEV__) {
-      return createFallbackReportData();
+      return createFallbackReportData(options?.periodOffset ?? 0);
     }
     
     // 개발 환경에서 MSW 실패 시 더 자세한 안내

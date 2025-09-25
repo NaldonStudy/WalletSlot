@@ -58,7 +58,8 @@ export const mydataApi = {
     return data?.data as ConsentCreateResponseDto;
   },
   listConsents: async (status?: 'ACTIVE' | 'EXPIRED' | 'REVOKED'): Promise<ConsentListItemDto[]> => {
-    const res = await apiClient.get(API_ENDPOINTS.MYDATA_CONSENTS, { params: status ? { status } : undefined });
+    const params = status ? { status } : undefined;
+    const res = await apiClient.get(API_ENDPOINTS.MYDATA_CONSENTS, params);
     if (isAmbiguousAxiosBody(res)) {
       const fb = await fetchJsonFallback(API_ENDPOINTS.MYDATA_CONSENTS + (status ? `?status=${status}` : ''));
       return (fb?.data?.consents || []) as ConsentListItemDto[];

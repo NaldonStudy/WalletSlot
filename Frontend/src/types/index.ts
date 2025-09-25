@@ -338,6 +338,8 @@ export interface NotificationItem {
     targetScreen?: string;  // 이동할 화면
     params?: any;          // 추가 데이터
   };
+  readAt?: string | null;
+  deliveredAt?: string | null;
 }
 
 // ===== 푸시 알림 관련 =====

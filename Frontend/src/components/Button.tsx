@@ -9,7 +9,7 @@ import {
     useColorScheme,
     ViewStyle,
 } from 'react-native';
-import { SimpleLoadingIndicator } from './common';
+import { SimpleLoadingIndicator } from './common/LoadingIndicator';
 
 export interface ButtonProps extends Omit<TouchableOpacityProps, 'style'> {
   /** 버튼 텍스트 */

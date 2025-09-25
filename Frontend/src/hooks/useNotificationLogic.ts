@@ -27,7 +27,7 @@ import { Alert } from 'react-native';
 
 import { monitoringService } from '@/src/services';
 import type { NotificationItem } from '@/src/types';
-import { useDeleteNotification, useMarkAllNotificationsAsRead, useMarkNotificationAsRead, useMarkNotificationAsUnread, useNotifications } from './useNotifications';
+import { useDeleteNotification, useMarkAllNotificationsAsRead, useMarkNotificationAsRead, useNotifications, useUnreadNotificationCount } from './useNotifications';
 
 /**
  * @hook useNotificationLogic
@@ -37,18 +37,32 @@ import { useDeleteNotification, useMarkAllNotificationsAsRead, useMarkNotificati
  */
 
 export const useNotificationLogic = () => {
-  const { data: notificationsResponse, isLoading: isNotificationsLoading, refetch } = useNotifications();
+  const { data: notificationsPages, isLoading: isNotificationsLoading, refetch, fetchNextPage, hasNextPage: rqHasNext } = useNotifications();
   const markAsReadMutation = useMarkNotificationAsRead();
-  const markAsUnreadMutation = useMarkNotificationAsUnread();
   const deleteNotificationMutation = useDeleteNotification();
   const markAllMutation = useMarkAllNotificationsAsRead();
+  const { data: unreadData } = useUnreadNotificationCount();
 
   // 서버/캐시 데이터 (없으면 빈 배열)
   // notificationsResponse.data는 배열이거나 { content, page } 형태일 수 있으므로 안전하게 처리
-  const notifications: NotificationItem[] = Array.isArray(notificationsResponse?.data)
-    ? notificationsResponse!.data
-    : (notificationsResponse?.data?.content ?? []);
-  const unreadCount = notifications.filter(n => !n.isRead).length;
+  const notifications: NotificationItem[] = useMemo(() => {
+    const pages = notificationsPages?.pages ?? [];
+    const items: NotificationItem[] = [];
+    for (const p of pages) {
+      const data = (p as any)?.data;
+      if (Array.isArray(data?.content)) items.push(...data.content);
+      else if (Array.isArray((p as any)?.data)) items.push(...(p as any).data);
+    }
+    return items;
+  }, [notificationsPages]);
+  const totalUnreadCount = typeof unreadData?.data?.count === 'number' ? unreadData.data.count : 0;
+  const unreadBadgeLabel = totalUnreadCount > 99 ? '99+' : String(totalUnreadCount);
+  // 총 알림 개수는 첫 페이지의 페이지 메타에서 추출 (없으면 로컬 길이)
+  const totalNotificationsCount = useMemo(() => {
+    const firstPage = notificationsPages?.pages?.[0] as any;
+    const total = firstPage?.data?.page?.totalElements;
+    return typeof total === 'number' ? total : notifications.length;
+  }, [notificationsPages, notifications.length]);
 
   // 로컬 UI 상태
   const [refreshing, setRefreshing] = useState(false);
@@ -61,6 +75,8 @@ export const useNotificationLogic = () => {
   const [hasNextPage, setHasNextPage] = useState(true);
 
   const ITEMS_PER_PAGE = 20;
+  const PREFETCH_PAGES = 5; // 초기 백그라운드 프리패치 상한 (최대 100개)
+  const [hasPrefetched, setHasPrefetched] = useState(false);
 
   // 새로고침
   const onRefresh = useCallback(async () => {
@@ -77,17 +93,40 @@ export const useNotificationLogic = () => {
 
   // 무한 스크롤
   const loadMore = useCallback(async () => {
-    if (isLoadingMore || !hasNextPage) return;
-    
+    if (isLoadingMore || !rqHasNext) return;
     setIsLoadingMore(true);
     try {
+      await fetchNextPage();
+      // 로컬 페이지 증가로 클라이언트 내 표시 개수도 확장
       setCurrentPage(prev => prev + 1);
     } catch (error) {
       console.error('더 많은 알림 로드 실패:', error);
     } finally {
       setIsLoadingMore(false);
     }
-  }, [isLoadingMore, hasNextPage]);
+  }, [isLoadingMore, rqHasNext, fetchNextPage]);
+  // 초기 마운트 시 백그라운드로 최대 PREFETCH_PAGES까지 프리패치
+  useEffect(() => {
+    const runPrefetch = async () => {
+      if (hasPrefetched || isNotificationsLoading) return;
+      let pagesFetched = (notificationsPages?.pages?.length ?? 0);
+      try {
+        while (rqHasNext && pagesFetched < PREFETCH_PAGES) {
+          await fetchNextPage();
+          pagesFetched += 1;
+        }
+      } catch (e) {
+        // 백그라운드 프리패치 실패는 치명적이지 않음
+      } finally {
+        setHasPrefetched(true);
+      }
+    };
+    runPrefetch();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rqHasNext, fetchNextPage, isNotificationsLoading]);
+
+
+  // 전체 표시 (클라이언트 페이징 해제)
 
   // 알림 타입 목록
   const notificationTypes = useMemo(() => [...new Set(notifications.map(n => n.type))], [notifications]);
@@ -133,12 +172,21 @@ export const useNotificationLogic = () => {
     return filteredNotifications.slice(0, endIndex);
   }, [filteredNotifications, currentPage]);
 
+  // 파생 개수 및 전체 표시 액션
+  const filteredCount = filteredNotifications.length;
+  const showAll = useCallback(() => {
+    const finalPage = Math.ceil(filteredCount / ITEMS_PER_PAGE) || 1;
+    setCurrentPage(finalPage);
+  }, [filteredCount]);
+
   // hasNextPage 계산 (렌더 사이드 이펙트 분리)
   useEffect(() => {
     const endIndex = currentPage * ITEMS_PER_PAGE;
-    const next = endIndex < filteredNotifications.length;
+    // React Query hasNext + 클라이언트 페이지 기준을 합산해 판단
+    const hasMoreClient = endIndex < filteredNotifications.length;
+    const next = rqHasNext || hasMoreClient;
     if (hasNextPage !== next) setHasNextPage(next);
-  }, [filteredNotifications, currentPage, hasNextPage]);
+  }, [filteredNotifications, currentPage, hasNextPage, rqHasNext]);
 
   // 필터 변경 시 페이지 리셋
   useEffect(() => {
@@ -146,40 +194,30 @@ export const useNotificationLogic = () => {
   }, [selectedFilter, selectedTypeFilter, selectedDateRange]);
 
   // 읽음 상태 토글
-  const toggleReadStatus = useCallback((id: string, newStatus: boolean) => {
+  const markAsRead = useCallback((id: string) => {
     const target = notifications.find(n => n.id === id);
     if (target) {
       monitoringService.logUserInteraction('swipe', {
         component: 'notification_item',
         notificationId: id,
-        action: newStatus ? 'mark_as_read' : 'mark_as_unread',
+        action: 'mark_as_read',
         notificationType: target.type,
         previousState: target.isRead
       });
       monitoringService.logNotificationEvent('action_taken', {
         notificationId: id,
         type: target.type,
-        action: newStatus ? 'swipe_mark_read' : 'swipe_mark_unread'
+        action: 'swipe_mark_read'
       });
     }
 
-    // Optimistic update는 mutation 훅에서 처리; 여기서는 호출만
-    if (newStatus) {
-      markAsReadMutation.mutate(id, {
-        onError: () => {
-          Alert.alert('오류', '알림 읽음 처리 실패. 다시 시도해 주세요.');
-          refetch?.();
-        }
-      });
-    } else {
-      markAsUnreadMutation.mutate(id, {
-        onError: () => {
-          Alert.alert('오류', '알림 안읽음 처리 실패. 다시 시도해 주세요.');
-          refetch?.();
-        }
-      });
-    }
-  }, [notifications, markAsReadMutation, markAsUnreadMutation, refetch]);
+    markAsReadMutation.mutate(id, {
+      onError: () => {
+        Alert.alert('오류', '알림 읽음 처리 실패. 다시 시도해 주세요.');
+        refetch?.();
+      }
+    });
+  }, [notifications, markAsReadMutation, refetch]);
 
   // 모든 알림 읽음 처리
   const handleMarkAllAsRead = useCallback(() => {
@@ -203,14 +241,18 @@ export const useNotificationLogic = () => {
     notifications,
     isNotificationsLoading,
     refreshing,
-    unreadCount,
+    unreadCount: totalUnreadCount,
+    unreadBadgeLabel,
+    totalNotificationsCount,
     selectedFilter,
     selectedTypeFilter,
     selectedDateRange,
     isFilterExpanded,
     isLoadingMore,
     hasNextPage,
+    hasMore: hasNextPage,
     filteredNotifications,
+    filteredCount,
     paginatedNotifications,
     notificationTypes,
     
@@ -221,7 +263,8 @@ export const useNotificationLogic = () => {
     setIsFilterExpanded,
     onRefresh,
     loadMore,
-    toggleReadStatus,
+    showAll,
+    markAsRead,
     handleMarkAllAsRead,
   };
 };

@@ -88,13 +88,15 @@ const styles = StyleSheet.create({
     lineHeight: Math.round(Typography.fontSize.base * Typography.lineHeight.normal),
   },
   title: {
-    fontSize: Typography.fontSize['2xl'],
+    fontSize: Typography.fontSize.xl, // 2xl에서 xl로 축소
     fontWeight: Typography.fontWeight.bold,
     textAlign: 'center',
     marginBottom: Spacing.xs,
-  lineHeight: Math.round(Typography.fontSize['2xl'] * Typography.lineHeight.normal),
+    lineHeight: Math.round(Typography.fontSize.xl * Typography.lineHeight.tight), // tight 라인 높이로 변경
     width: '100%',
     paddingHorizontal: 0,
+    maxWidth: '100%',
+    flexWrap: 'nowrap', // 텍스트 줄 바꿈 방지
   },
   subtitle: {
     fontSize: Typography.fontSize.base,

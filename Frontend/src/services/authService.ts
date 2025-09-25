@@ -1,4 +1,3 @@
-import { notificationApi } from '@/src/api/notification';
 import { DEV_AUTH_BYPASS } from '@/src/config/devAuthBypass';
 import { API_CONFIG, STORAGE_KEYS } from '@/src/constants';
 import { getOrCreateDeviceId } from '@/src/services/deviceIdService';
@@ -181,6 +180,7 @@ export const authService = {
                 ? notificationConsent 
                 : await (async () => {
                     try {
+                        const { notificationApi } = await import('@/src/api/notification');
                         const response = await notificationApi.getUserNotificationSettings();
                         const value = response.data.isPushEnabled;
                         // 서버에서 가져온 값을 로컬에 저장
