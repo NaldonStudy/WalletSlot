@@ -43,7 +43,8 @@ public class AccountSlot {
     private Long spent = 0L;
 
     @Column(nullable = false)
-    private int budgetChangeCount;
+    @Builder.Default
+    private Integer budgetChangeCount = 0;
 
     @Column(nullable = false, insertable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -71,17 +72,18 @@ public class AccountSlot {
 
     // Method
     public void updateCustomName(String customName) {
-        if(customName.equals("default")) {
-            this.customName = slot.getName();
-            isCustom = false;
-        } else {
-            this.customName = customName;
-            isCustom = true;
-        }
+        this.customName = customName;
+    }
+
+    public void updateIsCustom(boolean isCustom) {
+        this.isCustom = isCustom;
     }
 
     public void updateBudget(Long newBudget) {
         this.currentBudget = newBudget;
+    }
+
+    public void increaseBudgetChangeCount() {
         this.budgetChangeCount++;
     }
 
@@ -98,16 +100,19 @@ public class AccountSlot {
         this.budgetChangeCount++;
     }
 
-    public void minusBudget(Long budget) {
-        this.currentBudget -= budget;
-        this.budgetChangeCount++;
-    }
-
     public void addSpent(Long spent) {
         this.spent += spent;
     }
-
     public void minusSpent(Long spent) {
         this.spent -= spent;
     }
+
+    public String getName() {
+        if(this.isCustom == true) {
+            return this.customName;
+        } else {
+            return this.slot.getName();
+        }
+    }
+
 }

@@ -128,8 +128,8 @@ public class SlotRestController {
 
     @PostMapping("/accounts/{accountId}/slots")
     @Operation(
-            summary = "5-2-2 슬롯등록",
-            description = "계좌의 슬롯 리스트를 최초로 등록하거나 추후 서비스 이용 중 새로운 슬롯을 추가로 등록합니다.",
+            summary = "5-2-2 슬롯 추가등록",
+            description = "서비스 이용 중 새로운 슬롯을 추가로 등록합니다.",
             responses = {
                     @ApiResponse(
                             responseCode = "201",
@@ -138,14 +138,14 @@ public class SlotRestController {
                     )
             }
     )
-    public ResponseEntity<AddSlotListResponseDto> addSlotList(@AuthenticationPrincipal UserPrincipal principal, @PathVariable String accountId, @RequestBody AddSlotListRequestDto request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(slotService.addSlotList(principal.userId(), accountId, request.getSlots()));
+    public ResponseEntity<AddSlotListResponseDto> addSlots(@AuthenticationPrincipal UserPrincipal principal, @PathVariable String accountId, @RequestBody AddSlotListRequestDto request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(slotService.addSlots(principal.userId(), accountId, request.getSlots()));
     }
 
     @PatchMapping("/accounts/{accountId}/slots/reassign")
     @Operation(
-            summary = "5-2-3 슬롯재편성"  ,
-            description = "기준일이 도래하여 계좌의 슬롯 리스트를 재편성합니다. 재편성하고자 하는 슬롯 리스트를 요청 바디에 넣어서 보내시면 됩니다.",
+            summary = "5-2-3 슬롯편성",
+            description = "서비스에 계좌 연동 후 처음으로 슬롯 리스트를 확정하거나, 기준일이 도래하여 새로운 슬롯 리스트를 확정합니다. 확정하고자 하는 슬롯 리스트를 요청 바디에 넣어서 보내시면 됩니다.",
             responses = {
                     @ApiResponse(
                             responseCode = "201",
@@ -154,7 +154,7 @@ public class SlotRestController {
                     )
             }
     )
-    public ResponseEntity<ModifyAccountSlotListResponseDto> modifyAccountSlotListResponseDto(@AuthenticationPrincipal UserPrincipal principal, @PathVariable String accountId, @RequestBody ModifyAccountSlotListRequestDto request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(slotService.modifyAccountSlotList(principal.userId(), accountId, request.getSlots()));
+    public ResponseEntity<ModifyAccountSlotListResponseDto> modifyAccountSlots(@AuthenticationPrincipal UserPrincipal principal, @PathVariable String accountId, @RequestBody ModifyAccountSlotListRequestDto request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(slotService.modifyAccountSlots(principal.userId(), accountId, request.getSlots()));
     }
 }

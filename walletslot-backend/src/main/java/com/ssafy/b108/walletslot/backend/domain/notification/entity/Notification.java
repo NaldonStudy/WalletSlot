@@ -56,6 +56,7 @@ public class Notification {
 
     private LocalDateTime deliveredAt;
 
+    // Method
     public void markDelivered() {
         if (Boolean.TRUE.equals(this.isDelivered))
             return;
@@ -70,5 +71,10 @@ public class Notification {
 
         this.isRead = true;
         this.readAt = LocalDateTime.now();
+    }
+
+    public void updateIsDelivered(boolean isDelivered) {
+        this.isDelivered = isDelivered;
+        this.deliveredAt = LocalDateTime.now();
     }
 }

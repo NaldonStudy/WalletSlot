@@ -40,4 +40,8 @@ public class Slot {
 
     @OneToMany(mappedBy = "slot", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<AccountSlot> accountSlots;
+
+    // Method
+    public void increaseRank() { this.rank++; }
+    public void decreaseRank() { this.rank--; }
 }
