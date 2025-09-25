@@ -28,6 +28,6 @@ public class GetAccountListResponseDto {
     public static class Data {
 
         // Field
-        private List<AccountDto> accounts;
+        private List<AccountResponseDto> accounts;
     }
 }

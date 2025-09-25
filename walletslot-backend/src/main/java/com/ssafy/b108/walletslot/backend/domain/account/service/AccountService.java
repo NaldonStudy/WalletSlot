@@ -89,10 +89,10 @@ public class AccountService {
 
         // SSAFY 금융망 API로부터 받은 응답 가지고 dto 조립
         // dto > data > accounts
-        List<AccountDto> accountDtoList = httpResponse2.getBody().getREC().stream().map(account -> AccountDto.builder()
+        List<AccountResponseDto> accountResponseDtoList = httpResponse2.getBody().getREC().stream().map(account -> AccountResponseDto.builder()
                         .accountNo(account.getAccountNo())
                         .bankName(account.getBankName())
-                        .bankCode(account.getBankCode())
+                        .bankId(bankRepository.findByCode(account.getBankCode()).orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "AccountService - 000")).getUuid())
                         .accountBalance(account.getAccountBalance())
                         .build())
                 .toList();
@@ -101,7 +101,7 @@ public class AccountService {
         GetAccountListResponseDto getAccountListResponseDto = GetAccountListResponseDto.builder()
                 .success(true)
                 .message("[AccountService - 000] 마이데이터 연동 성공")
-                .data(GetAccountListResponseDto.Data.builder().accounts(accountDtoList).build())
+                .data(GetAccountListResponseDto.Data.builder().accounts(accountResponseDtoList).build())
                 .build();
 
         // 응답
@@ -132,14 +132,14 @@ public class AccountService {
 
         // dto 조립
         // dto > data > accounts
-        List<AccountDto> accountDtoList = accountList.stream()
+        List<AccountResponseDto> accountResponseDtoList = accountList.stream()
                 .map(account -> {
                     try{
-                        return AccountDto.builder()
+                        return AccountResponseDto.builder()
                                 .accountId(account.getUuid())
                                 .accountNo(AESUtil.decrypt(account.getEncryptedAccountNo(), encryptionKey))
                                 .bankName(account.getBank().getName())
-                                .bankCode(account.getBank().getCode())
+                                .bankId(account.getBank().getUuid())
                                 .alias(account.getAlias())
                                 .accountBalance(String.valueOf(account.getBalance()))
                                 .build();
@@ -153,7 +153,7 @@ public class AccountService {
         getLinkedAccountListResponse = GetLinkedAccountListResponseDto.builder()
                 .success(true)
                 .message("[AccountService - 000] 연동계좌 조회 성공")
-                .data(GetLinkedAccountListResponseDto.Data.builder().accounts(accountDtoList).build())
+                .data(GetLinkedAccountListResponseDto.Data.builder().accounts(accountResponseDtoList).build())
                 .build();
 
         // 응답
@@ -170,13 +170,13 @@ public class AccountService {
 
         // dto 조립하기
         // dto > data
-        AccountDto accountDto;
+        AccountResponseDto accountResponseDto;
         try{
-            accountDto = AccountDto.builder()
+            accountResponseDto = AccountResponseDto.builder()
                     .accountId(account.getUuid())
                     .accountNo(AESUtil.decrypt(account.getEncryptedAccountNo(), encryptionKey))
                     .bankName(account.getBank().getName())
-                    .bankCode(account.getBank().getCode())
+                    .bankId(account.getBank().getUuid())
                     .alias(account.getAlias())
                     .accountBalance(String.valueOf(account.getBalance()))
                     .build();
@@ -187,7 +187,7 @@ public class AccountService {
         GetAccountResponseDto getAccountResponseDto = GetAccountResponseDto.builder()
                 .success(true)
                 .message("[AccountService - 000] 계좌 상세조회 성공")
-                .data(accountDto)
+                .data(accountResponseDto)
                 .build();
 
         // 응답
@@ -204,13 +204,13 @@ public class AccountService {
 
         // account dto 말고, 그걸로 dto 말아서 응답
         // dto > data
-        AccountDto accountDto;
+        AccountResponseDto accountResponseDto;
         try {
-            accountDto = AccountDto.builder()
+            accountResponseDto = AccountResponseDto.builder()
                     .accountId(account.getUuid())
                     .accountNo(AESUtil.decrypt(account.getEncryptedAccountNo(), encryptionKey))
                     .bankName(account.getBank().getName())
-                    .bankCode(account.getBank().getCode())
+                    .bankId(account.getBank().getUuid())
                     .alias(account.getAlias())
                     .accountBalance(String.valueOf(account.getBalance()))
                     .build();
@@ -222,7 +222,7 @@ public class AccountService {
         GetPrimaryAccountResponseDto getPrimaryAccountResponseDto = GetPrimaryAccountResponseDto.builder()
                 .success(true)
                 .message("[AccountService - 000] 대표계좌 조회 성공")
-                .data(accountDto)
+                .data(accountResponseDto)
                 .build();
 
         // 응답
@@ -335,7 +335,7 @@ public class AccountService {
         return getAccountBalanceResponseDto;
     }
 
-    // 4-1-5
+    // 4-1-6
     public DeleteLinkedAccountResponseDto deleteLinkedAccount(long userId, String accountId) {
 
         // 조회 결과가 없으면 404
@@ -348,12 +348,12 @@ public class AccountService {
 
         // dto 조립
         // dto > data
-        AccountDto accountDto;
+        AccountResponseDto accountResponseDto;
         try {
-            accountDto = AccountDto.builder()
+            accountResponseDto = AccountResponseDto.builder()
                     .accountId(account.getUuid())
                     .accountNo(AESUtil.decrypt(account.getEncryptedAccountNo(), encryptionKey))
-                    .bankCode(account.getBank().getCode())
+                    .bankId(account.getBank().getUuid())
                     .bankName(account.getBank().getName())
                     .alias(account.getAlias())
                     .build();
@@ -365,7 +365,7 @@ public class AccountService {
         DeleteLinkedAccountResponseDto deleteLinkedAccountResponseDto = DeleteLinkedAccountResponseDto.builder()
                 .success(true)
                 .message("[AccountService - 000] 계좌 삭제 성공")
-                .data(accountDto)
+                .data(accountResponseDto)
                 .build();
 
         // 응답
@@ -679,11 +679,11 @@ public class AccountService {
 
         // dto 조립
         // dto > data
-        AccountDto accountDto;
+        AccountResponseDto accountResponseDto;
         try {
-            accountDto = AccountDto.builder()
+            accountResponseDto = AccountResponseDto.builder()
                     .accountId(account.getUuid())
-                    .bankCode(account.getBank().getCode())
+                    .bankId(account.getBank().getUuid())
                     .bankName(account.getBank().getName())
                     .accountNo(AESUtil.decrypt(account.getEncryptedAccountNo(), encryptionKey))
                     .build();
@@ -695,7 +695,7 @@ public class AccountService {
         ModifyAccountResponseDto modifyAccountResponseDto = ModifyAccountResponseDto.builder()
                 .success(true)
                 .message("[AccountService - 000] 계좌정보 수정 성공")
-                .data(accountDto)
+                .data(accountResponseDto)
                 .build();
 
         // 응답
