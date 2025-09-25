@@ -76,7 +76,7 @@ export default function RootLayout() {
           try {
             // 디바이스 ID 강제 지정 (예: 서버에 등록된 1234와 맞추기 위함)
             if (DEV_AUTH_BYPASS.deviceIdOverride !== undefined && DEV_AUTH_BYPASS.deviceIdOverride !== null) {
-              await setDeviceId(DEV_AUTH_BYPASS.deviceIdOverride as any);
+              await setDeviceId(DEV_AUTH_BYPASS.deviceIdOverride);
             }
             // 토큰 저장
             await saveAccessToken(DEV_AUTH_BYPASS.tokens.accessToken);
@@ -89,7 +89,7 @@ export default function RootLayout() {
             await setUser({
               userName: DEV_AUTH_BYPASS.user.userName,
               isPushEnabled: DEV_AUTH_BYPASS.user.isPushEnabled,
-              deviceId: (DEV_AUTH_BYPASS.deviceIdOverride as any) ?? deviceId,
+              deviceId: DEV_AUTH_BYPASS.deviceIdOverride ?? deviceId,
             });
 
             // AuthService에도 LocalUser 저장하여 authStore가 로그인 상태로 인식
@@ -97,7 +97,7 @@ export default function RootLayout() {
             await authService.saveUser({
               userName: DEV_AUTH_BYPASS.user.userName,
               isPushEnabled: DEV_AUTH_BYPASS.user.isPushEnabled,
-              deviceId: (DEV_AUTH_BYPASS.deviceIdOverride as any) ?? deviceId,
+              deviceId: DEV_AUTH_BYPASS.deviceIdOverride ?? deviceId,
             });
 
             // 인증 스토어 상태 강제 갱신
