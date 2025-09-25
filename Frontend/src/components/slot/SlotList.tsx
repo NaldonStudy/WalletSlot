@@ -37,8 +37,14 @@ const SlotList = ({ slots, accountId, openTooltipId, setOpenTooltipId }: SlotLis
 
   const handleHistory = (slot: SlotData) => {
     currentSetOpenTooltipId(null);
-    // TODO: 나중에 history 화면 만들면 연결
-    console.log('View history for slot:', slot.slotName);
+    // Store에도 선택한 slot 저장 (화면에서 불러쓸 수 있게)
+    useSlotStore.getState().setSelectedSlot({ ...slot, accountId });
+
+    // 히스토리 페이지로 이동
+    router.push({
+      pathname: `/dashboard/slot/[slotId]/history`,
+      params: { slotId: slot.slotId, accountId },
+    });
   };
 
   return (
