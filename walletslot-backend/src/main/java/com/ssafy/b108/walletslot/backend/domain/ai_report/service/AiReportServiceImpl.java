@@ -1,10 +1,10 @@
 package com.ssafy.b108.walletslot.backend.domain.ai_report.service;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ssafy.b108.walletslot.backend.domain.account.entity.Account;
 import com.ssafy.b108.walletslot.backend.domain.account.repository.AccountRepository;
-import com.ssafy.b108.walletslot.backend.domain.ai_report.dto.DeleteAiReportResponseDto;
-import com.ssafy.b108.walletslot.backend.domain.ai_report.dto.GetAiReportResponseDto;
+import com.ssafy.b108.walletslot.backend.domain.ai_report.dto.*;
 import com.ssafy.b108.walletslot.backend.domain.ai_report.entity.AiReport;
 import com.ssafy.b108.walletslot.backend.domain.ai_report.repository.AiReportRepository;
 import com.ssafy.b108.walletslot.backend.domain.slot.entity.AccountSlot;
@@ -45,14 +45,13 @@ public class AiReportServiceImpl implements AiReportService {
     @Value("${api.ssafy.gms.key:}")
     private String gmsApiKey;
 
-    private static final long UNCLASSIFIED_SLOT_ID = 0L; // 내부 식별용(미분류)
     private static final DateTimeFormatter TS = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
-    // =========================== 임의 기간 레포트 ===========================
+    // =========================== 임의 기간 레포트 (7-1) ===========================
     @Override
     @Transactional(readOnly = true)
     public GetAiReportResponseDto getReportByPeriod(final long userId,
-                                                    final String accountId,  // ✅ UUID
+                                                    final String accountId,  // UUID
                                                     final LocalDate startDate,
                                                     final LocalDate endDate,
                                                     final boolean persist) {
@@ -127,9 +126,9 @@ public class AiReportServiceImpl implements AiReportService {
             final long overs = exceeded ? (spent - budget) : 0L;
             final long unders = exceeded ? 0L : (budget - spent);
 
-            final boolean isUncls = (slot == null)
-                    || Objects.equals(slot.getId(), UNCLASSIFIED_SLOT_ID)
-                    || "미분류".equals(Optional.ofNullable(slot.getName()).orElse(""));
+            // 스키마상 slot_id NOT NULL → 이름 기준으로만 '미분류' 판정
+            final boolean isUncls = (slot != null)
+                    && "미분류".equals(Optional.ofNullable(slot.getName()).orElse(""));
 
             totalBudget += budget;
             totalSpent += spent;
@@ -142,8 +141,8 @@ public class AiReportServiceImpl implements AiReportService {
             }
 
             slotItems.add(GetAiReportResponseDto.SlotRow.builder()
-                    .accountSlotId(as.getUuid())                                 // ✅ UUID
-                    .slotId(slot != null ? slot.getUuid() : null)                // ✅ UUID
+                    .accountSlotId(as.getUuid())                           // UUID
+                    .slotId(slot != null ? slot.getUuid() : null)          // UUID
                     .slotName(resolveName(as))
                     .unclassified(isUncls)
                     .budget(budget)
@@ -236,7 +235,7 @@ public class AiReportServiceImpl implements AiReportService {
                     double ratio = (oversPool == 0L) ? 0d
                             : (double) (s != null ? s.getOverspend() : 0L) / (double) oversPool;
                     return GetAiReportResponseDto.Share.builder()
-                            .accountSlotId(asUuid) // ✅ UUID
+                            .accountSlotId(asUuid) // UUID
                             .slotName(name)
                             .ratio(ratio)
                             .allocated(e.getValue())
@@ -269,7 +268,7 @@ public class AiReportServiceImpl implements AiReportService {
         }
 
         final GetAiReportResponseDto.Period period = GetAiReportResponseDto.Period.builder()
-                .yearMonth(null) // 월 개념 없음
+                .yearMonth(null)
                 .startAt(startStr)
                 .endAt(endStr)
                 .build();
@@ -299,23 +298,21 @@ public class AiReportServiceImpl implements AiReportService {
                 .build();
     }
 
-    // ============================= 삭제 =============================
+    // ============================= 삭제 (7-2) =============================
     @Override
     @Transactional
     public DeleteAiReportResponseDto delete(final long userId,
-                                            final String accountId, // ✅ UUID
-                                            final String reportId) { // ✅ UUID
+                                            final String accountId, // UUID
+                                            final String reportId) { // UUID
 
         log.info("[AiReport - 017] DELETE START userId={}, accountId(UUID)={}, reportId(UUID)={}",
                 userId, accountId, reportId);
 
-        final Account account = accountRepo.findByUserIdAndUuid(userId, accountId)
+        accountRepo.findByUserIdAndUuid(userId, accountId)
                 .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "[AiReport - 018] 계좌 없음"));
 
         final AiReport report = aiReportRepo.findByUuid(reportId)
                 .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "[AiReport - 020] 레포트 없음"));
-
-        // (필요시) account 소유 검증 추가 가능
 
         aiReportRepo.delete(report);
         log.info("[AiReport - 021] deleted reportUuid={}", reportId);
@@ -323,8 +320,135 @@ public class AiReportServiceImpl implements AiReportService {
         return DeleteAiReportResponseDto.builder()
                 .success(true)
                 .message("[AiReport - 022] 삭제되었습니다.")
-                .data(DeleteAiReportResponseDto.Data.builder()
-                        .reportId(reportId) // ✅ UUID 그대로 반환
+                .data(DeleteAiReportResponseDto.Data.builder().reportId(reportId).build())
+                .build();
+    }
+
+    // ========================== 월 목록 (7-3-1) ==========================
+    @Override
+    @Transactional(readOnly = true)
+    public ListAiReportMonthsResponseDto listMonths(long userId, String accountId) {
+        accountRepo.findByUserIdAndUuid(userId, accountId)
+                .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "[AiReport - 030] 계좌 없음"));
+
+        var months = aiReportRepo.findAvailableYearMonths(userId, accountId);
+        return ListAiReportMonthsResponseDto.builder()
+                .success(true)
+                .message("[AiReport - 031] months loaded")
+                .data(ListAiReportMonthsResponseDto.Data.builder().yearMonths(months).build())
+                .build();
+    }
+
+    // ====================== 월별 아카이브 (7-3-2) ======================
+    @Override
+    @Transactional(readOnly = true)
+    public GetAiReportArchiveResponseDto getArchiveByMonthOrOffset(long userId,
+                                                                   String accountId,
+                                                                   String yearMonth,
+                                                                   Integer offset) {
+        accountRepo.findByUserIdAndUuid(userId, accountId)
+                .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "[AiReport - 032] 계좌 없음"));
+
+        var months = aiReportRepo.findAvailableYearMonths(userId, accountId); // 최근→과거
+        if (months.isEmpty()) {
+            return GetAiReportArchiveResponseDto.builder()
+                    .success(true)
+                    .message("[AiReport - 033] no reports")
+                    .data(GetAiReportArchiveResponseDto.Data.builder()
+                            .yearMonth(null).prevYearMonth(null).nextYearMonth(null)
+                            .yearMonths(months).reports(List.of()).build())
+                    .build();
+        }
+
+        // 선택 월 결정 (yearMonth 우선, 없으면 offset)
+        String chosen;
+        if (yearMonth != null && !yearMonth.isBlank() && months.contains(yearMonth)) {
+            chosen = yearMonth;
+        } else {
+            int idx = Math.max(0, Math.min(months.size() - 1, (offset == null ? 0 : offset)));
+            chosen = months.get(idx);
+        }
+
+        // prev/next (0=최신)
+        int index = months.indexOf(chosen);
+        String prev = (index + 1 < months.size()) ? months.get(index + 1) : null;
+        String next = (index - 1 >= 0) ? months.get(index - 1) : null;
+
+        // 월 범위
+        var parts = chosen.split("-");
+        int y = Integer.parseInt(parts[0]);
+        int m = Integer.parseInt(parts[1]);
+        var start = LocalDate.of(y, m, 1).atStartOfDay();
+        var end   = start.plusMonths(1); // [start, end)
+
+        // DB 조회 (최신→과거)
+        var rows = aiReportRepo.findByMonth(userId, accountId, start, end);
+
+        // JSON → 타입 매핑 (루트/래핑(data) 모두 지원)
+        var items = rows.stream().map(r -> {
+            var body = r.getContent(); // JsonNode (저장된 원본)
+
+            if (body != null && body.has("data") && body.get("data").isObject()) {
+                body = body.get("data"); // {"data": {...}} 형식 지원
+            }
+
+            GetAiReportResponseDto.Period period = null;
+            GetAiReportResponseDto.Summary summary = null;
+            List<GetAiReportResponseDto.SlotRow> slots = List.of();
+            GetAiReportResponseDto.Redistribution redist = null;
+            GetAiReportResponseDto.Insights insights = null;
+
+            try {
+                if (body != null && !body.isNull()) {
+                    if (body.has("period") && !body.get("period").isNull()) {
+                        period = objectMapper.convertValue(body.get("period"), GetAiReportResponseDto.Period.class);
+                    }
+                    if (body.has("summary") && !body.get("summary").isNull()) {
+                        summary = objectMapper.convertValue(body.get("summary"), GetAiReportResponseDto.Summary.class);
+                    }
+                    if (body.has("slots") && body.get("slots").isArray()) {
+                        slots = objectMapper.convertValue(
+                                body.get("slots"),
+                                new TypeReference<List<GetAiReportResponseDto.SlotRow>>() {}
+                        );
+                    }
+                    if (body.has("redistribution") && !body.get("redistribution").isNull()) {
+                        redist = objectMapper.convertValue(body.get("redistribution"), GetAiReportResponseDto.Redistribution.class);
+                    }
+                    if (body.has("insights") && !body.get("insights").isNull()) {
+                        insights = objectMapper.convertValue(body.get("insights"), GetAiReportResponseDto.Insights.class);
+                    }
+                }
+            } catch (Exception e) {
+                log.warn("[AiReport - 034A] archive mapping error reportUuid={}, msg={}", r.getUuid(), e.getMessage());
+            }
+
+            var persist = GetAiReportResponseDto.PersistInfo.builder()
+                    .id(r.getUuid())
+                    .createdAt(r.getCreatedAt())
+                    .build();
+
+            return GetAiReportArchiveResponseDto.Item.builder()
+                    .reportId(r.getUuid())
+                    .createdAt(r.getCreatedAt())
+                    .period(period)
+                    .summary(summary)
+                    .slots(slots)
+                    .redistribution(redist)
+                    .insights(insights)
+                    .persist(persist)
+                    .build();
+        }).toList();
+
+        return GetAiReportArchiveResponseDto.builder()
+                .success(true)
+                .message("[AiReport - 034] archive loaded")
+                .data(GetAiReportArchiveResponseDto.Data.builder()
+                        .yearMonth(chosen)
+                        .prevYearMonth(prev)
+                        .nextYearMonth(next)
+                        .yearMonths(months)
+                        .reports(items)
                         .build())
                 .build();
     }
@@ -344,7 +468,7 @@ public class AiReportServiceImpl implements AiReportService {
                 .sorted((a, b) -> Long.compare(b.getSpent(), a.getSpent()))
                 .limit(3)
                 .map(s -> GetAiReportResponseDto.TopSlot.builder()
-                        .accountSlotId(s.getAccountSlotId()) // ✅ UUID
+                        .accountSlotId(s.getAccountSlotId())
                         .slotName(s.getSlotName())
                         .spent(s.getSpent())
                         .budget(s.getBudget())
@@ -365,7 +489,6 @@ public class AiReportServiceImpl implements AiReportService {
                         .build())
                 .toList();
 
-        // key를 UUID 문자열로 변환
         Map<String, GetAiReportResponseDto.PeakDay> peak = new HashMap<>();
         for (var e : dowByAsId.entrySet()) {
             int best = 0; long max = 0;

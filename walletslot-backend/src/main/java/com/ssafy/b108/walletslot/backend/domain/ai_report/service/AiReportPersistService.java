@@ -40,7 +40,7 @@ public class AiReportPersistService {
             );
 
             return GetAiReportResponseDto.PersistInfo.builder()
-                    .id(saved.getUuid())            // ✅ 외부에는 UUID만
+                    .id(saved.getUuid())
                     .createdAt(saved.getCreatedAt())
                     .build();
 
