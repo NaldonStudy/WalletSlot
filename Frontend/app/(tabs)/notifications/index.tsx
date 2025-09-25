@@ -4,7 +4,7 @@
 
 import { useFocusEffect } from '@react-navigation/native';
 import React, { useCallback, useEffect, useRef } from 'react';
-import { FlatList, RefreshControl, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { FlatList, RefreshControl, StyleSheet, TouchableOpacity } from 'react-native';
 // @ts-ignore - react-native-gesture-handler Swipeable은 deprecated 마킹되었지만 여전히 안정적으로 동작함
 import { Swipeable } from 'react-native-gesture-handler';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -19,7 +19,6 @@ import { themes } from '@/src/constants/theme';
 import { usePushNotificationSystem } from '@/src/hooks';
 import { useNotificationLogic } from '@/src/hooks/useNotificationLogic';
 import { useNotificationNavigation } from '@/src/hooks/useNotificationNavigation';
-import { isMSWEnabled } from '@/src/mocks';
 import { logPerformance, monitoringService } from '@/src/services';
 import type { NotificationItem } from '@/src/types';
 
@@ -30,7 +29,7 @@ export default function NotificationsScreen() {
   // 화면 로드 시간 측정 시작
   const screenLoadStart = useRef(Date.now());
 
-  // ✅ CHANGED: 훅의 반환 값 이름을 unifiedPushService로 수정
+  // 푸시 시스템 훅 (배지 초기화 등 내부에서만 사용)
   const { isInitialized, unifiedPushService } = usePushNotificationSystem();
 
   // 커스텀 훅으로 분리된 알림 로직
@@ -39,12 +38,15 @@ export default function NotificationsScreen() {
     isNotificationsLoading,
     refreshing,
     unreadCount,
+    unreadBadgeLabel,
+    totalNotificationsCount,
     selectedFilter,
     selectedTypeFilter,
     selectedDateRange,
     isFilterExpanded,
-    isLoadingMore,
-    hasNextPage,
+  isLoadingMore,
+  hasNextPage,
+  hasMore,
     filteredNotifications,
     paginatedNotifications,
     notificationTypes,
@@ -54,7 +56,8 @@ export default function NotificationsScreen() {
     setIsFilterExpanded,
     onRefresh,
     loadMore,
-    toggleReadStatus,
+    showAll,
+    markAsRead,
     handleMarkAllAsRead,
   } = useNotificationLogic();
 
@@ -104,14 +107,14 @@ export default function NotificationsScreen() {
   // 알림 클릭 시 읽음 처리
   const handleItemPress = useCallback(
     (item: NotificationItem) => {
-      const markAsRead = (item: NotificationItem) => {
-        if (!item.isRead) {
-          toggleReadStatus(item.id, true);
+      const markAsReadIfNeeded = (noti: NotificationItem) => {
+        if (!noti.isRead) {
+          markAsRead(noti.id);
         }
       };
-      handleNotificationPress(item, markAsRead);
+      handleNotificationPress(item, markAsReadIfNeeded);
     },
-    [handleNotificationPress, toggleReadStatus]
+    [handleNotificationPress, markAsRead]
   );
 
   // 알림 아이템 렌더링
@@ -123,12 +126,12 @@ export default function NotificationsScreen() {
           item={currentItem}
           theme={theme}
           swipeableRefs={swipeableRefs}
-          onToggleReadStatus={toggleReadStatus}
+          onMarkAsRead={markAsRead}
           onPress={handleItemPress}
         />
       );
     },
-    [notifications, theme, toggleReadStatus, handleItemPress]
+    [notifications, theme, markAsRead, handleItemPress]
   );
 
   return (
@@ -141,17 +144,12 @@ export default function NotificationsScreen() {
       >
         <ThemedView style={styles.headerContent}>
           <ThemedText type="title">
-            알림 {unreadCount > 0 && `(${unreadCount})`}
+            알림 {unreadCount > 0 && `(${unreadBadgeLabel})`}
           </ThemedText>
           <ThemedView style={styles.headerActions}>
 
 
-            {/* 알림 설정 버튼 */}
-            <TouchableOpacity onPress={navigateToSettings} style={styles.settingsButton}>
-              <ThemedText style={[styles.settingsButtonText, { color: theme.colors.primary[600] }]}>
-                ⚙️
-              </ThemedText>
-            </TouchableOpacity>
+            {/* 프로덕션에서는 설정 진입을 상단 톱니로 노출하지 않음 (요구사항에 따라 제거) */}
 
             {unreadCount > 0 && (
               <TouchableOpacity onPress={handleMarkAllAsRead} style={styles.markAllButton}>
@@ -163,7 +161,7 @@ export default function NotificationsScreen() {
           </ThemedView>
         </ThemedView>
 
-        {/* 필터 컴포넌트 */}
+  {/* 필터 컴포넌트 */}
         <NotificationFilters
           theme={theme}
           selectedFilter={selectedFilter}
@@ -174,60 +172,16 @@ export default function NotificationsScreen() {
           onDateRangeChange={setSelectedDateRange}
           isFilterExpanded={isFilterExpanded}
           onToggleFilterExpanded={() => setIsFilterExpanded(!isFilterExpanded)}
-          notificationsCount={notifications.length}
+          notificationsCount={totalNotificationsCount}
           unreadCount={unreadCount}
           notificationTypes={notificationTypes}
           filteredCount={filteredNotifications.length}
         />
-
-{/* MSW 환경에서만 FCM 토큰 디버그 섹션 표시 */}
-        {__DEV__ && isMSWEnabled() && isInitialized && (
-          <ThemedView style={[styles.debugSection, { backgroundColor: theme.colors.background.secondary, borderColor: theme.colors.border.light }]}>
-            <ThemedText style={[styles.debugTitle, { color: theme.colors.text.secondary }]}>
-              🔧 Firebase FCM 토큰 (MSW 개발용)
-            </ThemedText>
-            <TouchableOpacity
-              style={[styles.tokenContainer, { backgroundColor: theme.colors.background.primary }]}
-              onPress={() => {
-                const token = unifiedPushService.getFCMToken();
-                if (token) {
-                  // 토큰을 클립보드에 복사하는 로직을 추가할 수도 있음
-                  console.log('📋 FCM Token:', token);
-                  unifiedPushService.sendLocalNotification(
-                    '토큰 복사됨',
-                    'FCM 토큰이 로그에 출력되었습니다. Firebase 콘솔에서 사용하세요.'
-                  );
-                }
-              }}
-            >
-              <ThemedText style={[styles.tokenText, { color: theme.colors.text.primary }]} numberOfLines={2}>
-                {unifiedPushService.getFCMToken() || '토큰을 가져오는 중...'}
-              </ThemedText>
-              <ThemedText style={[styles.tokenHint, { color: theme.colors.text.tertiary }]}>
-                탭하여 로그에 전체 토큰 출력
-              </ThemedText>
-            </TouchableOpacity>
-            <ThemedText style={[styles.debugInfo, { color: theme.colors.text.tertiary }]}>
-              💡 Firebase 콘솔 → Cloud Messaging → 테스트 메시지 보내기에서 위 토큰을 사용하세요
-            </ThemedText>
-          </ThemedView>
-        )}
-
-        {/* 실제 서비스 환경 (MSW 비활성화) */}
-        {__DEV__ && !isMSWEnabled() && (
-          <ThemedView style={[styles.infoSection, { backgroundColor: theme.colors.success[50], borderColor: theme.colors.success[200] }]}>
-            <ThemedText style={[styles.infoTitle, { color: theme.colors.success[700] }]}>
-              🚀 실제 서비스 모드
-            </ThemedText>
-            <ThemedText style={[styles.infoText, { color: theme.colors.success[600] }]}>
-              백엔드 API와 연결되어 실제 서비스 환경으로 동작합니다.
-            </ThemedText>
-          </ThemedView>
-        )}
+        {/* 개발/디버그 전용 섹션 제거: 프로덕션/실서비스에서는 노출하지 않음 */}
 
         {notifications.length > 0 && (
           <ThemedText style={[styles.statusText, { color: theme.colors.text.tertiary, marginBottom: 8 }]}>
-            💡 좌우로 스와이프하여 읽음/안읽음 상태를 변경할 수 있습니다
+            💡 오른쪽으로 스와이프하여 읽음으로 표시할 수 있습니다
           </ThemedText>
         )}
       </ThemedView>
@@ -267,23 +221,7 @@ export default function NotificationsScreen() {
               </ThemedText>
             </ThemedView>
           }
-          ListFooterComponent={() =>
-            hasNextPage && paginatedNotifications.length > 0 ? (
-              <View style={[styles.footerWrapper, { paddingBottom: 24 }]}>
-                <View style={styles.loadingMore}>
-                  {isLoadingMore ? (
-                    <LoadingIndicator showText={false} />
-                  ) : (
-                    <TouchableOpacity onPress={loadMore} style={styles.loadMoreButton}>
-                      <ThemedText style={[styles.loadMoreText, { color: theme.colors.primary[600] }]}>
-                        더 보기 ({filteredNotifications.length - paginatedNotifications.length}개 더)
-                      </ThemedText>
-                    </TouchableOpacity>
-                  )}
-                </View>
-              </View>
-            ) : null
-          }
+          ListFooterComponent={() => null}
         />
       )}
     </SafeAreaView>
@@ -309,15 +247,8 @@ const styles = StyleSheet.create({
       alignItems: 'center',
       gap: 8,
     },
-    settingsButton: {
-      paddingHorizontal: 8,
-      paddingVertical: 6,
-      borderRadius: 8,
-    },
-    settingsButtonText: {
-      fontSize: 18,
-      fontWeight: '600',
-    },
+    // settingsButton: removed (prod)
+    // settingsButtonText: removed (prod)
     markAllButton: {
       paddingHorizontal: 12,
       paddingVertical: 6,
@@ -345,70 +276,10 @@ const styles = StyleSheet.create({
       fontSize: 16,
       textAlign: 'center',
     },
-    loadingMore: {
-      paddingVertical: 20,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    footerWrapper: {
-      paddingBottom: 24,
-      alignItems: 'center',
-    },
-    loadMoreButton: {
-      paddingHorizontal: 20,
-      paddingVertical: 10,
-      borderRadius: 20,
-      backgroundColor: 'rgba(59, 130, 246, 0.1)',
-    },
+    // footer-related styles removed (infinite scroll only)
     loadMoreText: {
       fontSize: 14,
       fontWeight: '600',
     },
-    debugSection: {
-      marginTop: 8,
-      marginBottom: 12,
-      padding: 12,
-      borderRadius: 8,
-      borderWidth: 1,
-    },
-    debugTitle: {
-      fontSize: 14,
-      fontWeight: '600',
-      marginBottom: 8,
-    },
-    tokenContainer: {
-      padding: 12,
-      borderRadius: 6,
-      marginBottom: 8,
-    },
-    tokenText: {
-      fontSize: 12,
-      fontFamily: 'monospace',
-      lineHeight: 16,
-    },
-    tokenHint: {
-      fontSize: 10,
-      marginTop: 4,
-      textAlign: 'center',
-    },
-    debugInfo: {
-      fontSize: 11,
-      lineHeight: 14,
-    },
-    infoSection: {
-      marginTop: 8,
-      marginBottom: 12,
-      padding: 12,
-      borderRadius: 8,
-      borderWidth: 1,
-    },
-    infoTitle: {
-      fontSize: 14,
-      fontWeight: '600',
-      marginBottom: 4,
-    },
-    infoText: {
-      fontSize: 12,
-      lineHeight: 16,
-    },
+    // debug/info sections removed for production
   });

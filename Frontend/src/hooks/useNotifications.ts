@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import { AppState, AppStateStatus } from 'react-native';
 
@@ -16,25 +16,34 @@ export const useNotifications = (params?: {
   size?: number;
   sort?: string[];
 }) => {
-  return useQuery({
-    queryKey: queryKeys.notifications.list(params),
-    queryFn: async () => {
-      const response = await notificationApi.getNotifications(params);
-      // API 응답을 기존 구조로 변환
-      if (response.success && response.data) {
-        return {
-          success: true,
-          data: response.data.content,
-          message: response.message,
-          meta: {
-            page: response.data.page.number + 1, // 0-based to 1-based
-            limit: response.data.page.size,
-            total: response.data.page.totalElements,
-            hasNext: !response.data.page.last
-          }
-        };
-      }
-      return response;
+  const baseParams = { ...(params || {}) } as {
+    type?: 'SYSTEM' | 'DEVICE' | 'BUDGET' | 'TRANSACTION' | 'MARKETING';
+    page?: number;
+    size?: number;
+    sort?: string[];
+  };
+  const startPage = typeof baseParams.page === 'number' ? baseParams.page : 0;
+  const requestedSize = typeof baseParams.size === 'number' ? baseParams.size : undefined;
+  // Query Key는 페이지를 포함하지 않음 (무한 스크롤에서 내부적으로 페이지 이동)
+  const keyParams = { ...baseParams } as any;
+  delete keyParams.page;
+
+  return useInfiniteQuery({
+    queryKey: queryKeys.notifications.list(keyParams),
+    initialPageParam: startPage,
+    queryFn: async ({ pageParam }) => {
+      const res = await notificationApi.getNotifications({
+        ...keyParams,
+        page: typeof pageParam === 'number' ? pageParam : startPage,
+        ...(requestedSize !== undefined ? { size: requestedSize } : {}),
+      });
+      return res;
+    },
+    getNextPageParam: (lastPage) => {
+      const pg = (lastPage as any)?.data?.page;
+      if (!pg) return undefined;
+      const isLast = pg.last === true || (typeof pg.totalPages === 'number' && pg.number >= pg.totalPages - 1);
+      return isLast ? undefined : (typeof pg.number === 'number' ? pg.number + 1 : undefined);
     },
     staleTime: 30 * 1000,
     gcTime: 5 * 60 * 1000,
@@ -76,8 +85,11 @@ export const useUnreadNotificationCount = () => {
       }
       return response;
     },
-    staleTime: 10 * 1000,
-    refetchInterval: 30 * 1000,
+    // 인터벌 폴링 제거: 읽음 처리/모두 읽음/삭제/풀 등 관련 뮤테이션에서만 invalidate로 갱신
+    staleTime: Infinity,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    refetchOnReconnect: false,
   });
 };
 
@@ -102,12 +114,47 @@ export const useMarkNotificationAsRead = () => {
     onMutate: async (notificationUuid: string) => {
       await queryClient.cancelQueries({ queryKey: queryKeys.notifications.all });
       const allQueries = queryClient.getQueryCache().findAll({ queryKey: queryKeys.notifications.all });
-      const previousSnapshots: Array<{ queryHash: string; data: any }> = [];
-      
+      const previousSnapshots: Array<{ queryKey: readonly unknown[]; data: any }> = [];
+
       allQueries.forEach(q => {
         const data: any = q.state.data;
-        if (data && Array.isArray(data.data)) {
-          previousSnapshots.push({ queryHash: q.queryHash, data: JSON.parse(JSON.stringify(data)) });
+        if (!data) return;
+        previousSnapshots.push({ queryKey: q.queryKey, data: JSON.parse(JSON.stringify(data)) });
+
+        // Case 1: Infinite query shape { pages: [...], pageParams: [...] }
+        if (Array.isArray(data.pages)) {
+          const updated = {
+            ...data,
+            pages: data.pages.map((page: any) => {
+              const pageData = page?.data;
+              if (Array.isArray(pageData?.content)) {
+                return {
+                  ...page,
+                  data: {
+                    ...pageData,
+                    content: pageData.content.map((n: any) =>
+                      n.id === notificationUuid ? { ...n, isRead: true, readAt: new Date().toISOString() } : n
+                    ),
+                  },
+                };
+              }
+              if (Array.isArray(page?.data)) {
+                return {
+                  ...page,
+                  data: page.data.map((n: any) =>
+                    n.id === notificationUuid ? { ...n, isRead: true, readAt: new Date().toISOString() } : n
+                  ),
+                };
+              }
+              return page;
+            }),
+          };
+          queryClient.setQueryData(q.queryKey, updated);
+          return;
+        }
+
+        // Case 2: Legacy flat list { data: [...] }
+        if (Array.isArray(data.data)) {
           const updated = {
             ...data,
             data: data.data.map((n: any) =>
@@ -127,10 +174,7 @@ export const useMarkNotificationAsRead = () => {
     },
     onError: (_err, _id, ctx) => {
       ctx?.previousSnapshots.forEach(s => {
-        const query = queryClient.getQueryCache().get(s.queryHash)
-        if (query) {
-          queryClient.setQueryData(query.queryKey, s.data);
-        }
+        queryClient.setQueryData(s.queryKey, s.data);
       });
       if (ctx?.unreadPrevious) {
         queryClient.setQueryData(queryKeys.notifications.unreadCount(), ctx.unreadPrevious);
@@ -146,53 +190,7 @@ export const useMarkNotificationAsRead = () => {
 /**
  * 알림 안읽음 처리 뮤테이션 (notificationUuid 사용)
  */
-export const useMarkNotificationAsUnread = () => {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (notificationUuid: string) => notificationApi.markAsUnread(notificationUuid),
-    onMutate: async (notificationUuid: string) => {
-      await queryClient.cancelQueries({ queryKey: queryKeys.notifications.all });
-      const allQueries = queryClient.getQueryCache().findAll({ queryKey: queryKeys.notifications.all });
-      const previousSnapshots: Array<{ queryHash: string; data: any }> = [];
-
-      allQueries.forEach(q => {
-        const data: any = q.state.data;
-        if (data && Array.isArray(data.data)) {
-          previousSnapshots.push({ queryHash: q.queryHash, data: JSON.parse(JSON.stringify(data)) });
-          const updated = {
-            ...data,
-            data: data.data.map((n: any) =>
-              n.id === notificationUuid ? { ...n, isRead: false, readAt: null } : n
-            ),
-          };
-          queryClient.setQueryData(q.queryKey, updated);
-        }
-      });
-
-      const unreadKey = queryKeys.notifications.unreadCount();
-      const unread = queryClient.getQueryData<any>(unreadKey);
-      if (unread?.data) {
-        queryClient.setQueryData(unreadKey, { ...unread, data: { count: unread.data.count + 1 } });
-      }
-      return { previousSnapshots, unreadPrevious: unread };
-    },
-    onError: (_err, _id, ctx) => {
-      ctx?.previousSnapshots.forEach(s => {
-        const query = queryClient.getQueryCache().get(s.queryHash)
-        if (query) {
-          queryClient.setQueryData(query.queryKey, s.data);
-        }
-      });
-      if (ctx?.unreadPrevious) {
-        queryClient.setQueryData(queryKeys.notifications.unreadCount(), ctx.unreadPrevious);
-      }
-    },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.notifications.all });
-      queryClient.invalidateQueries({ queryKey: queryKeys.notifications.unreadCount() });
-    }
-  });
-};
+// 안읽음 전환 기능 제거됨: 서버 API 미제공에 따라 클라이언트 기능도 비활성화
 
 /**
  * 모든 알림 읽음 처리 뮤테이션
@@ -205,11 +203,40 @@ export const useMarkAllNotificationsAsRead = () => {
       await queryClient.cancelQueries({ queryKey: queryKeys.notifications.all });
       const listQueries = queryClient.getQueryCache().findAll({ queryKey: queryKeys.notifications.all });
       const previous: Array<{ queryKey: readonly unknown[]; data: any }> = [];
-      
+
       listQueries.forEach(q => {
         const data: any = q.state.data;
-        if (data && Array.isArray(data.data)) {
-          previous.push({ queryKey: q.queryKey, data: JSON.parse(JSON.stringify(data)) });
+        if (!data) return;
+        previous.push({ queryKey: q.queryKey, data: JSON.parse(JSON.stringify(data)) });
+
+        if (Array.isArray(data.pages)) {
+          const updated = {
+            ...data,
+            pages: data.pages.map((page: any) => {
+              const pageData = page?.data;
+              if (Array.isArray(pageData?.content)) {
+                return {
+                  ...page,
+                  data: {
+                    ...pageData,
+                    content: pageData.content.map((n: any) => ({ ...n, isRead: true })),
+                  },
+                };
+              }
+              if (Array.isArray(page?.data)) {
+                return {
+                  ...page,
+                  data: page.data.map((n: any) => ({ ...n, isRead: true })),
+                };
+              }
+              return page;
+            }),
+          };
+          queryClient.setQueryData(q.queryKey, updated);
+          return;
+        }
+
+        if (Array.isArray(data.data)) {
           const updated = { ...data, data: data.data.map((n: any) => ({ ...n, isRead: true })) };
           queryClient.setQueryData(q.queryKey, updated);
         }

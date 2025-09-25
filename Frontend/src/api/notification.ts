@@ -336,17 +336,37 @@ export const notificationApi = {
       };
       const rawData: Record<string, any> = isRecord(safeResponse.data) ? safeResponse.data : {};
       const normalizedContent = normalizeNotificationCollection(rawData?.content);
-      const rawPage = isRecord(rawData?.page) ? rawData.page : undefined;
+      // 서버가 page 정보를 data.page 객체가 아닌 data의 최상위 필드들(page,size,totalElements,totalPages,first,last)로 반환하는 경우 처리
+      const rawPageObj = isRecord(rawData?.page) ? rawData.page : undefined;
+      const topPageNumber = typeof rawData?.page === 'number' ? rawData.page : undefined;
+      const topPageSize = typeof rawData?.size === 'number' ? rawData.size : undefined;
+      const topTotalElements = typeof rawData?.totalElements === 'number' ? rawData.totalElements : undefined;
+      const topTotalPages = typeof rawData?.totalPages === 'number' ? rawData.totalPages : undefined;
+      const topFirst = typeof rawData?.first === 'boolean' ? rawData.first : undefined;
+      const topLast = typeof rawData?.last === 'boolean' ? rawData.last : undefined;
+
       const requestedPage = params?.page ?? 0;
       const requestedSize = params?.size ?? 20;
 
-      const pageNumber = typeof rawPage?.number === 'number' ? rawPage.number : requestedPage;
-      const pageSize = typeof rawPage?.size === 'number' ? rawPage.size : requestedSize;
-      const totalElements = typeof rawPage?.totalElements === 'number' ? rawPage.totalElements : normalizedContent.length;
+      const pageNumber = typeof rawPageObj?.number === 'number'
+        ? rawPageObj.number
+        : (topPageNumber ?? requestedPage);
+      const pageSize = typeof rawPageObj?.size === 'number'
+        ? rawPageObj.size
+        : (topPageSize ?? requestedSize ?? (normalizedContent.length || 20));
+      const totalElements = typeof rawPageObj?.totalElements === 'number'
+        ? rawPageObj.totalElements
+        : (topTotalElements ?? normalizedContent.length);
       const computedTotalPages = pageSize > 0 ? Math.ceil((totalElements || 0) / pageSize) : 0;
-      const totalPages = typeof rawPage?.totalPages === 'number' ? rawPage.totalPages : computedTotalPages;
-      const isFirst = typeof rawPage?.first === 'boolean' ? rawPage.first : pageNumber <= 0;
-      const isLast = typeof rawPage?.last === 'boolean' ? rawPage.last : (totalPages <= 1 || pageNumber >= totalPages - 1);
+      const totalPages = typeof rawPageObj?.totalPages === 'number'
+        ? rawPageObj.totalPages
+        : (topTotalPages ?? computedTotalPages);
+      const isFirst = typeof rawPageObj?.first === 'boolean'
+        ? rawPageObj.first
+        : (topFirst ?? (pageNumber <= 0));
+      const isLast = typeof rawPageObj?.last === 'boolean'
+        ? rawPageObj.last
+        : (topLast ?? (totalPages <= 1 || pageNumber >= (totalPages - 1)));
 
       return {
         ...safeResponse,
@@ -453,20 +473,10 @@ export const notificationApi = {
   },
 
   /**
-   * 단건 안읽음 처리 (PATCH /api/notifications/{notificationUuid}/unread)
+   * 단건 안읽음 처리 - 서버 OpenAPI에는 별도 'unread' 엔드포인트가 없음.
+   * 클라이언트는 로컬 상태만 토글하고, 서버에는 별도 호출을 하지 않습니다.
    */
-  markAsUnread: async (notificationUuid: string): Promise<SimpleOkResponseDto> => {
-    try {
-      const response = await apiClient.patch(`/api/notifications/${notificationUuid}/unread`);
-      return response as SimpleOkResponseDto;
-    } catch (error) {
-      console.error('[NOTIF_API] 알림 안읽음 처리 실패:', error);
-      return {
-        success: false,
-        message: '알림 안읽음 처리에 실패했습니다.'
-      };
-    }
-  },
+  markAsUnread: async (_notificationUuid: string): Promise<SimpleOkResponseDto> => ({ success: true, message: 'client-only unread' }),
 
   /**
    * 전체 읽음 처리 (POST /api/notifications/read-all)
