@@ -35,8 +35,7 @@ VALUES
 -- USER_PIN
 INSERT INTO `user_pin` (id, user_id, pepper_id, bcrypted_pin, cost)
 VALUES
-(1, 1, 2, '$2a$10$A3RKpRl.p/c0EmIxjDGKBeT5BlLb1/0.b4IPM07oPz2Eu5BtXxjgG', 12),
-(2, 2, 2, '$2a$10$ap5WOdWUPrL2I5z/NGw37Oetg.ZtVAc0F3yGyTH.f7/5kAt7DMGXO', 10);
+(1, 1, 2, '$2a$10$A3RKpRl.p/c0EmIxjDGKBeT5BlLb1/0.b4IPM07oPz2Eu5BtXxjgG', 12);
 
 -- BANK
 INSERT INTO `bank` (id, uuid, name, code, color)
@@ -175,37 +174,28 @@ VALUES
 -- USER_CONSENT
 INSERT INTO `user_consent` (id, uuid, user_id, consent_form_id, expired_at, status)
 VALUES
-(1, UUID(), 1, 1, '2026-09-17 00:20:01', 'ACTIVE'),
-(2, UUID(), 1, 2, '2026-09-17 00:20:01', 'ACTIVE'),
-(3, UUID(), 2, 1, '2026-09-20 14:02:16', 'ACTIVE');
+(1, UUID(), 1, 1, '2026-09-17 00:20:01', 'ACTIVE');
 
 -- PUSH_ENDPOINT
 INSERT INTO `push_endpoint` (id, user_id, device_id, platform, token, status, is_push_enabled)
 VALUES
-(1, 1, 'device-1234', 'ANDROID', 'fcmutil-firebase-adminsdk-fbsvc-ec4aa784ee.json', 'ACTIVE', TRUE);
+(1, 1, 'device-1234', 'ANDROID', 'eHGzIgD5Sz--716JANZ5V4:APA91bFRTcdxU_jAVtOlm5PWiH45WK4422QAE551LQQeJFVm8mD8aTABSya3mXi3kt5iX7I_db7WKZ-Ymz82MSVVBEVWIQpxXAV67k5c-avbRiM8ZOPfjr0', 'ACTIVE', TRUE);
 
 -- NOTIFICATION  (ENUM: SYSTEM, DEVICE, BUDGET, TRANSACTION, MARKETING)
 INSERT INTO `notification` (id, uuid, user_id, title, body, is_delivered, delivered_at, is_read, read_at, type)
 VALUES
-(1, UUID(), 1, '예산 초과 알림', '식비 예산을 초과했습니다.', TRUE, '2025-09-20 15:00:03', FALSE, NULL, 'BUDGET'),
-(2, UUID(), 2, '로그인 알림', '새로운 기기에서 로그인되었습니다.', TRUE, '2025-09-20 14:02:15', FALSE, NULL, 'DEVICE');
+(1, UUID(), 1, '예산 초과 알림', '식비 예산을 초과했습니다.', TRUE, '2025-09-20 15:00:03', FALSE, NULL, 'BUDGET');
 
 -- WISHLIST
 INSERT INTO `wishlist` (id, uuid, user_id, name, price, image)
 VALUES
-(1, UUID(), 1, '아이패드', 1200000, NULL),
-(2, UUID(), 2, '에어팟', 250000, NULL);
+(1, UUID(), 1, '아이패드', 1200000, NULL);
 
 -- EMAIL
 INSERT INTO `email` (id, user_id, name, email, is_primary, verified_at, created_at)
 VALUES
 -- user 1: 과거 이메일(비기본) + 현재 이메일(기본)
-(1, 1, '전해지', 'wjsgowl0224_old@naver.com', 0, '2024-07-10 10:00:00', '2024-07-10 10:00:00'),
-(2, 1, '전해지', 'wjsgowl0224@naver.com',       1, '2025-09-20 13:22:00', '2025-09-20 13:20:00'),
-
--- user 2: 현재 이메일(기본)만 1건
-(3, 2, '김영희', 'kim@student.com',             1, '2025-09-18 09:00:00', '2025-09-18 09:00:00');
-
+(1, 1, '전해지', 'wjsgowl0224_old@naver.com', 0, '2024-07-10 10:00:00', '2024-07-10 10:00:00');
 
 -- AI_REPORT (옵션)
 INSERT INTO `ai_report` (id, uuid, account_id, content)
