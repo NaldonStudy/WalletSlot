@@ -2,12 +2,12 @@ import { appService } from '@/src/services/appService';
 import { router } from 'expo-router';
 import React, { useRef, useState } from 'react';
 import {
-    Dimensions,
-    FlatList,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
+  Dimensions,
+  FlatList,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -41,6 +41,11 @@ const onboardingData = [
   },
 ];
 
+/**
+ * 온보딩 첫 화면 컴포넌트
+ * - 슬라이드형 가이드 제공
+ * - 완료 시 회원가입/로그인으로 이동
+ */
 export default function OnboardingScreen() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const flatListRef = useRef<FlatList>(null);
@@ -56,21 +61,19 @@ export default function OnboardingScreen() {
     }
   };
 
-  const handleSkip = () => {
-    handleComplete();
-  };
+  /** 온보딩 건너뛰기: 완료 처리 후 회원가입 이동 */
+  const handleSkip = () => handleComplete();
 
+  /** 기존 회원 로그인으로 이동 */
   const handleGoLogin = async () => {
-    // 온보딩 완료 여부는 유지(건너뛰기와 동일하게 처리할지 정책에 따라 다름)
     await appService.setOnboardingCompleted(true);
-    router.replace('/(auth)/(login)/login');
+    router.replace('/(auth)/(login)/login' as any);
   };
 
+  /** 온보딩 완료 후 회원가입 이름 입력으로 이동 */
   const handleComplete = async () => {
-    // 온보딩 완료 플래그 저장
     await appService.setOnboardingCompleted(true);
-    // 회원가입 이름 입력 화면으로 이동
-    router.replace('/(auth)/(signup)/name');
+    router.replace('/(auth)/(signup)/name' as any);
   };
 
   const renderSlide = ({ item }: { item: typeof onboardingData[0] }) => (

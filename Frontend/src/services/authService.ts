@@ -1,5 +1,6 @@
 import { notificationApi } from '@/src/api/notification';
-import { STORAGE_KEYS } from '@/src/constants';
+import { DEV_AUTH_BYPASS } from '@/src/config/devAuthBypass';
+import { API_CONFIG, STORAGE_KEYS } from '@/src/constants';
 import { getOrCreateDeviceId } from '@/src/services/deviceIdService';
 import { deleteAccessToken as ssDelAT, getAccessToken as ssGetAT, saveAccessToken as ssSaveAT, saveRefreshToken as ssSaveRT } from '@/src/services/tokenService';
 import { LocalUser } from '@/src/types';
@@ -71,18 +72,8 @@ export const authService = {
     // AccessToken 조회(SecureStore)
     async getAccessToken(): Promise<string | null> {
         try {
-            // // 개발 중 하드코딩된 토큰 사용
-            // if (__DEV__) {
-            //     // 현재 디바이스 ID 확인
-            //     const currentDeviceId = '1234';
-            //     console.log('[🔑AUTH_SERVICE] 현재 디바이스 ID:', currentDeviceId);
-                
-            //     const hardcodedToken = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxIiwidWlkIjoxLCJleHAiOjE3NTg3ODAyMDcsImlhdCI6MTc1ODY5MzgwNywiZGlkIjoiMTIzNCIsImp0aSI6ImI0NGNiZGIyLTMyZmYtNGVkZC1iOWM5LTY3NjUwMTczYmFiMiJ9.XJI_oAJaRgkjhBGPuB8rlI8OlQNBDhx_OKH76FQirR8';
-            //     console.log('[🔑AUTH_SERVICE] 개발 모드: 하드코딩된 토큰 사용');
-            //     return hardcodedToken;
-            // }
-            
-            return await AsyncStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
+            // SecureStore에 저장된 액세스 토큰 사용
+            return await ssGetAT();
         } catch (error) {
             console.error('[🔑AUTH_SERVICE] ❌AccessToken 조회 실패:', error);
             return null;
@@ -122,11 +113,13 @@ export const authService = {
             }
 
             // 명세에 따라 body로 refreshToken + deviceId 전송
-            const response = await fetch('/api/auth/refresh', {
+            const requestId = `req_${Date.now().toString(36)}_${Math.random().toString(36).slice(2)}`;
+            const response = await fetch(`${API_CONFIG.BASE_URL}/api/auth/refresh`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'X-Device-Id': await getOrCreateDeviceId(),
+                    'X-Request-Id': requestId,
                 },
                 body: JSON.stringify({ refreshToken, deviceId: await getOrCreateDeviceId() }),
             });
@@ -135,7 +128,10 @@ export const authService = {
                 // 상태별 분기 처리
                 if (response.status === 401 || response.status === 403) {
                     console.error('[🔑AUTH_SERVICE] ❌토큰 재발급 실패(권한):', response.status);
-                    await this.clearAll();
+                    // 개발 바이패스 중에는 토큰 삭제/로그아웃을 하지 않음
+                    if (!DEV_AUTH_BYPASS.enabled) {
+                        await this.clearAll();
+                    }
                     return null;
                 }
                 // 네트워크/서버 오류는 상위에서 재시도할 수 있도록 throw
@@ -154,6 +150,10 @@ export const authService = {
             return newAccessToken;
         } catch (error) {
             console.error('[🔄AUTH_SERVICE] ❌토큰 재발급 실패:', error);
+            // 개발 바이패스 중에는 토큰 삭제/로그아웃을 하지 않음
+            if (DEV_AUTH_BYPASS.enabled) {
+                return null;
+            }
             await this.clearAll();
             return null;
         }

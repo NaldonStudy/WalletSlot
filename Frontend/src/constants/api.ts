@@ -39,6 +39,12 @@ export const API_ENDPOINTS = {
   // Accounts
   ACCOUNTS_LINK: '/api/accounts/link',
   ACCOUNT_BY_ID: (accountId: string) => `/api/accounts/${accountId}`,
+  ACCOUNTS: '/api/accounts',
+
+  // MyData Consents
+  MYDATA_CONSENTS: '/api/mydata/consents',
+  MYDATA_CONSENTS_REVOKE: '/api/mydata/consents/revoke',
+  MYDATA_CONSENTS_RENEW: '/api/mydata/consents/renew',
   
   // User Profile
   USER_ME: '/api/users/me',

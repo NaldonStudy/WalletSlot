@@ -3,35 +3,38 @@
  * @description 앱의 루트 인덱스 파일 - 온보딩 상태에 따라 적절한 화면으로 리다이렉트
  */
 
+import { useQuery } from '@tanstack/react-query';
 import { Redirect } from 'expo-router';
-import { useEffect, useState } from 'react';
+import React from 'react';
 
 import { appService } from '@/src/services/appService';
+import { getAccessToken } from '@/src/services/tokenService';
 
 export default function RootIndex() {
-  const [onboardingDone, setOnboardingDone] = useState<boolean | null>(null);
+  const { data: onboardingDone, isLoading: onboardingLoading } = useQuery<boolean>({
+    queryKey: ['onboarding'],
+    queryFn: () => appService.getOnboardingCompleted(),
+    staleTime: Infinity,
+  });
+  const { data: accessToken, isLoading: tokenLoading } = useQuery<string | null>({
+    queryKey: ['accessToken'],
+    queryFn: () => getAccessToken(),
+    staleTime: Infinity,
+  });
 
-  useEffect(() => {
-    (async () => {
-      console.log('🔍 [INDEX] 온보딩 상태 조회 시작');
-      const completed = await appService.getOnboardingCompleted();
-      console.log('🔍 [INDEX] 온보딩 상태 조회 결과:', completed);
-      setOnboardingDone(completed);
-    })();
-  }, []);
-
-
-  // 온보딩 상태를 확인하는 동안 로딩 표시
-  if (onboardingDone === null) {
+  if (onboardingLoading || tokenLoading || onboardingDone === undefined) {
     return null;
   }
 
-  // 온보딩 완료 여부에 따라 적절한 화면으로 리다이렉트
-  if (onboardingDone) {
-    console.log('✅ [INDEX] 온보딩 완료 → 대시보드로 이동');
-    return <Redirect href="/(tabs)/dashboard" />;
-  } else {
-    console.log('📱 [INDEX] 온보딩 미완료 → 온보딩 화면으로 이동');
+  // 가드 정책
+  // - 온보딩 N -> 온보딩
+  // - 온보딩 Y -> 토큰 N -> 회원가입 시작
+  // - 온보딩 Y -> 토큰 Y -> 대시보드
+  if (!onboardingDone) {
     return <Redirect href="/(onboarding)/onboarding" />;
   }
+  if (!accessToken) {
+    return <Redirect href="/(auth)/(signup)/name" />;
+  }
+  return <Redirect href="/(tabs)/dashboard" />;
 }

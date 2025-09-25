@@ -24,6 +24,8 @@ export const AccountSummary = memo(({ account }: AccountSummaryProps) => {
         setImageLoaded(false);
     }, [account.bankCode]);
 
+    const balanceNumber = Number(account.balance ?? 0);
+
     return (
         <View style={[styles.card, theme.shadows.base,{ 
             backgroundColor: theme.colors.background.primary,
@@ -55,15 +57,15 @@ export const AccountSummary = memo(({ account }: AccountSummaryProps) => {
                 </View>
             </View>
             {/* 잔액 */}
-            <Text style={[styles.balance, { color: textColor.color }]}>{format.currency(account.accountBalance)}</Text>
+            <Text style={[styles.balance, { color: textColor.color }]}>{format.currency(balanceNumber)}</Text>
         </View>
     )
 }, (prevProps, nextProps) => {
     // 계좌 정보가 같으면 리렌더링하지 않음
     return prevProps.account.bankCode === nextProps.account.bankCode &&
-           prevProps.account.alias === nextProps.account.alias &&
-           prevProps.account.accountNo === nextProps.account.accountNo &&
-           prevProps.account.accountBalance === nextProps.account.accountBalance;
+        prevProps.account.alias === nextProps.account.alias &&
+        prevProps.account.accountNo === nextProps.account.accountNo &&
+        String(prevProps.account.balance ?? '') === String(nextProps.account.balance ?? '');
 });
 
 AccountSummary.displayName = 'AccountSummary';

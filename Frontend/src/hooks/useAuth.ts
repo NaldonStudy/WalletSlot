@@ -1,6 +1,5 @@
+import type { LoginForm, User } from '@/src/types';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { authApi, queryKeys } from '@/src/api';
-import type { User, LoginForm, AuthTokens } from '@/src/types';
 
 /**
  * 인증 관련 커스텀 훅 (기본 틀)
@@ -15,9 +14,10 @@ export const useAuth = () => {
 
   // 로그인 뮤테이션
   const loginMutation = useMutation({
-    mutationFn: authApi.login,
-    onSuccess: (response) => {
-      const { user, tokens } = response.data;
+    // authApi.login이 현재 존재하지 않으므로 placeholder로 대체
+    mutationFn: async (_data: LoginForm) => { throw new Error('authApi.login not implemented in this build'); },
+    onSuccess: (response: any) => {
+      const { user, tokens } = response.data || {};
       // TODO: 상태 관리에 저장
       console.log('Login success:', user);
     },
@@ -28,8 +28,9 @@ export const useAuth = () => {
 
   // 토큰 갱신 뮤테이션
   const refreshTokenMutation = useMutation({
-    mutationFn: authApi.refreshToken,
-    onSuccess: (response) => {
+    // authApi.refreshToken이 현재 존재하지 않으므로 placeholder로 대체
+    mutationFn: async () => { throw new Error('authApi.refreshToken not implemented in this build'); },
+    onSuccess: (response: any) => {
       const tokens = response.data;
       // TODO: 토큰 저장
       console.log('Token refreshed:', tokens);

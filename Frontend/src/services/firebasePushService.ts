@@ -1,11 +1,14 @@
 import { apiClient } from '@/src/api/client';
+import { getOrCreateDeviceId } from '@/src/services/deviceIdService';
+import { getAccessToken } from '@/src/services/tokenService';
 import type { FCMTokenRequest } from '@/src/types';
 import Constants from 'expo-constants';
 import * as Device from 'expo-device';
 import { Platform } from 'react-native';
 
-// Firebase v23 호환 import 방식
-let messaging: any = null;
+// Firebase v23 호환 import 방식 (모듈식 API 지원)
+let messagingApp: any = null; // messaging() 인스턴스
+let messagingMod: any = null; // 모듈식 함수 집합 (getToken, onMessage 등)
 let firebase: any = null;
 
 try {
@@ -19,26 +22,30 @@ try {
     
     // Firebase v23에서는 messaging을 함수로 호출해야 함
     const messagingModule = require('@react-native-firebase/messaging');
-    if (typeof messagingModule === 'function') {
-      messaging = messagingModule(); // v23: messaging() 호출
-    } else if (messagingModule.default && typeof messagingModule.default === 'function') {
-      messaging = messagingModule.default(); // v23: default() 호출
-    } else if (messagingModule.default) {
-      messaging = messagingModule.default; // 기존: default 직접 사용
-    } else {
-      messaging = messagingModule; // 최후: 모듈 직접 사용
-    }
-    
+    messagingMod = messagingModule; // 모듈식 함수들이 여기에 존재할 수 있음
+    // messaging() 인스턴스 확보
+    try {
+      if (typeof messagingModule?.messaging === 'function') {
+        messagingApp = messagingModule.messaging();
+      } else if (typeof messagingModule === 'function') {
+        messagingApp = messagingModule();
+      } else if (typeof messagingModule?.default === 'function') {
+        messagingApp = messagingModule.default();
+      } else if (messagingModule?.default?.messaging) {
+        messagingApp = messagingModule.default.messaging();
+      }
+    } catch {}
+
     console.log('[FIREBASE_PUSH] Firebase 모듈 로딩 성공');
     console.log('[FIREBASE_PUSH] firebase app:', !!firebase);
-    console.log('[FIREBASE_PUSH] messaging 타입:', typeof messaging);
-    console.log('[FIREBASE_PUSH] messaging 메서드들:', messaging ? Object.keys(messaging).slice(0, 10) : []);
+    console.log('[FIREBASE_PUSH] messagingApp 존재:', !!messagingApp);
+    console.log('[FIREBASE_PUSH] 모듈식 메서드들:', messagingMod ? Object.keys(messagingMod).slice(0, 10) : []);
   } else {
     console.log('[FIREBASE_PUSH] Expo Go 환경에서는 Firebase를 사용할 수 없습니다');
   }
 } catch (error) {
   console.log('[FIREBASE_PUSH] Firebase 모듈을 사용할 수 없습니다:', error);
-  messaging = null;
+  messagingApp = null;
   firebase = null;
 }
 
@@ -69,30 +76,18 @@ export class FirebasePushService {
       console.log('[FIREBASE_PUSH] 초기화 시작...');
 
       // Firebase 모듈이 없으면 완전히 실패로 처리 (Mock 토큰 생성하지 않음)
-      if (!messaging) {
+      if (!messagingApp && !messagingMod) {
         console.error('[FIREBASE_PUSH] Firebase 모듈을 찾을 수 없습니다.');
         return { success: false };
       }
 
       // Firebase 준비 상태 확인
       try {
-        if (!messaging) {
+        if (!messagingApp && !messagingMod) {
           console.error('[FIREBASE_PUSH] Firebase messaging 객체가 없습니다.');
           return { success: false };
         }
-        
-        // Firebase v23에서는 messaging이 객체이고 메서드들이 있는지 확인
-        const hasRequiredMethods = messaging.requestPermission && 
-                                 messaging.getToken && 
-                                 messaging.onMessage;
-        
-        if (!hasRequiredMethods) {
-          console.error('[FIREBASE_PUSH] Firebase messaging 필수 메서드가 없습니다.');
-          console.error('[FIREBASE_PUSH] 사용 가능한 메서드들:', Object.keys(messaging));
-          return { success: false };
-        }
-        
-        console.log('[FIREBASE_PUSH] Firebase messaging 준비 완료');
+        console.log('[FIREBASE_PUSH] Firebase messaging 준비 확인 완료');
       } catch (error) {
         console.error('[FIREBASE_PUSH] Firebase messaging 확인 실패:', error);
         return { success: false };
@@ -134,16 +129,28 @@ export class FirebasePushService {
         }
 
         // Firebase 권한 요청 (플랫폼별 최적화)
-        if (Platform.OS === 'ios') {
-          authStatus = await messaging.requestPermission({
-            alert: true,
-            badge: true,
-            sound: true,
-            // Firebase v23에서 지원되는 옵션들만 사용
-          });
+        const requestPermission = messagingMod?.requestPermission;
+        if (requestPermission && typeof requestPermission === 'function') {
+          // 모듈식 API
+          if (Platform.OS === 'ios') {
+            authStatus = await requestPermission(messagingMod.messaging ? messagingMod.messaging() : messagingApp, {
+              alert: true,
+              badge: true,
+              sound: true,
+            });
+          } else {
+            authStatus = await requestPermission(messagingMod.messaging ? messagingMod.messaging() : messagingApp);
+          }
+        } else if (messagingApp?.requestPermission) {
+          // 인스턴스 메서드 (구 API)
+          if (Platform.OS === 'ios') {
+            authStatus = await messagingApp.requestPermission({ alert: true, badge: true, sound: true });
+          } else {
+            authStatus = await messagingApp.requestPermission();
+          }
         } else {
-          // Android는 기본 권한 요청
-          authStatus = await messaging.requestPermission();
+          // 권한 요청 불가
+          authStatus = 0;
         }
       } catch (permissionError) {
         console.error('[FIREBASE_PUSH] 권한 요청 실패:', permissionError);
@@ -166,7 +173,13 @@ export class FirebasePushService {
 
       // FCM 토큰 발급
       try {
-        this.fcmToken = await messaging.getToken();
+        if (typeof messagingMod?.getToken === 'function') {
+          this.fcmToken = await messagingMod.getToken(messagingMod.messaging ? messagingMod.messaging() : messagingApp);
+        } else if (messagingApp?.getToken) {
+          this.fcmToken = await messagingApp.getToken();
+        } else {
+          this.fcmToken = null as any;
+        }
         if (!this.fcmToken) {
           console.error('[FIREBASE_PUSH] FCM 토큰 발급 실패');
           return { success: false };
@@ -180,7 +193,7 @@ export class FirebasePushService {
       // 4. 디바이스 정보 수집
       const deviceInfo = await this.getDeviceInfo();
 
-      // 5. 서버에 토큰 등록
+      // 5. 서버에 토큰 등록 준비
       const tokenRequest: FCMTokenRequest = {
         fcmToken: this.fcmToken,
         deviceId: deviceInfo.deviceId,
@@ -191,19 +204,32 @@ export class FirebasePushService {
 
       // iOS APNs 토큰은 Firebase v23에서 자동으로 관리됨
 
-      const response = await this.registerTokenToServer(tokenRequest);
-      if (response.success) {
-        this.deviceId = response.deviceId || deviceInfo.deviceId;
-        this.isInitialized = true;
-        console.log('[FIREBASE_PUSH] 서버 등록 완료, deviceId:', this.deviceId);
+      // 아직 인증되지 않았다면 서버 등록을 건너뜁니다(401 방지)
+      const accessToken = await getAccessToken();
+      if (!accessToken) {
+        if (__DEV__) {
+          console.log('[FIREBASE_PUSH] 아직 로그인 전입니다. 서버 등록은 로그인 이후로 지연합니다.');
+        }
+        // 디바이스 ID는 로컬 추정값 설정
+        this.deviceId = deviceInfo.deviceId;
+        // 초기화는 완료 처리하되, 서버 연동은 ensureServerRegistration에서 수행
+        this.isInitialized = false;
+      } else {
+        const response = await this.registerTokenToServer(tokenRequest);
+        if (response.success) {
+          this.deviceId = response.deviceId || deviceInfo.deviceId;
+          this.isInitialized = true;
+          console.log('[FIREBASE_PUSH] 서버 등록 완료, deviceId:', this.deviceId);
+        }
       }
 
       // 6. 메시지 리스너 설정
       this.setupMessageListeners();
 
-      return { 
-        success: response.success, 
-        deviceId: this.deviceId || undefined 
+      // 서버 등록을 지연했더라도, 클라이언트 설정은 완료됨
+      return {
+        success: true,
+        deviceId: this.deviceId || deviceInfo.deviceId || undefined,
       };
 
     } catch (error) {
@@ -218,12 +244,12 @@ export class FirebasePushService {
    * 디바이스 정보 수집
    */
   private async getDeviceInfo() {
-    const deviceId = await Device.getDeviceTypeAsync();
+    const persistedDeviceId = await getOrCreateDeviceId();
     const appVersion = Constants.expoConfig?.version || '1.0.0';
     const osVersion = Device.osVersion || 'unknown';
 
     return {
-      deviceId: `${Platform.OS}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+      deviceId: persistedDeviceId,
       appVersion,
       osVersion,
     };
@@ -238,16 +264,26 @@ export class FirebasePushService {
     message?: string;
   }> {
     try {
-      // MSW가 활성화된 경우 /api/notifications/register-fcm-token 엔드포인트로 요청
-      const response = await apiClient.post('/api/notifications/register-fcm-token', request);
-      
+      // 백엔드 명세: POST /api/push/endpoints (등록/갱신 겸용)
+      const payload = {
+        deviceId: request.deviceId,
+        platform: Platform.OS === 'ios' ? 'IOS' as const : 'ANDROID' as const,
+        token: request.fcmToken,
+        pushEnabled: true,
+      };
+      const response: any = await apiClient.postWithConfig('/api/push/endpoints', payload, { noRefresh: true });
+      const serverDeviceId = response?.data?.device?.deviceId || response?.deviceId;
       return {
         success: true,
-        deviceId: (response as any).deviceId || request.deviceId,
+        deviceId: serverDeviceId || request.deviceId,
         message: 'FCM 토큰이 성공적으로 등록되었습니다.'
       };
     } catch (error) {
-      console.error('[FIREBASE_PUSH] 서버 토큰 등록 실패:', error);
+      if (__DEV__) {
+        console.error('[FIREBASE_PUSH] 서버 토큰 등록 실패:', error);
+      } else {
+        console.warn('[FIREBASE_PUSH] 서버 토큰 등록 실패(요약).');
+      }
       
       // MSW 환경에서는 성공으로 처리 (실제 API가 없는 동안)
       if (__DEV__) {
@@ -267,17 +303,59 @@ export class FirebasePushService {
   }
 
   /**
+   * 로그인 이후(액세스 토큰 보유 시) 서버에 안전하게 토큰을 등록합니다.
+   * 초기화 시 401이 났다면, 인증 후 이 메서드를 다시 호출하세요.
+   */
+  public async ensureServerRegistration(): Promise<boolean> {
+    try {
+      if (!this.fcmToken) return false;
+      const { getAccessToken } = await import('@/src/services/tokenService');
+      const at = await getAccessToken();
+      if (!at) {
+        if (__DEV__) console.log('[FIREBASE_PUSH] access token 없음. 서버 등록 건너뜀');
+        return false;
+      }
+      const deviceInfo = await this.getDeviceInfo();
+      const payload: FCMTokenRequest = {
+        fcmToken: this.fcmToken,
+        deviceId: this.deviceId || deviceInfo.deviceId,
+        platform: Platform.OS as 'ios' | 'android',
+        appVersion: Constants.expoConfig?.version || '1.0.0',
+        osVersion: Device.osVersion || 'unknown',
+      };
+      const res = await this.registerTokenToServer(payload);
+      if (res.success) {
+        this.deviceId = res.deviceId || payload.deviceId;
+        this.isInitialized = true;
+      }
+      return res.success;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /**
    * Firebase 메시지 리스너 설정
    */
   private setupMessageListeners(): void {
     // Firebase 모듈이 없으면 리스너 설정 불가
-    if (!messaging) {
+    if (!messagingApp && !messagingMod) {
       console.error('[FIREBASE_PUSH] Firebase 모듈이 없어 메시지 리스너를 설정할 수 없습니다.');
       return;
     }
 
     // 포그라운드 메시지 수신
-    messaging.onMessage(async (remoteMessage: any) => {
+    const onMessage = messagingMod?.onMessage;
+    if (typeof onMessage === 'function') {
+      onMessage(messagingMod.messaging ? messagingMod.messaging() : messagingApp, async (remoteMessage: any) => {
+        console.log('[FIREBASE_PUSH] 포그라운드 메시지 수신:', remoteMessage);
+        await this.showLocalNotification(remoteMessage);
+        if (remoteMessage.data) {
+          await this.handleNotificationData(remoteMessage.data);
+        }
+      });
+    } else if (messagingApp?.onMessage) {
+      messagingApp.onMessage(async (remoteMessage: any) => {
       console.log('[FIREBASE_PUSH] 포그라운드 메시지 수신:', remoteMessage);
       
       // 로컬 알림으로 표시 (포그라운드에서는 자동 표시되지 않음)
@@ -287,31 +365,56 @@ export class FirebasePushService {
       if (remoteMessage.data) {
         await this.handleNotificationData(remoteMessage.data);
       }
-    });
+      });
+    }
 
     // 백그라운드/종료 상태에서 알림 클릭
-    messaging.onNotificationOpenedApp((remoteMessage: any) => {
-      console.log('[FIREBASE_PUSH] 백그라운드 알림 클릭:', remoteMessage);
-      this.handleNotificationClick(remoteMessage);
-    });
+    const onNotificationOpenedApp = messagingMod?.onNotificationOpenedApp;
+    if (typeof onNotificationOpenedApp === 'function') {
+      onNotificationOpenedApp(messagingMod.messaging ? messagingMod.messaging() : messagingApp, (remoteMessage: any) => {
+        console.log('[FIREBASE_PUSH] 백그라운드 알림 클릭:', remoteMessage);
+        this.handleNotificationClick(remoteMessage);
+      });
+    } else if (messagingApp?.onNotificationOpenedApp) {
+      messagingApp.onNotificationOpenedApp((remoteMessage: any) => {
+        console.log('[FIREBASE_PUSH] 백그라운드 알림 클릭:', remoteMessage);
+        this.handleNotificationClick(remoteMessage);
+      });
+    }
 
     // 앱이 종료된 상태에서 알림을 통해 앱 실행
-    messaging
-      .getInitialNotification()
-      .then((remoteMessage: any) => {
+    const getInitialNotification = messagingMod?.getInitialNotification;
+    if (typeof getInitialNotification === 'function') {
+      getInitialNotification(messagingMod.messaging ? messagingMod.messaging() : messagingApp).then((remoteMessage: any) => {
         if (remoteMessage) {
           console.log('[FIREBASE_PUSH] 앱 종료 상태에서 알림을 통해 실행:', remoteMessage);
           this.handleNotificationClick(remoteMessage);
         }
       });
+    } else if (messagingApp?.getInitialNotification) {
+      messagingApp.getInitialNotification().then((remoteMessage: any) => {
+        if (remoteMessage) {
+          console.log('[FIREBASE_PUSH] 앱 종료 상태에서 알림을 통해 실행:', remoteMessage);
+          this.handleNotificationClick(remoteMessage);
+        }
+      });
+    }
 
     // 토큰 갱신 리스너
-    messaging.onTokenRefresh((token: string) => {
-      console.log('[FIREBASE_PUSH] FCM 토큰 갱신:', token.substring(0, 20) + '...');
-      this.fcmToken = token;
-      // 서버에 새 토큰 업데이트
-      this.updateTokenOnServer(token);
-    });
+    const onTokenRefresh = messagingMod?.onTokenRefresh;
+    if (typeof onTokenRefresh === 'function') {
+      onTokenRefresh(messagingMod.messaging ? messagingMod.messaging() : messagingApp, (token: string) => {
+        console.log('[FIREBASE_PUSH] FCM 토큰 갱신:', token.substring(0, 20) + '...');
+        this.fcmToken = token;
+        this.updateTokenOnServer(token);
+      });
+    } else if (messagingApp?.onTokenRefresh) {
+      messagingApp.onTokenRefresh((token: string) => {
+        console.log('[FIREBASE_PUSH] FCM 토큰 갱신:', token.substring(0, 20) + '...');
+        this.fcmToken = token;
+        this.updateTokenOnServer(token);
+      });
+    }
   }
 
   /**
@@ -437,10 +540,13 @@ export class FirebasePushService {
     try {
       if (!this.deviceId) return;
 
-      await apiClient.put('/api/notifications/update-fcm-token', {
-        fcmToken: newToken,
+      // 등록과 동일 엔드포인트(POST /api/push/endpoints)는 갱신도 지원
+      await apiClient.postWithConfig('/api/push/endpoints', {
         deviceId: this.deviceId,
-      });
+        platform: Platform.OS === 'ios' ? 'IOS' : 'ANDROID',
+        token: newToken,
+        pushEnabled: true,
+      }, { noRefresh: true });
 
       console.log('[FIREBASE_PUSH] 서버 토큰 업데이트 완료');
     } catch (error) {

@@ -1,10 +1,11 @@
 import { ThemedText } from '@/components/ThemedText'
 import { ThemedView } from '@/components/ThemedView'
 import { Toggle } from '@/components/Toggle'
-import { AuthPinEntry, CommonModal } from '@/src/components'
+import { AuthKeypad, CommonModal, PinDots } from '@/src/components'
 import { monitoringService } from '@/src/services/monitoringService'
 import React, { useState } from 'react'
-import { Alert, Pressable, StyleSheet, View } from 'react-native'
+import { Alert, KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, View } from 'react-native'
+import { SafeAreaView } from 'react-native-safe-area-context'
 
 type Props = {
   visible: boolean
@@ -118,27 +119,39 @@ export default function BiometricRegister({ visible, onClose, onRegistered, init
       position="fullscreen" 
       onClose={() => { setPinModalVisible(false); setShowPinEntry(false); setPin('') }}
     >
-      <AuthPinEntry
-        title="생체 인증 등록"
-        subtitle="생체 인증을 등록하려면 PIN으로 본인 확인을 해주세요."
-        length={6}
-        value={pin}
-        showBack={true}
-        onBack={() => { setPinModalVisible(false); setShowPinEntry(false); setPin('') }}
-        onClose={() => { setPinModalVisible(false); setShowPinEntry(false); setPin('') }}
-        onDigitPress={(d: string) => {
-          const next = pin + d
-          if (next.length <= 6) setPin(next)
-          if (next.length === 6) handleVerify(next)
-        }}
-        onDelete={() => setPin(pin.slice(0, -1))}
-        onClear={() => setPin('')}
-        keypadConfig={{
-          fakeTouch: true,
-          animation: true,
-          size: 'medium'
-        }}
-      />
+      <SafeAreaView style={styles.pinSafeArea}>
+        <View style={styles.pinHeaderBar}>
+          <View style={styles.pinHeaderSide} />
+          <Text style={styles.pinHeaderTitle}>생체 인증 등록</Text>
+          <Pressable hitSlop={10} onPress={() => { setPinModalVisible(false); setShowPinEntry(false); setPin('') }} style={styles.pinHeaderSide}>
+            <Text style={styles.pinHeaderClose}>✕</Text>
+          </Pressable>
+        </View>
+        <KeyboardAvoidingView style={styles.pinContainer} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+          <View style={styles.pinContent}>
+            <Text style={styles.pinTitle}>생체 인증 등록을 위해 PIN 6자리를 입력해주세요.</Text>
+            <Text style={styles.pinSubtitle}></Text>
+            <View style={styles.pinDotsWrap}>
+              <PinDots length={6} filled={pin.length} size="md" />
+            </View>
+          </View>
+          <View style={styles.pinKeypadWrap}>
+            <AuthKeypad
+              onDigitPress={(d: string) => {
+                const next = pin + d
+                if (next.length <= 6) setPin(next)
+                if (next.length === 6) handleVerify(next)
+              }}
+              onBackspace={() => setPin(pin.slice(0, -1))}
+              onClear={() => setPin('')}
+              shuffle
+              fakeTouch
+              animation
+              size="medium"
+            />
+          </View>
+        </KeyboardAvoidingView>
+      </SafeAreaView>
     </CommonModal>
 
     </ThemedView>
@@ -153,4 +166,17 @@ const styles = StyleSheet.create({
   rowSpace: { marginBottom: 12 },
   toggleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   infoBox: { marginTop: 12, padding: 12, borderWidth: 1, borderColor: '#eee', borderRadius: 6, backgroundColor: '#fafafa' },
+  // PIN modal styles to match signup screen
+  pinSafeArea: { flex: 1, backgroundColor: '#F3F4F6' },
+  pinContainer: { flex: 1, justifyContent: 'center' },
+  pinContent: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 24 },
+  pinTitle: { fontSize: 20, fontWeight: '700', color: '#111827', textAlign: 'center', marginBottom: 8 },
+  pinSubtitle: { fontSize: 20, fontWeight: '700', color: '#111827', textAlign: 'center', marginBottom: 48 },
+  pinDotsWrap: { justifyContent: 'center', alignItems: 'center', marginBottom: 48 },
+  pinKeypadWrap: { backgroundColor: '#F3F4F6', paddingVertical: 20, paddingHorizontal: 24 },
+  // PIN modal header
+  pinHeaderBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderColor: '#E5E7EB', backgroundColor: '#F3F4F6' },
+  pinHeaderTitle: { fontSize: 16, fontWeight: '700', color: '#111827', textAlign: 'center', flex: 1 },
+  pinHeaderClose: { fontSize: 18, color: '#111827', textAlign: 'right' },
+  pinHeaderSide: { width: 24 },
 })

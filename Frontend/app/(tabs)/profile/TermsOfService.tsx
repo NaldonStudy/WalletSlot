@@ -45,7 +45,7 @@ export default function TermsOfService({ visible, onClose }: Props) {
           <View style={{ marginBottom: 24 }}>
             <ThemedText style={{ fontSize: 18, fontWeight: '700', color: '#333', marginBottom: 12 }}>제1조 (목적)</ThemedText>
             <ThemedText style={{ fontSize: 14, lineHeight: 22, color: '#333' }}>
-              이 약관은 Wallet Slot(이하 '회사')이 제공하는 Wallet Slot 애플리케이션 및 관련 제반 서비스(이하 '서비스')의 이용과 관련하여 회사와 회원 간의 권리, 의무 및 책임사항, 기타 필요한 사항을 규정함을 목적으로 합니다.
+              이 약관은 Wallet Slot(이하 &lsquo;회사&rsquo;)이 제공하는 Wallet Slot 애플리케이션 및 관련 제반 서비스(이하 &lsquo;서비스&rsquo;)의 이용과 관련하여 회사와 회원 간의 권리, 의무 및 책임사항, 기타 필요한 사항을 규정함을 목적으로 합니다.
             </ThemedText>
           </View>
 
@@ -54,7 +54,7 @@ export default function TermsOfService({ visible, onClose }: Props) {
             <ThemedText style={{ fontSize: 18, fontWeight: '700', color: '#333', marginBottom: 12 }}>제2조 (용어의 정의)</ThemedText>
             <View style={{ marginLeft: 16 }}>
               <ThemedText style={{ fontSize: 14, lineHeight: 22, color: '#333', marginBottom: 8 }}>
-                1. 서비스: 회원이 보유한 금융 정보를 통합 조회하고, 이를 바탕으로 소비 패턴 분석 및 예산 관리('슬롯') 기능을 제공하는 Wallet Slot 애플리케이션을 의미합니다.
+                1. 서비스: 회원이 보유한 금융 정보를 통합 조회하고, 이를 바탕으로 소비 패턴 분석 및 예산 관리(&lsquo;슬롯&rsquo;) 기능을 제공하는 Wallet Slot 애플리케이션을 의미합니다.
               </ThemedText>
               <ThemedText style={{ fontSize: 14, lineHeight: 22, color: '#333', marginBottom: 8 }}>
                 2. 회원: 본 약관에 따라 회사와 이용계약을 체결하고 회사가 제공하는 서비스를 이용하는 고객을 의미합니다.
@@ -76,7 +76,7 @@ export default function TermsOfService({ visible, onClose }: Props) {
                 1. 회사는 이 약관의 내용을 회원이 쉽게 알 수 있도록 서비스 초기 화면에 게시합니다.
               </ThemedText>
               <ThemedText style={{ fontSize: 14, lineHeight: 22, color: '#333', marginBottom: 8 }}>
-                2. 회사는 '약관의 규제에 관한 법률', '정보통신망 이용촉진 및 정보보호 등에 관한 법률' 등 관련 법을 위배하지 않는 범위에서 이 약관을 개정할 수 있습니다.
+                2. 회사는 &lsquo;약관의 규제에 관한 법률&rsquo;, &lsquo;정보통신망 이용촉진 및 정보보호 등에 관한 법률&rsquo; 등 관련 법을 위배하지 않는 범위에서 이 약관을 개정할 수 있습니다.
               </ThemedText>
               <ThemedText style={{ fontSize: 14, lineHeight: 22, color: '#333' }}>
                 3. 약관을 개정할 경우에는 적용일자 및 개정사유를 명시하여 현행약관과 함께 제1항의 방식에 따라 그 적용일자 7일 이전부터 적용일자 전일까지 공지합니다.
@@ -99,7 +99,7 @@ export default function TermsOfService({ visible, onClose }: Props) {
                   • 수집된 거래내역의 자동 분석 및 소비 패턴 리포트 제공 서비스
                 </ThemedText>
                 <ThemedText style={{ fontSize: 14, lineHeight: 20, color: '#333', marginBottom: 4 }}>
-                  • 예산 설정을 위한 '슬롯' 추천, 생성 및 관리 서비스
+                  • 예산 설정을 위한 &lsquo;슬롯&rsquo; 추천, 생성 및 관리 서비스
                 </ThemedText>
                 <ThemedText style={{ fontSize: 14, lineHeight: 20, color: '#333', marginBottom: 4 }}>
                   • 설정된 예산 초과, 카드 대금 연체 위험 등 알림 서비스

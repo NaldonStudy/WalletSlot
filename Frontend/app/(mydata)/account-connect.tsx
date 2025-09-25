@@ -1,5 +1,6 @@
 import { ThemedText } from '@/components/ThemedText';
 import { BANK_CODES } from '@/src/constants/banks';
+import { useAccountsStore } from '@/src/store/accountsStore';
 import { useBankSelectionStore } from '@/src/store/bankSelectionStore';
 import { useLocalUserStore } from '@/src/store/localUserStore';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -14,7 +15,10 @@ export default function AccountConnectScreen() {
   const { user } = useLocalUserStore();
   const displayName = user?.userName || '사용자';
   const banks = useBankSelectionStore(s => s.selectedBanks);
-  const data = banks || [];
+  const accounts = useAccountsStore(s => s.accounts);
+  const data = (accounts && accounts.length > 0)
+    ? accounts.map(a => ({ bankCode: a.bankCode, bankName: a.bankName }))
+    : (banks || []);
 
   // 0% → 100% 로딩 (약 4초)
   const [progress, setProgress] = useState(0);

@@ -16,9 +16,8 @@ export async function getOrCreateDeviceId(): Promise<string> {
             return existingId;
         }
 
-        // 없으면 생성 -> 로그인을 위해 잠깐 하드코딩
+  // 없으면 생성
         const newId = uuidv4();
-        // const newId = '1234';
         await AsyncStorage.setItem(DEVICE_ID_KEY, newId);
         return newId;
     } catch (error) {
@@ -48,5 +47,21 @@ export async function getDeviceId(): Promise<string | null> {
       await AsyncStorage.removeItem(DEVICE_ID_KEY);
     } catch (error) {
       console.error('deviceId 초기화 실패:', error);
+    }
+  }
+
+  /**
+   * 개발/디버그용으로 deviceId를 직접 설정
+   */
+  export async function setDeviceId(value: string | number): Promise<void> {
+    try {
+      const asString = String(value);
+      await AsyncStorage.setItem(DEVICE_ID_KEY, asString);
+      if (__DEV__) {
+        console.log('[DEVICE_ID] deviceId 강제 설정:', asString);
+      }
+    } catch (error) {
+      console.error('deviceId 설정 실패:', error);
+      throw error;
     }
   }

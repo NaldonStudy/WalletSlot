@@ -40,7 +40,7 @@ export default function WelcomeScreen() {
 
   const handleGetStarted = () => {
     // 은행 선택 화면으로 이동
-    router.replace('/(mydata)/bank-select');
+    router.replace('/(mydata)/bank-select' as any);
   };
 
   return (

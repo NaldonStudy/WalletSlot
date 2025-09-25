@@ -22,3 +22,15 @@ config.resolver = {
 
 
 module.exports = config;
+
+// Filter out frames pointing to InternalBytecode.js to avoid ENOENT spam on Windows
+config.symbolicator = {
+  customizeFrame: (frame) => {
+    try {
+      if (frame?.file?.includes('InternalBytecode.js')) {
+        return { collapse: true };
+      }
+    } catch {}
+    return frame;
+  },
+};

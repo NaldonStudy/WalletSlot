@@ -6,7 +6,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { ThemedText } from '@/components/ThemedText'
 import { ThemedView } from '@/components/ThemedView'
 import { LoadingIndicator } from '@/src/components'
-import { useDeleteLinkedAccount, useLinkedAccounts, useRefreshMyData } from '@/src/hooks'
+import { useDeleteLinkedAccount, useRefreshMyData } from '@/src/hooks'
+import { useLinkedAccounts as useAccountsLinked } from '@/src/hooks/account/useLinkedAccounts'
 import type { UserAccount } from '@/src/types'
 import AccountConnectionDetail from './AccountConnectionDetail'
 
@@ -35,7 +36,7 @@ export default function ConnectedBanks({ visible, onClose }: Props) {
   const [selectedConnection, setSelectedConnection] = useState<BankConnection | null>(null)
   
   // 새로운 API hooks 사용
-  const { data: linkedAccounts, isLoading: loading, error } = useLinkedAccounts()
+  const { accounts: linkedAccounts, isLoading: loading, error } = useAccountsLinked()
   const deleteAccountMutation = useDeleteLinkedAccount()
   const refreshMyDataMutation = useRefreshMyData()
 
@@ -68,11 +69,11 @@ export default function ConnectedBanks({ visible, onClose }: Props) {
         bankColor: getBankColor(account.bankCode),
         accountNumber: account.accountNo,
         accountType: '일반계좌', // 기본값
-        accountName: account.accountAlias || '연동된 계좌',
+        accountName: account.alias || '연동된 계좌',
         connectionDate: '2024-01-01', // 기본값
         expiryDate: '2025-12-31', // 기본값
         status: 'active' as const,
-        balance: account.balance || 0,
+        balance: account.balance ?? 0,
       }))
       setConnections(converted)
     }

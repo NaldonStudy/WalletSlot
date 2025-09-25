@@ -5,6 +5,14 @@ import { ImageSourcePropType } from 'react-native';
 export interface SlotData {
   slotId: string;
   name: string;
+  // 레거시 코드에서 사용하는 이름(slotName)과의 호환성
+  slotName?: string;
+  // 슬롯 아이콘(이미지 소스) 사용처가 있어 옵셔널로 정의
+  slotIcon?: ImageSourcePropType | { uri: string } | string;
+  slotColor?: string;
+  // 레거시/정규화 코드에서 사용되는 추가 필드들
+  budget?: number;
+  remaining?: number;
   accountSlotId: string;
   customName: string;  // 사용자가 설정한 이름 -> null 이면 name 사용용
   initialBudget: number; // 초기 예산

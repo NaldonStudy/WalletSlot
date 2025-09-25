@@ -12,10 +12,6 @@ export default function NotFoundScreen() {
       <Link href="/dashboard" style={styles.link}>
         <ThemedText type="link">Go to home screen!</ThemedText>
       </Link>
-      {/* 공통 컴포넌트 테스트
-      <Link href="/(dev)/test" style={styles.link}>
-        <ThemedText type="link">Go to Test Hub</ThemedText>
-      </Link> */}
     </ThemedView>
   );
 }

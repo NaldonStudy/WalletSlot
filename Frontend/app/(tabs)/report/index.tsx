@@ -8,15 +8,18 @@ import { SpendingReportHeader } from '@/src/components/report/SpendingReportHead
 import { TopSpendingChart } from '@/src/components/report/TopSpendingChart';
 import { Spacing, themes, Typography } from '@/src/constants/theme';
 import { useAccounts, useSpendingReport } from '@/src/hooks';
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import {
-  Alert,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  Text,
-  useColorScheme,
-  View
+    Alert,
+    LayoutChangeEvent,
+    NativeScrollEvent,
+    NativeSyntheticEvent,
+    RefreshControl,
+    ScrollView,
+    StyleSheet,
+    Text,
+    useColorScheme,
+    View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -49,6 +52,19 @@ export default function ReportScreen() {
   } = useSpendingReport(!linked.isLoading);
 
   const [refreshing, setRefreshing] = useState(false);
+  const scrollRef = useRef<ScrollView>(null);
+  const [quickBarHeight, setQuickBarHeight] = useState(0);
+  const [sectionY, setSectionY] = useState<Record<string, number>>({});
+  const [activeKey, setActiveKey] = useState<string>('overview');
+
+  const sections = [
+    { key: 'overview', label: '예산 요약' },
+    { key: 'categories', label: '카테고리 분석' },
+    { key: 'peers', label: '또래 비교' },
+    { key: 'top', label: '상위 지출' },
+    { key: 'suggest', label: '예산 제안' },
+    { key: 'insight', label: '인사이트' },
+  ] as const;
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -59,6 +75,42 @@ export default function ReportScreen() {
     } finally {
       setRefreshing(false);
     }
+  };
+
+  const onQuickBarLayout = (e: LayoutChangeEvent) => {
+    setQuickBarHeight(e.nativeEvent.layout.height);
+  };
+
+  const onSectionLayout = (key: string) => (e: LayoutChangeEvent) => {
+    const y = e.nativeEvent.layout.y;
+    setSectionY(prev => ({ ...prev, [key]: y }));
+  };
+
+  const scrollToSection = (key: string) => {
+    const y = sectionY[key] ?? 0;
+    const target = Math.max(0, y - quickBarHeight - 8);
+    scrollRef.current?.scrollTo({ y: target, animated: true });
+    setActiveKey(key);
+  };
+
+  const handleScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const scrollY = e.nativeEvent.contentOffset.y;
+    // Determine the section that is currently at/above the top (consider sticky quick bar)
+    const offset = quickBarHeight + 12;
+    const candidates = sections
+      .map(s => ({ key: s.key, y: sectionY[s.key] ?? Number.POSITIVE_INFINITY }))
+      .filter(s => Number.isFinite(s.y))
+      .sort((a, b) => a.y - b.y);
+
+    let current = activeKey;
+    for (let i = 0; i < candidates.length; i++) {
+      if (scrollY + offset >= candidates[i].y) {
+        current = candidates[i].key;
+      } else {
+        break;
+      }
+    }
+    if (current !== activeKey) setActiveKey(current);
   };
 
   if (linked.isLoading || (isLoading && !reportData)) {
@@ -95,9 +147,13 @@ export default function ReportScreen() {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background.primary }] }>
       <ScrollView
+        ref={scrollRef}
         style={styles.scrollView}
-        contentContainerStyle={[styles.scrollContent, { paddingTop: Spacing.lg + 4, flexGrow: 1 }]}
+        contentContainerStyle={[styles.scrollContent, { paddingTop: Spacing.sm, flexGrow: 1 }]}
+        stickyHeaderIndices={[0]}
         showsVerticalScrollIndicator={false}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -106,34 +162,61 @@ export default function ReportScreen() {
           />
         }
       >
+        <View onLayout={onQuickBarLayout} style={[styles.quickBar, { backgroundColor: theme.colors.background.primary, borderBottomColor: theme.colors.gray[200] }]}>          
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.quickBarContent}>
+            {sections.map(s => (
+              <Button
+                key={s.key}
+                title={s.label}
+                size="sm"
+                variant={activeKey === s.key ? 'primary' : 'outline'}
+                onPress={() => scrollToSection(s.key)}
+                style={styles.quickButton}
+                textStyle={styles.quickButtonText}
+              />
+            ))}
+          </ScrollView>
+        </View>
         <SpendingReportHeader 
           period={reportData.period}
           theme={theme}
         />
-        <BudgetOverview 
-          budgetComparison={reportData.budgetComparison}
-          theme={theme}
-        />
-        <CategoryAnalysis 
-          categoryAnalysis={reportData.categoryAnalysis}
-          theme={theme}
-        />
-        <PeerComparisonCard 
-          peerComparison={reportData.peerComparison}
-          theme={theme}
-        />
-        <TopSpendingChart 
-          topSpendingCategories={reportData.topSpendingCategories}
-          theme={theme}
-        />
-        <BudgetSuggestionCard 
-          budgetSuggestion={reportData.budgetSuggestion}
-          theme={theme}
-        />
-        <PersonalizedInsightCard 
-          personalizedInsight={reportData.personalizedInsight}
-          theme={theme}
-        />
+        <View onLayout={onSectionLayout('overview')}>
+          <BudgetOverview 
+            budgetComparison={reportData.budgetComparison}
+            theme={theme}
+          />
+        </View>
+        <View onLayout={onSectionLayout('categories')}>
+          <CategoryAnalysis 
+            categoryAnalysis={reportData.categoryAnalysis}
+            theme={theme}
+          />
+        </View>
+        <View onLayout={onSectionLayout('peers')}>
+          <PeerComparisonCard 
+            peerComparison={reportData.peerComparison}
+            theme={theme}
+          />
+        </View>
+        <View onLayout={onSectionLayout('top')}>
+          <TopSpendingChart 
+            topSpendingCategories={reportData.topSpendingCategories}
+            theme={theme}
+          />
+        </View>
+        <View onLayout={onSectionLayout('suggest')}>
+          <BudgetSuggestionCard 
+            budgetSuggestion={reportData.budgetSuggestion}
+            theme={theme}
+          />
+        </View>
+        <View onLayout={onSectionLayout('insight')}>
+          <PersonalizedInsightCard 
+            personalizedInsight={reportData.personalizedInsight}
+            theme={theme}
+          />
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -150,8 +233,21 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: Spacing.base,
-    paddingTop: Spacing.sm,
     paddingBottom: Spacing['4xl'], // 하단 여백 충분히 확보
+  },
+  quickBar: {
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    paddingVertical: 8,
+  },
+  quickBarContent: {
+    paddingHorizontal: Spacing.base,
+  },
+  quickButton: {
+    paddingHorizontal: Spacing.base,
+    marginRight: 8,
+  },
+  quickButtonText: {
+    fontWeight: Typography.fontWeight.medium,
   },
   errorContainer: {
     flex: 1,

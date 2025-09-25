@@ -1,20 +1,21 @@
 import { authApi } from '@/src/api/auth';
-import { apiClient } from '@/src/api/client';
-import { AuthKeypad } from '@/src/components';
+import { AuthKeypad, PinDots } from '@/src/components';
 import { getOrCreateDeviceId } from '@/src/services/deviceIdService';
 import { saveAccessToken, saveRefreshToken } from '@/src/services/tokenService';
+import { unifiedPushService } from '@/src/services/unifiedPushService';
+import { useAuthStore } from '@/src/store/authStore';
 import { useLocalUserStore } from '@/src/store/localUserStore';
 import { router } from 'expo-router';
 import React, { useRef, useState } from 'react';
 import {
-    Alert,
-    KeyboardAvoidingView,
-    Platform,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -116,10 +117,10 @@ export default function LoginScreen() {
       setError('');
       const deviceId = await getOrCreateDeviceId();
       const body = { phone: plainPhone, pin, deviceId };
-      const resp = await apiClient.post<any>('/api/auth/login/full', body);
+      const resp = await authApi.loginFull(body as any);
       if (!resp.success) {
-        const code = (resp as any).error?.code ?? resp.errorCode ?? 'UNKNOWN';
-        const msg = (resp as any).error?.message ?? resp.message ?? '로그인 실패';
+        const code = (resp as any).error?.code ?? (resp as any).errorCode ?? 'UNKNOWN';
+        const msg = (resp as any).error?.message ?? (resp as any).message ?? '로그인 실패';
         if (code === 'DEVICE_ALREADY_REGISTERED' || code === 'HTTP_409' || /이미 등록된 기기/.test(msg)) {
           console.warn('[LOGIN] Device already registered:', { code, msg });
           Alert.alert('기기 등록 불가', `이미 등록된 기기입니다. 등록된 계정에서 먼저 디바이스 연동 해제 후 다시 시도해 주세요.\nCode: ${code || 'UNKNOWN'}`);
@@ -136,13 +137,23 @@ export default function LoginScreen() {
 
       // 로컬 사용자 업데이트 (표시용)
       await setUser({
-        userName: resp.data.name || '사용자',
+        userId: resp.data.user?.userId,
+        userName: resp.data.user?.name || '사용자',
         isPushEnabled: false,
         deviceId,
       });
 
-      // 로그인 직후 알림 동의 화면으로 이동해 isPushEnabled 갱신
-      router.replace('/(auth)/(signup)/notification-consent?from=login');
+      // 글로벌 인증 스토어 동기화 (저장 후 상태 갱신)
+      try {
+        await useAuthStore.getState().checkAuthStatus();
+      } catch {}
+
+    // 로그인 직후 푸시 초기화 및 토큰 등록(401 방지)
+    try { await unifiedPushService.initialize(); } catch {}
+    try { await (await import('@/src/services/firebasePushService')).firebasePushService.ensureServerRegistration(); } catch {}
+
+    // 로그인 직후 알림 동의 화면으로 이동해 isPushEnabled 갱신
+    router.replace('/(auth)/(signup)/notification-consent?from=login' as any);
     } catch (e: any) {
       const msg = e?.message || '로그인에 실패했습니다.';
       const code = e?.code || e?.response?.status || 'UNKNOWN';
@@ -204,16 +215,21 @@ export default function LoginScreen() {
 
         {step === 'pin' && (
           <View style={styles.section}>
-            <Text style={styles.title}>{'PIN 6자리를 입력'}</Text>
-            <View style={styles.pinDots}>
-              {Array.from({ length: 6 }).map((_, idx) => (
-                <View key={idx} style={[styles.dot, idx < pin.length ? styles.dotFilled : styles.dotEmpty]} />
-              ))}
-            </View>
-            {!!error && <Text style={styles.error}>{error}</Text>}
-            <View style={{ marginTop: 8 }}>
-              <AuthKeypad onDigitPress={onDigitFromKeypad} onBackspace={onBackspace} onClear={onClear} shuffleTrigger={Math.random()} fakeTouch animation size="medium" />
-            </View>
+            <Text style={styles.title}>PIN 입력</Text>
+            <Text style={styles.label}>6자리 PIN을 입력해주세요</Text>
+            <PinDots length={6} filled={pin.length} size="md" />
+            <AuthKeypad
+              onDigitPress={onDigitFromKeypad}
+              onBackspace={onBackspace}
+              onClear={onClear}
+              shuffle
+              fakeTouch
+              animation
+              size="medium"
+            />
+            <TouchableOpacity style={{ marginTop: 12, alignItems: 'center' }} onPress={() => router.push('/(auth)/(login)/forgot-password' as any)}>
+              <Text style={{ color: '#6B7280' }}>비밀번호를 잊어버리셨나요?</Text>
+            </TouchableOpacity>
             {isPinComplete && (
               <TouchableOpacity style={styles.primaryBtn} disabled={loading} onPress={submitPin}>
                 <Text style={styles.primaryText}>{loading ? '확인 중...' : '완료'}</Text>

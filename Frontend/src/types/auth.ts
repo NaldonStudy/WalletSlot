@@ -152,8 +152,8 @@ export interface LoginResponse {
  */
 export interface ResetPinRequest {
   phone: string;
+  resetCode: string;
   newPin: string;
-  deviceId: string;
 }
 
 /**
@@ -161,8 +161,25 @@ export interface ResetPinRequest {
  */
 export interface ResetPinResponse {
   success: boolean;
-  data: {
+  data: Record<string, never> | {};
+  error?: {
+    code: string;
     message: string;
+  };
+}
+
+/**
+ * PIN 재설정 요청 (SMS 발송)
+ * POST /api/auth/password/reset-request
+ */
+export interface RequestPinResetRequest {
+  phone: string;
+}
+
+export interface RequestPinResetResponse {
+  success: boolean;
+  data: {
+    sent: boolean;
   };
   error?: {
     code: string;

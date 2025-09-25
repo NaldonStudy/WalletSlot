@@ -44,7 +44,10 @@ export const useNotificationLogic = () => {
   const markAllMutation = useMarkAllNotificationsAsRead();
 
   // 서버/캐시 데이터 (없으면 빈 배열)
-  const notifications: NotificationItem[] = notificationsResponse?.data || [];
+  // notificationsResponse.data는 배열이거나 { content, page } 형태일 수 있으므로 안전하게 처리
+  const notifications: NotificationItem[] = Array.isArray(notificationsResponse?.data)
+    ? notificationsResponse!.data
+    : (notificationsResponse?.data?.content ?? []);
   const unreadCount = notifications.filter(n => !n.isRead).length;
 
   // 로컬 UI 상태

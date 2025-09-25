@@ -3,12 +3,12 @@ import { useSignupStore } from '@/src/store/signupStore';
 import { router } from 'expo-router';
 import React, { useState } from 'react';
 import {
-  KeyboardAvoidingView,
-  Platform,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    KeyboardAvoidingView,
+    Platform,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -23,29 +23,15 @@ export default function PasswordSetupScreen() {
   // 스토어에서 PIN 저장 함수 가져오기
   const { setPin: savePin } = useSignupStore();
   
-  // 키패드 랜덤 배치를 위한 트리거
-  const [shuffleTrigger, setShuffleTrigger] = useState<number>(Math.random());
-
-  // 6자리 PIN 입력 완료 여부
   const isPinComplete = pin.length === 6;
-
-  // PIN 입력 처리
-  const handlePinInput = (digit: string) => {
+  const handleDigit = (digit: string) => {
     if (pin.length < 6) {
       setPin(prev => prev + digit);
-      setError(''); // 입력 시 에러 메시지 초기화
+      setError('');
     }
   };
-
-  // 백스페이스 처리
-  const handleBackspace = () => {
-    setPin(prev => prev.slice(0, -1));
-  };
-
-  // 전체 지우기
-  const handleClear = () => {
-    setPin('');
-  };
+  const handleDelete = () => setPin(prev => prev.slice(0, -1));
+  const handleClear = () => setPin('');
 
 
 
@@ -59,12 +45,14 @@ export default function PasswordSetupScreen() {
       setIsConfirming(true);
       setPin(''); // PIN 초기화
       setError('');
-      setShuffleTrigger(Math.random()); // 키패드 재배치
+  // 다음 입력에서 키패드 셔플은 AuthPinEntry의 기본 셔플 옵션으로 처리됩니다
     } else {
       // 두 번째 PIN 입력 완료 - 비교
       if (firstPin === pin) {
         // PIN 일치 - 스토어에 임시 저장 후 알림 동의 화면으로 이동
-        console.log('PIN 설정 완료:', pin);
+        if (__DEV__) {
+          console.log('PIN 설정 완료');
+        }
         savePin(pin); // 스토어에 PIN 저장
         
         // 알림 동의 화면으로 이동
@@ -76,7 +64,7 @@ export default function PasswordSetupScreen() {
         setIsConfirming(false); // 첫 번째 입력 단계로 돌아감
         setFirstPin(''); // 첫 번째 PIN도 초기화
         setIsLoading(false); // 로딩 상태 해제
-        setShuffleTrigger(Math.random()); // 키패드 재배치
+  // 셔플은 공용 컴포넌트 설정으로 처리
       }
     }
   };
@@ -114,30 +102,22 @@ export default function PasswordSetupScreen() {
           ) : null}
         </View>
 
-        {/* 새로운 통합 키패드 */}
         <View style={styles.keypadContainer}>
           <AuthKeypad
-            onDigitPress={handlePinInput}
-            onBackspace={handleBackspace}
+            onDigitPress={handleDigit}
+            onBackspace={handleDelete}
             onClear={handleClear}
-            shuffleTrigger={shuffleTrigger}
-            fakeTouch={true}
-            animation={true}
+            shuffle
+            fakeTouch
+            animation
             size="medium"
           />
         </View>
 
-        {/* PIN 완료 시 완료 버튼 표시 */}
         {isPinComplete && (
           <View style={styles.completeButtonContainer}>
-            <TouchableOpacity
-              style={styles.completeButton}
-              onPress={handlePinComplete}
-              disabled={isLoading}
-            >
-              <Text style={styles.completeButtonText}>
-                {isLoading ? '설정 중...' : '완료'}
-              </Text>
+            <TouchableOpacity style={styles.completeButton} onPress={handlePinComplete} disabled={isLoading}>
+              <Text style={styles.completeButtonText}>{isLoading ? '설정 중...' : '완료'}</Text>
             </TouchableOpacity>
           </View>
         )}

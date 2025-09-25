@@ -12,6 +12,47 @@ class ApiClient {
     resolve: (value: string) => void;
     reject: (error: any) => void;
   }> = [];
+  private generateRequestId(): string {
+    try {
+      const rnd = Math.random().toString(36).slice(2);
+      return `req_${Date.now().toString(36)}_${rnd}`;
+    } catch {
+      return `req_${Date.now()}`;
+    }
+  }
+  private sanitizePayload(obj: any) {
+    try {
+      if (!obj || typeof obj !== 'object') return obj;
+      const clone: any = Array.isArray(obj) ? [...obj] : { ...obj };
+      const mask = (v: any, showStart: number = 0) => {
+        if (typeof v !== 'string') return '****';
+        if (v.length <= showStart) return '****';
+        return v.slice(0, showStart) + '****';
+      };
+      const keysToMask = [
+        'pin',
+        'newPin',
+        'oldPin',
+        'password',
+        'pushToken',
+        'accessToken',
+        'refreshToken',
+        'verificationCode',
+        'smsCode',
+      ];
+      for (const k of Object.keys(clone)) {
+        const v = (clone as any)[k];
+        if (keysToMask.includes(k)) {
+          (clone as any)[k] = mask(v, k === 'pushToken' ? 20 : 0);
+        } else if (v && typeof v === 'object') {
+          (clone as any)[k] = this.sanitizePayload(v);
+        }
+      }
+      return clone;
+    } catch {
+      return obj;
+    }
+  }
 
   constructor() {
     const baseURL = USE_MSW ? '' : API_CONFIG.BASE_URL;
@@ -31,16 +72,13 @@ class ApiClient {
       async (config) => {
         // headers 안전 대입
         const headers = { ...config.headers } as any;
+        // Request ID 부여 (백엔드 트레이싱용)
+        const requestId = this.generateRequestId();
+        headers['X-Request-Id'] = requestId;
         
         // X-Device-Id 헤더 추가 (모든 요청에 필수)
         try {
-          // 개발 모드에서는 하드코딩된 디바이스 ID 사용
-          if (__DEV__) {
-            headers['X-Device-Id'] = '1234';
-            console.log('[API] 개발 모드: X-Device-Id = 1234');
-          } else {
-            headers['X-Device-Id'] = await getOrCreateDeviceId();
-          }
+          headers['X-Device-Id'] = await getOrCreateDeviceId();
         } catch (error) {
           console.error('[API] DeviceId 조회 실패:', error);
           // deviceId 조회 실패 시에도 요청은 계속 진행 (fallback 처리)
@@ -48,21 +86,37 @@ class ApiClient {
 
         // Authorization 헤더 추가 (토큰이 있을 때만)
         const token = await this.getAccessToken();
-        if (token) {
+        const skipAuth = (config as any).skipAuth === true;
+        if (!skipAuth && token) {
           headers.Authorization = `Bearer ${token}`;
         }
+        // Dev bypass 중 푸시 엔드포인트 등록은 항상 인증 필요
+        try {
+          const { DEV_AUTH_BYPASS } = require('@/src/config/devAuthBypass');
+          const targetUrl = `${config.baseURL || ''}${config.url || ''}`;
+          if (DEV_AUTH_BYPASS?.enabled && /\/api\/push\/endpoints$/.test(config.url || '') && token) {
+            headers.Authorization = `Bearer ${token}`;
+          }
+        } catch {}
 
         // RefreshToken은 재발급 전용이며 일반 요청에 포함하지 않음 (보안/사양 일치)
 
-        // headers 할당
-        config.headers = headers;
+  // headers 및 메타 할당
+  (config as any).requestId = requestId;
+  config.headers = headers;
 
-        // 디버그 로그 (NPE 방지)
-        try {
-          const method = (config.method || 'get').toUpperCase();
-          const fullUrl = `${config.baseURL || ''}${config.url}`;
-          console.log(`[API] Request -> ${method} ${fullUrl}`, config.params || config.data || {});
-        } catch (e) {}
+        // 디버그 로그 (dev only, 민감정보 마스킹)
+        if (__DEV__) {
+          try {
+            const method = (config.method || 'get').toUpperCase();
+            const fullUrl = `${config.baseURL || ''}${config.url}`;
+            const payload = this.sanitizePayload(config.params || config.data || {});
+            const headerLog: any = { ...(headers || {}) };
+            if (headerLog.Authorization) headerLog.Authorization = 'Bearer ****';
+            console.log(`[API] Request -> ${method} ${fullUrl}`, payload);
+            console.log('[API] Headers:', headerLog);
+          } catch (e) {}
+        }
         return config;
       },
       (error) => Promise.reject(error)
@@ -70,14 +124,24 @@ class ApiClient {
 
     this.client.interceptors.response.use(
       (response: AxiosResponse) => {
-        console.log('[API] Response interceptor - response:', response);
-        console.log('[API] Response interceptor - response.data:', response.data);
+        if (__DEV__) {
+          try {
+            console.log('[API] Response:', {
+              url: `${response.config.baseURL || ''}${response.config.url}`,
+              status: response.status,
+            });
+          } catch {}
+        }
         return response;
       },
       async (error: AxiosError) => {
         const originalRequest = error.config as any;
 
         if (error.response?.status === 401 && !originalRequest._retry) {
+          // 특정 요청은 401이어도 리프레시를 시도하지 않음
+          if (originalRequest?.noRefresh) {
+            return Promise.reject(this.handleError(error));
+          }
           // 로그인 전에는 refreshToken이 없으므로 401 재발급 비활성
           if (!(await this.canRefresh())) {
             return Promise.reject(this.handleError(error));
@@ -109,6 +173,11 @@ class ApiClient {
           }
         }
 
+        // 특정 요청은 재시도를 비활성화할 수 있음 (e.g., 회원가입 티켓 단발성)
+        if (originalRequest?.disableRetry) {
+          return Promise.reject(this.handleError(error));
+        }
+
         // ===== Generic retry (network/5xx/429) with exponential backoff =====
         try {
           const status = error.response?.status;
@@ -125,7 +194,7 @@ class ApiClient {
               const base = 300 * Math.pow(2, originalRequest._retryCount - 1); // 300ms, 600ms
               const jitter = Math.floor(Math.random() * 200); // +0~200ms
               const delayMs = base + jitter;
-              console.log(`[API] Retry #${originalRequest._retryCount} in ${delayMs}ms (status: ${status ?? 'network'})`);
+              if (__DEV__) console.log(`[API] Retry #${originalRequest._retryCount} in ${delayMs}ms (status: ${status ?? 'network'})`);
               await new Promise((r) => setTimeout(r, delayMs));
               return this.client(originalRequest);
             }
@@ -176,16 +245,18 @@ class ApiClient {
   private handleError(error: AxiosError): ApiError {
     if (error.response) {
       const data = error.response.data as any;
+      const reqId = (error.config as any)?.requestId || (error.config as any)?.headers?.['X-Request-Id'];
       return {
         code: data?.errorCode || `HTTP_${error.response.status}`,
         message: data?.message || error.message,
-        details: data,
+        details: { ...(data || {}), requestId: reqId },
       };
     } else if (error.request) {
+      const reqId = (error.config as any)?.requestId || (error.config as any)?.headers?.['X-Request-Id'];
       return {
         code: 'NETWORK_ERROR',
         message: '네트워크 연결을 확인해주세요.',
-        details: error.request,
+        details: { request: error.request, requestId: reqId },
       };
     } else {
       return {
@@ -258,21 +329,23 @@ class ApiClient {
 
     try {
       const debugHeaders = { ...finalHeaders } as any;
-      if (debugHeaders.Authorization) {
-        debugHeaders.Authorization = 'Bearer ****';
+      if (debugHeaders.Authorization) debugHeaders.Authorization = 'Bearer ****';
+      if (__DEV__) {
+        console.log(`[API][fetch] ${method} ${url}`, this.sanitizePayload(data || {}));
+        console.log('[API][fetch] request headers:', debugHeaders);
       }
-      console.log(`[API][fetch] ${method} ${url}`, data || {});
-      console.log('[API][fetch] request headers:', debugHeaders);
       const res = await fetch(url, opts as RequestInit);
       
-      // 응답 상태 로그
-      console.log(`[API][fetch] 응답 상태: ${res.status} ${res.statusText}`);
-      console.log(`[API][fetch] 응답 헤더:`, Object.fromEntries(res.headers.entries()));
+      // 응답 상태 로그 (dev only)
+      if (__DEV__) {
+        console.log(`[API][fetch] 응답 상태: ${res.status} ${res.statusText}`);
+        console.log(`[API][fetch] 응답 헤더:`, Object.fromEntries(res.headers.entries()));
+      }
       
       const text = await res.text();
-      console.log(`[API][fetch] 원본 응답 텍스트:`, text);
-      console.log(`[API][fetch] 응답 텍스트 길이:`, text.length);
-      console.log(`[API][fetch] 응답 텍스트 타입:`, typeof text);
+      if (__DEV__) {
+        console.log(`[API][fetch] 원본 응답 텍스트 길이:`, text?.length ?? 0);
+      }
       
       if (!text || text.trim() === '') {
         console.warn(`[API][fetch] ${method} 메서드에서 빈 문자열 응답 감지.`);
@@ -281,12 +354,13 @@ class ApiClient {
       
       try {
         const json = JSON.parse(text);
-        console.log(`[API][fetch] JSON 파싱 성공:`, json);
+        if (__DEV__) console.log(`[API][fetch] JSON 파싱 성공`);
         return json;
       } catch (e) {
-        console.warn(`[API][fetch] ${method} 응답 JSON 파싱 실패, 원본 텍스트 반환`);
-        console.warn(`[API][fetch] 파싱 실패 원인:`, e);
-        console.warn(`[API][fetch] 원본 텍스트 (처음 500자):`, text.substring(0, 500));
+        if (__DEV__) {
+          console.warn(`[API][fetch] ${method} 응답 JSON 파싱 실패, 원본 텍스트 반환`);
+          console.warn(`[API][fetch] 파싱 실패 원인:`, e);
+        }
         return { success: true, data: text };
       }
     } catch (e) {
@@ -310,6 +384,15 @@ class ApiClient {
       return this.fetchViaNative('POST', url, data, config?.headers);
     }
     const response = await this.client.post(url, data, config);
+    return this.parseOrReturn('POST', response);
+  }
+
+  async postWithConfig<T>(url: string, data?: any, config?: Record<string, any>): Promise<BaseResponse<T>> {
+    if (USE_MSW) {
+      const includeAuth = config?.skipAuth ? false : true;
+      return this.fetchViaNative('POST', url, data, config?.headers, includeAuth);
+    }
+    const response = await this.client.post(url, data, config as any);
     return this.parseOrReturn('POST', response);
   }
 
