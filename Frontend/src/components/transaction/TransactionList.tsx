@@ -6,6 +6,7 @@ import TransactionItem from "./transactionItem";
 
 interface Props {
   transactions: SlotTransaction[];
+  slotId?: string; // 슬롯 ID 추가
 }
 
 // 날짜 포맷팅 함수
@@ -43,7 +44,7 @@ const groupTransactionsByDate = (transactions: SlotTransaction[]) => {
     }));
 };
 
-const TransactionList = ({ transactions }: Props) => {
+const TransactionList = ({ transactions, slotId }: Props) => {
   const colorScheme = useColorScheme() ?? 'light';
   const theme = themes[colorScheme];
   
@@ -60,6 +61,7 @@ const TransactionList = ({ transactions }: Props) => {
                   transaction={transaction} 
                   showDate={index === 0}
                   dateText={formatDate(transaction.transactionAt)}
+                  slotId={slotId}
                 />
               </View>
             </View>
