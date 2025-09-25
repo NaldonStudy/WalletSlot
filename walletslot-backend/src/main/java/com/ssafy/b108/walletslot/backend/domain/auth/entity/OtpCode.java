@@ -38,9 +38,11 @@ public class OtpCode {
     private LocalDateTime expiresAt;
 
     @Column(nullable=false)
+    @Builder.Default
     private Integer attempts = 0;
 
     @Column(nullable=false)
+    @Builder.Default
     private Boolean sent = false;        // 발송 성공 시 true
 
     public enum Status { PENDING, SENT, USED, EXPIRED }
