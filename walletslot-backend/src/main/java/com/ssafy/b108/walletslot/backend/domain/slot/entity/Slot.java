@@ -28,13 +28,6 @@ public class Slot {
     @Builder.Default
     private boolean isSaving = false;
 
-    @Lob
-    @Column(columnDefinition = "TEXT", nullable = false)
-    private String icon;
-
-    @Column(nullable = false, length = 64)
-    private String color;
-
     @Column(nullable = false)
     private Integer rank;
 
