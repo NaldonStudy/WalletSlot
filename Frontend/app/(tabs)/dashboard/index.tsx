@@ -8,6 +8,7 @@ import { UNCATEGORIZED_SLOT_ID } from '@/src/constants/slots';
 import { Spacing, themes, Typography } from '@/src/constants/theme';
 import { useAccountBalance, useAccounts, useSlots } from '@/src/hooks';
 import type { UserAccount, SlotData } from '@/src/types';
+import { profileApi } from '@/src/api/profile';
 import { faker } from '@faker-js/faker';
 import React, { memo, useCallback, useMemo, useRef, useState } from 'react';
 import { Animated, StyleSheet, Text, useColorScheme, View, ScrollView } from 'react-native';
@@ -75,6 +76,65 @@ export default function DashboardScreen() {
   
   // 현재 계좌의 슬롯 데이터 조회
   const { slots: allSlots, isLoading: isSlotsLoading } = useSlots(currentAccount?.accountId);
+
+  // 기준일 조회 및 날짜 범위 계산
+  const [dateRange, setDateRange] = useState<string>('2025.09.01 ~ 2025.09.30');
+  
+  React.useEffect(() => {
+    const fetchBaseDayAndCalculateRange = async () => {
+      try {
+        console.log('[Dashboard] 기준일 API 호출 시작');
+        const response = await profileApi.getBaseDay();
+        console.log('[Dashboard] 기준일 API 응답:', response);
+        
+        if (!response || typeof response.baseDay !== 'number') {
+          console.warn('[Dashboard] 기준일 데이터가 올바르지 않음:', response);
+          return; // 기본값 유지
+        }
+        
+        const baseDay = response.baseDay;
+        console.log('[Dashboard] 기준일:', baseDay);
+        
+        const now = new Date();
+        const currentDay = now.getDate();
+        const currentYear = now.getFullYear();
+        const currentMonth = now.getMonth(); // 0-based
+        
+        console.log('[Dashboard] 현재 날짜:', { currentDay, currentYear, currentMonth });
+        
+        let startDate: Date;
+        let endDate: Date;
+        
+        if (currentDay < baseDay) {
+          // 현재 날짜가 기준일보다 이전이면 전달 기준일부터 이번 달 기준일 전까지
+          startDate = new Date(currentYear, currentMonth - 1, baseDay);
+          endDate = new Date(currentYear, currentMonth, baseDay - 1);
+        } else {
+          // 현재 날짜가 기준일 이후면 이번 달 기준일부터 다음 달 기준일 전까지
+          startDate = new Date(currentYear, currentMonth, baseDay);
+          endDate = new Date(currentYear, currentMonth + 1, baseDay - 1);
+        }
+        
+        console.log('[Dashboard] 계산된 날짜 범위:', { startDate, endDate });
+        
+        const formatDate = (date: Date) => {
+          const year = date.getFullYear();
+          const month = (date.getMonth() + 1).toString().padStart(2, '0');
+          const day = date.getDate().toString().padStart(2, '0');
+          return `${year}.${month}.${day}`;
+        };
+        
+        const formattedRange = `${formatDate(startDate)} ~ ${formatDate(endDate)}`;
+        console.log('[Dashboard] 포맷된 날짜 범위:', formattedRange);
+        setDateRange(formattedRange);
+      } catch (error) {
+        console.error('[Dashboard] 기준일 조회 실패:', error);
+        // 에러 시 기본값 유지
+      }
+    };
+    
+    fetchBaseDayAndCalculateRange();
+  }, []);
 
   // 슬롯 데이터를 일반 슬롯과 미분류 슬롯으로 분리
   const currentAccountSlots = allSlots.filter(slot => slot.slotId !== UNCATEGORIZED_SLOT_ID);
@@ -235,7 +295,7 @@ export default function DashboardScreen() {
             backgroundColor: theme.colors.background.tertiary,
             borderColor: theme.colors.border.light,
           }]}>
-            <Text style={[styles.dateText, { color: theme.colors.text.primary }]}>2025.09.01 ~ 2025.09.30</Text>
+            <Text style={[styles.dateText, { color: theme.colors.text.primary }]}>{dateRange}</Text>
             {isSlotsLoading ? (
               <View style={styles.slotLoadingContainer}>
                 <Text style={[styles.slotLoadingText, { color: theme.colors.text.secondary }]}>

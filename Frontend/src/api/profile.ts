@@ -1,4 +1,4 @@
-import type { MePatchRequestDto, UpdateProfileRequest, UserProfile } from '@/src/types';
+import type { MePatchRequestDto, UpdateProfileRequest, UserProfile, BaseResponse } from '@/src/types';
 import { apiClient } from './client';
 import { fetchJsonFallback, isAmbiguousAxiosBody } from './responseNormalizer';
 
@@ -50,6 +50,21 @@ export const profileApi = {
     
     // 직접 UserProfile이 오는 경우 (일부 환경에서)
     return (response as any).data as UserProfile;
+  },
+
+  /**
+   * 기준일 조회
+   * GET /api/users/me/base-day
+   */
+  getBaseDay: async (): Promise<{ baseDay: number }> => {
+    console.log('[profileApi.getBaseDay] API 호출 시작');
+    const response = await apiClient.get<BaseResponse<{ baseDay: number }>>('/api/users/me/base-day');
+    console.log('[profileApi.getBaseDay] 원본 응답:', response);
+    
+    // 중첩된 구조 처리: response.data.data.baseDay
+    const result = (response as any).data?.data || (response as any).data || response;
+    console.log('[profileApi.getBaseDay] 처리된 결과:', result);
+    return result;
   },
 
   /**
