@@ -1,4 +1,5 @@
 import { ThemedText } from '@/components/ThemedText';
+import { apiClient } from '@/src/api/client';
 import { BANK_CODES } from '@/src/constants/banks';
 import { useAccountsStore } from '@/src/store/accountsStore';
 import { useBankSelectionStore } from '@/src/store/bankSelectionStore';
@@ -14,13 +15,76 @@ export default function AccountConnectScreen() {
   const router = useRouter();
   const { user } = useLocalUserStore();
   const displayName = user?.userName || '사용자';
-  const banks = useBankSelectionStore(s => s.selectedBanks);
-  const accounts = useAccountsStore(s => s.accounts);
+  const selectedBanks = useBankSelectionStore(s => s.selectedBanks);
+  const { accounts, setAccounts } = useAccountsStore();
+  
+  // 선택된 은행들의 bankCode Set 생성
+  const selectedBankCodes = new Set(selectedBanks.map(bank => bank.bankCode));
+  
+  // API 호출 상태 관리
+  const [isApiLoading, setIsApiLoading] = useState(false);
+  const [apiError, setApiError] = useState<string | null>(null);
+  
+  // API로 계좌 정보 조회
+  const fetchAccounts = async () => {
+    if (isApiLoading) return;
+    
+    setIsApiLoading(true);
+    setApiError(null);
+    
+    try {
+      console.log('[Account Connect] API 호출 시작: /api/accounts');
+      const response = await apiClient.get('/api/accounts');
+      console.log('[Account Connect] API 응답:', response);
+      
+      if (response.success && response.data?.accounts) {
+        setAccounts(response.data.accounts);
+        console.log('[Account Connect] 계좌 정보 저장 완료:', response.data.accounts);
+      } else {
+        throw new Error(response.message || '계좌 정보를 불러올 수 없습니다.');
+      }
+    } catch (error: any) {
+      console.error('[Account Connect] API 호출 실패:', error);
+      setApiError(error.message || '계좌 정보를 불러오는데 실패했습니다.');
+    } finally {
+      setIsApiLoading(false);
+    }
+  };
+  
+  // 컴포넌트 마운트 시 API 호출
+  useEffect(() => {
+    fetchAccounts();
+  }, []);
+  
+  // API로 조회한 계좌 정보 중에서 선택된 은행들만 필터링
   const data = (accounts && accounts.length > 0)
-    ? accounts.map(a => ({ bankCode: a.bankCode, bankName: a.bankName }))
-    : (banks || []);
+    ? accounts
+        .filter(account => {
+          // UUID bankCode를 숫자 bankCode로 매핑하여 비교
+          const mappedBankCode = Object.keys(BANK_CODES).find(key => 
+            BANK_CODES[key as keyof typeof BANK_CODES].bankCode === account.bankCode
+          );
+          return mappedBankCode && selectedBankCodes.has(mappedBankCode);
+        })
+        .map(a => ({ 
+          bankCode: a.bankCode, 
+          bankName: a.bankName,
+          accountNo: a.accountNo,
+          accountId: a.accountId,
+          alias: a.alias,
+          accountBalance: a.accountBalance
+        }))
+    : (selectedBanks || []);
 
-  // 0% → 100% 로딩 (약 4초)
+  // 디버깅을 위한 로깅
+  useEffect(() => {
+    console.log('[Account Connect] 선택된 은행들:', selectedBanks);
+    console.log('[Account Connect] 선택된 bankCode들:', Array.from(selectedBankCodes));
+    console.log('[Account Connect] API 계좌 정보:', accounts);
+    console.log('[Account Connect] 필터링된 데이터:', data);
+  }, [selectedBanks, accounts, data]);
+
+  // 0% → 100% 로딩 (API 호출 완료까지)
   const [progress, setProgress] = useState(0);
   useEffect(() => {
     if (progress >= 100) return;
@@ -30,7 +94,14 @@ export default function AccountConnectScreen() {
     return () => clearInterval(id);
   }, [progress]);
 
-  const isLoading = progress < 100;
+  // API 호출이 완료되면 로딩 완료
+  useEffect(() => {
+    if (!isApiLoading && accounts && accounts.length > 0) {
+      setProgress(100);
+    }
+  }, [isApiLoading, accounts]);
+
+  const isLoading = progress < 100 || isApiLoading;
 
   // 하단 큰 스피너 애니메이션 (조금 느림)
   const spinAnimSlow = useRef(new Animated.Value(0)).current;
@@ -81,17 +152,33 @@ export default function AccountConnectScreen() {
 
   const filteredData = phase === 'multi' ? data : data.filter((_, idx) => selectedIds.has(`${idx}`));
 
-  const renderItem = ({ item, index }: { item: { bankCode: string; bankName: string }; index: number }) => {
+  const renderItem = ({ item, index }: { item: { bankCode: string; bankName: string; accountNo?: string; accountId?: string; alias?: string; accountBalance?: string }; index: number }) => {
     const id = `${index}`;
     const bank = BANK_CODES[item.bankCode as keyof typeof BANK_CODES];
     const color = bank?.color || '#E5E7EB';
     const selected = phase === 'multi' ? selectedIds.has(id) : repId === id;
+    
+    // 계좌번호 마스킹 (뒤 4자리만 표시)
+    const formatAccountNumber = (accountNo: string) => {
+      if (!accountNo) return '302-*****';
+      const cleaned = accountNo.replace(/\D/g, '');
+      if (cleaned.length < 4) return '302-*****';
+      return `302-****-${cleaned.slice(-4)}`;
+    };
+    
     return (
       <TouchableOpacity onPress={() => toggleSelect(id)} activeOpacity={0.9}>
         <View style={[styles.card, { borderColor: color, shadowColor: color }]}> 
           <View>
             <ThemedText style={styles.bankName}>{item.bankName}</ThemedText>
-            <ThemedText style={styles.accountId}>302-*****</ThemedText>
+            <ThemedText style={styles.accountId}>
+              {item.accountNo ? formatAccountNumber(item.accountNo) : '302-*****'}
+            </ThemedText>
+            {item.accountBalance && (
+              <ThemedText style={styles.accountBalance}>
+                {parseInt(item.accountBalance).toLocaleString()}원
+              </ThemedText>
+            )}
           </View>
           {isLoading ? (
             <Image
@@ -136,6 +223,14 @@ export default function AccountConnectScreen() {
             <Animated.Image source={require('@/src/assets/images/loading/spinner.png')} style={[styles.spinner, { transform: [{ rotate: rotateSlow }] }]} resizeMode="contain" />
           </View>
         </>
+      ) : apiError ? (
+        <View style={styles.errorContainer}>
+          <ThemedText style={styles.errorTitle}>계좌 정보를 불러올 수 없습니다</ThemedText>
+          <ThemedText style={styles.errorMessage}>{apiError}</ThemedText>
+          <TouchableOpacity style={styles.retryButton} onPress={fetchAccounts}>
+            <ThemedText style={styles.retryButtonText}>다시 시도</ThemedText>
+          </TouchableOpacity>
+        </View>
       ) : (
         <>
           {/* 상단 뒤로가기 */}
@@ -176,8 +271,18 @@ export default function AccountConnectScreen() {
               >
                 <ThemedText style={styles.repBankName}>{filteredData[Number(repId)]?.bankName}</ThemedText>
                 <View style={styles.repRow}>
-                  <ThemedText style={styles.repAccount}>302-*****</ThemedText>
-                  <ThemedText style={styles.repAmount}>570,000 원</ThemedText>
+                  <ThemedText style={styles.repAccount}>
+                    {filteredData[Number(repId)]?.accountNo 
+                      ? `302-****-${filteredData[Number(repId)]?.accountNo.replace(/\D/g, '').slice(-4)}`
+                      : '302-*****'
+                    }
+                  </ThemedText>
+                  <ThemedText style={styles.repAmount}>
+                    {filteredData[Number(repId)]?.accountBalance 
+                      ? `${parseInt(filteredData[Number(repId)]?.accountBalance || '0').toLocaleString()}원`
+                      : '0원'
+                    }
+                  </ThemedText>
                 </View>
               </LinearGradient>
             </View>
@@ -260,4 +365,43 @@ const styles = StyleSheet.create({
   repRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 8 },
   repAccount: { fontSize: 14, color: '#374151' },
   repAmount: { fontSize: 18, fontWeight: '700', color: '#111' },
+  // 에러 처리 스타일
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 40,
+  },
+  errorTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#111',
+    textAlign: 'center',
+    marginBottom: 16,
+  },
+  errorMessage: {
+    fontSize: 16,
+    color: '#6B7280',
+    textAlign: 'center',
+    lineHeight: 24,
+    marginBottom: 32,
+  },
+  retryButton: {
+    backgroundColor: '#2383BD',
+    paddingHorizontal: 32,
+    paddingVertical: 16,
+    borderRadius: 10,
+  },
+  retryButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  // 계좌 잔액 스타일
+  accountBalance: {
+    fontSize: 14,
+    color: '#10B981',
+    marginTop: 4,
+    fontWeight: '600',
+  },
 });

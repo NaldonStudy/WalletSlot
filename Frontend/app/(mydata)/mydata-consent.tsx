@@ -46,11 +46,22 @@ export default function MyDataConsentScreen() {
     try {
       setCreatingConsent(true);
       if (!hasActiveConsent) {
-        await mydataApi.createConsent({ consentFormUuid: 'mydata-v1' });
+        console.log('[MYDATA] 동의 생성 시도...');
+        // API 문서에 따라 expiredAt 필드 추가
+        const consentData = {
+          consentFormUuid: 'mydata-v1',
+          expiredAt: '2030-12-31T23:59:59' // 5년 후 만료
+        };
+        console.log('[MYDATA] 요청 데이터:', consentData);
+        await mydataApi.createConsent(consentData);
+        console.log('[MYDATA] 동의 생성 성공');
+      } else {
+        console.log('[MYDATA] 이미 활성 동의가 있음, 건너뜀');
       }
       setShowCertModal(true);
     } catch (e) {
-      console.warn('[MYDATA] 동의 생성 실패', e);
+      console.error('[MYDATA] 동의 생성 실패:', e);
+      // 서버 오류여도 인증서 선택 모달은 표시
       setShowCertModal(true);
     } finally {
       setCreatingConsent(false);

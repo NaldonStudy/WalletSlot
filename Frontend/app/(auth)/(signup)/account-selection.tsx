@@ -1,4 +1,5 @@
 import { authApi } from '@/src/api/auth';
+import { BANK_CODES } from '@/src/constants/banks';
 import { useSignupStore } from '@/src/store/signupStore';
 import type { AccountVerificationRequestRequest } from '@/src/types';
 import { router } from 'expo-router';
@@ -19,29 +20,15 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-// 금융기관 데이터
-const banks = [
-  { id: 'kookmin', name: '국민', image: require('@/src/assets/images/banks/국민은행.png'), format: '6-7' },
-  { id: 'nonghyup', name: '농협', image: require('@/src/assets/images/banks/농협은행.png'), format: '3-4-4-2' },
-  { id: 'shinhan', name: '신한', image: require('@/src/assets/images/banks/제주_신한은행.png'), format: '6-7' },
-  { id: 'woori', name: '우리', image: require('@/src/assets/images/banks/우리은행.png'), format: '6-7' },
-  { id: 'hana', name: '하나', image: require('@/src/assets/images/banks/하나은행.png'), format: '6-7' },
-  { id: 'ibk', name: '기업', image: require('@/src/assets/images/banks/기업은행.png'), format: '3-4-4-2' },
-  { id: 'industrial', name: '산업', image: require('@/src/assets/images/banks/산업은행.png'), format: '3-4-4-2' },
-  { id: 'post', name: '우체국', image: require('@/src/assets/images/banks/싸피은행.png'), format: '3-4-4-2' },
-  { id: 'citibank', name: '한국씨티', image: require('@/src/assets/images/banks/씨티은행.png'), format: '6-7' },
-  { id: 'saemaul', name: '새마을', image: require('@/src/assets/images/banks/새마을은행.png'), format: '3-4-4-2' },
-  { id: 'sc', name: 'SC제일', image: require('@/src/assets/images/banks/sc제일은행.png'), format: '6-7' },
-  { id: 'daegu', name: '대구', image: require('@/src/assets/images/banks/대구은행.png'), format: '6-7' },
-  { id: 'busan', name: '부산', image: require('@/src/assets/images/banks/경남은행.png'), format: '6-7' },
-  { id: 'bnk', name: 'BNK 경남', image: require('@/src/assets/images/banks/경남은행.png'), format: '6-7' },
-  { id: 'gwangju', name: '광주', image: require('@/src/assets/images/banks/광주_전북은행.png'), format: '6-7' },
-  { id: 'jeonbuk', name: '전북', image: require('@/src/assets/images/banks/광주_전북은행.png'), format: '6-7' },
-  { id: 'jeju', name: '제주', image: require('@/src/assets/images/banks/제주_신한은행.png'), format: '6-7' },
-  { id: 'shinhyup', name: '신협', image: require('@/src/assets/images/banks/싸피은행.png'), format: '3-4-4-2' },
-  { id: 'suhyup', name: '수협', image: require('@/src/assets/images/banks/싸피은행.png'), format: '3-4-4-2' },
-  { id: 'kakao', name: '카카오뱅크', image: require('@/src/assets/images/banks/카카오뱅크.png'), format: '4-2-7' },
-];
+// 계좌번호 자릿수 범위 (모든 은행 공통)
+const ACCOUNT_LENGTH_RANGE = { min: 10, max: 20 }; // 10-20자리 범위로 유연하게 설정
+
+// BANK_CODES에서 banks 배열 생성
+const banks = Object.entries(BANK_CODES).map(([id, bank]) => ({
+  id,
+  name: bank.shortName,
+  image: bank.logo,
+}));
 
 export default function AccountSelectionScreen() {
   const [selectedBank, setSelectedBank] = useState<string>('');
@@ -70,42 +57,18 @@ export default function AccountSelectionScreen() {
   }, []);
 
   // 계산된 값들
-  const canSubmit = selectedBank && accountNumber.length >= 10;
+  const canSubmit = selectedBank && 
+    accountNumber.length >= ACCOUNT_LENGTH_RANGE.min && 
+    accountNumber.length <= ACCOUNT_LENGTH_RANGE.max;
   const selectedBankData = banks.find(bank => bank.id === selectedBank);
 
-  // 계좌번호 포맷팅 함수
-  const formatAccountNumber = (text: string, format: string): string => {
-    const numbers = text.replace(/\D/g, ''); // 숫자만 추출
-
-    if (format === '4-2-7') {
-      // 예: 1234-56-나머지 전체
-      if (numbers.length <= 4) return numbers;
-      if (numbers.length <= 6) return `${numbers.slice(0, 4)}-${numbers.slice(4)}`;
-      return `${numbers.slice(0, 4)}-${numbers.slice(4, 6)}-${numbers.slice(6)}`;
-    } else if (format === '6-7') {
-      // 예: 123456-나머지 전체
-      if (numbers.length <= 6) return numbers;
-      return `${numbers.slice(0, 6)}-${numbers.slice(6)}`;
-    } else if (format === '3-4-4-2') {
-      // 예: 123-4567-8901-나머지 전체
-      if (numbers.length <= 3) return numbers;
-      if (numbers.length <= 7) return `${numbers.slice(0, 3)}-${numbers.slice(3)}`;
-      if (numbers.length <= 11) return `${numbers.slice(0, 3)}-${numbers.slice(3, 7)}-${numbers.slice(7)}`;
-      return `${numbers.slice(0, 3)}-${numbers.slice(3, 7)}-${numbers.slice(7, 11)}-${numbers.slice(11)}`;
-    }
-    return numbers;
-  };
-
-  // 계좌번호 입력 처리
+  // 계좌번호 입력 처리 (숫자만 입력받음)
   const handleAccountNumberChange = (text: string) => {
     const numbers = text.replace(/\D/g, ''); // 숫자만 추출
-    setAccountNumber(numbers); // 하이픈 없이 숫자만 저장
+    if (numbers.length <= ACCOUNT_LENGTH_RANGE.max) {
+      setAccountNumber(numbers);
+    }
   };
-
-  // 표시용 포맷된 계좌번호
-  const displayAccountNumber = selectedBankData 
-    ? formatAccountNumber(accountNumber, selectedBankData.format)
-    : accountNumber;
 
   // 금융기관 선택
   const handleBankSelect = (bankId: string) => {
@@ -119,15 +82,16 @@ export default function AccountSelectionScreen() {
 
     console.log('[Account Selection] 1원 인증 요청 시작:', {
       bank: selectedBankData?.name,
-      accountNumber, // 하이픈 없는 숫자만 저장된 값
-      displayFormat: selectedBankData?.format
+      accountNumber, // 숫자만 저장된 값
+      accountLength: accountNumber.length
     });
 
     try {
       // 1원 인증 요청 API 호출
       const requestData: AccountVerificationRequestRequest = {
         bankId: selectedBank, // 은행 ID
-        accountNo: accountNumber // 계좌번호
+        accountNo: accountNumber, // 계좌번호
+        userName: name || '사용자' // 사용자 이름 (기본값 처리)
       };
 
       console.log('[Account Selection] API 요청 데이터:', requestData);
@@ -137,18 +101,24 @@ export default function AccountSelectionScreen() {
 
       if (response.success) {
         console.log('[Account Selection] 1원 인증 요청 성공, authIdentifier:', response.data.authIdentifier);
+        console.log('[Account Selection] 선택된 은행 데이터:', {
+          selectedBankData,
+          bankName: selectedBankData?.name,
+          bankShortName: selectedBankData?.shortName,
+          selectedBank
+        });
+        console.log('[Account Selection] 전달할 bankName:', selectedBankData?.name);
         
         // 계좌 인증 화면으로 이동 (계좌 정보는 URL 파라미터로만 전달)
-        router.push({
-          pathname: '/(auth)/(signup)/account-verification' as any,
-          params: {
-            bankName: selectedBankData?.name || '',
-            accountNumber: accountNumber,
-            displayFormat: selectedBankData?.format || '',
-            bankId: selectedBank,
-            pin: response.data.authIdentifier // 백엔드에서 받은 4자리 인증번호 식별자
-          }
-        });
+            router.push({
+              pathname: '/(auth)/(signup)/account-verification' as any,
+              params: {
+                bankName: selectedBankData?.name || '', // 은행의 전체 이름 (예: "국민은행")
+                accountNumber: accountNumber,
+                bankId: selectedBank,
+                pin: response.data.authIdentifier // 백엔드에서 받은 4자리 인증번호 식별자
+              }
+            });
       } else {
         throw new Error((response as any).message || (response as any).error?.message || '1원 인증 요청에 실패했습니다.');
       }
@@ -210,12 +180,12 @@ export default function AccountSelectionScreen() {
             <View style={styles.inputGroup}>
               <Text style={styles.label}>계좌번호</Text>
               <TextInput
-                value={displayAccountNumber}
+                value={accountNumber}
                 onChangeText={handleAccountNumberChange}
                 placeholder={selectedBankData ? `` : "계좌번호"}
                 keyboardType="number-pad"
                 style={styles.input}
-                maxLength={30}
+                maxLength={ACCOUNT_LENGTH_RANGE.max}
                 returnKeyType="done"
               />
             </View>

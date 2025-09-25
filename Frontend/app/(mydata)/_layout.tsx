@@ -5,6 +5,7 @@ export default function MyDataLayout() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
       <Stack
+        initialRouteName="bank-select"
         screenOptions={{
           headerShown: false,
           animation: 'slide_from_right',

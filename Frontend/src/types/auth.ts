@@ -191,6 +191,7 @@ export interface RequestPinResetResponse {
 export interface AccountVerificationRequestRequest {
   bankId: string;
   accountNo: string;
+  userName: string;
 }
 
 import type { BaseResponse } from './index';
@@ -200,6 +201,7 @@ export interface AccountVerificationRequestResponse extends BaseResponse<{ authI
 export interface AccountVerificationVerifyRequest {
   accountNo: string;
   authIdentifier: string;
+  userName: string;
 }
 
 export interface AccountVerificationVerifyResponse extends BaseResponse<{ accountNo: string }> {}

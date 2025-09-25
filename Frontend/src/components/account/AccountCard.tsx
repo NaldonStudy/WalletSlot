@@ -1,12 +1,12 @@
 import { BANK_CODES } from '@/src/constants/banks';
-import React from 'react';
-import { View, Text, StyleSheet, StyleProp, ViewStyle } from 'react-native';
-import { Image } from 'expo-image';
 import { Spacing, Typography } from '@/src/constants/theme';
 import { format } from '@/src/utils';
+import { Image } from 'expo-image';
+import React from 'react';
+import { StyleProp, StyleSheet, Text, View, ViewStyle } from 'react-native';
 
 export type AccountCardData = {
-    bankCode: keyof typeof BANK_CODES;
+    bankCode: string; // 서버에서 오는 bankCode (예: "002")
     accountName: string;
     accountNumber: string;
     balance: number;
@@ -38,7 +38,15 @@ const AccountCard: React.FC<AccountCardProps> = ({
     balance,
     style,
 }) => {
-    const bankInfo = BANK_CODES[bankCode];
+    // 서버의 bankCode로 은행 정보 찾기
+    const bankInfo = Object.values(BANK_CODES).find(bank => bank.bankCode === bankCode);
+    
+    // bankInfo가 없으면 기본값 사용
+    if (!bankInfo) {
+        console.warn('[AccountCard] 은행 정보를 찾을 수 없습니다:', bankCode);
+        return null;
+    }
+    
     const textColor = getTextColor(bankInfo.color);
     const balanceFormatted = format.currency(balance);
 
