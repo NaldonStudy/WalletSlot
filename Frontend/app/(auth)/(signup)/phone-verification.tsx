@@ -239,13 +239,13 @@ export default function PhoneVerificationScreen() {
         const response = await authApi.verifySmsSignup(requestData);
         if (response.success && response.data.verified) {
           setSignupTicket(response.data.signupTicket);
-          // TODO(1원 인증): 1원 인증 구현 시 아래 라우팅을 `/(auth)/(signup)/account-selection` 등 1원 인증 단계로 변경하세요.
-          Alert.alert('인증 완료', '휴대폰 인증이 완료되었습니다.', [
-            {
-              text: '확인',
-              onPress: () => router.push('/(auth)/(signup)/password-setup' as any),
-            },
-          ]);
+        // 1원 인증 구현 완료: 계좌 선택 화면으로 이동
+        Alert.alert('인증 완료', '휴대폰 인증이 완료되었습니다.', [
+          {
+            text: '확인',
+            onPress: () => router.push('/(auth)/(signup)/account-selection' as any),
+          },
+        ]);
         } else {
           setError(response.error?.message || '인증코드가 일치하지 않습니다. 다시 입력해주세요.');
         }

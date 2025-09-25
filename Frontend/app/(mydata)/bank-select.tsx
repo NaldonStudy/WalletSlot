@@ -271,6 +271,8 @@ export default function AccountSelectScreen() {
                     ]}
                     onPress={() => {
                       if (!isConnectEnabled) return;
+                      console.log('[Bank Select] 선택된 은행들:', selectedBanks);
+                      console.log('[Bank Select] 선택된 bankCode들:', selectedBanks.map(b => b.bankCode));
                       setIsModalVisible(false);
                       router.push({ pathname: '/(mydata)/mydata-consent' } as any);
                     }}

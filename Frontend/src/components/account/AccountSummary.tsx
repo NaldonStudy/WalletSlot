@@ -12,8 +12,15 @@ type AccountSummaryProps = {
 }
 
 export const AccountSummary = memo(({ account }: AccountSummaryProps) => {
-    const bankInfo = BANK_CODES[account.bankCode as keyof typeof BANK_CODES];
+    // 서버의 bankCode로 은행 정보 찾기
+    const bankInfo = Object.values(BANK_CODES).find(bank => bank.bankCode === account.bankCode);
     const [imageLoaded, setImageLoaded] = useState(false);
+
+    // bankInfo가 없으면 기본값 사용
+    if (!bankInfo) {
+        console.warn('[AccountSummary] 은행 정보를 찾을 수 없습니다:', account.bankCode);
+        return null; // 또는 기본 UI 반환
+    }
 
     const colorScheme = useColorScheme() ?? 'light';
     const theme = themes[colorScheme];

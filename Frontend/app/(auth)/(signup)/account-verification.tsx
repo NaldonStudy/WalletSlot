@@ -1,4 +1,5 @@
 import { authApi } from '@/src/api/auth';
+import { BANK_CODES } from '@/src/constants/banks';
 import { useSignupStore } from '@/src/store/signupStore';
 import type { AccountVerificationVerifyRequest } from '@/src/types';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -21,12 +22,11 @@ const { width } = Dimensions.get('window');
 
 export default function AccountVerificationScreen() {
   const params = useLocalSearchParams();
-  const bankName = params.bankName as string;
+  const bankName = params.bankName as string; // 은행의 전체 이름 (예: "국민은행")
   const accountNumber = params.accountNumber as string;
-  const displayFormat = params.displayFormat as string;
   const bankId = params.bankId as string;
   const pin = params.pin as string; // 백엔드에서 받은 4자리 인증번호 식별자
-  const {} = useSignupStore();
+  const { name } = useSignupStore();
 
   // 상태 관리
   const [verificationCode, setVerificationCode] = useState<string[]>(['', '', '', '']);
@@ -39,16 +39,14 @@ export default function AccountVerificationScreen() {
   const inputRefs = useRef<(TextInput | null)[]>([]);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // 계좌번호 포맷팅 함수
-  const formatAccountNumber = (accountNumber: string, format: string): string => {
-    if (format === '4-2-7') {
-      return `${accountNumber.slice(0, 4)}-${accountNumber.slice(4, 6)}-${accountNumber.slice(6)}`;
-    } else if (format === '6-7') {
-      return `${accountNumber.slice(0, 6)}-${accountNumber.slice(6)}`;
-    } else if (format === '3-4-4-2') {
-      return `${accountNumber.slice(0, 3)}-${accountNumber.slice(3, 7)}-${accountNumber.slice(7, 11)}-${accountNumber.slice(11)}`;
+  // 계좌번호 표시용 포맷팅 (간단한 하이픈 추가)
+  const formatAccountNumber = (accountNumber: string): string => {
+    // 4자리씩 나누어 하이픈 추가 (마지막 그룹은 남은 자릿수)
+    const groups = [];
+    for (let i = 0; i < accountNumber.length; i += 4) {
+      groups.push(accountNumber.slice(i, i + 4));
     }
-    return accountNumber;
+    return groups.join('-');
   };
 
   // 타이머 시작
@@ -80,9 +78,16 @@ export default function AccountVerificationScreen() {
   useEffect(() => {
     console.log('[Account Verification] 1원 입금 시뮬레이션 시작:', {
       bankName,
-      accountNumber: formatAccountNumber(accountNumber, displayFormat),
+      accountNumber: formatAccountNumber(accountNumber),
       pin: pin // 백엔드에서 받은 PIN
     });
+    console.log('[Account Verification] 파라미터 상세:', {
+      bankName: `"${bankName}"`,
+      accountNumber: `"${accountNumber}"`,
+      bankId: `"${bankId}"`,
+      pin: `"${pin}"`
+    });
+    console.log('[Account Verification] 받은 bankName 값:', bankName);
   }, []);
 
   // 인증번호 입력 처리
@@ -135,15 +140,43 @@ export default function AccountVerificationScreen() {
       });
       
       // 1원 인증 검증 API 호출
+      // bankName이 제대로 전달되지 않은 경우 bankId로 찾기
+      console.log('[Account Verification] bankId로 찾기:', {
+        bankId,
+        bankName,
+        foundBank: BANK_CODES[bankId as keyof typeof BANK_CODES]
+      });
+      
+      // bankId로 BANK_CODES에서 name을 강제로 찾기 (bankName이 shortName일 수 있음)
+      const bankInfo = BANK_CODES[bankId as keyof typeof BANK_CODES];
+      const actualBankName = bankInfo?.name || bankName || '은행';
+      console.log('[Account Verification] actualBankName:', actualBankName);
+      
+      const authIdentifier = `${actualBankName} ${code}`; // 은행이름 + 공백 + 4자리 숫자 (예: "국민은행 2337")
       const requestData: AccountVerificationVerifyRequest = {
         accountNo: accountNumber,
-        authIdentifier: code // 4자리 인증번호
+        authIdentifier: authIdentifier, // 은행이름 + 공백 + 4자리 인증번호
+        userName: name || '사용자' // 사용자 이름 (기본값 처리)
       };
 
       console.log('[Account Verification] API 요청 데이터:', requestData);
+      console.log('[Account Verification] 요청 데이터 상세:', {
+        accountNo: `"${accountNumber}" (길이: ${accountNumber.length})`,
+        authIdentifier: `"${authIdentifier}" (길이: ${authIdentifier.length})`,
+        bankName: `"${bankName}"`,
+        actualBankName: `"${actualBankName}"`,
+        userInputCode: `"${code}" (길이: ${code.length})`,
+        userName: `"${name || '사용자'}"`
+      });
       const response = await authApi.verifyAccountVerification(requestData);
       
       console.log('[Account Verification] API 응답:', response);
+      console.log('[Account Verification] 응답 상세:', {
+        success: response.success,
+        message: (response as any).message,
+        data: (response as any).data,
+        error: (response as any).error
+      });
 
       if (response.success) {
         console.log('[Account Verification] 1원 인증 검증 성공');
@@ -207,7 +240,7 @@ export default function AccountVerificationScreen() {
         <View style={styles.accountInfo}>
           <View style={styles.accountRow}>
             <Text style={styles.accountText}>
-              {bankName} {formatAccountNumber(accountNumber, displayFormat)}
+              {bankName} {formatAccountNumber(accountNumber)}
             </Text>
             <TouchableOpacity onPress={handleAccountModification}>
               <Text style={styles.editIcon}>✏️</Text>

@@ -168,7 +168,7 @@ export default function ClassifySlotsScreen() {
           <View style={styles.btnRow}>
             <TouchableOpacity 
               style={[styles.btn, styles.primary]}
-              onPress={() => router.replace('/(tabs)/dashboard')}
+              onPress={() => router.push('/(slotDivide)/inputInfo')}
             >
               <ThemedText style={styles.btnText}>슬롯 나누기</ThemedText>
             </TouchableOpacity>
