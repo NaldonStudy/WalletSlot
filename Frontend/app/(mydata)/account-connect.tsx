@@ -1,5 +1,5 @@
 import { ThemedText } from '@/components/ThemedText';
-import { apiClient } from '@/src/api/client';
+import { mydataApi } from '@/src/api/mydata';
 import { BANK_CODES } from '@/src/constants/banks';
 import { useAccountsStore } from '@/src/store/accountsStore';
 import { useBankSelectionStore } from '@/src/store/bankSelectionStore';
@@ -33,19 +33,18 @@ export default function AccountConnectScreen() {
     setApiError(null);
     
     try {
-      console.log('[Account Connect] API 호출 시작: /api/accounts');
-      const response = await apiClient.get('/api/accounts');
-      console.log('[Account Connect] API 응답:', response);
-      
-      if (response.success && response.data?.accounts) {
-        setAccounts(response.data.accounts);
-        console.log('[Account Connect] 계좌 정보 저장 완료:', response.data.accounts);
+      console.log('[Account Connect] fetchAccounts start');
+      const accountsResult = await mydataApi.fetchAccounts();
+      console.log('[Account Connect] fetchAccounts result:', accountsResult);
+      if (Array.isArray(accountsResult)) {
+        setAccounts(accountsResult);
+        console.log('[Account Connect] 계좌 정보 저장 완료:', accountsResult);
       } else {
-        throw new Error(response.message || '계좌 정보를 불러올 수 없습니다.');
+        throw new Error('계좌 정보를 불러올 수 없습니다.');
       }
     } catch (error: any) {
-      console.error('[Account Connect] API 호출 실패:', error);
-      setApiError(error.message || '계좌 정보를 불러오는데 실패했습니다.');
+      console.error('[Account Connect] fetchAccounts 실패:', error);
+      setApiError(error?.message || '계좌 정보를 불러오는데 실패했습니다.');
     } finally {
       setIsApiLoading(false);
     }
@@ -263,21 +262,22 @@ export default function AccountConnectScreen() {
                 end={{ x: 0.5, y: 1 }}
                 style={styles.representativeCard}
               >
-                <ThemedText style={styles.repBankName}>{filteredData[Number(repId)]?.bankName}</ThemedText>
-                <View style={styles.repRow}>
-                  <ThemedText style={styles.repAccount}>
-                    {filteredData[Number(repId)]?.accountNo 
-                      ? `302-****-${filteredData[Number(repId)]?.accountNo.replace(/\D/g, '').slice(-4)}`
-                      : '302-*****'
-                    }
-                  </ThemedText>
-                  <ThemedText style={styles.repAmount}>
-                    {filteredData[Number(repId)]?.accountBalance 
-                      ? `${parseInt(filteredData[Number(repId)]?.accountBalance || '0').toLocaleString()}원`
-                      : '0원'
-                    }
-                  </ThemedText>
-                </View>
+                {(() => {
+                  const rep = (filteredData as any[])[Number(repId)] as any || {};
+                  return (
+                    <>
+                      <ThemedText style={styles.repBankName}>{rep?.bankName}</ThemedText>
+                      <View style={styles.repRow}>
+                        <ThemedText style={styles.repAccount}>
+                          {rep?.accountNo ? `302-****-${String(rep.accountNo).replace(/\D/g, '').slice(-4)}` : '302-*****'}
+                        </ThemedText>
+                        <ThemedText style={styles.repAmount}>
+                          {rep?.accountBalance ? `${parseInt(String(rep.accountBalance || '0')).toLocaleString()}원` : '0원'}
+                        </ThemedText>
+                      </View>
+                    </>
+                  );
+                })()}
               </LinearGradient>
             </View>
           )}

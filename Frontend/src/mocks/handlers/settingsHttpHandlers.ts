@@ -1,3 +1,4 @@
+import { API_ENDPOINTS } from '@/src/constants/api'
 import { http, HttpResponse } from 'msw'
 
 let settingsState = {
@@ -9,11 +10,11 @@ let settingsState = {
 let currentPin = '123456'
 
 export const settingsHttpHandlers = [
-  http.get('/api/users/me/settings', () => {
+  http.get(API_ENDPOINTS.USER_ME + '/settings', () => {
     return HttpResponse.json(settingsState)
   }),
 
-  http.patch('/api/users/me/settings/notifications/push', async ({ request }) => {
+  http.patch(API_ENDPOINTS.USER_ME + '/settings/notifications/push', async ({ request }) => {
     try {
   const body = (await request.json()) as any
   settingsState.notifications.push = Boolean(body?.enabled)
@@ -23,7 +24,7 @@ export const settingsHttpHandlers = [
     }
   }),
 
-  http.patch('/api/users/me/settings/notifications/marketing', async ({ request }) => {
+  http.patch(API_ENDPOINTS.USER_ME + '/settings/notifications/marketing', async ({ request }) => {
     try {
   const body = (await request.json()) as any
   settingsState.notifications.marketing = Boolean(body?.enabled)
@@ -33,7 +34,7 @@ export const settingsHttpHandlers = [
     }
   }),
 
-  http.patch('/api/users/me/settings/biometric', async ({ request }) => {
+  http.patch(API_ENDPOINTS.USER_ME + '/settings/biometric', async ({ request }) => {
     try {
   const body = (await request.json()) as any
   settingsState.biometric = Boolean(body?.enabled)
@@ -44,7 +45,7 @@ export const settingsHttpHandlers = [
   }),
 
   // ===== PIN 관련 엔드포인트 (간단 시뮬레이션) =====
-  http.patch('/api/auth/pin', async ({ request }) => {
+  http.patch(API_ENDPOINTS.PIN_CHANGE, async ({ request }) => {
     // 현재 PIN 변경 (로그인된 사용자용) - body: { currentPin, newPin }
     const body = (await request.json()) as any
     if (!body?.currentPin || !body?.newPin) {
@@ -59,7 +60,7 @@ export const settingsHttpHandlers = [
     return HttpResponse.json({ success: true, message: 'PIN 변경 완료', currentPin })
   }),
 
-  http.post('/api/auth/pin/verify', async ({ request }) => {
+  http.post(API_ENDPOINTS.PIN_VERIFY, async ({ request }) => {
     // PIN 확인용(예: 변경 1단계) - body: { pin }
     const body = (await request.json()) as any
     if (!body?.pin) return HttpResponse.json({ error: 'missing_pin' }, { status: 400 })
@@ -74,7 +75,7 @@ export const settingsHttpHandlers = [
   }),
 
   // PIN 재설정(인증 코드 발급)
-  http.post('/api/auth/pin/reset/request', async ({ request }) => {
+  http.post(API_ENDPOINTS.PIN_RESET_REQUEST, async ({ request }) => {
     const body = (await request.json()) as any
     // body: { phone }
     if (!body?.phone) return HttpResponse.json({ error: 'missing_phone' }, { status: 400 })
@@ -82,7 +83,7 @@ export const settingsHttpHandlers = [
     return HttpResponse.json({ success: true, verificationId: `verif_${Date.now()}` })
   }),
 
-  http.post('/api/auth/pin/reset/confirm', async ({ request }) => {
+  http.post(API_ENDPOINTS.PIN_RESET_CONFIRM, async ({ request }) => {
     const body = (await request.json()) as any
     // body: { verificationId, code, newPin }
     if (!body?.verificationId || !body?.code || !body?.newPin) return HttpResponse.json({ error: 'missing_fields' }, { status: 400 })

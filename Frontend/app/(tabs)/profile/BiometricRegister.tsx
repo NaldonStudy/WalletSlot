@@ -1,10 +1,12 @@
 import { ThemedText } from '@/components/ThemedText'
 import { ThemedView } from '@/components/ThemedView'
 import { Toggle } from '@/components/Toggle'
+import { setBiometric } from '@/src/api/settings'
 import { AuthKeypad, CommonModal, PinDots } from '@/src/components'
+import { useVerifyPin } from '@/src/hooks'
 import { monitoringService } from '@/src/services/monitoringService'
-import React, { useState } from 'react'
-import { Alert, KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, View } from 'react-native'
+import React, { useCallback, useState } from 'react'
+import { ActivityIndicator, Alert, KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
 type Props = {
@@ -18,7 +20,7 @@ export default function BiometricRegister({ visible, onClose, onRegistered, init
   const [pin, setPin] = useState('')
   const [showPinEntry, setShowPinEntry] = useState(!!initialEnabled)
   const [pinModalVisible, setPinModalVisible] = useState(false)
-  const [loading, setLoading] = useState(false)
+  const [/* loading */, /* setLoading */] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   // PIN 모달이 열릴 때마다 PIN 초기화
@@ -29,51 +31,46 @@ export default function BiometricRegister({ visible, onClose, onRegistered, init
     }
   }, [pinModalVisible])
 
-  const handleVerify = async (value: string) => {
-    if (!/^[0-9]{6}$/.test(value)) { 
-      Alert.alert('오류', 'PIN은 6자리 숫자여야 합니다.')
-      setPin('') // PIN 초기화
-      return 
+  const closePinModal = useCallback(() => {
+    setPinModalVisible(false)
+    setShowPinEntry(false)
+    setPin('')
+    setError(null)
+  }, [])
+
+  const { verify, loading: verifyLoading, error: verifyError, setError: setVerifyError } = useVerifyPin()
+
+  const handleVerify = useCallback(async (value: string) => {
+    const result = await verify(value)
+    if (!result.success) {
+      Alert.alert('오류', verifyError || '인증에 실패했습니다.')
+      setPin('')
+      setVerifyError(null)
+      return
     }
-    try {
-      setLoading(true)
-      setError(null)
-      const res = await fetch('/api/auth/pin/verify', { method: 'POST', body: JSON.stringify({ pin: value }) })
-      setLoading(false)
-      if (!res.ok) { 
-        Alert.alert('오류', 'PIN이 일치하지 않습니다.')
+
+    if (result.valid) {
+      monitoringService.logUserInteraction('navigation', { to: 'BiometricRegister.register' })
+      // 서버에 생체 활성화 요청
+      const ok = await setBiometric(true)
+      if (!ok) {
+        setError('생체 등록에 실패했습니다.')
         setPin('') // PIN 초기화
-        return 
+        monitoringService.logSettingChange('biometric', undefined, false)
+        return
       }
-      const json = await res.json()
-      if (json?.valid) {
-        monitoringService.logUserInteraction('navigation', { to: 'BiometricRegister.register' })
-        // 모의: 서버에 생체 활성화 요청
-        const r2 = await fetch('/api/users/me/settings/biometric', { method: 'PATCH', body: JSON.stringify({ enabled: true }) })
-        if (!r2.ok) { 
-          setError('생체 등록에 실패했습니다.')
-          setPin('') // PIN 초기화
-          monitoringService.logUserInteraction('setting_change', { key: 'biometric', success: false })
-          return 
-        }
-        monitoringService.logUserInteraction('setting_change', { key: 'biometric', enabled: true, success: true })
-        Alert.alert('완료', '생체 인증이 등록되었습니다.')
-        // PIN 검증이 성공하면 토글을 켜고 PIN 모달을 닫음
-        setShowPinEntry(true)
-        setPin('')
-        setPinModalVisible(false)
-        if (onRegistered) onRegistered()
-      } else {
-        Alert.alert('오류', '인증에 실패했습니다.')
-        setPin('') // PIN 초기화
-      }
-    } catch (e) {
-      setLoading(false)
-      setError('서버와 통신 중 오류가 발생했습니다.')
+      monitoringService.logSettingChange('biometric', true, true)
+      Alert.alert('완료', '생체 인증이 등록되었습니다.')
+      // PIN 검증이 성공하면 토글을 켜고 PIN 모달을 닫음
+      setShowPinEntry(true)
+      setPin('')
+      setPinModalVisible(false)
+      if (onRegistered) onRegistered()
+    } else {
+      Alert.alert('오류', '인증에 실패했습니다.')
       setPin('') // PIN 초기화
-      monitoringService.logApiCall('/api/auth/pin/verify', 'POST', 'error', { errorMessage: (e as Error).message })
     }
-  }
+  }, [verify, verifyError, setVerifyError, onRegistered])
 
   return (
     <ThemedView style={{ flex: 1 }}>
@@ -92,13 +89,17 @@ export default function BiometricRegister({ visible, onClose, onRegistered, init
                 if (v) {
                   // 켜려는 시도: 별도 PIN 모달을 열어 확인
                   setPinModalVisible(true)
-                  monitoringService.logUserInteraction('setting_change', { key: 'biometric_toggle_attempt', enabled: v })
-                } else {
-                  // 끄는 경우: 바로 비활성화 요청
-                  setShowPinEntry(false)
-                  monitoringService.logUserInteraction('setting_change', { key: 'biometric_toggle', enabled: v })
-                  fetch('/api/users/me/settings/biometric', { method: 'PATCH', body: JSON.stringify({ enabled: false }) })
+                  monitoringService.logSettingChange('biometric_toggle_attempt', v)
+                  return
                 }
+
+                // 끄는 경우: 바로 비활성화 요청
+                setShowPinEntry(false)
+                monitoringService.logSettingChange('biometric_toggle', v)
+                setBiometric(false).catch((err) => {
+                  // 실패시 로그
+                  monitoringService.logSettingChange('biometric', false, false, { errorMessage: (err as Error).message })
+                })
               }} />
             </View>
 
@@ -117,23 +118,32 @@ export default function BiometricRegister({ visible, onClose, onRegistered, init
       visible={pinModalVisible} 
       animationType="slide" 
       position="fullscreen" 
-      onClose={() => { setPinModalVisible(false); setShowPinEntry(false); setPin('') }}
+      onClose={closePinModal}
     >
-      <SafeAreaView style={styles.pinSafeArea}>
-        <View style={styles.pinHeaderBar}>
+          <SafeAreaView style={styles.pinSafeArea}>
+          <View style={styles.pinHeaderBar}>
           <View style={styles.pinHeaderSide} />
           <Text style={styles.pinHeaderTitle}>생체 인증 등록</Text>
-          <Pressable hitSlop={10} onPress={() => { setPinModalVisible(false); setShowPinEntry(false); setPin('') }} style={styles.pinHeaderSide}>
+          <Pressable hitSlop={10} onPress={closePinModal} style={styles.pinHeaderSide}>
             <Text style={styles.pinHeaderClose}>✕</Text>
           </Pressable>
         </View>
-        <KeyboardAvoidingView style={styles.pinContainer} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+          <KeyboardAvoidingView style={styles.pinContainer} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
           <View style={styles.pinContent}>
             <Text style={styles.pinTitle}>생체 인증 등록을 위해 PIN 6자리를 입력해주세요.</Text>
             <Text style={styles.pinSubtitle}></Text>
             <View style={styles.pinDotsWrap}>
               <PinDots length={6} filled={pin.length} size="md" />
             </View>
+            {verifyLoading && (
+              <View style={styles.loadingRow}>
+                <ActivityIndicator size="small" color="#2383BD" />
+                <Text style={styles.loadingText}>검증 중...</Text>
+              </View>
+            )}
+            {error && (
+              <Text style={styles.errorText}>{error}</Text>
+            )}
           </View>
           <View style={styles.pinKeypadWrap}>
             <AuthKeypad
@@ -179,4 +189,7 @@ const styles = StyleSheet.create({
   pinHeaderTitle: { fontSize: 16, fontWeight: '700', color: '#111827', textAlign: 'center', flex: 1 },
   pinHeaderClose: { fontSize: 18, color: '#111827', textAlign: 'right' },
   pinHeaderSide: { width: 24 },
+  loadingRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 12 },
+  loadingText: { marginLeft: 8, color: '#374151' },
+  errorText: { marginTop: 8, color: '#DC2626' },
 })

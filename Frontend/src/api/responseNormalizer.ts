@@ -6,7 +6,11 @@
  * 격리하여 fallback fetch 로직을 캡슐화합니다.
  */
 
+import { API_ENDPOINTS } from '@/src/constants/api';
 import type { AccountsResponse, BaseResponse, PaginatedResponse, SlotDailySpendingResponse, SlotData, SlotsResponse } from '@/src/types';
+
+// 기존 알림 전용 헬퍼는 호환성을 위해 유지
+import type { NotificationItem } from '@/src/types';
 
 /** 알림 목록 응답 형태 후보 타입 (느슨한 any 구조) */
 export type RawNotificationListResponse = any; // 다양한 케이스 수용
@@ -122,6 +126,7 @@ export async function fetchFallback<T = any>(url: string, params?: { page?: numb
 /**
  * 단일 리소스용 폴백 fetch
  * @example const json = await fetchJsonFallback('/api/users/me')
+ * @note 권장: 런타임에서 상수 사용 권장 (예: `fetchJsonFallback(API_CONFIG.BASE_URL + API_ENDPOINTS.USER_ME)`)
  */
 export async function fetchJsonFallback(url: string) {
   try {
@@ -133,9 +138,6 @@ export async function fetchJsonFallback(url: string) {
     return null;
   }
 }
-
-// 기존 알림 전용 헬퍼는 호환성을 위해 유지
-import type { NotificationItem } from '@/src/types';
 export function normalizeNotificationList(raw: any, params?: { page?: number; limit?: number }) {
   return normalizePaginatedList<NotificationItem>(raw, params);
 }
@@ -146,7 +148,7 @@ export async function fetchNotificationsFallback(params?: { page?: number; limit
   if (params?.limit) qs.append('limit', String(params.limit));
   if (params?.unreadOnly) qs.append('unreadOnly', 'true');
   if (params?.type) qs.append('type', params.type);
-  const url = `/api/notifications${qs.toString() ? '?' + qs.toString() : ''}`;
+  const url = `${API_ENDPOINTS.NOTIFICATIONS}${qs.toString() ? '?' + qs.toString() : ''}`;
   try {
     const res = await fetch(url);
     const json = await res.json();
@@ -213,7 +215,7 @@ export function normalizeAccountList(raw: RawAccountListResponse): BaseResponse<
  */
 export async function fetchAccountsFallback(): Promise<BaseResponse<AccountsResponse> | null> {
   try {
-    const res = await fetch('/api/accounts/link');
+    const res = await fetch(API_ENDPOINTS.ACCOUNTS_LINK);
     const json = await res.json();
     if (json) {
       return normalizeAccountList(json);
@@ -267,7 +269,7 @@ export function normalizeAccountBalance(raw: RawAccountBalanceResponse): BaseRes
  */
 export async function fetchAccountBalanceFallback(accountId: string): Promise<BaseResponse<{ balance: number }> | null> {
   try {
-    const res = await fetch(`/api/accounts/${accountId}/balance`);
+  const res = await fetch(API_ENDPOINTS.ACCOUNT_BALANCE(accountId));
     const json = await res.json();
     if (json) {
       return normalizeAccountBalance(json);
@@ -332,7 +334,7 @@ export function normalizeSlots(raw: RawSlotsResponse): BaseResponse<SlotsRespons
  */
 export async function fetchSlotsFallback(accountId: string): Promise<BaseResponse<SlotsResponse> | null> {
   try {
-    const res = await fetch(`/api/accounts/${accountId}/slots`);
+  const res = await fetch(API_ENDPOINTS.ACCOUNT_SLOTS(accountId));
     const json = await res.json();
     if (json) {
       return normalizeSlots(json);
@@ -373,7 +375,6 @@ export function normalizeSlotDetail(raw: RawSlotsResponse): BaseResponse<SlotDat
     data: {
       slotId: '',
       name: '',
-      slotName: '',
       accountSlotId: '',
       customName: '',
       initialBudget: 0,
@@ -385,10 +386,7 @@ export function normalizeSlotDetail(raw: RawSlotsResponse): BaseResponse<SlotDat
       isSaving: false,
       isCustom: false,
       isBudgetExceeded: false,
-      slotIcon: { uri: '' },
-      slotColor: '',
-      budget: 0,
-      remaining: 0,
+  // Keep only known SlotData properties
     },
   };
 }
@@ -399,7 +397,7 @@ export function normalizeSlotDetail(raw: RawSlotsResponse): BaseResponse<SlotDat
  */
 export async function fetchSlotDetailFallback(slotId: string): Promise<BaseResponse<SlotData> | null> {
   try {
-    const res = await fetch(`/api/slots/${slotId}`);
+  const res = await fetch(API_ENDPOINTS.SLOT_BY_ID(slotId));
     const json = await res.json();
     if (json) {
       return normalizeSlotDetail(json);
@@ -449,7 +447,7 @@ export function normalizeSlotDailySpending(raw: any): BaseResponse<SlotDailySpen
  */
 export async function fetchSlotDailySpendingFallback(accountId: string, slotId: string): Promise<BaseResponse<SlotDailySpendingResponse> | null> {
   try {
-    const res = await fetch(`/api/accounts/${accountId}/slots/${slotId}/daily-spending`);
+  const res = await fetch(API_ENDPOINTS.ACCOUNT_SLOT_DAILY_SPENDING(accountId, slotId));
     const json = await res.json();
     if (json) {
       return normalizeSlotDailySpending(json);

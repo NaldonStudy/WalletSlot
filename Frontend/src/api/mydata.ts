@@ -87,4 +87,33 @@ export const mydataApi = {
     const data = (res as any).data || res;
     return data?.data?.accounts || [];
   },
+  // 사용자 마이데이터 연결(계좌) 조회
+  getConnections: async () => {
+    const path = API_ENDPOINTS.USER_ME + '/mydata/connections';
+    try {
+      const res = await apiClient.get(path);
+      if (isAmbiguousAxiosBody(res)) {
+        const fb = await fetchJsonFallback(path);
+        return fb?.data || [];
+      }
+      const data = (res as any).data || res;
+      return data?.data || [];
+    } catch (err) {
+      console.warn('[MYDATA_API] getConnections failed, falling back', err);
+      const fb = await fetchJsonFallback(path);
+      return fb?.data || [];
+    }
+  },
+  addConnection: async (payload: any) => {
+    const path = API_ENDPOINTS.USER_ME + '/mydata/connections';
+    const res = await apiClient.post(path, payload);
+    const data = (res as any).data || res;
+    return data?.data;
+  },
+  deleteConnection: async (accountId: string) => {
+    const path = API_ENDPOINTS.USER_ME + `/mydata/connections/${accountId}`;
+    const res = await apiClient.delete(path);
+    const data = (res as any).data || res;
+    return data?.data;
+  },
 };

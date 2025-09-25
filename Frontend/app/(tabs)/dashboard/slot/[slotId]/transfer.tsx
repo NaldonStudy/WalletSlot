@@ -7,11 +7,10 @@ import {
   TextInput,
   ScrollView,
   Alert
-} from "react-native";
+, useColorScheme } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, router } from "expo-router";
 import { useSlotStore } from "@/src/store/useSlotStore";
-import { useColorScheme } from "react-native";
 import { themes, Spacing } from "@/src/constants/theme";
 import { useSlots } from "@/src/hooks/slots/useSlots";
 import SlotInfoCard from "@/src/components/slot/SlotInfoCard";

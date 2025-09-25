@@ -114,7 +114,7 @@ export const useMarkNotificationAsRead = () => {
     onMutate: async (notificationUuid: string) => {
       await queryClient.cancelQueries({ queryKey: queryKeys.notifications.all });
       const allQueries = queryClient.getQueryCache().findAll({ queryKey: queryKeys.notifications.all });
-      const previousSnapshots: Array<{ queryKey: readonly unknown[]; data: any }> = [];
+      const previousSnapshots: { queryKey: readonly unknown[]; data: any }[] = [];
 
       allQueries.forEach(q => {
         const data: any = q.state.data;
@@ -202,7 +202,7 @@ export const useMarkAllNotificationsAsRead = () => {
     onMutate: async () => {
       await queryClient.cancelQueries({ queryKey: queryKeys.notifications.all });
       const listQueries = queryClient.getQueryCache().findAll({ queryKey: queryKeys.notifications.all });
-      const previous: Array<{ queryKey: readonly unknown[]; data: any }> = [];
+      const previous: { queryKey: readonly unknown[]; data: any }[] = [];
 
       listQueries.forEach(q => {
         const data: any = q.state.data;

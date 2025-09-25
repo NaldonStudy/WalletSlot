@@ -1,3 +1,4 @@
+import { API_ENDPOINTS } from '@/src/constants/api';
 import type { SpendingReport, SpendingReportResponse } from '@/src/types/report';
 import { apiClient } from './client';
 import { fetchJsonFallback, isAmbiguousAxiosBody } from './responseNormalizer';
@@ -151,8 +152,8 @@ export const getSpendingReport = async (options?: { periodOffset?: number }): Pr
     
     // 기간 오프셋이 있는 경우 쿼리 파라미터에 추가
     const url = options?.periodOffset 
-      ? `/api/reports/spending?periodOffset=${options.periodOffset}`
-      : `/api/reports/spending`;
+      ? `${API_ENDPOINTS.REPORTS_SPENDING}?periodOffset=${options.periodOffset}`
+      : API_ENDPOINTS.REPORTS_SPENDING;
     
     const response = await apiClient.get<SpendingReportResponse>(url);
     

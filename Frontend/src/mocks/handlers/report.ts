@@ -1,3 +1,4 @@
+import { API_ENDPOINTS } from '@/src/constants/api';
 import type { BaseResponse, SpendingReport } from '@/src/types';
 import { faker } from '@faker-js/faker';
 import { http, HttpResponse } from 'msw';
@@ -180,7 +181,7 @@ const generateSpendingReport = (): SpendingReport => {
 
 export const reportHandlers = [
   // 전체 계좌 통합 소비 레포트 조회
-  http.get('/api/reports/spending', (info) => {
+  http.get(API_ENDPOINTS.REPORTS_SPENDING, (info) => {
     console.log('[MSW] 🎯 GET /api/reports/spending 핸들러 호출됨!');
     console.log('[MSW] Request info:', info.request.url);
     

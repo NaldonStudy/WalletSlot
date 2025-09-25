@@ -1,4 +1,5 @@
 import { apiClient } from '@/src/api/client';
+import { API_ENDPOINTS } from '@/src/constants/api';
 import {
   AccountsResponse,
   BaseResponse,
@@ -18,7 +19,7 @@ export const accountApi = {
    * 사용자 연동 계좌 목록 조회
    */
   getLinkedAccounts: async (): Promise<BaseResponse<AccountsResponse>> => {
-    const res = await apiClient.get('/api/accounts/link');
+  const res = await apiClient.get(API_ENDPOINTS.ACCOUNTS_LINK);
     return res as BaseResponse<AccountsResponse>;
   },
 
@@ -27,7 +28,7 @@ export const accountApi = {
    */
   getAccountBalance: async (accountId: string): Promise<BaseResponse<{ balance: number }>> => {
     try {
-      const res = await apiClient.get<{ balance: number }>(`/api/accounts/${accountId}/balance`);
+  const res = await apiClient.get<{ balance: number }>(API_ENDPOINTS.ACCOUNT_BALANCE(accountId));
       if (isAmbiguousAxiosBody((res as any)?.data)) {
         const fallbackResult = await fetchAccountBalanceFallback(accountId);
         if (fallbackResult) {
@@ -45,28 +46,28 @@ export const accountApi = {
    * 마이데이터로 연동 가능한 계좌 목록 조회
    */
   getAvailableAccounts: async (): Promise<BaseResponse<UserAccount[]>> => {
-    return apiClient.get('/api/accounts');
+  return apiClient.get(API_ENDPOINTS.ACCOUNTS);
   },
 
   /**
    * 계좌 서비스 연동
    */
   linkAccounts: async (data: { accountIds: string[] }): Promise<BaseResponse<void>> => {
-    return apiClient.post('/api/accounts/link', data);
+  return apiClient.post(API_ENDPOINTS.ACCOUNTS_LINK, data);
   },
 
   /**
    * 대표계좌 설정
    */
   setMainAccount: async (accountId: string, body: { alias?: string; isPrimary?: boolean }): Promise<BaseResponse<void>> => {
-    return apiClient.patch(`/api/accounts/${accountId}`, body);
+  return apiClient.patch(API_ENDPOINTS.ACCOUNT_BY_ID(accountId), body);
   },
 
   /**
    * 계좌 상세 조회
    */
   getAccountDetail: async (accountId: string): Promise<BaseResponse<UserAccount>> => {
-    return apiClient.get(`/api/accounts/${accountId}`);
+  return apiClient.get(API_ENDPOINTS.ACCOUNT_BY_ID(accountId));
   },
 
 
@@ -141,11 +142,11 @@ export const transactionApi = {
   splitByReceipt: async (data: {
     transactionId: number;
     receiptImage: FormData;
-    splits: Array<{
+    splits: {
       itemName: string;
       amount: number;
       slotId: number;
-    }>;
+    }[];
     unclassifiedSlotId: number; // 미분류 슬롯 ID
   }): Promise<BaseResponse<{
     splitTransactions: Transaction[];    // 분할된 각 항목의 거래 내역
@@ -191,14 +192,14 @@ export const transactionCategoryApi = {
    * 사용자 맞춤 분류 규칙 조회
    * (사용자가 "앞으로도 이렇게 분류해줘"라고 설정한 규칙들)
    */
-  getUserClassificationRules: async (): Promise<BaseResponse<Array<{
+  getUserClassificationRules: async (): Promise<BaseResponse<{
     ruleId: number;
     keyword: string;           // 예: "스타벅스"
     categoryId: number;        // 예: 카페 카테고리 ID
     categoryName: string;      // 예: "카페/음료"
     createdAt: string;
     lastUsedAt: string;
-  }>>> => {
+  }[]>> => {
     return apiClient.get('/transaction-categories/user-rules');
   },
 

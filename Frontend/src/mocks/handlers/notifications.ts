@@ -5,6 +5,7 @@
  * 실제 서버 API와 동일한 구조로 응답을 제공합니다.
  */
 
+import { API_ENDPOINTS } from '@/src/constants/api';
 import type { NotificationItem, NotificationSettings } from '@/src/types';
 import { http, HttpResponse } from 'msw';
 
@@ -161,7 +162,7 @@ export const notificationHandlers = [
   // ===== Push Endpoint Management APIs =====
   
   // 푸시 엔드포인트 등록/갱신 (POST /api/push/endpoints)
-  http.post('/api/push/endpoints', async ({ request }) => {
+  http.post(API_ENDPOINTS.PUSH_ENDPOINTS, async ({ request }) => {
     const data = await request.json() as any;
     console.log('[MSW] POST /api/push/endpoints:', data);
     
@@ -183,7 +184,7 @@ export const notificationHandlers = [
   }),
 
   // 내 푸시 엔드포인트 목록 (GET /api/push/endpoints)
-  http.get('/api/push/endpoints', () => {
+  http.get(API_ENDPOINTS.PUSH_ENDPOINTS, () => {
     console.log('[MSW] GET /api/push/endpoints');
     return HttpResponse.json({
       success: true,
@@ -203,7 +204,7 @@ export const notificationHandlers = [
   }),
 
   // 푸시 엔드포인트 부분 수정 (PATCH /api/push/endpoints/{deviceId})
-  http.patch('/api/push/endpoints/:deviceId', async ({ params, request }) => {
+  http.patch(API_ENDPOINTS.PUSH_ENDPOINT_BY_ID(':deviceId'), async ({ params, request }) => {
     const { deviceId } = params;
     const data = await request.json() as any;
     console.log('[MSW] PATCH /api/push/endpoints/' + deviceId, data);
@@ -224,7 +225,7 @@ export const notificationHandlers = [
   }),
 
   // 푸시 엔드포인트 삭제 (DELETE /api/push/endpoints/{deviceId})
-  http.delete('/api/push/endpoints/:deviceId', ({ params }) => {
+  http.delete(API_ENDPOINTS.PUSH_ENDPOINT_BY_ID(':deviceId'), ({ params }) => {
     const { deviceId } = params;
     console.log('[MSW] DELETE /api/push/endpoints/' + deviceId);
     
@@ -246,7 +247,7 @@ export const notificationHandlers = [
   // ===== Notification Management APIs =====
 
   // 알림 목록 조회 (GET /api/notifications) - Swagger 명세에 맞춤
-  http.get('/api/notifications', ({ request }) => {
+  http.get(API_ENDPOINTS.NOTIFICATIONS, ({ request }) => {
     console.log('[MSW] GET /api/notifications called with', request.url);
     const url = new URL(request.url);
     const page = parseInt(url.searchParams.get('page') || '0'); // 0-based
@@ -290,7 +291,7 @@ export const notificationHandlers = [
   }),
 
   // 미읽음 개수 조회 (GET /api/notifications/unread-count)
-  http.get('/api/notifications/unread-count', () => {
+  http.get(API_ENDPOINTS.NOTIFICATIONS_UNREAD_COUNT, () => {
     const unreadCount = mockNotifications.filter(n => !n.isRead).length;
     console.log('[MSW] GET /api/notifications/unread-count ->', unreadCount);
     return HttpResponse.json({
@@ -303,7 +304,7 @@ export const notificationHandlers = [
   }),
 
   // 미전송 Pull + delivered 처리 (POST /api/notifications/pull)
-  http.post('/api/notifications/pull', () => {
+  http.post(API_ENDPOINTS.NOTIFICATIONS_PULL, () => {
     const undeliveredNotifications = mockNotifications.filter(n => !n.isRead);
     console.log('[MSW] POST /api/notifications/pull ->', undeliveredNotifications.length, 'notifications');
     
@@ -317,7 +318,7 @@ export const notificationHandlers = [
   }),
 
   // 단건 읽음 처리 (PATCH /api/notifications/{notificationUuid}/read)
-  http.patch('/api/notifications/:notificationUuid/read', async ({ params }) => {
+  http.patch(API_ENDPOINTS.NOTIFICATION_BY_ID(':notificationUuid') + '/read', async ({ params }) => {
     const { notificationUuid } = params;
     const notification = mockNotifications.find(n => n.id === notificationUuid);
     
@@ -339,7 +340,7 @@ export const notificationHandlers = [
   }),
 
   // 단건 delivered 처리 (PATCH /api/notifications/{notificationUuid}/delivered)
-  http.patch('/api/notifications/:notificationUuid/delivered', ({ params }) => {
+  http.patch(API_ENDPOINTS.NOTIFICATION_BY_ID(':notificationUuid') + '/delivered', ({ params }) => {
     const { notificationUuid } = params;
     const notification = mockNotifications.find(n => n.id === notificationUuid);
     
@@ -361,7 +362,7 @@ export const notificationHandlers = [
   }),
 
   // 전체 읽음 처리 (POST /api/notifications/read-all)
-  http.post('/api/notifications/read-all', () => {
+  http.post(API_ENDPOINTS.NOTIFICATIONS_READ_ALL, () => {
     mockNotifications.forEach(notification => {
       notification.isRead = true;
       (notification as any).readAt = new Date().toISOString();
@@ -375,7 +376,7 @@ export const notificationHandlers = [
   }),
 
   // 알림 삭제 (DELETE /api/notifications/{notificationUuid})
-  http.delete('/api/notifications/:notificationUuid', ({ params }) => {
+  http.delete(API_ENDPOINTS.NOTIFICATION_BY_ID(':notificationUuid'), ({ params }) => {
     const { notificationUuid } = params;
     const index = mockNotifications.findIndex(n => n.id === notificationUuid);
     
@@ -399,14 +400,14 @@ export const notificationHandlers = [
   }),
 
   // 알림 설정 조회
-  http.get('/api/notifications/settings', () => {
+  http.get(API_ENDPOINTS.NOTIFICATIONS_SETTINGS, () => {
     return HttpResponse.json({
       data: mockNotificationSettings
     });
   }),
 
   // 알림 설정 업데이트
-  http.put('/api/notifications/settings', async ({ request }) => {
+  http.put(API_ENDPOINTS.NOTIFICATIONS_SETTINGS, async ({ request }) => {
     const updates = await request.json() as Partial<NotificationSettings>;
     
     Object.assign(mockNotificationSettings, updates);
@@ -418,7 +419,7 @@ export const notificationHandlers = [
   }),
 
   // 알림 생성 (POST /api/notifications)
-  http.post('/api/notifications', async ({ request }) => {
+  http.post(API_ENDPOINTS.NOTIFICATIONS, async ({ request }) => {
     const notificationData = await request.json() as any;
     
     // 새 알림 생성
@@ -452,7 +453,7 @@ export const notificationHandlers = [
   // ===== Device Management APIs =====
   
   // FCM 토큰 등록 (POST /api/notifications/register-fcm-token)
-  http.post('/api/notifications/register-fcm-token', async ({ request }) => {
+  http.post(API_ENDPOINTS.NOTIFICATIONS + '/register-fcm-token', async ({ request }) => {
     const data = await request.json() as any;
     console.log('[MSW] FCM 토큰 등록:', {
       deviceId: data.deviceId,
@@ -472,7 +473,7 @@ export const notificationHandlers = [
   }),
   
   // FCM/WebPush 토큰 교체 (POST /api/devices/{deviceId}/token)
-  http.post('/api/devices/:deviceId/token', async ({ params, request }) => {
+  http.post(API_ENDPOINTS.DEVICE_TOKEN(':deviceId'), async ({ params, request }) => {
     const { deviceId } = params;
     const data = await request.json() as any;
     console.log('[MSW] POST /api/devices/' + deviceId + '/token:', data);
@@ -493,7 +494,7 @@ export const notificationHandlers = [
   }),
 
   // 단건 안읽음 처리 (PATCH /api/notifications/{notificationUuid}/unread)
-  http.patch('/api/notifications/:notificationUuid/unread', async ({ params }) => {
+  http.patch(API_ENDPOINTS.NOTIFICATION_BY_ID(':notificationUuid') + '/unread', async ({ params }) => {
     const { notificationUuid } = params;
     const notification = mockNotifications.find(n => n.id === notificationUuid);
     
@@ -517,7 +518,7 @@ export const notificationHandlers = [
   // ===== Legacy/Development APIs =====
   
   // 레거시 호환용 - 알림 상태 토글
-  http.patch('/api/notifications/:id/toggle-read', ({ params }) => {
+  http.patch(API_ENDPOINTS.NOTIFICATION_BY_ID(':id') + '/toggle-read', ({ params }) => {
     const { id } = params;
     const notification = mockNotifications.find(n => n.id === id);
     

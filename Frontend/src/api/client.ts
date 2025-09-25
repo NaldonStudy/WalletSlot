@@ -1,5 +1,5 @@
 import { API_CONFIG } from '@/src/constants';
-import { USE_MSW } from '@/src/constants/api';
+import { API_ENDPOINTS, USE_MSW } from '@/src/constants/api';
 import { authService } from '@/src/services/authService';
 import { getOrCreateDeviceId } from '@/src/services/deviceIdService';
 import type { ApiError, BaseResponse } from '@/src/types';
@@ -8,10 +8,10 @@ import axios, { AxiosError, AxiosInstance, AxiosResponse } from 'axios';
 class ApiClient {
   private client: AxiosInstance;
   private isRefreshing = false;
-  private failedQueue: Array<{
+  private failedQueue: {
     resolve: (value: string) => void;
     reject: (error: any) => void;
-  }> = [];
+  }[] = [];
   private generateRequestId(): string {
     try {
       const rnd = Math.random().toString(36).slice(2);
@@ -94,7 +94,8 @@ class ApiClient {
         try {
           const { DEV_AUTH_BYPASS } = require('@/src/config/devAuthBypass');
           const targetUrl = `${config.baseURL || ''}${config.url || ''}`;
-          if (DEV_AUTH_BYPASS?.enabled && /\/api\/push\/endpoints$/.test(config.url || '') && token) {
+          // Use centralized endpoint constant to detect push endpoint registration URL
+          if (DEV_AUTH_BYPASS?.enabled && String(config.url || '').endsWith(API_ENDPOINTS.PUSH_ENDPOINTS) && token) {
             headers.Authorization = `Bearer ${token}`;
           }
         } catch {}

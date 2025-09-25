@@ -1,3 +1,4 @@
+import { API_ENDPOINTS } from '@/src/constants/api';
 import type { MePatchRequestDto, UpdateProfileRequest, UserProfile } from '@/src/types';
 import { apiClient } from './client';
 import { fetchJsonFallback, isAmbiguousAxiosBody } from './responseNormalizer';
@@ -12,7 +13,7 @@ export const profileApi = {
    * GET /api/users/me
    */
   getMe: async (): Promise<UserProfile> => {
-    const response = await apiClient.get<UserProfile>('/api/users/me');
+    const response = await apiClient.get<UserProfile>(API_ENDPOINTS.USER_ME);
     
     // BaseResponse 형태로 응답이 오는 경우
     if (response && typeof response === 'object' && 'success' in response && 'data' in response) {
@@ -25,7 +26,7 @@ export const profileApi = {
     // 비정상 응답 처리 (폴백)
     if (!response || isAmbiguousAxiosBody(response)) {
       console.warn('[PROFILE_API] getMe - 비정상 응답 수신, 폴백 fetch 시도');
-      const json = await fetchJsonFallback('/api/users/me');
+  const json = await fetchJsonFallback(API_ENDPOINTS.USER_ME);
       if (json && typeof json === 'object' && (json.data || json.name)) {
         // json이 BaseResponse 형태이거나 바로 UserProfile인 경우 처리
         if (json.data) return json.data as UserProfile;
@@ -58,7 +59,7 @@ export const profileApi = {
    * null은 변경 없음. email/phoneNumber 변경은 인증 토큰 필요(추후 연동).
    */
   updateMe: async (data: MePatchRequestDto): Promise<UserProfile> => {
-    const response = await apiClient.patch<UserProfile>('/api/users/me', data);
+  const response = await apiClient.patch<UserProfile>(API_ENDPOINTS.USER_ME, data);
     
     // BaseResponse 형태로 응답이 오는 경우
     if (response && typeof response === 'object' && 'success' in response && 'data' in response) {

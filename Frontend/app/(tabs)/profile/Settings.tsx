@@ -90,32 +90,16 @@ export default function Settings({ visible, onClose }: Props) {
                     console.log('[PUSH_TOGGLE] Same value, ignoring');
                     return;
                   }
-                  
-                  console.log('[PUSH_TOGGLE] Starting request: deviceId=', currentDeviceId, 'newValue=', v);
-                  monitoringService.logUserInteraction('setting_change', { key: 'push', enabled: v });
-                  
-                  // 바로 상태 업데이트 (낙관적 업데이트)
+
+                  monitoringService.logSettingChange('push', v);
+                  // 낙관적 업데이트
                   setPushEnabled(v);
-                  
+
                   try {
-                    const response = await fetch(`/api/devices/${currentDeviceId}`, {
-                      method: 'PATCH',
-                      headers: {
-                        'Content-Type': 'application/json',
-                      },
-                      body: JSON.stringify({ pushEnabled: v }),
-                    });
-                    
-                    if (!response.ok) {
-                      throw new Error('API 요청 실패');
-                    }
-                    
-                    const result = await response.json();
-                    console.log('[PUSH_TOGGLE] Success:', result);
-                    // 성공 시에는 별도 알림 없이 토글만 변경
-                  } catch (error) {
-                    console.log('[PUSH_TOGGLE] Error:', error);
-                    // 실패 시 원래 상태로 되돌리기
+                    await updateDeviceMutation.mutateAsync({ deviceId: currentDeviceId, request: { pushEnabled: v } });
+                    // 성공: nothing else to do
+                  } catch (err) {
+                    console.error('[PUSH_TOGGLE] updateDevice failed', err);
                     setPushEnabled(!v);
                     Alert.alert('오류', '푸시 알림 설정 변경에 실패했습니다.');
                   }
@@ -131,7 +115,7 @@ export default function Settings({ visible, onClose }: Props) {
               </View>
               <Toggle value={marketingEnabled} onValueChange={(v) => {
                 setMarketingEnabled(v);
-                monitoringService.logUserInteraction('setting_change', { key: 'marketing', enabled: v });
+                monitoringService.logSettingChange('marketing', v);
                 // 마케팅 알림은 별도 설정으로 처리 (현재는 로컬 상태만 변경)
                 // TODO: 실제 마케팅 알림 설정 API 연동 필요
               }} />

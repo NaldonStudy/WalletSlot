@@ -1,4 +1,5 @@
 import { apiClient } from '@/src/api/client';
+import { API_ENDPOINTS } from '@/src/constants/api';
 import {
   ApiError,
   BaseResponse,
@@ -16,7 +17,7 @@ export const slotApi = {
    */
   getSlotsByAccount: async (accountId: string): Promise<BaseResponse<SlotsResponse>> => {
     try {
-      return await apiClient.get<SlotsResponse>(`/api/accounts/${accountId}/slots`);
+    return await apiClient.get<SlotsResponse>(API_ENDPOINTS.ACCOUNT_SLOTS(accountId));
     } catch (error) {
       console.error(
         '[getSlotsByAccount] API 호출 실패:',
@@ -32,7 +33,7 @@ export const slotApi = {
   getSlotDailySpending: async (accountId: string, slotId: string): Promise<BaseResponse<SlotDailySpendingResponse>> => {
     try {
       return await apiClient.get<SlotDailySpendingResponse>(
-        `/api/accounts/${accountId}/slots/${slotId}/daily-spending`
+        API_ENDPOINTS.ACCOUNT_SLOT_DAILY_SPENDING(accountId, slotId)
       );
     } catch (error) {
       const apiError = error as ApiError | Error;
@@ -61,7 +62,7 @@ export const slotApi = {
   ): Promise<BaseResponse<SlotTransactionsResponse>> => {
     try {
       return await apiClient.get<SlotTransactionsResponse>(
-        `/api/accounts/${accountId}/slots/${accountSlotId}/transactions`,
+        API_ENDPOINTS.ACCOUNT_SLOT_TRANSACTIONS(accountId, accountSlotId),
         params
       );
     } catch (error) {

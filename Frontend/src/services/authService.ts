@@ -1,5 +1,6 @@
 import { DEV_AUTH_BYPASS } from '@/src/config/devAuthBypass';
 import { API_CONFIG, STORAGE_KEYS } from '@/src/constants';
+import { API_ENDPOINTS } from '@/src/constants/api';
 import { getOrCreateDeviceId } from '@/src/services/deviceIdService';
 import { deleteAccessToken as ssDelAT, getAccessToken as ssGetAT, saveAccessToken as ssSaveAT, saveRefreshToken as ssSaveRT } from '@/src/services/tokenService';
 import { LocalUser } from '@/src/types';
@@ -113,7 +114,8 @@ export const authService = {
 
             // 명세에 따라 body로 refreshToken + deviceId 전송
             const requestId = `req_${Date.now().toString(36)}_${Math.random().toString(36).slice(2)}`;
-            const response = await fetch(`${API_CONFIG.BASE_URL}/api/auth/refresh`, {
+            const refreshUrl = `${API_CONFIG.BASE_URL}${API_ENDPOINTS.AUTH_REFRESH}`;
+            const response = await fetch(refreshUrl, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

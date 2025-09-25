@@ -1,4 +1,5 @@
 import { apiClient } from '@/src/api/client';
+import { API_ENDPOINTS } from '@/src/constants/api';
 import { getOrCreateDeviceId } from '@/src/services/deviceIdService';
 import { getAccessToken } from '@/src/services/tokenService';
 import type { FCMTokenRequest } from '@/src/types';
@@ -271,7 +272,7 @@ export class FirebasePushService {
         token: request.fcmToken,
         pushEnabled: true,
       };
-      const response: any = await apiClient.postWithConfig('/api/push/endpoints', payload, { noRefresh: true });
+  const response: any = await apiClient.postWithConfig(API_ENDPOINTS.PUSH_ENDPOINTS, payload, { noRefresh: true });
       const serverDeviceId = response?.data?.device?.deviceId || response?.deviceId;
       return {
         success: true,
@@ -323,7 +324,7 @@ export class FirebasePushService {
         appVersion: Constants.expoConfig?.version || '1.0.0',
         osVersion: Device.osVersion || 'unknown',
       };
-      const res = await this.registerTokenToServer(payload);
+  const res = await this.registerTokenToServer(payload);
       if (res.success) {
         this.deviceId = res.deviceId || payload.deviceId;
         this.isInitialized = true;
@@ -541,7 +542,7 @@ export class FirebasePushService {
       if (!this.deviceId) return;
 
       // 등록과 동일 엔드포인트(POST /api/push/endpoints)는 갱신도 지원
-      await apiClient.postWithConfig('/api/push/endpoints', {
+      await apiClient.postWithConfig(API_ENDPOINTS.PUSH_ENDPOINTS, {
         deviceId: this.deviceId,
         platform: Platform.OS === 'ios' ? 'IOS' : 'ANDROID',
         token: newToken,
@@ -559,7 +560,7 @@ export class FirebasePushService {
    */
   private async markNotificationAsReceived(notificationId: string): Promise<void> {
     try {
-      await apiClient.patch(`/api/notifications/${notificationId}/received`);
+  await apiClient.patch(`${API_ENDPOINTS.NOTIFICATION_BY_ID(notificationId)}/received`);
     } catch (error) {
       console.error('[FIREBASE_PUSH] 알림 수신 확인 실패:', error);
     }

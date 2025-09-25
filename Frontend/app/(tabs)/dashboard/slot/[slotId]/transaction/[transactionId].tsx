@@ -1,7 +1,6 @@
 import React, { useEffect } from 'react';
-import { useLocalSearchParams, router } from 'expo-router';
+import { useLocalSearchParams, router , Stack } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Stack } from 'expo-router';
 import { Alert, View, StyleSheet, useColorScheme } from 'react-native';
 import { SlotTransaction } from '@/src/types/slot';
 import { useSlotStore } from '@/src/store/useSlotStore';

@@ -420,7 +420,9 @@ if (__DEV__) {
   initializeMSW();
 }
 
-// API 호출 (기존 코드 그대로)
+// API 호출 (권장: 중앙화된 상수 사용)
+// 권장 예시: const response = await apiClient.get(API_ENDPOINTS.NOTIFICATIONS);
+// 문서/예시 목적(또는 직접 경로 사용 시):
 const response = await apiClient.get('/api/notifications');
 // → MSW가 자동으로 Mock 데이터 반환
 
