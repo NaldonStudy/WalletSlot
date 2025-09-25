@@ -83,24 +83,17 @@ export default function DashboardScreen() {
   React.useEffect(() => {
     const fetchBaseDayAndCalculateRange = async () => {
       try {
-        console.log('[Dashboard] 기준일 API 호출 시작');
         const response = await profileApi.getBaseDay();
-        console.log('[Dashboard] 기준일 API 응답:', response);
         
         if (!response || typeof response.baseDay !== 'number') {
-          console.warn('[Dashboard] 기준일 데이터가 올바르지 않음:', response);
           return; // 기본값 유지
         }
         
         const baseDay = response.baseDay;
-        console.log('[Dashboard] 기준일:', baseDay);
-        
         const now = new Date();
         const currentDay = now.getDate();
         const currentYear = now.getFullYear();
         const currentMonth = now.getMonth(); // 0-based
-        
-        console.log('[Dashboard] 현재 날짜:', { currentDay, currentYear, currentMonth });
         
         let startDate: Date;
         let endDate: Date;
@@ -115,8 +108,6 @@ export default function DashboardScreen() {
           endDate = new Date(currentYear, currentMonth + 1, baseDay - 1);
         }
         
-        console.log('[Dashboard] 계산된 날짜 범위:', { startDate, endDate });
-        
         const formatDate = (date: Date) => {
           const year = date.getFullYear();
           const month = (date.getMonth() + 1).toString().padStart(2, '0');
@@ -125,10 +116,8 @@ export default function DashboardScreen() {
         };
         
         const formattedRange = `${formatDate(startDate)} ~ ${formatDate(endDate)}`;
-        console.log('[Dashboard] 포맷된 날짜 범위:', formattedRange);
         setDateRange(formattedRange);
       } catch (error) {
-        console.error('[Dashboard] 기준일 조회 실패:', error);
         // 에러 시 기본값 유지
       }
     };
@@ -141,9 +130,20 @@ export default function DashboardScreen() {
   const uncategorizedSlot = allSlots.find(slot => slot.slotId === UNCATEGORIZED_SLOT_ID);
   const uncategorizedAmount = uncategorizedSlot?.remainingBudget || 0;
 
+  // 툴팁 상태 관리
+  const [openTooltipId, setOpenTooltipId] = useState<string | null>(null);
+
+  // 화면 터치 시 툴팁 닫기
+  const handleScreenPress = useCallback(() => {
+    setOpenTooltipId(null);
+  }, []);
+
   // 슬롯 프레스 핸들러 (도넛 차트에서 슬롯 클릭 시)
   const handleSlotPress = useCallback((slot: SlotData) => {
     console.log('[handleSlotPress] 슬롯 클릭:', slot.name, slot.slotId);
+    
+    // 툴팁 닫기
+    setOpenTooltipId(null);
     
     // 해당 슬롯의 인덱스 찾기
     const slotIndex = currentAccountSlots.findIndex(s => s.slotId === slot.slotId);
@@ -261,6 +261,7 @@ export default function DashboardScreen() {
           [{ nativeEvent: { contentOffset: { y: scrollY } } }],
           { useNativeDriver: true }
         )}
+        onTouchStart={handleScreenPress}
       >
         {/* 헤더 */}
         <DashboardHeader userData={userData} theme={theme} />
@@ -319,7 +320,12 @@ export default function DashboardScreen() {
             </View>
           ) : (
             <View style={styles.slotListContainer}>
-              <SlotList slots={currentAccountSlots} accountId={currentAccount.accountId} />
+              <SlotList 
+                slots={currentAccountSlots} 
+                accountId={currentAccount.accountId}
+                openTooltipId={openTooltipId}
+                setOpenTooltipId={setOpenTooltipId}
+              />
             </View>
           )}
         </View>

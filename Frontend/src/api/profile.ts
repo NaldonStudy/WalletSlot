@@ -57,13 +57,10 @@ export const profileApi = {
    * GET /api/users/me/base-day
    */
   getBaseDay: async (): Promise<{ baseDay: number }> => {
-    console.log('[profileApi.getBaseDay] API 호출 시작');
     const response = await apiClient.get<BaseResponse<{ baseDay: number }>>('/api/users/me/base-day');
-    console.log('[profileApi.getBaseDay] 원본 응답:', response);
     
     // 중첩된 구조 처리: response.data.data.baseDay
     const result = (response as any).data?.data || (response as any).data || response;
-    console.log('[profileApi.getBaseDay] 처리된 결과:', result);
     return result;
   },
 

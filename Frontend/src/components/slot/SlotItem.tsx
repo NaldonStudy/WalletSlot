@@ -77,15 +77,18 @@ const SlotItem = ({ slot, isTooltipOpen = false, onMenuPress, onEdit, onHistory 
           </TouchableOpacity>
 
           {isTooltipOpen && (
-            <View style={styles.tooltipWrapper}>
+            <View 
+              style={styles.tooltipWrapper}
+              onTouchStart={(e) => {
+                e.stopPropagation(); // 터치 이벤트 전파 중단
+              }}
+            >
               <ActionTooltip
                 onEdit={() => {
                   onEdit?.();
-                  
                 }}
                 onHistory={() => {
                   onHistory?.();
-                  console.log("History Clicked");
                 }}
               />
             </View>
