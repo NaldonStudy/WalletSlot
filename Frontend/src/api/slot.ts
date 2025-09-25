@@ -3,7 +3,7 @@ import {
   ApiError,
   BaseResponse,
   SlotDailySpendingResponse,
-  BaseResponse 
+  SlotsResponse
 } from '@/src/types';
 
 /**
