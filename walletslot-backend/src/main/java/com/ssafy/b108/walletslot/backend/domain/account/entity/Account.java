@@ -48,7 +48,8 @@ public class Account {
     private boolean isPrimary = false;
 
     @Column(length = 255)
-    private String lastSyncedTransactionUniqueNo;
+    @Builder.Default
+    private Long lastSyncedTransactionUniqueNo = 0L;
 
     @Column(nullable = false, insertable = false, updatable = false)
     private LocalDateTime lastSyncedAt;
@@ -63,7 +64,7 @@ public class Account {
     public void updateIsPrimary(Boolean isPrimary) {
         this.isPrimary = isPrimary;
     }
-    public void updateLastSyncedTransactionUniqueNo(String lastSyncedTransactionUniqueNo) { this.lastSyncedTransactionUniqueNo = lastSyncedTransactionUniqueNo; }
+    public void updateLastSyncedTransactionUniqueNo(Long lastSyncedTransactionUniqueNo) { this.lastSyncedTransactionUniqueNo = lastSyncedTransactionUniqueNo; }
     public void updateLastSyncedAt(LocalDateTime lastSyncedAt) { this.lastSyncedAt = lastSyncedAt; }
     public void updateBalance(long balance) { this.balance = balance; }
 }
