@@ -10,6 +10,7 @@ import lombok.*;
 public class VerifyAccountRequestDto {
 
     // Field
+    private String userName;
     private String accountNo;
     private String authIdentifier;
 }

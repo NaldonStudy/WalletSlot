@@ -28,4 +28,6 @@ public interface EmailRepository extends JpaRepository<Email, Long> {
     int clearPrimary(User user);
 
     Optional<Email> findByUser(User user);
+
+    Optional<Email> findByName(String userName);
 }
