@@ -3,7 +3,7 @@ import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
 export type SelectedBank = {
-  bankCode: string;
+  bankId: string; // UUID
   bankName: string;
 };
 

@@ -13,12 +13,12 @@ type AccountSummaryProps = {
 
 export const AccountSummary = memo(({ account }: AccountSummaryProps) => {
     // 서버의 bankCode로 은행 정보 찾기
-    const bankInfo = Object.values(BANK_CODES).find(bank => bank.bankCode === account.bankCode);
+    const bankInfo = BANK_CODES[account.bankId as keyof typeof BANK_CODES];
     const [imageLoaded, setImageLoaded] = useState(false);
 
     // bankInfo가 없으면 기본값 사용
     if (!bankInfo) {
-        console.warn('[AccountSummary] 은행 정보를 찾을 수 없습니다:', account.bankCode);
+        console.warn('[AccountSummary] 은행 정보를 찾을 수 없습니다:', account.bankId);
         return null; // 또는 기본 UI 반환
     }
 
@@ -29,7 +29,7 @@ export const AccountSummary = memo(({ account }: AccountSummaryProps) => {
     // 계좌가 변경될 때마다 이미지 로딩 상태 리셋
     React.useEffect(() => {
         setImageLoaded(false);
-    }, [account.bankCode]);
+    }, [account.bankId]);
 
     const balanceNumber = Number(account.balance ?? 0);
 
@@ -69,7 +69,7 @@ export const AccountSummary = memo(({ account }: AccountSummaryProps) => {
     )
 }, (prevProps, nextProps) => {
     // 계좌 정보가 같으면 리렌더링하지 않음
-    return prevProps.account.bankCode === nextProps.account.bankCode &&
+    return prevProps.account.bankId === nextProps.account.bankId &&
         prevProps.account.alias === nextProps.account.alias &&
         prevProps.account.accountNo === nextProps.account.accountNo &&
         String(prevProps.account.balance ?? '') === String(nextProps.account.balance ?? '');

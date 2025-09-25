@@ -6,7 +6,7 @@ import React from 'react';
 import { StyleProp, StyleSheet, Text, View, ViewStyle } from 'react-native';
 
 export type AccountCardData = {
-    bankCode: string; // 서버에서 오는 bankCode (예: "002")
+    bankId: string; // 서버에서 오는 bankId (UUID)
     accountName: string;
     accountNumber: string;
     balance: number;
@@ -32,18 +32,18 @@ type AccountCardProps = AccountCardData & {
 }
 
 const AccountCard: React.FC<AccountCardProps> = ({
-    bankCode,
+    bankId,
     accountName,
     accountNumber,
     balance,
     style,
 }) => {
     // 서버의 bankCode로 은행 정보 찾기
-    const bankInfo = Object.values(BANK_CODES).find(bank => bank.bankCode === bankCode);
+    const bankInfo = BANK_CODES[bankId as keyof typeof BANK_CODES];
     
     // bankInfo가 없으면 기본값 사용
     if (!bankInfo) {
-        console.warn('[AccountCard] 은행 정보를 찾을 수 없습니다:', bankCode);
+        console.warn('[AccountCard] 은행 정보를 찾을 수 없습니다:', bankId);
         return null;
     }
     

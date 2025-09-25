@@ -13,7 +13,7 @@ export interface Device {
 
 export interface LinkedAccount {
   accountId: string;
-  bankCode: string;
+  bankId: string;
   bankName: string;
   accountNo: string;
   alias: string;
@@ -122,7 +122,7 @@ export const getLinkedAccounts = async (): Promise<LinkedAccount[]> => {
 function convertUserAccountsToLinkedAccounts(userAccounts: any[]): LinkedAccount[] {
   return userAccounts.map(account => ({
     accountId: account.accountId,
-    bankCode: account.bankCode,
+    bankId: account.bankId,
     bankName: account.bankName,
     accountNo: account.accountNo,
     alias: account.alias || '연동된 계좌',
