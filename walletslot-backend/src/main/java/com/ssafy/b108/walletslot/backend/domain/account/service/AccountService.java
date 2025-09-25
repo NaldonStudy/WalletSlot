@@ -373,11 +373,30 @@ public class AccountService {
     }
 
     // 4-2-1
-    public RequestVerificationResponseDto requestVerification(long userId, String bankUuid, String accountNo) {
+    public RequestVerificationResponseDto requestVerification(String userName, String bankUuid, String accountNo) {
 
         // user 조회 -> userKey 획득하기
-        User user = userRepository.findById(userId).orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "AccountService - 001"));
-        String userKey = user.getUserKey();
+        Email email = emailRepository.findByName(userName).orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "AccountService - 000"));
+
+        // SSAFY 금융 API >>>>> 2.2.2 사용자 계정 조회
+        // 요청보낼 url
+        String url1 = "https://finopenapi.ssafy.io/ssafy/api/v1/member/search";
+
+        Map<String, Object> body1 = new HashMap<>();
+        body1.put("userId", email.getEmail());
+        body1.put("apiKey", ssafyFinanceApiKey);
+
+        // 요청보낼 http entity 만들기
+        HttpEntity<Map<String, Object>> httpEntity1 = new HttpEntity<>(body1);
+
+        // 요청 보내기
+        ResponseEntity<SSAFYGetUserKeyResponseDto> httpResponse1 = restTemplate.exchange(
+                url1,
+                HttpMethod.POST,
+                httpEntity1,
+                SSAFYGetUserKeyResponseDto.class);
+
+        String userKey = httpResponse1.getBody().getUserKey();
 
         // SSAFY 금융 API >>>>> 2.4.6 예금주 조회
         // 방금 조회한 사용자의 이름 != 예금주 명이면 403 보내야 함
@@ -459,11 +478,30 @@ public class AccountService {
     }
 
     // 4-2-2
-    public VerifyAccountResponseDto verifyAccount(long userId, String accountNo, String authText, String authCode) {
+    public VerifyAccountResponseDto verifyAccount(String userName, String accountNo, String authText, String authCode) {
 
         // user 조회 -> userKey 획득하기
-        User user = userRepository.findById(userId).orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "AccountService - 003"));
-        String userKey = user.getUserKey();
+        Email email = emailRepository.findByName(userName).orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "AccountService - 000"));
+
+        // SSAFY 금융 API >>>>> 2.2.2 사용자 계정 조회
+        // 요청보낼 url
+        String url1 = "https://finopenapi.ssafy.io/ssafy/api/v1/member/search";
+
+        Map<String, Object> body1 = new HashMap<>();
+        body1.put("userId", email.getEmail());
+        body1.put("apiKey", ssafyFinanceApiKey);
+
+        // 요청보낼 http entity 만들기
+        HttpEntity<Map<String, Object>> httpEntity1 = new HttpEntity<>(body1);
+
+        // 요청 보내기
+        ResponseEntity<SSAFYGetUserKeyResponseDto> httpResponse1 = restTemplate.exchange(
+                url1,
+                HttpMethod.POST,
+                httpEntity1,
+                SSAFYGetUserKeyResponseDto.class);
+
+        String userKey = httpResponse1.getBody().getUserKey();
 
         // SSAFY 금융 API >>>>> 2.9.2 1원 송금 검증
         // 요청보낼 url

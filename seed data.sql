@@ -195,7 +195,7 @@ VALUES
 INSERT INTO `email` (id, user_id, name, email, is_primary, verified_at, created_at)
 VALUES
 -- user 1: 과거 이메일(비기본) + 현재 이메일(기본)
-(1, 1, '전해지', 'wjsgowl0224_old@naver.com', 0, '2024-07-10 10:00:00', '2024-07-10 10:00:00');
+(1, 1, '전해지', 'wjsgowl0224@naver.com', 0, '2024-07-10 10:00:00', '2024-07-10 10:00:00');
 
 -- AI_REPORT (옵션)
 INSERT INTO `ai_report` (id, uuid, account_id, content)
