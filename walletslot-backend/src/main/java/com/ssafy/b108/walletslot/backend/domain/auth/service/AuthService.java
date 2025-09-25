@@ -146,7 +146,7 @@ public class AuthService {
     }
 
     /** 2-5. PIN 재설정 코드 발송(SMS) */
-    @Transactional(readOnly = true)
+    @Transactional
     public boolean requestPinReset(String phone) {
         userRepository.findByPhoneNumber(phone)
                 .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "가입되지 않은 번호입니다."));
@@ -189,23 +189,39 @@ public class AuthService {
         up.upgrade(newPin, active, newSecret, targetCost, bcrypt, Instant.now());
     }
 
+    private String normalizePurpose(String raw) {
+        return raw == null ? "" : raw.trim().toUpperCase();
+    }
+
     /** 2-8. 새 기기 검증(선택) */
     @Transactional(readOnly = true)
     public boolean verifyDevice(String phone, String deviceId, String code) {
-        return otpService.verify(phone, "DEVICE_VERIFY", code);
+        if (deviceId == null || deviceId.isBlank()) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "deviceId는 DEVICE_VERIFY에서 필수입니다.");
+        }
+        return otpService.verify(phone, "DEVICE_VERIFY", code, deviceId);
     }
 
     /** 2-9. SMS 발송 */
-    @Transactional(readOnly = true)
+    @Transactional
     public boolean sendSmsCode(String phone, String purpose, String deviceId) {
-        otpService.send(phone, purpose, deviceId);
+        final String p = normalizePurpose(purpose);
+        if ("DEVICE_VERIFY".equals(p) && (deviceId == null || deviceId.isBlank())) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "DEVICE_VERIFY에는 deviceId가 필요합니다.");
+        }
+        otpService.send(phone, p, deviceId);
         return true;
     }
 
+
     /** 2-10. SMS 검증 */
-    @Transactional(readOnly = true)
+    @Transactional
     public boolean verifySmsCode(String phone, String purpose, String code) {
-        return otpService.verify(phone, purpose, code);
+        final String p = normalizePurpose(purpose);
+        if ("DEVICE_VERIFY".equals(p)) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "DEVICE_VERIFY는 /api/auth/device/verify를 사용하세요.");
+        }
+        return otpService.verify(phone, p, code);
     }
 
     /** 가입용 티켓 발급 (SIGNUP 전용) */
@@ -216,7 +232,7 @@ public class AuthService {
     }
 
     /** 2-11. 액세스 토큰 유효성 점검 */
-    @Transactional(readOnly = true)
+    @Transactional
     public ValidateResult validateToken(String authorizationHeader) {
         if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer "))
             return new ValidateResult(false, null, null);

@@ -362,10 +362,10 @@ public class AuthController {
         return ApiResponse.ok(new SmsVerifyResponse(ok));
     }
 
-    // 2-9. SMS 발송
+    // 2-9-1. SMS 발송
     @PostMapping("/sms/send")
     @Operation(
-            summary = "2-9. SMS 인증코드 발송",
+            summary = "2-9-1. SMS 인증코드 발송",
             description = """
                 SMS 인증코드를 발송합니다.
                 - purpose ENUM: { LOGIN, DEVICE_VERIFY, PIN_RESET, SIGNUP }
@@ -399,6 +399,35 @@ public class AuthController {
         boolean sent = authService.sendSmsCode(req.getPhone(), req.getPurpose(), req.getDeviceId());
         return ApiResponse.ok(new SmsSendResponse(sent));
     }
+
+    // 2-9-2. 회원가입 전용 sms전송
+    @PostMapping("/sms/send-signup")
+    @Operation(
+            summary = "가입용 SMS 인증코드 발송 (purpose=SIGNUP 고정)",
+            description = "회원가입 절차 전용 발송 엔드포인트입니다. 서버가 purpose를 SIGNUP으로 고정합니다.",
+            extensions = @Extension(name = "x-order", properties = @ExtensionProperty(name = "order", value = "10.1")),
+            requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(
+                    required = true,
+                    content = @Content(
+                            schema = @Schema(implementation = PinResetRequest.class), // phone만 필요해서 재사용
+                            examples = @ExampleObject(value = """
+                            { "phone": "01012345678" }
+                        """)
+                    )
+            )
+    )
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "200", description = "발송 성공",
+                    content = @Content(schema = @Schema(implementation = SmsSendResponse.class))
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "검증 실패")
+    })
+    public ApiResponse<SmsSendResponse> sendSignupSms(@Valid @RequestBody PinResetRequest req) {
+        boolean sent = authService.sendSmsCode(req.getPhone(), "SIGNUP", null);
+        return ApiResponse.ok(new SmsSendResponse(sent));
+    }
+
 
     // 2-10. SMS 검증(일반)
     @PostMapping("/sms/verify")

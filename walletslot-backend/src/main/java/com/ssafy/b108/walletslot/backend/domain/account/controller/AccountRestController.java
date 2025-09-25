@@ -134,8 +134,8 @@ public class AccountRestController {
             }
 
     )
-    public ResponseEntity<RequestVerificationResponseDto> requestVerification(@AuthenticationPrincipal UserPrincipal principal, @RequestBody RequestVerificationRequestDto request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(accountService.requestVerification(principal.userId(), request.getBankId(), request.getAccountNo()));
+    public ResponseEntity<RequestVerificationResponseDto> requestVerification(@RequestBody RequestVerificationRequestDto request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(accountService.requestVerification(request.getUserName(), request.getBankId(), request.getAccountNo()));
     }
 
     @PostMapping("/verification/verify")
@@ -150,12 +150,12 @@ public class AccountRestController {
                     )
             }
     )
-    public ResponseEntity<VerifyAccountResponseDto> verifyAccount(@AuthenticationPrincipal UserPrincipal principal, @RequestBody VerifyAccountRequestDto request) {
+    public ResponseEntity<VerifyAccountResponseDto> verifyAccount(@RequestBody VerifyAccountRequestDto request) {
         int indexOfSpace = request.getAuthIdentifier().indexOf(" ");
         String authText = request.getAuthIdentifier().substring(0, indexOfSpace);
         String authCode = request.getAuthIdentifier().substring(indexOfSpace + 1);
 
-        return ResponseEntity.status(HttpStatus.OK).body(accountService.verifyAccount(principal.userId(), request.getAccountNo(), authText, authCode));
+        return ResponseEntity.status(HttpStatus.OK).body(accountService.verifyAccount(request.getUserName(), request.getAccountNo(), authText, authCode));
     }
 
     @PostMapping("/link")
