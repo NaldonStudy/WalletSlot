@@ -111,13 +111,19 @@ VALUES
 (3, UUID(), 1, 3, 30000, 30000, 0, 0, FALSE, FALSE, NULL),
 (4, UUID(), 2, 1, 100000, 100000, 0, 0, FALSE, FALSE, NULL),
 (5, UUID(), 2, 2, 50000, 100000, 0, 1, FALSE, FALSE, NULL),
-(6, UUID(), 2, 3, 30000, 30000, 0, 0, FALSE, FALSE, NULL),
+(6, UUID(), 2, 0, 30000, 30000, 0, 0, FALSE, FALSE, NULL),
 (7, UUID(), 3, 1, 100000, 100000, 0, 0, FALSE, FALSE, NULL),
-(8, UUID(), 3, 2, 50000, 50000, 0, 0, FALSE, FALSE, NULL),
-(9, UUID(), 3, 3, 30000, 60000, 0, 1, FALSE, FALSE, NULL),
-(10, UUID(), 1, 4,  120000, 120000, 0, 0, FALSE, FALSE, NULL),  -- 카페/간식
-(11, UUID(), 1, 14,  15000,  15000,  0, 0, FALSE, FALSE, NULL), -- 구독비
-(12, UUID(), 1, 0,       0,      0,  0, 0, FALSE, FALSE, NULL); -- 미분류(테스트용)
+(8, UUID(), 3, 0, 50000, 50000, 0, 0, FALSE, FALSE, NULL),
+(9, UUID(), 4, 0, 30000, 60000, 0, 1, FALSE, FALSE, NULL),
+(10, UUID(), 4, 4,  120000, 120000, 0, 0, FALSE, FALSE, NULL),  -- 카페/간식
+(11, UUID(), 5, 14,  15000,  15000,  0, 0, FALSE, FALSE, NULL), -- 구독비
+(12, UUID(), 5, 0,       50200,      0,  0, 0, FALSE, FALSE, NULL), -- 미분류(테스트용)
+(13, UUID(), 6, 5,       2200,      0,  0, 0, FALSE, FALSE, NULL), 
+(14, UUID(), 6, 9,       11131,      0,  0, 0, FALSE, FALSE, NULL), 
+(15, UUID(), 6, 0,       335555,      0,  0, 0, FALSE, FALSE, NULL), 
+(16, UUID(), 7, 1,       552125,      0,  0, 0, FALSE, FALSE, NULL), 
+(17, UUID(), 7, 0,       52222,      0,  0, 0, FALSE, FALSE, NULL), 
+(18, UUID(), 7, 2,       10000,      0,  0, 0, FALSE, FALSE, NULL);
 
 -- SLOT_HISTORY
 INSERT INTO `slot_history` (id, uuid, account_slot_id, old_budget, new_budget)

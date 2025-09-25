@@ -203,7 +203,7 @@ CREATE TABLE `transaction` (
   `uuid` VARCHAR(64) NOT NULL,
   `account_id` INT UNSIGNED NOT NULL,
   `account_slot_id` INT UNSIGNED NOT NULL,
-  `unique_no` VARCHAR(255) NOT NULL COMMENT 'transactionUniqueNo',
+  `unique_no` BIGINT UNSIGNED NOT NULL COMMENT 'transactionUniqueNo',
   `type` VARCHAR(64) NOT NULL COMMENT 'transactionType, transactionTypeName',
   `opponent_account_no` VARCHAR(255) COMMENT 'transactionAccountNo',
   `summary` VARCHAR(255) NOT NULL COMMENT 'transactionSummary',

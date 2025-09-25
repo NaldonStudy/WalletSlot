@@ -34,7 +34,7 @@ public class Transaction {
     private AccountSlot accountSlot;
 
     @Column(nullable = false)
-    private String uniqueNo;
+    private Long uniqueNo;
 
     @Column(nullable = false)
     private String type;
