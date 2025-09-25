@@ -30,7 +30,7 @@ const SlotItem = ({ slot, isTooltipOpen = false, onMenuPress, onEdit, onHistory 
   const slotName = slot.customName || slot.name;
   return (
     <View style={[styles.card, theme.shadows.base, {
-      backgroundColor: isOverBudget ? '#FFF5F5' : theme.colors.background.primary,
+      backgroundColor: theme.colors.background.primary,
       borderColor: isOverBudget ? '#FF4444' : theme.colors.border.light,
       borderWidth: isOverBudget ? 3 : 1,
       shadowColor: isOverBudget ? '#FF4444' : 'transparent',
@@ -107,7 +107,7 @@ const SlotItem = ({ slot, isTooltipOpen = false, onMenuPress, onEdit, onHistory 
           }
         ]}>
           <CircularProgress
-            progress={isOverBudget ? 1.0 : progress}
+            progress={isOverBudget ? 0 : progress}
             size={70}
             strokeWidth={isOverBudget ? 8 : 7}
             color={isOverBudget ? '#FF4444' : slotColor}

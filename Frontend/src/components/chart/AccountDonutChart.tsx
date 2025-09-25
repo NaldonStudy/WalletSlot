@@ -99,28 +99,20 @@ const AccountDonutChart = memo(({ data }: AccountDonutChartProps) => {
                      return (
                           <G key={slot.slotId}>
                               {slot.isOverBudget ? (
-                                  // 예산 초과 시: 전체 슬롯을 빨간색으로 채움 + 그림자 효과
+                                  // 예산 초과 시: 사용된 부분만 흰색으로 표시 (남은 부분은 비워둠)
                                   <>
-                                      {/* 그림자 (뒤에 그리기) */}
+                                      {/* 사용된 부분 그림자 */}
                                       <Path
                                           d={createArcPath(slot.startAngle, slot.endAngle, innerRadius + 1, outerRadius + 1)}
-                                          fill="#CC0000"
-                                          fillOpacity="0.3"
+                                          fill="#000000"
+                                          fillOpacity="0.2"
                                           stroke="none"
                                       />
-                                      {/* 메인 슬롯 */}
+                                      {/* 사용된 부분 (흰색) */}
                                       <Path
                                           d={createArcPath(slot.startAngle, slot.endAngle, innerRadius, outerRadius)}
-                                          fill={slot.displayColor} // 빨간색
-
-                                          strokeWidth="3"
-                                      />
-                                      {/* 내부 테두리도 추가 */}
-                                      <Path
-                                          d={createArcPath(slot.startAngle, slot.endAngle, innerRadius + 2, outerRadius - 2)}
-                                          fill="none"
-                                          stroke="#FF6666" // 밝은 빨간색 내부 테두리
-                                          strokeWidth="1"
+                                          fill={theme.colors.background.primary}
+                                          stroke="none"
                                       />
                                   </>
                               ) : (
