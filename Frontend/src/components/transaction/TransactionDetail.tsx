@@ -41,14 +41,14 @@ const TransactionDetail: React.FC<TransactionDetailProps> = ({ transaction, slot
                 </Text>
                 <Text style={[
                     styles.amount,
-                    isIncome ? styles.incomeAmount : isExpense ? styles.expenseAmount : styles.neutralAmount
+                    { color: theme.colors.text.primary }
                 ]}>
                     {isExpense ? '-' : ''}{Math.abs(transaction.amount).toLocaleString()}원
                 </Text>
             </View>
 
             {/* 상세 정보 */}
-            <View style={styles.detailSection}>
+            <View style={[styles.detailSection, { backgroundColor: theme.colors.background.primary }]}>
                 {slotName && (
                     <View style={[styles.detailRow, { borderBottomColor: theme.colors.border.light }]}>
                         <Text style={[styles.detailLabel, { color: theme.colors.text.secondary }]}>
@@ -134,7 +134,6 @@ const styles = StyleSheet.create({
         backgroundColor: '#F5F5F5', // 이미지와 같은 배경색
     },
     mainSection: {
-        backgroundColor: '#FFFFFF',
         paddingVertical: 40,
         paddingHorizontal: 20,
         alignItems: 'center',
@@ -145,25 +144,13 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         marginBottom: 20,
         textAlign: 'center',
-        color: '#000000',
     },
     amount: {
         fontSize: 36,
         fontWeight: 'bold',
         textAlign: 'center',
-        color: '#000000',
-    },
-    incomeAmount: {
-        color: '#2563EB', // 파란색 - 입금
-    },
-    expenseAmount: {
-        color: '#000000', // 검은색 - 출금 (이미지와 동일)
-    },
-    neutralAmount: {
-        color: '#6B7280', // 회색 - 기타
     },
     detailSection: {
-        backgroundColor: '#FFFFFF',
         marginHorizontal: 20,
         borderRadius: 12,
         overflow: 'hidden',
@@ -175,17 +162,15 @@ const styles = StyleSheet.create({
         paddingVertical: 20,
         paddingHorizontal: 20,
         borderBottomWidth: 1,
-        borderBottomColor: '#F0F0F0',
+
     },
     detailLabel: {
         fontSize: 16,
         fontWeight: '500',
-        color: '#666666',
     },
     detailValue: {
         fontSize: 16,
         fontWeight: '600',
-        color: '#000000',
     },
     valueWithIcon: {
         flexDirection: 'row',
@@ -205,7 +190,6 @@ const styles = StyleSheet.create({
     modalSubText: {
         fontSize: Typography.fontSize.sm,
         lineHeight: 20,
-        color: '#666666',
     },
 });
 
