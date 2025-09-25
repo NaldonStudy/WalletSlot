@@ -31,7 +31,7 @@ export const AccountSummary = memo(({ account }: AccountSummaryProps) => {
         setImageLoaded(false);
     }, [account.bankId]);
 
-    const balanceNumber = Number(account.balance ?? 0);
+    const balanceNumber = Number(account.accountBalance ?? 0);
 
     return (
         <View style={[styles.card, theme.shadows.base,{ 
@@ -72,7 +72,7 @@ export const AccountSummary = memo(({ account }: AccountSummaryProps) => {
     return prevProps.account.bankId === nextProps.account.bankId &&
         prevProps.account.alias === nextProps.account.alias &&
         prevProps.account.accountNo === nextProps.account.accountNo &&
-        String(prevProps.account.balance ?? '') === String(nextProps.account.balance ?? '');
+        String(prevProps.account.accountBalance ?? '') === String(nextProps.account.accountBalance ?? '');
 });
 
 AccountSummary.displayName = 'AccountSummary';

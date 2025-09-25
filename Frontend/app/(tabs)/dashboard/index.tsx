@@ -83,7 +83,7 @@ export default function DashboardScreen() {
   // AccountSummary용 데이터 (UserAccount 직접 사용)
   const currentAccountForSummary: UserAccount | undefined = currentAccount ? {
     ...currentAccount,
-    balance: realtimeBalance ?? currentAccount.balance, // 실시간 잔액 우선
+    accountBalance: realtimeBalance ? String(realtimeBalance) : currentAccount.accountBalance, // 실시간 잔액 우선
   } as UserAccount : undefined;
   
   // AccountCarousel용 데이터 변환 (React Query가 자동으로 최신 잔액 관리)
@@ -91,7 +91,7 @@ export default function DashboardScreen() {
     bankId: account.bankId as keyof typeof BANK_CODES,
     accountName: account.alias || account.bankName,
     accountNumber: account.accountNo,
-    balance: account.balance ?? 0,
+    balance: Number(account.accountBalance ?? 0),
   }));
   
 
