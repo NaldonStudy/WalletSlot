@@ -2,10 +2,12 @@ import React, { useEffect } from 'react';
 import { useLocalSearchParams, router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack } from 'expo-router';
-import { Alert } from 'react-native';
+import { Alert, View, StyleSheet, useColorScheme } from 'react-native';
 import { SlotTransaction } from '@/src/types/slot';
 import { useSlotStore } from '@/src/store/useSlotStore';
 import TransactionDetail from '@/src/components/transaction/TransactionDetail';
+import { Button } from '@/src/components/Button';
+import { Spacing, themes } from '@/src/constants/theme';
 
 export default function TransactionDetailScreen() {
   const { slotId, transactionId, transactionData } = useLocalSearchParams<{ 
@@ -15,6 +17,37 @@ export default function TransactionDetailScreen() {
   }>();
   
   const { selectedSlot } = useSlotStore();
+  const colorScheme = useColorScheme() ?? 'light';
+  const theme = themes[colorScheme];
+
+  // 버튼 핸들러 함수들
+  const handleAmountSplit = () => {
+    Alert.alert(
+      '금액 나누기',
+      '금액 나누기 기능을 구현하시겠습니까?',
+      [
+        { text: '취소', style: 'cancel' },
+        { text: '확인', onPress: () => {
+          // TODO: 금액 나누기 로직 구현
+          console.log('금액 나누기 기능 실행');
+        }}
+      ]
+    );
+  };
+
+  const handleDutchPay = () => {
+    Alert.alert(
+      '더치페이',
+      '더치페이 기능을 구현하시겠습니까?',
+      [
+        { text: '취소', style: 'cancel' },
+        { text: '확인', onPress: () => {
+          // TODO: 더치페이 로직 구현
+          console.log('더치페이 기능 실행');
+        }}
+      ]
+    );
+  };
 
   useEffect(() => {
     // 거래 데이터가 없는 경우 오류 처리
@@ -100,7 +133,37 @@ export default function TransactionDetailScreen() {
         transaction={transaction} 
         slotName={selectedSlot?.name || selectedSlot?.customName}
       />
+      
+      {/* 액션 버튼들 */}
+      <View style={[styles.buttonContainer, { backgroundColor: theme.colors.background.primary }]}>
+        <Button
+          title="금액 나누기"
+          variant="outline"
+          size="md"
+          onPress={handleAmountSplit}
+          style={styles.actionButton}
+        />
+        <Button
+          title="더치페이"
+          variant="outline"
+          size="md"
+          onPress={handleDutchPay}
+          style={styles.actionButton}
+        />
+      </View>
     </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  buttonContainer: {
+    flexDirection: 'row',
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.base,
+    gap: Spacing.sm,
+  },
+  actionButton: {
+    flex: 1,
+  },
+});
 
