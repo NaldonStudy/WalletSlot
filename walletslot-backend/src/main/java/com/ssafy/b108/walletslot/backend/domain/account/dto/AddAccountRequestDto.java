@@ -1,5 +1,6 @@
 package com.ssafy.b108.walletslot.backend.domain.account.dto;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
 
 import java.util.List;
@@ -8,6 +9,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@Schema(name = "AddAccountRequestDto")
 public class AddAccountRequestDto {
 
     // Field
@@ -17,6 +19,7 @@ public class AddAccountRequestDto {
     @NoArgsConstructor
     @AllArgsConstructor
     @Builder
+    @Schema(name = "AddAccountRequestDto_AccountDto")
     // Nested Class
     public static class AccountDto {
 

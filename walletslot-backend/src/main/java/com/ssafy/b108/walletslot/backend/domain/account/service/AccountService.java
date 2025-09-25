@@ -573,10 +573,6 @@ public class AccountService {
             User user = userRepository.findById(userId).orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "AccountService - 005"));
             String userKey = user.getUserKey();
 
-            // 싸피 금융 API에 요청보낼 바디 만들기
-            // 현재 로그인된 사용자의 userId 획득 -> DB에서 이 userId를 가지는 사용자의 이메일 조회 -> 싸피 금융 api에 userKey 요청 -> 획득 후 헤더에 userKey 포함해서 요청보내야함
-            // 지금은 더미데이터 v1의 userKey로 사용
-
             // 요청보낼 url (예금주 조회)
             String url = "https://finopenapi.ssafy.io/ssafy/api/v1/edu/demandDeposit/inquireDemandDepositAccountHolderName";
             Map<String, String> formattedDateTime = LocalDateTimeFormatter.formatter();
@@ -605,20 +601,30 @@ public class AccountService {
                     SSAFYGetAccountHolderNameResponseDto.class
             );
 
+            // 사용자 이름과 예금주 명이 불일치하면 403 응답
+            Email email = emailRepository.findByUser(user).orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "AccountService - 000"));
+            String emailStr = email.getEmail();
+            int atIndex = emailStr.indexOf("@");
+            String userName = emailStr.substring(0, atIndex);
+
+            if(!userName.equals(httpResponse2.getBody().getREC().getUserName())) {
+                throw new AppException(ErrorCode.ACCOUNT_HOLDER_NAME_MISMATCH, "AccountService - 000");
+            }
+
             // 현재 요청보낸 사용자 이름 != 방금 조회한 예금주명 이면 403 응답
             if(!user.getName().equals(httpResponse2.getBody().getREC().getUserName())) {
-                new AppException(ErrorCode.FORBIDDEN, "[AccountService]");
+                new AppException(ErrorCode.FORBIDDEN, "AccountService - 000");
             }
 
             // Bank 객체 조회하기 (없으면 404)
-            Bank bank = bankRepository.findByUuid(accountDto.getBankId()).orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "[AccountService - 002]"));
+            Bank bank = bankRepository.findByUuid(accountDto.getBankId()).orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "AccountService - 002"));
 
             // 계좌번호 암호화
             String encryptedAccountNo;
             try {
                 encryptedAccountNo = AESUtil.encrypt(accountDto.getAccountNo(), encryptionKey);
             } catch(Exception e) {
-                throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "[AccountService - 000]");
+                throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "AccountService - 000");
             }
 
             // Account 객체 만들기
@@ -642,7 +648,7 @@ public class AccountService {
                         .accountNo(AESUtil.decrypt(account.getEncryptedAccountNo(), encryptionKey))
                         .build();
             } catch(Exception e) {
-                throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "[AccountService - 000]");
+                throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "AccountService - 000");
             }
             accountDtoList.add(accountDto2);
         } // 연동요청 받은 모든 계좌들에 대해 Account 객체로 만들어서 account 테이블에 저장 완료.
