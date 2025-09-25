@@ -8,7 +8,6 @@ import io.hypersistence.utils.hibernate.type.json.JsonType;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import java.time.LocalDateTime;
-import java.util.Map;
 import java.util.UUID;
 
 @Entity
@@ -33,13 +32,11 @@ public class AiReport {
 
     @Type(JsonType.class)
     @Column(columnDefinition = "json", nullable = false)
-    private JsonNode content;   // ✅ JsonNode로 변경
-
+    private JsonNode content;
 
     @Column(name = "created_at", nullable = false, insertable = false, updatable = false)
     private LocalDateTime createdAt;
 
-    // 안전장치: 빌더 외 경로로 persist될 때 uuid가 null인 경우 대비
     @PrePersist
     private void ensureUuid() {
         if (this.uuid == null || this.uuid.isBlank()) {

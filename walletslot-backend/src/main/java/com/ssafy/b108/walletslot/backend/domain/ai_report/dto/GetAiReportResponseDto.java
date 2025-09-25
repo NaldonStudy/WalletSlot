@@ -48,7 +48,7 @@ public class GetAiReportResponseDto {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class SlotRow {
-        // ✅ 외부 통신은 UUID, 이름은 id 유지
+        // 외부 통신은 UUID, 이름은 id 유지
         private String accountSlotId;
         private String slotId;
 
@@ -111,7 +111,7 @@ public class GetAiReportResponseDto {
     @AllArgsConstructor
     public static class Insights {
         private List<Merchant> topMerchants;
-        // ✅ key도 accountSlotId(UUID)
+        // key도 accountSlotId(UUID)
         private Map<String, PeakDay> peakDayBySlot;
         private List<String> notes;
 
@@ -122,7 +122,7 @@ public class GetAiReportResponseDto {
 
     @Getter @Builder @NoArgsConstructor @AllArgsConstructor
     public static class PersistInfo {
-        // ✅ 외부 통신은 UUID만, 이름은 id 유지
+        // 외부 통신은 UUID만, 이름은 id 유지
         private String id;
         private LocalDateTime createdAt;
     }
