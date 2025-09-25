@@ -105,7 +105,7 @@ export default function SlotDetailScreen() {
                             <Text style={styles.loadingText}>거래내역을 불러오는 중...</Text>
                         </View>
                     ) : transactions.length > 0 ? (
-                        <TransactionList transactions={transactions} />
+                        <TransactionList transactions={transactions} slotId={slotId} />
                     ) : (
                         <View style={styles.emptyCard}>
                             <Text style={styles.emptyText}>거래내역이 없습니다.</Text>

@@ -1,5 +1,6 @@
 import React from "react";
-import { View, Text, StyleSheet, useColorScheme } from "react-native";
+import { View, Text, StyleSheet, useColorScheme, TouchableOpacity } from "react-native";
+import { router } from "expo-router";
 import type { SlotTransaction } from "@/src/types/slot";
 import { themes } from "@/src/constants/theme";
 
@@ -19,23 +20,41 @@ interface Props {
   transaction: SlotTransaction;
   showDate?: boolean;
   dateText?: string;
+  slotId?: string; // 슬롯 ID 추가
 }
 
-const TransactionItem = ({ transaction, showDate = false, dateText }: Props) => {
+const TransactionItem = ({ transaction, showDate = false, dateText, slotId }: Props) => {
     const colorScheme = useColorScheme() ?? 'light';
     const theme = themes[colorScheme];  
     
     // type 필드를 기반으로 색상 결정
     const isIncome = transaction.type === '입금' || transaction.type === '입금(이체)';
     const isExpense = transaction.type === '출금' || transaction.type === '출금(이체)';
+
+    const handlePress = () => {
+      if (slotId) {
+        router.push({
+          pathname: `/dashboard/slot/${slotId}/transaction/${transaction.transactionId}` as any,
+          params: {
+            transactionData: JSON.stringify(transaction)
+          }
+        });
+      }
+    };
   
     return (
-      <View style={[styles.container, showDate && styles.containerWithDate]}>
+      <TouchableOpacity 
+        style={[styles.container, showDate && styles.containerWithDate]}
+        onPress={handlePress}
+        activeOpacity={0.7}
+      >
         <View style={styles.leftSection}>
-          {showDate && dateText && (
+          {showDate && dateText ? (
             <Text style={[styles.dateText, { color: theme.colors.text.secondary }]}>
               {dateText}
             </Text>
+          ) : (
+            <View style={styles.datePlaceholder} />
           )}
           <View style={styles.transactionInfo}>
             <Text style={[styles.summary,{color: theme.colors.text.primary}]}>{transaction.summary}</Text>
@@ -47,13 +66,13 @@ const TransactionItem = ({ transaction, showDate = false, dateText }: Props) => 
             styles.amount, 
             isIncome ? styles.income : isExpense ? styles.expense : styles.neutral
           ]}>
-            {(transaction.amount ?? 0).toLocaleString()}원
+            {isExpense ? '-' : ''}{(Math.abs(transaction.amount ?? 0)).toLocaleString()}원
           </Text>
           <Text style={[styles.remaining,{color: theme.colors.text.secondary}]}>
             잔액 {(transaction.balance ?? 0).toLocaleString()}원
           </Text>
         </View>
-      </View>
+      </TouchableOpacity>
     );
   };
   
@@ -79,6 +98,10 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     marginRight: 12,
     minWidth: 40,
+  },
+  datePlaceholder: {
+    width: 40,
+    marginRight: 12,
   },
   transactionInfo: {
     flex: 1,
