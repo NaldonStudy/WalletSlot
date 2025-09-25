@@ -2,14 +2,15 @@ import { SLOT_CATEGORIES } from '@/src/constants/slots';
 import { themes } from '@/src/constants/theme';
 import { SlotData } from '@/src/types';
 import React, { memo } from "react";
-import { StyleSheet, Text, useColorScheme, View } from "react-native";
+import { StyleSheet, Text, useColorScheme, View, TouchableOpacity } from "react-native";
 import Svg, { G, Path, Text as SvgText } from "react-native-svg";
 
 type AccountDonutChartProps = {
     data: SlotData[];
+    onSlotPress?: (slot: SlotData) => void;
 };
 
-const AccountDonutChart = memo(({ data }: AccountDonutChartProps) => {
+const AccountDonutChart = memo(({ data, onSlotPress }: AccountDonutChartProps) => {
     const colorScheme = useColorScheme() ?? 'light';
     const theme = themes[colorScheme];
     const totalBudget = data.reduce((sum, slot) => sum + slot.currentBudget, 0);
@@ -87,7 +88,8 @@ const AccountDonutChart = memo(({ data }: AccountDonutChartProps) => {
 
     return (
         <View style={styles.container}>
-            <Svg width={size} height={size}>
+            <View style={styles.chartContainer}>
+                <Svg width={size} height={size}>
                 {/* 그림자 효과 - 중복 Path 방식 (React Native SVG 호환) */}
 
                  {/* 각 슬롯별 섹션 */}
@@ -189,6 +191,43 @@ const AccountDonutChart = memo(({ data }: AccountDonutChartProps) => {
                     </SvgText>
                 </G>
             </Svg>
+            
+            {/* 터치 오버레이 - 각 슬롯별 터치 영역 */}
+            {slots.map((slot) => {
+                // 슬롯의 중앙 각도 계산
+                const midAngle = (slot.startAngle + slot.endAngle) / 2;
+                const midAngleRad = (midAngle - 90) * Math.PI / 180; // -90도 보정
+                
+                // 중앙점에서의 위치 계산
+                const midRadius = (innerRadius + outerRadius) / 2;
+                const touchX = centerX + midRadius * Math.cos(midAngleRad);
+                const touchY = centerY + midRadius * Math.sin(midAngleRad);
+                
+                // 터치 영역 크기 (각도에 따라 조정)
+                const angleSpan = slot.endAngle - slot.startAngle;
+                const touchSize = Math.max(30, angleSpan * 0.8); // 최소 30px, 각도에 비례
+                
+                return (
+                    <TouchableOpacity
+                        key={`touch-${slot.slotId}`}
+                        style={[
+                            styles.touchOverlay,
+                            {
+                                left: touchX - touchSize / 2,
+                                top: touchY - touchSize / 2,
+                                width: touchSize,
+                                height: touchSize,
+                            }
+                        ]}
+                        onPress={() => {
+                            console.log('[AccountDonutChart] 슬롯 터치:', slot.name);
+                            onSlotPress?.(slot);
+                        }}
+                        activeOpacity={0.7}
+                    />
+                );
+            })}
+            </View>
 
             {/* 범례 */}
             <View style={styles.legend}>
@@ -197,7 +236,12 @@ const AccountDonutChart = memo(({ data }: AccountDonutChartProps) => {
                     const isOverBudget = slot.remainingBudget < 0;
                     const slotColor = SLOT_CATEGORIES[slot.slotId as keyof typeof SLOT_CATEGORIES]?.color || '#F1A791';
                     return (
-                        <View key={slot.slotId} style={[styles.legendItem, isOverBudget && styles.legendItemOverBudget]}>
+                        <TouchableOpacity 
+                            key={slot.slotId} 
+                            style={[styles.legendItem, isOverBudget && styles.legendItemOverBudget]}
+                            onPress={() => onSlotPress?.(slot)}
+                            activeOpacity={0.7}
+                        >
                             <View style={[
                                 styles.legendColor, 
                                 { 
@@ -220,7 +264,7 @@ const AccountDonutChart = memo(({ data }: AccountDonutChartProps) => {
                                 {slot.name} {remainPercentage}%
                                 {isOverBudget && ' ⚠️'}
                             </Text>
-                        </View>
+                        </TouchableOpacity>
                     );
                 })}
             </View>
@@ -252,6 +296,17 @@ const styles = StyleSheet.create({
         shadowOffset: { width: 0, height: 1 },
         shadowOpacity: 0.05,
         shadowRadius: 2,
+    },
+    chartContainer: {
+        position: "relative",
+        justifyContent: "center",
+        alignItems: "center",
+    },
+    touchOverlay: {
+        position: "absolute",
+        backgroundColor: "transparent",
+        borderRadius: 50,
+        // 디버깅용: backgroundColor: "rgba(255, 0, 0, 0.1)", // 빨간색 반투명으로 터치 영역 확인 가능
     },
     emptyText: {
         fontSize: 14,
