@@ -27,6 +27,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
 import javax.crypto.SecretKey;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -293,43 +294,12 @@ public class AccountService {
         if(!userName.equals(httpResponse.getBody().getREC().getUserName())) {
             throw new AppException(ErrorCode.ACCOUNT_HOLDER_NAME_MISMATCH, "AccountService - 000");
         }
-        
-        // SSAFY 금융 API >>>>> 2.4.7 계좌 잔액 조회
-        // 요청보낼 url
-        String url2 = "https://finopenapi.ssafy.io/ssafy/api/v1/edu/demandDeposit/inquireDemandDepositAccountBalance";
-
-        // body 만들기
-        Map<String, String> formattedDateTime2 = LocalDateTimeFormatter.formatter();
-        Header header2 = Header.builder()
-                .apiName("inquireDemandDepositAccountBalance")
-                .transmissionDate(formattedDateTime2.get("date"))
-                .transmissionTime(formattedDateTime2.get("time"))
-                .apiServiceCode("inquireDemandDepositAccountBalance")
-                .institutionTransactionUniqueNo(formattedDateTime2.get("date") + formattedDateTime2.get("time") + RandomNumberGenerator.generateRandomNumber())
-                .apiKey(ssafyFinanceApiKey)
-                .userKey(user.getUserKey())
-                .build();
-
-        Map<String, Object> body2 = new HashMap<>();
-        body2.put("Header", header2);
-        body2.put("accountNo", accountNo);
-
-        // 요청보낼 http entity 만들기
-        HttpEntity<Map<String, Object>> httpEntity2 = new HttpEntity<>(body2);
-
-        // 요청 보내기
-        ResponseEntity<SSAFYGetAccountBalanceResponseDto> httpResponse2 = restTemplate.exchange(
-                url2,
-                HttpMethod.POST,
-                httpEntity2,
-                SSAFYGetAccountBalanceResponseDto.class
-        );
 
         // dto 조립하고 응답
         GetAccountBalanceResponseDto getAccountBalanceResponseDto = GetAccountBalanceResponseDto.builder()
                 .success(true)
                 .message("[AccountService - 000] 계좌 잔액 조회 성공")
-                .data(GetAccountBalanceResponseDto.Data.builder().accountId(accountUuid).balance(httpResponse2.getBody().getREC().getAccountBalance()).build())
+                .data(GetAccountBalanceResponseDto.Data.builder().accountId(accountUuid).balance(account.getBalance()).build())
                 .build();
 
         return getAccountBalanceResponseDto;
@@ -586,18 +556,18 @@ public class AccountService {
                     .userKey(userKey)
                     .build();
 
-            Map<String, Object> body2 = new HashMap<>();
-            body2.put("Header", header);
-            body2.put("accountNo", accountDto.getAccountNo());
+            Map<String, Object> body = new HashMap<>();
+            body.put("Header", header);
+            body.put("accountNo", accountDto.getAccountNo());
 
             // 요청보낼 http entity 만들기
-            HttpEntity<Map<String, Object>> httpEntity2 = new HttpEntity<>(body2);
+            HttpEntity<Map<String, Object>> httpEntity = new HttpEntity<>(body);
 
             // 요청 보내기
-            ResponseEntity<SSAFYGetAccountHolderNameResponseDto> httpResponse2 = restTemplate.exchange(
+            ResponseEntity<SSAFYGetAccountHolderNameResponseDto> httpResponse = restTemplate.exchange(
                     url,
                     HttpMethod.POST,
-                    httpEntity2,
+                    httpEntity,
                     SSAFYGetAccountHolderNameResponseDto.class
             );
 
@@ -607,14 +577,41 @@ public class AccountService {
             int atIndex = emailStr.indexOf("@");
             String userName = emailStr.substring(0, atIndex);
 
-            if(!userName.equals(httpResponse2.getBody().getREC().getUserName())) {
+            if(!userName.equals(httpResponse.getBody().getREC().getUserName())) {
                 throw new AppException(ErrorCode.ACCOUNT_HOLDER_NAME_MISMATCH, "AccountService - 000");
             }
 
-            // 현재 요청보낸 사용자 이름 != 방금 조회한 예금주명 이면 403 응답
-            if(!user.getName().equals(httpResponse2.getBody().getREC().getUserName())) {
-                new AppException(ErrorCode.FORBIDDEN, "AccountService - 000");
-            }
+            // SSAFY 금융망 API >>>>> 2.4.7 계좌 잔액 조회
+            // 요청보낼 url
+            String url2 = "https://finopenapi.ssafy.io/ssafy/api/v1/edu/demandDeposit/inquireDemandDepositAccountBalance";
+            Map<String, String> formattedDateTime2 = LocalDateTimeFormatter.formatter();
+            Header header2 = Header.builder()
+                    .apiName("inquireDemandDepositAccountBalance")
+                    .transmissionDate(formattedDateTime2.get("date"))
+                    .transmissionTime(formattedDateTime2.get("time"))
+                    .apiServiceCode("inquireDemandDepositAccountBalance")
+                    .institutionTransactionUniqueNo(formattedDateTime2.get("date") + formattedDateTime2.get("time") + RandomNumberGenerator.generateRandomNumber())
+                    .apiKey(ssafyFinanceApiKey)
+                    .userKey(userKey)
+                    .build();
+
+            Map<String, Object> body2 = new HashMap<>();
+            body2.put("Header", header2);
+            body2.put("accountNo", accountDto.getAccountNo());
+
+            // 요청보낼 http entity 만들기
+            HttpEntity<Map<String, Object>> httpEntity2 = new HttpEntity<>(body2);
+
+            // 요청 보내기
+            ResponseEntity<SSAFYGetAccountBalanceResponseDto> httpResponse2 = restTemplate.exchange(
+                    url2,
+                    HttpMethod.POST,
+                    httpEntity2,
+                    SSAFYGetAccountBalanceResponseDto.class
+            );
+
+            // 잔액 데이터 확보
+            Long balance = httpResponse2.getBody().getREC().getAccountBalance();
 
             // Bank 객체 조회하기 (없으면 404)
             Bank bank = bankRepository.findByUuid(accountDto.getBankId()).orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "AccountService - 002"));
@@ -632,6 +629,8 @@ public class AccountService {
                     .user(user)
                     .bank(bank)
                     .encryptedAccountNo(encryptedAccountNo)
+                    .balance(balance)
+                    .lastSyncedAt(LocalDateTime.now())
                     .build();
 
             // Account 객체 저장
