@@ -348,3 +348,22 @@ CREATE TABLE IF NOT EXISTS merchant_slot_decision (
         ON UPDATE CASCADE
         ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- =========================
+-- otp_code (SMS/FCM 인증 코드 저장)
+-- =========================
+DROP TABLE IF EXISTS `otp_code`;
+CREATE TABLE `otp_code` (
+  `id`         BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  `phone`      VARCHAR(20)     NOT NULL,                                       -- 숫자만 저장 권장
+  `purpose`    ENUM('LOGIN','DEVICE_VERIFY','PIN_RESET','SIGNUP') NOT NULL,    -- 목적 추가 가능
+  `device_id`  VARCHAR(100)    NOT NULL DEFAULT '-',                           -- DEVICE_VERIFY면 단말 구분, 그 외 '-'
+  `code_hash`  VARCHAR(64)     NOT NULL COMMENT 'HMAC-SHA256(Base64URL, no padding)',
+  `issued_at`  DATETIME(6)     NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+  `expires_at` DATETIME(6)     NOT NULL,                                       -- NOW(6) + INTERVAL 3 MINUTE 등 BE에서 세팅
+  `attempts`   INT UNSIGNED    NOT NULL DEFAULT 0,
+  `sent`       TINYINT(1)      NOT NULL DEFAULT 0,                             -- 발송 성공 시 1
+  `status`     ENUM('PENDING','SENT','USED','EXPIRED') NOT NULL DEFAULT 'PENDING',
+  UNIQUE KEY `uq_otp_key` (`phone`,`purpose`,`device_id`),                     -- 단일 활성 OTP 보장
+  KEY `idx_otp_expires` (`expires_at`)
+) ENGINE=InnoDB;

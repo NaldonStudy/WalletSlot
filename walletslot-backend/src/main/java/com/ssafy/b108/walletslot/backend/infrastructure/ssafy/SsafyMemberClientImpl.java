@@ -1,4 +1,4 @@
-package com.ssafy.b108.walletslot.backend.infra.ssafy;
+package com.ssafy.b108.walletslot.backend.infrastructure.ssafy;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ssafy.b108.walletslot.backend.domain.account.dto.external.SsafyErrorResponseDto;
