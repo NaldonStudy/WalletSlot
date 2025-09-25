@@ -78,7 +78,7 @@ export const useAccountBalance = (accountId?: string) => {
           
           const updatedAccounts = accounts.map((account: any) => 
             account.accountId === accountId 
-              ? { ...account, balance: data.data.balance }
+              ? { ...account, accountBalance: String(data.data.balance) }
               : account
           );
           

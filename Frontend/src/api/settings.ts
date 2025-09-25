@@ -126,7 +126,7 @@ function convertUserAccountsToLinkedAccounts(userAccounts: any[]): LinkedAccount
     bankName: account.bankName,
     accountNo: account.accountNo,
     alias: account.alias || '연동된 계좌',
-    balance: Number(account.balance || 0),
+    balance: Number(account.accountBalance || 0),
   }));
 }
 

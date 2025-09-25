@@ -1,3 +1,4 @@
+import React from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { accountApi, queryKeys } from "@/src/api";
 import type { UserAccount, AccountsResponse, BaseResponse } from "@/src/types";
@@ -12,6 +13,11 @@ type UseLinkedAccountsOptions = {
 export const useLinkedAccounts = ({ enabled = true }: UseLinkedAccountsOptions = {}) => {
   const queryClient = useQueryClient();
   
+  // 컴포넌트 마운트 시 캐시 무효화
+  React.useEffect(() => {
+    queryClient.invalidateQueries({ queryKey: queryKeys.accounts.linked() });
+  }, []);
+  
   const {
     data: accounts,
     isLoading,
@@ -24,8 +30,8 @@ export const useLinkedAccounts = ({ enabled = true }: UseLinkedAccountsOptions =
       const result = await accountApi.getLinkedAccounts();
       return result;
     },
-    staleTime: Infinity, // 무한으로 캐시 유지
-    gcTime: Infinity, // 무한으로 캐시 유지
+    staleTime: 0, // 항상 새로운 데이터 요청
+    gcTime: 0, // 캐시하지 않음
     enabled,
     select: (res) => {
       // MSW 응답 구조에 따른 유연한 처리

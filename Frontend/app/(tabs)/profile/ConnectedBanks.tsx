@@ -64,16 +64,16 @@ export default function ConnectedBanks({ visible, onClose }: Props) {
     if (linkedAccounts) {
       const converted: BankConnection[] = (linkedAccounts as UserAccount[]).map(account => ({
         accountId: account.accountId,
-        bankCode: account.bankCode,
+        bankCode: account.bankId, // bankId를 bankCode로 사용
         bankName: account.bankName,
-        bankColor: getBankColor(account.bankCode),
+        bankColor: getBankColor(account.bankId), // bankId를 사용
         accountNumber: account.accountNo,
         accountType: '일반계좌', // 기본값
         accountName: account.alias || '연동된 계좌',
         connectionDate: '2024-01-01', // 기본값
         expiryDate: '2025-12-31', // 기본값
         status: 'active' as const,
-        balance: account.balance ?? 0,
+        balance: Number(account.accountBalance ?? 0),
       }))
       setConnections(converted)
     }

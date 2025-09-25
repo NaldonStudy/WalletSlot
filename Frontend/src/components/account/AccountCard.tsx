@@ -38,7 +38,7 @@ const AccountCard: React.FC<AccountCardProps> = ({
     balance,
     style,
 }) => {
-    // 서버의 bankCode로 은행 정보 찾기
+    // 서버의 bankId로 은행 정보 찾기
     const bankInfo = BANK_CODES[bankId as keyof typeof BANK_CODES];
     
     // bankInfo가 없으면 기본값 사용
