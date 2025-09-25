@@ -8,7 +8,7 @@ type Props = {
   onChangePin: () => void
 }
 
-export function AccountSettings({ biometricEnabled, onToggleBiometric, onChangePin }: Props) {
+const AccountSettings = ({ biometricEnabled, onToggleBiometric, onChangePin }: Props) => {
   return (
     <View>
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 12 }}>
@@ -22,3 +22,5 @@ export function AccountSettings({ biometricEnabled, onToggleBiometric, onChangeP
     </View>
   )
 }
+
+export default AccountSettings
