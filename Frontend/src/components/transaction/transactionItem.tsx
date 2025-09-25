@@ -32,10 +32,12 @@ const TransactionItem = ({ transaction, showDate = false, dateText }: Props) => 
     return (
       <View style={[styles.container, showDate && styles.containerWithDate]}>
         <View style={styles.leftSection}>
-          {showDate && dateText && (
+          {showDate && dateText ? (
             <Text style={[styles.dateText, { color: theme.colors.text.secondary }]}>
               {dateText}
             </Text>
+          ) : (
+            <View style={styles.datePlaceholder} />
           )}
           <View style={styles.transactionInfo}>
             <Text style={[styles.summary,{color: theme.colors.text.primary}]}>{transaction.summary}</Text>
@@ -79,6 +81,10 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     marginRight: 12,
     minWidth: 40,
+  },
+  datePlaceholder: {
+    width: 40,
+    marginRight: 12,
   },
   transactionInfo: {
     flex: 1,
