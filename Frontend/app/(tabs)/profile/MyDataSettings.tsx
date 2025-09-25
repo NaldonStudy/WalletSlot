@@ -9,23 +9,19 @@ type Connection = {
   status: string
 }
 
-export function MyDataSettings() {
+const MyDataSettings = () => {
   const [connections, setConnections] = useState<Connection[]>([])
-  const [loading, setLoading] = useState(false)
 
   useEffect(() => {
     let mounted = true
     ;(async () => {
-      setLoading(true)
       try {
         const res = await fetch('/api/users/me/mydata/connections')
         if (!res.ok) return
         const json = await res.json()
         if (mounted) setConnections(json.data || [])
-      } catch (e) {
+      } catch {
         // 무시
-      } finally {
-        if (mounted) setLoading(false)
       }
     })()
     return () => { mounted = false }
@@ -37,7 +33,7 @@ export function MyDataSettings() {
       if (!res.ok) return
       const json = await res.json()
       setConnections((s) => [json.data, ...s])
-    } catch (e) {
+    } catch {
       // ignore
     }
   }
@@ -47,7 +43,7 @@ export function MyDataSettings() {
       const res = await fetch(`/api/users/me/mydata/connections/${accountId}`, { method: 'DELETE' })
       if (!res.ok) return
       setConnections((s) => s.filter(c => c.accountId !== accountId))
-    } catch (e) {
+    } catch {
       // ignore
     }
   }
@@ -63,3 +59,5 @@ export function MyDataSettings() {
     </View>
   )
 }
+
+export default MyDataSettings

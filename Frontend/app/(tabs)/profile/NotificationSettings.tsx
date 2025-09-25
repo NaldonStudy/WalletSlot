@@ -9,7 +9,7 @@ type Props = {
   onToggleMarketing: (v: boolean) => void
 }
 
-export function NotificationSettings({ pushEnabled, marketingEnabled, onTogglePush, onToggleMarketing }: Props) {
+const NotificationSettings = ({ pushEnabled, marketingEnabled, onTogglePush, onToggleMarketing }: Props) => {
   return (
     <View>
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 12 }}>
@@ -24,3 +24,5 @@ export function NotificationSettings({ pushEnabled, marketingEnabled, onTogglePu
     </View>
   )
 }
+
+export default NotificationSettings
