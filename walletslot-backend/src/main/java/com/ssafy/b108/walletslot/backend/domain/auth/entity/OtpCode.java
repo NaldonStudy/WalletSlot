@@ -49,5 +49,6 @@ public class OtpCode {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable=false, length=10)
+    @Builder.Default
     private Status status = Status.PENDING;
 }

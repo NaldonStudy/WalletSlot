@@ -675,14 +675,14 @@ public class TransactionService {
 
                 // 이 계좌의 미분류 슬롯 미리 찾아두기
                 Slot uncategorizedSlot = slotRepository.findById(0L).orElseThrow(() -> new AppException(ErrorCode.MISSING_UNCATEGORIZED_SLOT, "TransactionService - 000"));
-                AccountSlot uncategorizedAccountSlot = accountSlotRepository.findBySlot(uncategorizedSlot).orElseThrow(() -> new AppException(ErrorCode.MISSING_UNCATEGORIZED_SLOT, "TransactionService - 000"));
+                AccountSlot uncategorizedAccountSlot = accountSlotRepository.findByAccountAndSlot(account, uncategorizedSlot).orElseThrow(() -> new AppException(ErrorCode.MISSING_UNCATEGORIZED_SLOT, "TransactionService - 000"));
 
                 Transaction: for(SSAFYGetTransactionListResponseDto.Transaction transactionDto : transactions) {
 
 // account.getLastSyncedTransactionUniqueNo()
 
                     // transactionUniqueNo이 lastSyncedTransactionNo보다 큰 게 있다면 갱신
-                    if(Long.parseLong(transactionDto.getTransactionUniqueNo()) > Long.parseLong("0")) {
+                    if(transactionDto.getTransactionUniqueNo() > Long.parseLong("0")) {
 
                         // 계좌 마지막 동기화 날짜 업데이트
                         account.updateLastSyncedTransactionUniqueNo(transactionDto.getTransactionUniqueNo());

@@ -37,7 +37,7 @@ public class SSAFYGetTransactionListResponseDto {
     public static class Transaction {
 
         // Field
-        private String transactionUniqueNo;
+        private Long transactionUniqueNo;
         private String transactionDate;
         private String transactionTime;
         private String transactionTypeName;
