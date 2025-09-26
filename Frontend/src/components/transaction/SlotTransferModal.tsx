@@ -16,6 +16,7 @@ interface SlotTransferModalProps {
     visible: boolean;
     onClose: () => void;
     transaction: SlotTransaction;
+    accountSlotId?: string; // 현재 거래가 속한 슬롯의 accountSlotId
     onSlotSelect?: (slot: SlotData, originalSlot?: SlotData) => void;
 }
 
@@ -23,7 +24,7 @@ const SlotTransferModal: React.FC<SlotTransferModalProps> = ({
     visible,
     onClose,
     transaction,
-    onSlotSelect
+    accountSlotId,
 }) => {
     const colorScheme = useColorScheme() ?? 'light';
     const theme = themes[colorScheme];
@@ -31,13 +32,13 @@ const SlotTransferModal: React.FC<SlotTransferModalProps> = ({
     const [selectedSlotId, setSelectedSlotId] = useState<string | null>(null);
     const queryClient = useQueryClient();
 
-    // 현재 슬롯의 계좌 ID를 사용하여 슬롯 리스트 가져오기
+    // 현재 슬롯의 계좌 ID로 슬롯 리스트 가져오기
     const { slots, isLoading: slotsLoading } = useSlots(selectedSlot?.accountId);
 
-    // 현재 슬롯을 제외한 슬롯 리스트 필터링
-    const availableSlots = slots.filter(slot => slot.accountSlotId !== selectedSlot?.accountSlotId);
+    // 현재 슬롯 제외한 슬롯만 표시
+    const currentAccountSlotId = accountSlotId || selectedSlot?.accountSlotId;
+    const availableSlots = slots.filter((s) => s.accountSlotId !== currentAccountSlotId);
 
-    // 거래 유형에 따른 출금 여부 확인
     const isExpense = transaction.type === '출금' || transaction.type === '출금(이체)';
 
     const handleSlotSelect = (slot: SlotData) => {
@@ -45,65 +46,74 @@ const SlotTransferModal: React.FC<SlotTransferModalProps> = ({
     };
 
     const handleConfirm = async () => {
+        console.log('[SlotTransferModal] handleConfirm 시작:', {
+            selectedSlotId,
+            selectedSlotAccountId: selectedSlot?.accountId,
+            transactionId: transaction.transactionId,
+        });
+
         if (selectedSlotId && selectedSlot?.accountId) {
             try {
-                // 거래내역을 선택된 슬롯으로 이동
+                console.log('[SlotTransferModal] moveTransaction API 호출 시작');
+
+                // ✅ API에서 이미 MoveTransactionResponse 반환
                 const moveResult = await transactionApi.moveTransaction(
                     selectedSlot.accountId,
                     transaction.transactionId,
                     selectedSlotId
                 );
 
-                // 효율적인 캐시 무효화 전략
-                
-                // 1. 슬롯 목록 무효화 (잔액 변경으로 인한 데이터 갱신)
-                await queryClient.invalidateQueries({
-                    queryKey: queryKeys.slots.byAccount(selectedSlot.accountId)
-                });
-                
-                // 2. 거래내역 무효화 (원래 슬롯과 이동된 슬롯)
-                await queryClient.invalidateQueries({
-                    queryKey: queryKeys.slots.transactions(selectedSlot.accountId, selectedSlot.accountSlotId)
-                });
-                await queryClient.invalidateQueries({
-                    queryKey: queryKeys.slots.transactions(selectedSlot.accountId, selectedSlotId)
-                });
-                
-                // 3. 일일 지출 데이터 무효화 (원래 슬롯과 이동된 슬롯)
-                await queryClient.invalidateQueries({
-                    queryKey: queryKeys.slots.dailySpending(selectedSlot.accountId, selectedSlot.accountSlotId)
-                });
-                await queryClient.invalidateQueries({
-                    queryKey: queryKeys.slots.dailySpending(selectedSlot.accountId, selectedSlotId)
-                });
-                
-                // 4. 계좌 관련 데이터 무효화
-                await queryClient.invalidateQueries({
-                    queryKey: queryKeys.accounts.balance(selectedSlot.accountId)
-                });
-                await queryClient.invalidateQueries({
-                    queryKey: queryKeys.accounts.linked()
-                });
-                
+                console.log('[SlotTransferModal] moveTransaction API 응답:', moveResult);
 
-                // 성공 시 콜백 호출 및 모달 닫기
-                if (moveResult.data?.reassignedSlot) {
-                    // 서버에서 받은 reassignedSlot 정보를 사용
-                    const reassignedSlot = moveResult.data.reassignedSlot;
-                    const originalSlot = moveResult.data.originalSlot;
+                console.log('[SlotTransferModal] 캐시 무효화 시작');
+                await Promise.all([
+                    queryClient.invalidateQueries({ queryKey: queryKeys.slots.byAccount(selectedSlot.accountId) }),
+                    queryClient.invalidateQueries({ queryKey: queryKeys.slots.transactions(selectedSlot.accountId, selectedSlot.accountSlotId) }),
+                    queryClient.invalidateQueries({ queryKey: queryKeys.slots.transactions(selectedSlot.accountId, selectedSlotId) }),
+                    queryClient.invalidateQueries({ queryKey: queryKeys.slots.dailySpending(selectedSlot.accountId, selectedSlot.accountSlotId) }),
+                    queryClient.invalidateQueries({ queryKey: queryKeys.slots.dailySpending(selectedSlot.accountId, selectedSlotId) }),
                     
-                    // 모달 닫기
+                    // 계좌 관련 캐시 무효화
+                    queryClient.invalidateQueries({ queryKey: queryKeys.accounts.balance(selectedSlot.accountId) }),
+                    queryClient.invalidateQueries({ queryKey: queryKeys.accounts.linked() }),
+                ]);
+                console.log('[SlotTransferModal] 캐시 무효화 완료');
+
+                
+                // ✅ 이제 바로 moveResult.reassignedSlot 사용 가능
+                if (moveResult.reassignedSlot) {
+                    console.log('[SlotTransferModal] 슬롯 재배치 성공:', moveResult.reassignedSlot);
+
                     onClose();
-                    
-                    // 거래내역 상세 페이지에서 나와서 슬롯 상세 페이지로 이동
-                    router.push({
-                        pathname: '/(tabs)/dashboard/slot/[slotId]',
-                        params: { 
-                            slotId: reassignedSlot.accountSlotId
-                        }
+
+                    await queryClient.invalidateQueries({
+                        queryKey: ['transactionDetail'],
+                        exact: false,
+                    });
+
+                    const reassignedAccountSlotId = moveResult.reassignedSlot.accountSlotId;
+                    const newSlot = slots.find((s) => s.accountSlotId === reassignedAccountSlotId);
+
+                    if (!newSlot) {
+                        console.warn('[SlotTransferModal] 새 슬롯을 찾을 수 없음');
+                        return;
+                    }
+
+                    console.log('[SlotTransferModal] 페이지 이동 시작:', {
+                        pathname: `/dashboard/slot/${newSlot.slotId}/transaction/${transaction.transactionId}`,
+                    });
+
+                    router.replace({
+                        pathname: `/dashboard/slot/${newSlot.slotId}/transaction/${transaction.transactionId}` as any,
+                        params: {
+                            slotId: newSlot.slotId,
+                            transactionId: transaction.transactionId,
+                            accountId: selectedSlot.accountId,
+                            accountSlotId: reassignedAccountSlotId,
+                        },
                     });
                 } else {
-                    console.warn('[SlotTransferModal] reassignedSlot이 없습니다:', moveResult);
+                    console.log('[SlotTransferModal] reassignedSlot이 없음, 모달 닫기');
                     onClose();
                 }
             } catch (error: any) {
@@ -111,18 +121,18 @@ const SlotTransferModal: React.FC<SlotTransferModalProps> = ({
                     message: error.message,
                     status: error.response?.status,
                     data: error.response?.data,
-                    requestData: {
-                        accountId: selectedSlot.accountId,
-                        transactionId: transaction.transactionId,
-                        targetAccountSlotId: selectedSlotId
-                    }
                 });
-                // 에러 처리 (필요시 사용자에게 알림)
             }
+        } else {
+            console.log('[SlotTransferModal] 조건 불만족:', {
+                selectedSlotId,
+                selectedSlotAccountId: selectedSlot?.accountId,
+            });
         }
     };
 
-    // 바텀시트가 열릴 때마다 선택 상태 초기화
+
+
     useEffect(() => {
         if (visible) {
             setSelectedSlotId(null);
@@ -130,39 +140,30 @@ const SlotTransferModal: React.FC<SlotTransferModalProps> = ({
     }, [visible]);
 
     return (
-        <BottomSheet
-            visible={visible}
-            onClose={onClose}
-            title="슬롯 설정"
-            height="full"
-        >
+        <BottomSheet visible={visible} onClose={onClose} title="슬롯 설정" height="full">
             <View style={styles.container}>
                 <View style={styles.content}>
                     <Text style={[styles.modalText, { color: theme.colors.text.primary }]}>
                         거래내역을 이동시킬 슬롯을 선택해주세요
                     </Text>
 
-                    {/* 현재 거래 내역 정보 */}
                     <Text style={[styles.transactionTitle, { color: theme.colors.text.primary }]}>
                         이동할 거래내역
                     </Text>
-
                     <View style={[styles.transactionInfo, { backgroundColor: theme.colors.background.secondary }]}>
                         <View style={styles.transactionDetails}>
                             <Text style={[styles.transactionSummary, { color: theme.colors.text.primary }]}>
                                 {transaction.summary}
                             </Text>
                             <Text style={[styles.transactionAmount, { color: theme.colors.text.primary }]}>
-                                {isExpense ? '-' : ''}{Math.abs(transaction.amount).toLocaleString()}원
+                                {isExpense ? '-' : ''}
+                                {Math.abs(transaction.amount).toLocaleString()}원
                             </Text>
                         </View>
                     </View>
 
-                    {/* 슬롯 리스트 */}
                     <View style={styles.slotsSection}>
-                        <Text style={[styles.slotsTitle, { color: theme.colors.text.primary }]}>
-                            슬롯 선택
-                        </Text>
+                        <Text style={[styles.slotsTitle, { color: theme.colors.text.primary }]}>슬롯 선택</Text>
                         <ScrollView style={styles.slotsScrollView}>
                             {slotsLoading ? (
                                 <Text style={[styles.loadingText, { color: theme.colors.text.secondary }]}>
@@ -180,11 +181,17 @@ const SlotTransferModal: React.FC<SlotTransferModalProps> = ({
                                                 <SlotHeader slot={slot} variant="small" />
                                             </View>
                                             <TouchableOpacity
-                                                style={[styles.slotItem, {
-                                                    backgroundColor: theme.colors.background.tertiary,
-                                                    borderColor: selectedSlotId === slot.accountSlotId ? '#007AFF' : theme.colors.border.light,
-                                                    borderWidth: selectedSlotId === slot.accountSlotId ? 2 : 1,
-                                                }]}
+                                                style={[
+                                                    styles.slotItem,
+                                                    {
+                                                        backgroundColor: theme.colors.background.tertiary,
+                                                        borderColor:
+                                                            selectedSlotId === slot.accountSlotId
+                                                                ? '#007AFF'
+                                                                : theme.colors.border.light,
+                                                        borderWidth: selectedSlotId === slot.accountSlotId ? 2 : 1,
+                                                    },
+                                                ]}
                                                 onPress={() => handleSlotSelect(slot)}
                                             >
                                                 <View style={styles.slotInfo}>
@@ -204,13 +211,12 @@ const SlotTransferModal: React.FC<SlotTransferModalProps> = ({
                     </View>
                 </View>
 
-                {/* 하단 고정 확인 버튼 */}
                 <View style={[styles.bottomButtonContainer, { backgroundColor: theme.colors.background.primary }]}>
                     <Button
                         title="확인"
                         onPress={handleConfirm}
                         disabled={!selectedSlotId}
-                        variant={selectedSlotId ? "primary" : "secondary"}
+                        variant={selectedSlotId ? 'primary' : 'secondary'}
                         style={styles.confirmButton}
                     />
                 </View>
@@ -220,101 +226,32 @@ const SlotTransferModal: React.FC<SlotTransferModalProps> = ({
 };
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        flexDirection: 'column',
-    },
-    content: {
-        flex: 1,
-        padding: Spacing.lg,
-    },
-    bottomButtonContainer: {
-        padding: Spacing.lg,
-        marginBottom: Spacing.lg,
-    },
+    container: { flex: 1, flexDirection: 'column' },
+    content: { flex: 1, padding: Spacing.lg },
+    bottomButtonContainer: { padding: Spacing.lg, marginBottom: Spacing.lg },
     modalText: {
         fontSize: Typography.fontSize.base,
         fontWeight: Typography.fontWeight.medium,
         marginBottom: Spacing.lg,
         textAlign: 'center',
     },
-    transactionInfo: {
-        padding: Spacing.base,
-        borderRadius: 8,
-        marginBottom: Spacing.lg,
-    },
-    transactionTitle: {
-        fontSize: Typography.fontSize.sm,
-        fontWeight: Typography.fontWeight.medium,
-        marginBottom: Spacing.sm,
-    },
-    transactionDetails: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-    },
-    transactionSummary: {
-        fontSize: Typography.fontSize.base,
-        fontWeight: Typography.fontWeight.medium,
-        flex: 1,
-    },
-    transactionAmount: {
-        fontSize: Typography.fontSize.base,
-        fontWeight: Typography.fontWeight.bold,
-    },
-    slotsSection: {
-        marginBottom: Spacing.lg,
-    },
-    slotsScrollView: {
-        maxHeight: 200,
-    },
-    slotsTitle: {
-        fontSize: Typography.fontSize.sm,
-        fontWeight: Typography.fontWeight.medium,
-        marginBottom: Spacing.sm,
-    },
-    loadingText: {
-        fontSize: Typography.fontSize.sm,
-        textAlign: 'center',
-        padding: Spacing.lg,
-    },
-    slotsList: {
-        gap: Spacing.lg,
-    },
-    slotItemWrapper: {
-        position: 'relative',
-        marginTop: Spacing.lg,
-    },
-    slotItem: {
-        flexDirection: 'column',
-        paddingTop: Spacing.lg,
-        paddingBottom: Spacing.base,
-        paddingHorizontal: Spacing.base,
-        borderRadius: 8,
-        borderWidth: 1,
-    },
-    slotHeaderContainer: {
-        position: 'absolute',
-        top: -Spacing.lg,
-        left: -Spacing.base,
-        zIndex: 2,
-        elevation: 2, // Android에서 z-index 효과
-    },
-    slotInfo: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-    },
-    slotBudget: {
-        fontSize: Typography.fontSize.sm,
-    },
-    slotBalance: {
-        fontSize: Typography.fontSize.sm,
-        fontWeight: Typography.fontWeight.medium,
-    },
-    confirmButton: {
-        // 하단 고정 버튼이므로 marginTop 제거
-    },
+    transactionInfo: { padding: Spacing.base, borderRadius: 8, marginBottom: Spacing.lg },
+    transactionTitle: { fontSize: Typography.fontSize.sm, fontWeight: Typography.fontWeight.medium, marginBottom: Spacing.sm },
+    transactionDetails: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+    transactionSummary: { fontSize: Typography.fontSize.base, fontWeight: Typography.fontWeight.medium, flex: 1 },
+    transactionAmount: { fontSize: Typography.fontSize.base, fontWeight: Typography.fontWeight.bold },
+    slotsSection: { marginBottom: Spacing.lg },
+    slotsScrollView: { maxHeight: 200 },
+    slotsTitle: { fontSize: Typography.fontSize.sm, fontWeight: Typography.fontWeight.medium, marginBottom: Spacing.sm },
+    loadingText: { fontSize: Typography.fontSize.sm, textAlign: 'center', padding: Spacing.lg },
+    slotsList: { gap: Spacing.lg },
+    slotItemWrapper: { position: 'relative', marginTop: Spacing.lg },
+    slotItem: { flexDirection: 'column', paddingTop: Spacing.lg, paddingBottom: Spacing.base, paddingHorizontal: Spacing.base, borderRadius: 8, borderWidth: 1 },
+    slotHeaderContainer: { position: 'absolute', top: -Spacing.lg, left: -Spacing.base, zIndex: 2, elevation: 2 },
+    slotInfo: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+    slotBudget: { fontSize: Typography.fontSize.sm },
+    slotBalance: { fontSize: Typography.fontSize.sm, fontWeight: Typography.fontWeight.medium },
+    confirmButton: {},
 });
 
 export default SlotTransferModal;

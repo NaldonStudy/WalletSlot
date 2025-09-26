@@ -1,27 +1,72 @@
+import React, { useEffect, useState } from 'react';
+import { useLocalSearchParams, router } from 'expo-router';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Stack } from 'expo-router';
+import { Alert, View, StyleSheet, useColorScheme, Text } from 'react-native';
+import { SlotTransaction } from '@/src/types/slot';
+import { useSlotStore } from '@/src/store/useSlotStore';
+import TransactionDetail from '@/src/components/transaction/TransactionDetail';
 import { Button } from '@/src/components/Button';
 import { DutchPayBottomSheet } from '@/src/components/transaction/DutchPayBottomSheet';
 import TransactionDetail from '@/src/components/transaction/TransactionDetail';
 import { Spacing, themes } from '@/src/constants/theme';
-import { useSlotStore } from '@/src/store/useSlotStore';
-import { SlotTransaction } from '@/src/types/slot';
-import { router, Stack, useLocalSearchParams } from 'expo-router';
-import React, { useEffect, useState } from 'react';
-import { Alert, StyleSheet, useColorScheme, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { transactionApi } from '@/src/api/transaction';
+import { useQuery } from '@tanstack/react-query';
 
 export default function TransactionDetailScreen() {
-  const { slotId, transactionId, transactionData } = useLocalSearchParams<{ 
+  const { slotId, transactionId, transactionData, slotData, slotName, accountId, accountSlotId } = useLocalSearchParams<{ 
     slotId: string; 
     transactionId: string;
     transactionData?: string;
+    slotData?: string;
+    slotName?: string;
+    accountId?: string;
+    accountSlotId?: string;
   }>();
   
-  const { selectedSlot } = useSlotStore();
+  // selectedSlot 의존성 제거 - URL 파라미터만 사용
   const colorScheme = useColorScheme() ?? 'light';
   const theme = themes[colorScheme];
 
   // BottomSheet 상태 관리
   const [isDutchPayBottomSheetVisible, setIsDutchPayBottomSheetVisible] = useState(false);
+
+  // 거래 상세 API 호출
+  const { 
+    data: transactionDetailData, 
+    isLoading: isTransactionLoading,
+    error: transactionError 
+  } = useQuery({
+    queryKey: ['transactionDetail', accountId, accountSlotId, transactionId],
+    queryFn: () => {
+      console.log('[TransactionDetailScreen] getTransactionDetail API 호출:', {
+        accountId,
+        accountSlotId,
+        transactionId
+      });
+      return transactionApi.getTransactionDetail(
+        accountId || '',
+        accountSlotId || '',
+        transactionId || ''
+      );
+    },
+    enabled: !!accountId && !!accountSlotId && !!transactionId,
+  });
+
+  // API 응답 디버깅
+  useEffect(() => {
+    if (transactionDetailData) {
+      console.log('[TransactionDetailScreen] getTransactionDetail API 응답:', transactionDetailData);
+    }
+  }, [transactionDetailData]);
+
+  // 파라미터 상태 디버깅
+  console.log('[TransactionDetailScreen] 파라미터 상태:', {
+    accountId,
+    accountSlotId,
+    transactionId,
+    enabled: !!accountId && !!accountSlotId && !!transactionId
+  });
 
   // 버튼 핸들러 함수들
   const handleAmountSplit = () => {
@@ -38,15 +83,12 @@ export default function TransactionDetailScreen() {
   };
 
   const handleDutchPay = () => {
-    console.log('🔍 더치페이 버튼 클릭됨!');
-    console.log('- selectedSlot:', selectedSlot);
-    console.log('- accountId:', selectedSlot?.accountId);
     setIsDutchPayBottomSheetVisible(true);
   };
 
+  // API 에러 처리
   useEffect(() => {
-    // 거래 데이터가 없는 경우 오류 처리
-    if (!transactionData) {
+    if (transactionError) {
       Alert.alert(
         '오류',
         '거래 정보를 불러올 수 없습니다.',
@@ -57,63 +99,49 @@ export default function TransactionDetailScreen() {
           },
         ]
       );
-      return;
     }
+  }, [transactionError]);
 
-    // 거래 데이터 파싱 시도
-    try {
-      const parsedTransaction = JSON.parse(transactionData) as SlotTransaction;
-      
-      // 필수 필드 검증
-      if (!parsedTransaction.transactionId || !parsedTransaction.summary) {
-        throw new Error('필수 거래 정보가 누락되었습니다.');
-      }
-    } catch (error) {
-      console.error('거래 데이터 파싱 실패:', error);
-      Alert.alert(
-        '오류',
-        '거래 정보를 처리할 수 없습니다.',
-        [
-          {
-            text: '확인',
-            onPress: () => router.back(),
-          },
-        ]
-      );
-    }
-  }, [transactionData]);
-
-  // 거래 데이터가 없거나 파싱에 실패한 경우 렌더링하지 않음
-  if (!transactionData) {
+  // 로딩 중인 경우
+  if (isTransactionLoading) {
     return (
-      <SafeAreaView style={{ flex: 1 }}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background.primary }}>
         <Stack.Screen
           options={{
             title: "상세 내역",
             headerBackTitle: "",
           }}
         />
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <Text style={{ color: theme.colors.text.primary }}>거래 정보를 불러오는 중...</Text>
+        </View>
       </SafeAreaView>
     );
   }
 
-  // 거래 데이터 파싱
-  let transaction: SlotTransaction;
-  try {
-    transaction = JSON.parse(transactionData) as SlotTransaction;
-  } catch (error) {
-    // 이미 useEffect에서 오류 처리를 했으므로 여기서는 렌더링하지 않음
+  // API 데이터가 없는 경우
+  if (!transactionDetailData) {
     return (
-      <SafeAreaView style={{ flex: 1 }}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background.primary }}>
         <Stack.Screen
           options={{
             title: "상세 내역",
             headerBackTitle: "",
           }}
         />
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <Text style={{ color: theme.colors.text.primary }}>거래 정보를 찾을 수 없습니다.</Text>
+        </View>
       </SafeAreaView>
     );
   }
+
+  // API에서 받은 데이터를 SlotTransaction 타입으로 변환
+  const transaction: SlotTransaction = {
+    ...transactionDetailData.data.transaction,
+    opponentAccountNo: transactionDetailData.data.transaction.opponentAccountNo || '',
+  };
+  const slot = transactionDetailData.data.slot;
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background.primary }}>
@@ -127,7 +155,7 @@ export default function TransactionDetailScreen() {
       <View style={[styles.contentContainer, { backgroundColor: theme.colors.background.primary }]}>
         <TransactionDetail 
           transaction={transaction} 
-          slotName={selectedSlot?.name || selectedSlot?.customName}
+          slot={slot}
         />
       </View>
       
@@ -150,14 +178,14 @@ export default function TransactionDetailScreen() {
       </View>
 
       {/* 더치페이 BottomSheet */}
-      <DutchPayBottomSheet
-        visible={isDutchPayBottomSheetVisible}
-        onClose={() => setIsDutchPayBottomSheetVisible(false)}
-        transaction={transaction}
-        theme={theme}
-        accountId={selectedSlot?.accountId}
-        accountSlotId={selectedSlot?.accountSlotId}
-      />
+        <DutchPayBottomSheet
+          visible={isDutchPayBottomSheetVisible}
+          onClose={() => setIsDutchPayBottomSheetVisible(false)}
+          transaction={transaction}
+          theme={theme}
+          accountId={accountId}
+          accountSlotId={accountSlotId}
+        />
     </SafeAreaView>
   );
 }

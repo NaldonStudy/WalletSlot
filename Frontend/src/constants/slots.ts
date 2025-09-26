@@ -52,4 +52,4 @@ export const SLOT_CATEGORIES = {
 } as const;
 
 // 미분류 슬롯 ID
-export const UNCATEGORIZED_SLOT_ID = "ef1a8a1d-99da-11f0-8086-0e08d0f2f752";
+export const UNCATEGORIZED_SLOT_ID = "c8e604bb-95e9-11f0-9470-3a932b1ba57c";

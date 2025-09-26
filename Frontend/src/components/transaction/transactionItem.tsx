@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, useColorScheme, TouchableOpacity } from "react-
 import { router } from "expo-router";
 import type { SlotTransaction } from "@/src/types/slot";
 import { themes } from "@/src/constants/theme";
+import { useAccountSelectionStore } from "@/src/store";
 
 // 시간 포맷팅 함수
 const formatTime = (dateTimeString: string) => {
@@ -21,11 +22,16 @@ interface Props {
   showDate?: boolean;
   dateText?: string;
   slotId?: string; // 슬롯 ID 추가
+  accountId?: string; // 계좌 ID 추가
+  accountSlotId?: string; // 계좌 슬롯 ID 추가
 }
 
-const TransactionItem = ({ transaction, showDate = false, dateText, slotId }: Props) => {
+const TransactionItem = ({ transaction, showDate = false, dateText, slotId, accountId, accountSlotId }: Props) => {
     const colorScheme = useColorScheme() ?? 'light';
-    const theme = themes[colorScheme];  
+    const theme = themes[colorScheme];
+    
+    // 계좌 선택 스토어 사용
+    const { getCurrentAccountId, getCurrentAccountSlotId } = useAccountSelectionStore();
     
     // type 필드를 기반으로 색상 결정
     const isIncome = transaction.type === '입금' || transaction.type === '입금(이체)';
@@ -33,12 +39,23 @@ const TransactionItem = ({ transaction, showDate = false, dateText, slotId }: Pr
 
     const handlePress = () => {
       if (slotId) {
-        router.push({
-          pathname: `/dashboard/slot/${slotId}/transaction/${transaction.transactionId}` as any,
-          params: {
-            transactionData: JSON.stringify(transaction)
-          }
-        });
+        // 스토어에서 현재 선택된 계좌 정보 가져오기
+        const currentAccountId = getCurrentAccountId();
+        const currentAccountSlotId = getCurrentAccountSlotId();
+        
+        // 파라미터로 전달된 값이 있으면 우선 사용, 없으면 스토어 값 사용
+        const finalAccountId = accountId || currentAccountId;
+        const finalAccountSlotId = accountSlotId || currentAccountSlotId;
+        
+        if (finalAccountId && finalAccountSlotId) {
+          router.push({
+            pathname: `/dashboard/slot/${slotId}/transaction/${transaction.transactionId}` as any,
+            params: {
+              accountId: finalAccountId,
+              accountSlotId: finalAccountSlotId
+            }
+          });
+        }
       }
     };
   
