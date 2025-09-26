@@ -114,5 +114,4 @@ public class AccountSlot {
             return this.slot.getName();
         }
     }
-
 }

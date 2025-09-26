@@ -108,6 +108,29 @@ public class NotificationServiceImpl implements NotificationService {
                 .build();
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public GetNotificationPageResponseDto getUnreadPage(final long userId, final Notification.Type type, final Pageable pageable) {
+        final User user = userRepo.findById(userId)
+                .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "[NotificationService - 003U]"));
+
+        final Page<Notification> page = (type == null)
+                ? repo.findByUserAndIsReadFalseOrderByIdDesc(user, pageable)
+                : repo.findByUserAndTypeAndIsReadFalseOrderByIdDesc(user, type, pageable);
+
+        return GetNotificationPageResponseDto.builder()
+                .success(true)
+                .message("[NotificationService - 003U] 미읽음 목록 조회 성공")
+                .data(GetNotificationPageResponseDto.Data.builder()
+                        .content(page.getContent().stream().map(NotificationDto::from).toList())
+                        .page(page.getNumber())
+                        .size(page.getSize())
+                        .totalElements(page.getTotalElements())
+                        .totalPages(page.getTotalPages())
+                        .build())
+                .build();
+    }
+
     /** * 8-2-4 미읽음 개수 */
     @Override
     @Transactional(readOnly = true)
