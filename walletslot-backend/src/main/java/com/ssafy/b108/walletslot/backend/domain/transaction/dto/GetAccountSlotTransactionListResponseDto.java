@@ -31,6 +31,8 @@ public class GetAccountSlotTransactionListResponseDto {
 
         // Field
         private List<TransactionDto> transactions;
+        private boolean hasNext;
+        private LocalDateTime nextCursor;
     }
 
     @Getter

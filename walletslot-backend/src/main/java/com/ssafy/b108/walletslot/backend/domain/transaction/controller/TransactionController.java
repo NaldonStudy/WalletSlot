@@ -14,6 +14,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
+
 @RestController
 @RequestMapping("/api")
 @RequiredArgsConstructor
@@ -42,8 +44,8 @@ public class TransactionController {
             }
 
     )
-    public ResponseEntity<GetAccountTransactionListResponseDto> getAccountTransactions(@AuthenticationPrincipal UserPrincipal principal, @PathVariable String accountId) {
-        return ResponseEntity.status(HttpStatus.OK).body(transactionService.getAccountTransactions(principal.userId(), accountId));
+    public ResponseEntity<GetAccountTransactionListResponseDto> getAccountTransactions(@AuthenticationPrincipal UserPrincipal principal, @PathVariable String accountId, @RequestParam(required = false) LocalDateTime cursor) {
+        return ResponseEntity.status(HttpStatus.OK).body(transactionService.getAccountTransactions(principal.userId(), accountId, cursor));
     }
 
     @GetMapping("/accounts/{accountId}/slots/{accountSlotId}/transactions")
@@ -59,8 +61,8 @@ public class TransactionController {
             }
 
     )
-    public ResponseEntity<GetAccountSlotTransactionListResponseDto> getAccountSlotTransactions(@AuthenticationPrincipal UserPrincipal principal, @PathVariable String accountId, @PathVariable String accountSlotId) {
-        return ResponseEntity.status(HttpStatus.OK).body(transactionService.getAccountSlotTransactions(principal.userId(), accountId, accountSlotId));
+    public ResponseEntity<GetAccountSlotTransactionListResponseDto> getAccountSlotTransactions(@AuthenticationPrincipal UserPrincipal principal, @PathVariable String accountId, @PathVariable String accountSlotId, @RequestParam(required = false) LocalDateTime cursor) {
+        return ResponseEntity.status(HttpStatus.OK).body(transactionService.getAccountSlotTransactions(principal.userId(), accountId, accountSlotId, cursor));
     }
 
     @GetMapping("/accounts/{accountId}/slots/{accountSlotId}/transactions/{transactionId}")
