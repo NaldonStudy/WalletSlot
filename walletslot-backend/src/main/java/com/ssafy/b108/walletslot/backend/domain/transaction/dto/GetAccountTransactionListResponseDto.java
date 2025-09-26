@@ -28,6 +28,8 @@ public class GetAccountTransactionListResponseDto {
 
         // Field
         private List<TransactionDto> transactions;
+        private Boolean hasNext;
+        private LocalDateTime nextCursor;
     }
 
     @Getter

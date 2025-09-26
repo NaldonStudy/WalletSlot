@@ -35,6 +35,9 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
@@ -72,16 +75,16 @@ public class TransactionService {
 
     @Value("${api.ssafy.finance.apiKey}")
     private String ssafyFinanceApiKey;
-
     private String lastSyncedDate="20250923";
-
     private final SecretKey encryptionKey;
+
+    private final int pageSize = 20;
 
     // Method
     /**
      * 6-1-1 계좌 거래내역 전체조회
      */
-    public GetAccountTransactionListResponseDto getAccountTransactions(Long userId, String accountUuid) {
+    public GetAccountTransactionListResponseDto getAccountTransactions(Long userId, String accountUuid, LocalDateTime cursor) {
 
         // userId != account userId 이면 403
         Account account = accountRepository.findByUuid(accountUuid).orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "TransactionService - 001"));
@@ -90,9 +93,16 @@ public class TransactionService {
         }
 
         // dto > data > transactions
-        List<Transaction> transactionList = transactionRepository.findByAccount(account);
+        List<Transaction> transactions = transactionRepository.findByAccountUuid(accountUuid, cursor, pageSize);
+
+        // hasNext 계산
+        boolean hasNext = (transactions.size() == pageSize);
+        LocalDateTime nextCursor = hasNext
+                ? transactions.get(transactions.size() - 1).getTransactionAt() // NativeQuery에서 < 으로 비교할 거라서 맨 마지막 값으로 줘도 됨
+                : null;
+
         List<GetAccountTransactionListResponseDto.TransactionDto> transactionDtoList = new ArrayList<>();
-        for(Transaction transaction : transactionList) {
+        for(Transaction transaction : transactions) {
 
             GetAccountTransactionListResponseDto.TransactionDto transactionDto = GetAccountTransactionListResponseDto.TransactionDto.builder()
                     .transactionId(transaction.getUuid())
@@ -111,7 +121,7 @@ public class TransactionService {
         GetAccountTransactionListResponseDto getAccountTransactionListResponseDto = GetAccountTransactionListResponseDto.builder()
                 .success(true)
                 .message("[TransactionService - 003] 계좌 거래내역 전체조회 성공")
-                .data(GetAccountTransactionListResponseDto.Data.builder().transactions(transactionDtoList).build())
+                .data(GetAccountTransactionListResponseDto.Data.builder().transactions(transactionDtoList).hasNext(hasNext).nextCursor(nextCursor).build())
                 .build();
 
         // 응답
@@ -121,7 +131,7 @@ public class TransactionService {
     /**
      * 6-1-2 슬롯 거래내역 전체조회
      */
-    public GetAccountSlotTransactionListResponseDto getAccountSlotTransactions(Long userId, String accountUuid, String accountSlotUuid) {
+    public GetAccountSlotTransactionListResponseDto getAccountSlotTransactions(Long userId, String accountUuid, String accountSlotUuid, LocalDateTime cursor) {
 
         // userId != account userId 이면 403 응답
         Account account = accountRepository.findByUuid(accountUuid).orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "TransactionService - 004"));
@@ -135,11 +145,17 @@ public class TransactionService {
             throw new AppException(ErrorCode.BAD_REQUEST, "TransactionService - 007");
         }
 
-        // 슬롯 거래내역 전체조회
         // dto > data > transactions
-        List<Transaction> transactionList =  transactionRepository.findByAccountSlot(accountSlot);
+        List<Transaction> transactions =  transactionRepository.findByAccountSlotUuid(accountSlotUuid, cursor, pageSize);
+
+        // hasNext 계산
+        boolean hasNext = (transactions.size() == pageSize);
+        LocalDateTime nextCursor = hasNext
+                ? transactions.get(transactions.size() - 1).getTransactionAt()
+                : null;
+
         List<GetAccountSlotTransactionListResponseDto.TransactionDto> transactionDtoList = new ArrayList<>();
-        for(Transaction transaction : transactionList) {
+        for(Transaction transaction : transactions) {
 
             GetAccountSlotTransactionListResponseDto.TransactionDto transactionDto = GetAccountSlotTransactionListResponseDto.TransactionDto.builder()
                     .transactionId(transaction.getUuid())
@@ -158,7 +174,7 @@ public class TransactionService {
         GetAccountSlotTransactionListResponseDto getAccountSlotTransactionListResponseDto = GetAccountSlotTransactionListResponseDto.builder()
                 .success(true)
                 .message("[TransactionService - 008] 슬롯 거래내역 전체조회 성공")
-                .data(GetAccountSlotTransactionListResponseDto.Data.builder().transactions(transactionDtoList).build())
+                .data(GetAccountSlotTransactionListResponseDto.Data.builder().transactions(transactionDtoList).hasNext(hasNext).nextCursor(nextCursor).build())
                 .build();
 
         // 응답
