@@ -39,10 +39,12 @@ export const API_ENDPOINTS = {
   NOTIFICATIONS_PULL: '/api/notifications/pull',
   NOTIFICATIONS_READ_ALL: '/api/notifications/read-all',
   NOTIFICATIONS_UNREAD_COUNT: '/api/notifications/unread-count',
+  // Notification settings (client and MSW use this path; server may choose a different one)
   NOTIFICATIONS_SETTINGS: '/api/notifications/settings',
   
   // Auth
   PIN_CHANGE: '/api/auth/pin',
+  // PIN verify helper used by MSW test handlers
   PIN_VERIFY: '/api/auth/pin/verify',
   PIN_RESET_REQUEST: '/api/auth/pin/reset/request',
   PIN_RESET_CONFIRM: '/api/auth/pin/reset/confirm',
@@ -64,7 +66,7 @@ export const API_ENDPOINTS = {
   ACCOUNT_BALANCE: (accountId: string) => `/api/accounts/${accountId}/balance`,
   ACCOUNT_SLOTS: (accountId: string) => `/api/accounts/${accountId}/slots`,
   ACCOUNT_SLOT_TRANSACTIONS: (accountId: string, slotId: string) => `/api/accounts/${accountId}/slots/${slotId}/transactions`,
-  ACCOUNT_SLOT_DAILY_SPENDING: (accountId: string, slotId: string) => `/api/accounts/${accountId}/slots/${slotId}/daily-spending`,
+  // NOTE: `/daily-spending` endpoint was removed from the API spec and is intentionally omitted
   // Slot history (budget change history)
   ACCOUNT_SLOT_HISTORY: (accountId: string, slotId: string) => `/api/accounts/${accountId}/slots/${slotId}/history`,
   ACCOUNTS_VERIFICATION_REQUEST: '/api/accounts/verification/request',
@@ -77,7 +79,11 @@ export const API_ENDPOINTS = {
   MYDATA_CONSENTS_RENEW: '/api/mydata/consents/renew',
   
   // Reports
-  REPORTS_SPENDING: '/api/reports/spending',
+  // NOTE: legacy `/api/reports/spending` removed — use AI report endpoints under /api/accounts/{accountId}/ai-reports
+  // AI 기반 소비 레포트
+  AI_REPORTS_BASE: (accountId: string) => `/api/accounts/${accountId}/ai-reports`,
+  AI_REPORTS_MONTHS: (accountId: string) => `/api/accounts/${accountId}/ai-reports/months`,
+  AI_REPORTS_ARCHIVE: (accountId: string) => `/api/accounts/${accountId}/ai-reports/archive`,
   
   // User Profile
   USER_ME: '/api/users/me',

@@ -97,20 +97,15 @@ export const testMyDataConnections = async () => {
 export const testSpendingReport = async () => {
   try {
     console.log('📊 소비 레포트 테스트 시작... (전체 계좌 통합)');
-  const res = await fetch(`/api/reports/spending`);
+  const res = await fetch(`/api/accounts/test-account/ai-reports/months`);
     const data = await res.json();
-    console.log('📊 소비 레포트 API 응답:', data);
+    console.log('📊 AI report months API 응답:', data);
     
-    if (data.success && data.data) {
-      console.log('📊 레포트 데이터 구조 확인:');
-      console.log('- 기간:', data.data.period);
-      console.log('- 예산 비교:', data.data.budgetComparison);
-      console.log('- 카테고리 분석 수:', data.data.categoryAnalysis?.length || 0);
-      console.log('- 또래 비교:', data.data.peerComparison?.demographicInfo);
-      console.log('- 상위 지출 수:', data.data.topSpendingCategories?.length || 0);
-      console.log('✅ 소비 레포트 테스트 성공');
+    if (data.success && data.data && data.data.yearMonths) {
+      console.log('📊 AI months received:', data.data.yearMonths.slice(0,3));
+      console.log('✅ AI report months test success');
     } else {
-      console.warn('📊 소비 레포트 데이터 구조가 예상과 다릅니다:', data);
+      console.warn('📊 AI report months structure unexpected:', data);
     }
   } catch (e) {
     console.error('📊 소비 레포트 테스트 실패:', e);

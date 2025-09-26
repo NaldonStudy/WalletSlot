@@ -125,10 +125,33 @@ export async function fetchFallback<T = any>(url: string, params?: { page?: numb
  */
 export async function fetchJsonFallback(url: string) {
   try {
-    const res = await fetch(url);
+    // 요청 시 JSON 응답을 우선적으로 요청하도록 Accept 헤더 추가
+    const res = await fetch(url, { headers: { Accept: 'application/json' } });
+
+    const contentType = (res.headers && res.headers.get && res.headers.get('content-type')) || '';
+    const status = res.status;
+
+    // Content-Type에 application/json이 명시되어 있지 않으면 JSON 파싱을 시도하지 않음
+    if (!contentType.toLowerCase().includes('application/json')) {
+      // 짧은 본문 스니펫을 읽어 로그에 남김 (개발/디버깅용)
+      const text = await res.text().catch(() => '<body unavailable>');
+      const snippet = typeof text === 'string' ? text.substring(0, 512) : '<non-string-body>';
+      console.log('[NORMALIZER] fetchJsonFallback: non-json response', { url, status, contentType, snippet });
+      return null;
+    }
+
+    // 안전하게 JSON 파싱
     const json = await res.json();
     return json;
-  } catch (e) {
+  } catch (e: any) {
+    // 만약 JSON 파싱 중 에러가 발생하면 응답 텍스트를 가져와 함께 로그에 남김
+    try {
+      const res2 = await fetch(url, { headers: { Accept: 'application/json' } });
+      const text = await res2.text().catch(() => '<unavailable>');
+      console.log('[NORMALIZER] fetchJsonFallback 실패 - 파싱중 예외, 응답 스니펫:', text.substring(0, 512));
+    } catch {
+      console.log('[NORMALIZER] fetchJsonFallback 실패: unable to fetch response text');
+    }
     console.log('[NORMALIZER] fetchJsonFallback 실패:', e);
     return null;
   }
@@ -452,11 +475,10 @@ export function normalizeSlotDailySpending(raw: any): BaseResponse<SlotDailySpen
  */
 export async function fetchSlotDailySpendingFallback(accountId: string, slotId: string): Promise<BaseResponse<SlotDailySpendingResponse> | null> {
   try {
-  const res = await fetch(API_ENDPOINTS.ACCOUNT_SLOT_DAILY_SPENDING(accountId, slotId));
-    const json = await res.json();
-    if (json) {
-      return normalizeSlotDailySpending(json);
-    }
+    // The `/daily-spending` endpoint is not part of the current backend spec.
+    // Avoid attempting to fetch a non-existent route. Return a safe default instead.
+    console.log('[SLOT_DAILY_SPENDING_NORMALIZER] endpoint removed; returning empty result');
+    return normalizeSlotDailySpending({ startDate: '', transactions: [] });
   } catch (e) {
     console.log('[SLOT_DAILY_SPENDING_NORMALIZER] fallback fetch 실패:', e);
   }

@@ -1,7 +1,15 @@
+// src/components/report/PersonalizedInsight.tsx
+
 import { Spacing, Typography } from '@/src/constants/theme';
-import type { PersonalizedInsight } from '@/src/types/report';
+import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
+
+interface PersonalizedInsight {
+  aiSummary: string | null;
+  aiActionItems: string[];
+  notes: string[];
+}
 
 interface PersonalizedInsightProps {
   /** AI 기반 개인화 인사이트 데이터 */
@@ -11,92 +19,57 @@ interface PersonalizedInsightProps {
 }
 
 /**
- * 사용자 개인의 소비 패턴을 분석한 인사이트를 제공하는 카드 컴포넌트
- * 
- * 주요 기능:
- * - 개인 소비 유형 분석 및 설명
- * - 새로 발견된 소비 카테고리 하이라이트
- * - 긍정적 소비 습관 칭찬 (강점)
- * - 개선 필요한 소비 패턴 제안
- * - 색상 구분으로 직관적인 정보 전달
- * 
- * @param personalizedInsight - 개인화 인사이트 데이터
- * @param theme - 테마 설정
+ * ✨ API 데이터 기반으로 UI를 재구성한 개인화 인사이트 카드
  */
 export const PersonalizedInsightCard: React.FC<PersonalizedInsightProps> = ({
   personalizedInsight,
   theme,
 }) => {
+  // 데이터가 null일 경우를 대비하여 기본값 설정
+  const { aiSummary, aiActionItems, notes } = personalizedInsight || {};
+
+  const hasActionItems = aiActionItems && aiActionItems.length > 0;
+  const hasNotes = notes && notes.length > 0;
+
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background.secondary }]}>
       <Text style={[styles.sectionTitle, { color: theme.colors.text.primary }]}>
-        개인화 인사이트
+        AI 인사이트 ✨
       </Text>
 
-      {/* 소비 유형 */}
-      <View style={[styles.spendingTypeContainer, { backgroundColor: '#E0F2FE' }]}>
-        <Text style={[styles.spendingTypeLabel, { color: theme.colors.text.secondary }]}>
-          당신의 소비 유형
-        </Text>
-        <Text style={[styles.spendingType, { color: '#0369A1' }]}>
-          {personalizedInsight.spendingType}
-        </Text>
-        <View>
-          <Text
-            style={[styles.spendingTypeDescription, { color: theme.colors.text.secondary }]}
-          >
-            {personalizedInsight.spendingTypeDescription}
-          </Text>
-        </View>
-      </View>
-
-      {/* 신규 카테고리 발견 */}
-      <View style={[styles.newCategoryContainer, { backgroundColor: '#F0FDF4' }]}>
-        <Text style={[styles.newCategoryLabel, { color: theme.colors.text.secondary }]}>
-          신규 카테고리 발견
-        </Text>
-        <Text style={[styles.newCategoryTitle, { color: '#16A34A' }]}>
-          온라인 강의
-        </Text>
-        <View>
-          <Text
-            style={[styles.newCategoryDescription, { color: theme.colors.text.secondary }]}
-          >
-            새로운 소비 패턴이 발견되었어요. 온라인 교육에 투자하고 계시는군요!
-          </Text>
-        </View>
-      </View>
-
-      {/* 강점들 */}
-      {personalizedInsight.strengths.length > 0 && (
+      {/* aiSummary가 있을 경우에만 표시 */}
+      {aiSummary && (
         <View style={styles.insightSection}>
-          <Text style={[styles.insightSectionTitle, { color: '#16A34A' }]}>
-            잘하고 있어요! 👍
-          </Text>
-          {personalizedInsight.strengths.map((strength, index) => (
-            <View key={index}>
-              <Text style={[styles.insightItem, { color: theme.colors.text.secondary }]}>
-                • {strength}
-              </Text>
+          <Text style={[styles.insightSummary, { color: theme.colors.text.secondary }]}>{aiSummary}</Text>
+        </View>
+      )}
+
+      {/* aiActionItems가 있을 경우에만 목록으로 표시 */}
+      {hasActionItems && (
+        <View style={styles.insightSection}>
+          <Text style={[styles.insightSubtitle, { color: theme.colors.text.primary }]}>💡 실천해 보세요</Text>
+          {aiActionItems.map((item: string, index: number) => (
+            <View key={index} style={styles.insightActionItem}>
+              <Ionicons name="checkmark-circle-outline" size={18} color={theme.colors.primary[500]} style={{ marginRight: Spacing.sm, marginTop: 2 }} />
+              <Text style={[styles.insightText, { color: theme.colors.text.primary }]}>{item}</Text>
             </View>
           ))}
         </View>
       )}
 
-      {/* 개선점들 */}
-      {personalizedInsight.improvements.length > 0 && (
+      {/* notes가 있을 경우에만 참고 항목으로 표시 */}
+      {hasNotes && (
         <View style={styles.insightSection}>
-          <Text style={[styles.insightSectionTitle, { color: '#DC2626' }]}>
-            개선해 보세요 💪
-          </Text>
-          {personalizedInsight.improvements.map((improvement, index) => (
-            <View key={index}>
-              <Text style={[styles.insightItem, { color: theme.colors.text.secondary }]}>
-                • {improvement}
-              </Text>
-            </View>
+           <Text style={[styles.insightSubtitle, { color: theme.colors.text.secondary }]}>📄 참고</Text>
+          {notes.map((note: string, index: number) => (
+            <Text key={index} style={[styles.insightNote, { color: theme.colors.text.secondary }]}>- {note}</Text>
           ))}
         </View>
+      )}
+
+      {/* 모든 인사이트 데이터가 없는 경우 안내 문구 표시 */}
+      {!aiSummary && !hasActionItems && !hasNotes && (
+         <Text style={{ color: theme.colors.text.secondary, marginTop: Spacing.sm }}>생성된 인사이트가 없습니다.</Text>
       )}
     </View>
   );
@@ -114,57 +87,34 @@ const styles = StyleSheet.create({
     fontWeight: Typography.fontWeight.bold,
     marginBottom: Spacing.base,
   },
-  spendingTypeContainer: {
-    padding: Spacing.base,
-    borderRadius: 12,
-    marginBottom: Spacing.base,
-  },
-  spendingTypeLabel: {
-    fontSize: Typography.fontSize.base,
-    fontWeight: Typography.fontWeight.medium,
-    marginBottom: Spacing.xs,
-  },
-  spendingType: {
-    fontSize: Typography.fontSize['2xl'],
-    fontWeight: Typography.fontWeight.bold,
-    marginBottom: Spacing.xs,
-  },
-  spendingTypeDescription: {
-    fontSize: Typography.fontSize.base,
-    fontWeight: Typography.fontWeight.medium,
-    lineHeight: Math.round(Typography.fontSize.base * Typography.lineHeight.normal),
-  },
-  newCategoryContainer: {
-    padding: Spacing.base,
-    borderRadius: 12,
-    marginBottom: Spacing.lg,
-  },
-  newCategoryLabel: {
-    fontSize: Typography.fontSize.sm,
-    marginBottom: Spacing.xs,
-  },
-  newCategoryTitle: {
-    fontSize: Typography.fontSize.base,
-    fontWeight: Typography.fontWeight.bold,
-    marginBottom: Spacing.xs,
-  },
-  newCategoryDescription: {
-    fontSize: Typography.fontSize.sm,
-    lineHeight: Math.round(Typography.fontSize.sm * Typography.lineHeight.normal),
-  },
+  // ✨ 새로운 UI에 맞는 스타일 추가/수정
   insightSection: {
-    marginBottom: Spacing.base,
-    paddingVertical: Spacing.sm,
+    marginTop: Spacing.base,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderColor: '#EEEEEE',
+    paddingTop: Spacing.base,
   },
-  insightSectionTitle: {
-    fontSize: Typography.fontSize.lg,
-    fontWeight: Typography.fontWeight.bold,
-    marginBottom: Spacing.sm,
-  },
-  insightItem: {
+  insightSubtitle: {
     fontSize: Typography.fontSize.base,
-    fontWeight: Typography.fontWeight.medium,
-    lineHeight: Math.round(Typography.fontSize.base * Typography.lineHeight.relaxed),
+    fontWeight: Typography.fontWeight.semibold,
     marginBottom: Spacing.sm,
+  },
+  insightSummary: {
+    fontSize: Typography.fontSize.base,
+    lineHeight: 22,
+  },
+  insightActionItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginVertical: Spacing.sm,
+  },
+  insightText: {
+    flex: 1, // 텍스트가 길어질 경우 줄바꿈되도록
+    fontSize: Typography.fontSize.base,
+    lineHeight: 22,
+  },
+  insightNote: {
+    fontSize: Typography.fontSize.sm,
+    lineHeight: 18,
   },
 });

@@ -1,5 +1,4 @@
 import { queryKeys } from '@/src/api/queryKeys';
-import { reportApi } from '@/src/api/report';
 import type { SpendingReport } from '@/src/types/report';
 import { useQuery } from '@tanstack/react-query';
 
@@ -21,18 +20,10 @@ export const useSpendingReport = (enabled: boolean = true, periodOffset: number 
   return useQuery({
     queryKey: queryKeys.reports.spending(periodOffset),
     queryFn: async (): Promise<SpendingReport> => {
-      const result = await reportApi.getSpendingReport({ periodOffset });
-      
-      if (!result) {
-        throw new Error('소비 레포트 데이터가 없습니다.');
-      }
-      
-      // 필수 필드 검증
-      if (!result.period || !result.budgetComparison || !result.categoryAnalysis) {
-        throw new Error('소비 레포트 데이터가 완전하지 않습니다.');
-      }
-      
-      return result;
+      // Legacy SpendingReport API was removed from the backend. This hook is deprecated.
+      // Consumers should use `aiReportApi.getAiReportMonths` and `aiReportApi.getAiReportArchive` instead.
+      // To avoid silent mismatches, throw an explicit error so callers are migrated intentionally.
+      throw new Error('useSpendingReport is deprecated: migrate to aiReportApi (months/archive)');
     },
     enabled: enabled,
     staleTime: 5 * 60 * 1000, // 5분간 캐시 유지

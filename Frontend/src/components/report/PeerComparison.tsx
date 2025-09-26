@@ -1,3 +1,5 @@
+// src/components/report/PeerComparison.tsx
+
 import { Spacing, Typography } from '@/src/constants/theme';
 import type { PeerComparison } from '@/src/types/report';
 import React from 'react';
@@ -10,18 +12,6 @@ interface PeerComparisonProps {
   theme: any;
 }
 
-/**
- * 동일한 인구통계학적 그룹(연령, 성별, 소득) 내에서 사용자의 소비를 비교하는 컴포넌트
- * 
- * 주요 기능:
- * - 또래 그룹 정보 표시 (성별, 연령대, 소득 구간)
- * - 카테고리별 내 지출 vs 그룹 평균 비교
- * - 비교 백분율 표시 (100% 기준 초과/미만 색상 구분)
- * - 시각적 비교 바로 지출 차이 직관적 표현
- * 
- * @param peerComparison - 또래 비교 데이터
- * @param theme - 테마 설정
- */
 export const PeerComparisonCard: React.FC<PeerComparisonProps> = ({
   peerComparison,
   theme
@@ -30,7 +20,13 @@ export const PeerComparisonCard: React.FC<PeerComparisonProps> = ({
     return `${Math.round(amount / 10000)}만원`;
   };
 
-  const { demographicInfo } = peerComparison;
+  // peerComparison이 null 또는 undefined일 경우를 대비하여 기본값을 설정합니다.
+  // demographicInfo는 null, categories는 빈 배열([])을 기본값으로 하여 에러를 방지합니다.
+  const { demographicInfo = null, categories = [] } = peerComparison || {};
+
+  const genderLabel = demographicInfo?.gender ? (demographicInfo.gender === 'M' ? '남성' : '여성') : '정보 없음';
+  const ageLabel = demographicInfo?.ageGroup ? demographicInfo.ageGroup : '연령 정보 없음';
+  const incomeLabel = demographicInfo?.incomeRange ? demographicInfo.incomeRange : '소득 정보 없음';
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background.secondary }]}>
@@ -39,12 +35,12 @@ export const PeerComparisonCard: React.FC<PeerComparisonProps> = ({
       </Text>
       
       <Text style={[styles.demographicText, { color: theme.colors.text.secondary }]}>
-        {demographicInfo.gender === 'M' ? '남성' : '여성'} · {demographicInfo.ageGroup} 중반 · {demographicInfo.incomeRange}
+        {genderLabel} · {ageLabel} · {incomeLabel}
       </Text>
 
-      {peerComparison.categories.map((category, index) => {
+      {/* categories가 빈 배열일 경우 map 함수는 에러 없이 실행되지 않습니다. */}
+      {categories.length > 0 ? categories.map((category, index) => {
         const isHigher = category.comparisonPercent > 100;
-        const percentage = Math.abs(category.comparisonPercent - 100);
         
         return (
           <View key={index} style={styles.categoryItem}>
@@ -78,7 +74,6 @@ export const PeerComparisonCard: React.FC<PeerComparisonProps> = ({
               </View>
             </View>
 
-            {/* 비교 바 */}
             <View style={styles.comparisonBarContainer}>
               <View style={[styles.comparisonBar, { backgroundColor: theme.colors.background.tertiary }]}>
                 <View 
@@ -94,7 +89,9 @@ export const PeerComparisonCard: React.FC<PeerComparisonProps> = ({
             </View>
           </View>
         );
-      })}
+      }) : (
+        <Text style={{ color: theme.colors.text.secondary }}>또래 비교 데이터가 없습니다.</Text>
+      )}
     </View>
   );
 };
@@ -151,7 +148,6 @@ const styles = StyleSheet.create({
   amountItem: {
     flex: 1,
     paddingRight: Spacing.xs,
-    // minWidth 제거 - 내용에 따라 자연스럽게 크기 조정
   },
   amountLabel: {
     fontSize: Typography.fontSize.base,
