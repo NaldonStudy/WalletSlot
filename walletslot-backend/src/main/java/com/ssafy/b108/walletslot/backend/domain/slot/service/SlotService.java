@@ -287,8 +287,6 @@ public class SlotService {
                     .slotId(slot.getUuid())
                     .name(slot.getName())
                     .isSaving(slot.isSaving())
-                    .icon(slot.getIcon())
-                    .color(slot.getColor())
                     .accountSlotId(accountSlot.getUuid())
                     .isCustom(accountSlot.isCustom())
                     .customName(accountSlot.getCustomName())
