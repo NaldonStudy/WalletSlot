@@ -8,7 +8,6 @@ import { useSlotStore } from '@/src/store/useSlotStore';
 import TransactionDetail from '@/src/components/transaction/TransactionDetail';
 import { Button } from '@/src/components/Button';
 import { DutchPayBottomSheet } from '@/src/components/transaction/DutchPayBottomSheet';
-import TransactionDetail from '@/src/components/transaction/TransactionDetail';
 import { Spacing, themes } from '@/src/constants/theme';
 import { transactionApi } from '@/src/api/transaction';
 import { useQuery } from '@tanstack/react-query';
