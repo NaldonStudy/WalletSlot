@@ -5,10 +5,10 @@ import {
   StyleSheet,
   TouchableOpacity,
   TextInput,
-  ScrollView,
   Alert
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { useLocalSearchParams, router } from "expo-router";
 import { useSlotStore } from "@/src/store/useSlotStore";
 import { useColorScheme } from "react-native";
@@ -120,7 +120,15 @@ export default function TransferScreen() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background.primary }]}>
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+      <KeyboardAwareScrollView 
+        style={styles.scrollView} 
+        showsVerticalScrollIndicator={false}
+        enableOnAndroid={true}
+        enableAutomaticScroll={true}
+        keyboardShouldPersistTaps="handled"
+        extraScrollHeight={20}
+        contentContainerStyle={styles.scrollContent}
+      >
 
         {/* 슬롯 정보 및 예상 결과 */}
         <View style={[styles.slotsInfoSection, { backgroundColor: theme.colors.background.secondary }]}>
@@ -221,7 +229,7 @@ export default function TransferScreen() {
           </View>
         </View>
 
-      </ScrollView>
+      </KeyboardAwareScrollView>
 
       {/* 하단 버튼 */}
       <View style={[styles.buttonContainer, { backgroundColor: theme.colors.background.primary }]}>
@@ -248,7 +256,10 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
+  },
+  scrollContent: {
     paddingHorizontal: Spacing.base,
+    paddingBottom: Spacing.lg,
   },
   errorContainer: {
     flex: 1,
@@ -493,8 +504,6 @@ const styles = StyleSheet.create({
   buttonContainer: {
     paddingHorizontal: Spacing.base,
     paddingVertical: Spacing.base,
-    borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
   },
   button: {
     backgroundColor: "#3B82F6",

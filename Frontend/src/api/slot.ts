@@ -3,7 +3,8 @@ import {
   ApiError,
   BaseResponse,
   SlotDailySpendingResponse,
-  SlotsResponse
+  SlotsResponse,
+  SlotHistoryResponse
 } from '@/src/types';
 
 /**
@@ -45,5 +46,30 @@ export const slotApi = {
     }
   },
 
+  /**
+   * 슬롯 예산 변경 히스토리 조회
+   */
+  getSlotHistory: async (accountId: string, slotId: string): Promise<BaseResponse<SlotHistoryResponse>> => {
+    try {
+      return await apiClient.get<SlotHistoryResponse>(
+        `/api/accounts/${accountId}/slots/${slotId}/history`
+      );
+    } catch (error) {
+      const apiError = error as ApiError | Error;
+      const message =
+        (apiError as ApiError)?.message ??
+        (apiError as Error)?.message ??
+        '슬롯 히스토리 조회에 실패했습니다.';
+
+      console.error('[getSlotHistory] API 호출 실패:', {
+        message,
+        error: apiError,
+        accountId,
+        slotId,
+        url: `/api/accounts/${accountId}/slots/${slotId}/history`
+      });
+      throw new Error(message);
+    }
+  },
 
 };

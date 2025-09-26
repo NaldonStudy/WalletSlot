@@ -7,7 +7,7 @@ export const DEV_AUTH_BYPASS = {
   // 액세스/리프레시 토큰 (예시 값)
   tokens: {
     accessToken:
-      'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxIiwidWlkIjoxLCJleHAiOjE3NTg4NDUxNjksImlhdCI6MTc1ODc1ODc2OSwiZGlkIjoiMTIzNCIsImp0aSI6ImVkM2NiYzEwLWU4ZjgtNGUyYS05MmRmLTcwNWMyZWY3M2Q5MSJ9.kr17M0hEAuOVOLZJuKBabyBfyk0wnlbXEqZd6iFjLwQ',
+      'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxIiwidWlkIjoxLCJleHAiOjE3NTg5MzIzMzgsImlhdCI6MTc1ODg0NTkzOCwiZGlkIjoiQTFCMkMzRDQiLCJqdGkiOiI1YTNjYmVlZS1jMzI3LTRkMGItODUxOC01ZTM0ZGJlN2QyM2MifQ.j-XOLDGHGMctfhF9-CdfeLKrEEUiiNPk6P-X4pzxfZI',
     refreshToken:
       'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxIiwidWlkIjoxLCJ0eXAiOiJyZWZyZXNoIiwiZXhwIjoxNzYxMzUwNzY5LCJpYXQiOjE3NTg3NTg3NjksImRpZCI6IjEyMzQiLCJqdGkiOiJkYzZiYzczNi03YjQwLTQxZjMtOGU0MC00ZjY1MWY2Y2UwNjIifQ.oNnTCKygng2sI1MJfVQI7hiCOVRCHLDMcQWaqmu2s6E',
   },
@@ -18,9 +18,9 @@ export const DEV_AUTH_BYPASS = {
   },
   // 디바이스 ID를 강제로 지정하고 싶다면 설정 (없으면 무시)
   // deviceIdOverride를 지정하지 않으면 기존/생성된 값 사용
-  deviceIdOverride: '1234',
+  deviceIdOverride: 'A1B2C3D4',
   // 마이데이터 연결 상태 테스트용 설정
   // true: 마이데이터 연결 완료 상태로 시작 (메인 앱으로 이동)
   // false: 마이데이터 연결 미완료 상태로 시작 (마이데이터 화면으로 이동)
-  myDataConnectEnabled: false,
+  myDataConnectEnabled: false
 } as const;

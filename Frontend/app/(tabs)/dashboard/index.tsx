@@ -6,18 +6,18 @@ import { UncategorizedSlotCard } from '@/src/components/slot/UncategorizedSlotCa
 import { BANK_CODES } from '@/src/constants/banks';
 import { UNCATEGORIZED_SLOT_ID } from '@/src/constants/slots';
 import { Spacing, themes, Typography } from '@/src/constants/theme';
-import { useAccountBalance, useAccounts, useSlots } from '@/src/hooks';
-import type { UserAccount } from '@/src/types';
-import { faker } from '@faker-js/faker';
+import { useAccountBalance, useAccounts, useSlots, useUserProfile } from '@/src/hooks';
+import type { UserAccount, SlotData } from '@/src/types';
+import { profileApi } from '@/src/api/profile';
 import React, { memo, useCallback, useMemo, useRef, useState } from 'react';
-import { Animated, StyleSheet, Text, useColorScheme, View } from 'react-native';
+import { Animated, StyleSheet, Text, useColorScheme, View, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 // 헤더 컴포넌트 분리 (메모이제이션)
-const DashboardHeader = memo(({ userData, theme }: { userData: any, theme: any }) => (
+const DashboardHeader = memo(({ userProfile, theme }: { userProfile: any, theme: any }) => (
   <View style={styles.header}>
     <Text style={[styles.greeting, { color: theme.colors.text.primary }]}>
-      안녕하세요, {userData.userName}님!
+      안녕하세요, {userProfile?.name || '사용자'}님!
     </Text>
     <Text style={[styles.subtitle, { color: theme.colors.text.secondary }]}>
       오늘의 지출 현황을 확인해보세요
@@ -26,16 +26,6 @@ const DashboardHeader = memo(({ userData, theme }: { userData: any, theme: any }
 ));
 
 DashboardHeader.displayName = 'DashboardHeader';
-
-// 현실적인 샘플 데이터 생성
-const generateUserData = () => {
-  const koreanLastNames = ['김', '이', '박', '최', '정', '강', '조', '윤', '장', '임'];
-  const koreanFirstNames = ['민수', '영희', '철수', '수빈', '지현', '준호', '혜진', '동훈', '소영', '태현'];
-
-  const lastName = faker.helpers.arrayElement(koreanLastNames);
-  const firstName = faker.helpers.arrayElement(koreanFirstNames);
-  return { userName: lastName + firstName };
-};
 
 export default function DashboardScreen() {
   const colorScheme = useColorScheme() ?? 'light';
@@ -55,9 +45,10 @@ export default function DashboardScreen() {
   const scrollY = useRef(new Animated.Value(0)).current;
   const accountCarouselRef = useRef<View>(null);
   const [accountCarouselY, setAccountCarouselY] = useState(0);
+  const mainScrollViewRef = useRef<ScrollView>(null);
 
-  // 사용자 데이터와 슬롯 데이터를 한 번만 생성 (메모이제이션)
-  const userData = useMemo(() => generateUserData(), []);
+  // 사용자 프로필 데이터 조회
+  const { data: userProfile, isLoading: isProfileLoading } = useUserProfile();
 
   // MSW API를 통한 계좌 데이터 조회
   const { linked } = useAccounts();
@@ -75,10 +66,92 @@ export default function DashboardScreen() {
   // 현재 계좌의 슬롯 데이터 조회
   const { slots: allSlots, isLoading: isSlotsLoading } = useSlots(currentAccount?.accountId);
 
+  // 기준일 조회 및 날짜 범위 계산
+  const [dateRange, setDateRange] = useState<string>('2025.09.01 ~ 2025.09.30');
+  
+  React.useEffect(() => {
+    const fetchBaseDayAndCalculateRange = async () => {
+      try {
+        const response = await profileApi.getBaseDay();
+        
+        if (!response || typeof response.baseDay !== 'number') {
+          return; // 기본값 유지
+        }
+        
+        const baseDay = response.baseDay;
+        const now = new Date();
+        const currentDay = now.getDate();
+        const currentYear = now.getFullYear();
+        const currentMonth = now.getMonth(); // 0-based
+        
+        let startDate: Date;
+        let endDate: Date;
+        
+        if (currentDay < baseDay) {
+          // 현재 날짜가 기준일보다 이전이면 전달 기준일부터 이번 달 기준일 전까지
+          startDate = new Date(currentYear, currentMonth - 1, baseDay);
+          endDate = new Date(currentYear, currentMonth, baseDay - 1);
+        } else {
+          // 현재 날짜가 기준일 이후면 이번 달 기준일부터 다음 달 기준일 전까지
+          startDate = new Date(currentYear, currentMonth, baseDay);
+          endDate = new Date(currentYear, currentMonth + 1, baseDay - 1);
+        }
+        
+        const formatDate = (date: Date) => {
+          const year = date.getFullYear();
+          const month = (date.getMonth() + 1).toString().padStart(2, '0');
+          const day = date.getDate().toString().padStart(2, '0');
+          return `${year}.${month}.${day}`;
+        };
+        
+        const formattedRange = `${formatDate(startDate)} ~ ${formatDate(endDate)}`;
+        setDateRange(formattedRange);
+      } catch (error) {
+        // 에러 시 기본값 유지
+      }
+    };
+    
+    fetchBaseDayAndCalculateRange();
+  }, []);
+
   // 슬롯 데이터를 일반 슬롯과 미분류 슬롯으로 분리
   const currentAccountSlots = allSlots.filter(slot => slot.slotId !== UNCATEGORIZED_SLOT_ID);
   const uncategorizedSlot = allSlots.find(slot => slot.slotId === UNCATEGORIZED_SLOT_ID);
   const uncategorizedAmount = uncategorizedSlot?.remainingBudget || 0;
+
+  // 툴팁 상태 관리
+  const [openTooltipId, setOpenTooltipId] = useState<string | null>(null);
+
+  // 화면 터치 시 툴팁 닫기
+  const handleScreenPress = useCallback(() => {
+    setOpenTooltipId(null);
+  }, []);
+
+  // 슬롯 프레스 핸들러 (도넛 차트에서 슬롯 클릭 시)
+  const handleSlotPress = useCallback((slot: SlotData) => {
+    console.log('[handleSlotPress] 슬롯 클릭:', slot.name, slot.slotId);
+    
+    // 툴팁 닫기
+    setOpenTooltipId(null);
+    
+    // 해당 슬롯의 인덱스 찾기
+    const slotIndex = currentAccountSlots.findIndex(s => s.slotId === slot.slotId);
+    console.log('[handleSlotPress] 슬롯 인덱스:', slotIndex);
+    
+    if (slotIndex !== -1 && mainScrollViewRef.current) {
+      // 슬롯 리스트 섹션으로 스크롤 (대략적인 위치 계산)
+      // 헤더 + 캐러셀 + 슬롯 현황 섹션 높이 + 슬롯 목록 제목 + 슬롯 아이템들
+      const baseOffset = 400; // 헤더, 캐러셀, 차트 섹션의 대략적인 높이
+      const slotItemHeight = 140; // 각 슬롯 아이템의 대략적인 높이
+      const scrollY = baseOffset + (slotIndex * slotItemHeight);
+      
+      console.log('[handleSlotPress] 스크롤 위치:', scrollY);
+      
+      mainScrollViewRef.current.scrollTo({ y: scrollY, animated: true });
+    } else {
+      console.log('[handleSlotPress] 스크롤 실패 - slotIndex:', slotIndex, 'mainScrollViewRef:', !!mainScrollViewRef.current);
+    }
+  }, [currentAccountSlots]);
   
   // AccountSummary용 데이터 (UserAccount 직접 사용)
   const currentAccountForSummary: UserAccount | undefined = currentAccount ? {
@@ -170,15 +243,17 @@ export default function DashboardScreen() {
       </Animated.View>
 
       <Animated.ScrollView
+        ref={mainScrollViewRef}
         showsVerticalScrollIndicator={false}
         scrollEventThrottle={16}
         onScroll={Animated.event(
           [{ nativeEvent: { contentOffset: { y: scrollY } } }],
           { useNativeDriver: true }
         )}
+        onTouchStart={handleScreenPress}
       >
         {/* 헤더 */}
-        <DashboardHeader userData={userData} theme={theme} />
+        <DashboardHeader userProfile={userProfile} theme={theme} />
 
         {/* 캐러셀 */}
         <Animated.View
@@ -210,7 +285,7 @@ export default function DashboardScreen() {
             backgroundColor: theme.colors.background.tertiary,
             borderColor: theme.colors.border.light,
           }]}>
-            <Text style={[styles.dateText, { color: theme.colors.text.primary }]}>2025.09.01 ~ 2025.09.30</Text>
+            <Text style={[styles.dateText, { color: theme.colors.text.primary }]}>{dateRange}</Text>
             {isSlotsLoading ? (
               <View style={styles.slotLoadingContainer}>
                 <Text style={[styles.slotLoadingText, { color: theme.colors.text.secondary }]}>
@@ -218,7 +293,7 @@ export default function DashboardScreen() {
                 </Text>
               </View>
             ) : (
-              <AccountDonutChart data={currentAccountSlots} />
+              <AccountDonutChart data={currentAccountSlots} onSlotPress={handleSlotPress} />
             )}
           </View>
         </View>
@@ -233,7 +308,14 @@ export default function DashboardScreen() {
               </Text>
             </View>
           ) : (
-            <SlotList slots={currentAccountSlots} accountId={currentAccount.accountId} />
+            <View style={styles.slotListContainer}>
+              <SlotList 
+                slots={currentAccountSlots} 
+                accountId={currentAccount.accountId}
+                openTooltipId={openTooltipId}
+                setOpenTooltipId={setOpenTooltipId}
+              />
+            </View>
           )}
         </View>
 
@@ -355,5 +437,8 @@ const styles = StyleSheet.create({
   slotLoadingText: {
     fontSize: Typography.fontSize.sm,
     fontWeight: Typography.fontWeight.medium,
+  },
+  slotListContainer: {
+    // 슬롯 리스트 컨테이너
   },
 });
