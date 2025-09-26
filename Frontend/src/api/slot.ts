@@ -1,11 +1,11 @@
 import { apiClient } from '@/src/api/client';
 import { API_ENDPOINTS } from '@/src/constants/api';
 import {
-    ApiError,
-    BaseResponse,
-    SlotDailySpendingResponse,
-    SlotHistoryResponse,
-    SlotsResponse
+  ApiError,
+  BaseResponse,
+  SlotDailySpendingResponse,
+  SlotHistoryResponse,
+  SlotsResponse
 } from '@/src/types';
 
 /**
@@ -32,9 +32,9 @@ export const slotApi = {
    */
   getSlotDailySpending: async (accountId: string, slotId: string): Promise<BaseResponse<SlotDailySpendingResponse>> => {
     try {
-      // NOTE: `/daily-spending` endpoint was removed from backend spec.
-      // If the backend provides an equivalent endpoint later, replace the URL here.
-      // For now, return a safe default structure to avoid runtime crashes.
+      // return await apiClient.get<SlotDailySpendingResponse>(
+      //   API_ENDPOINTS.ACCOUNT_SLOT_DAILY_SPENDING(accountId, slotId)
+      // );
       console.warn('[slotApi] getSlotDailySpending: legacy endpoint removed; returning default empty payload');
       return {
         success: true,
