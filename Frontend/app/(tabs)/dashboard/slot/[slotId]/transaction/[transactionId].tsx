@@ -157,6 +157,7 @@ export default function TransactionDetailScreen() {
         transaction={transaction}
         theme={theme}
         accountId={selectedSlot?.accountId}
+        accountSlotId={selectedSlot?.accountSlotId}
       />
     </SafeAreaView>
   );

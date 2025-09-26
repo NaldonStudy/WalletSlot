@@ -6,6 +6,8 @@ import { Spacing, themes } from '@/src/constants/theme';
 import { SlotTransaction } from '@/src/types/slot';
 import { Ionicons } from '@expo/vector-icons';
 import { transactionApi } from '@/src/api/transaction';
+import { useQueryClient } from '@tanstack/react-query';
+import { queryKeys } from '@/src/api/queryKeys';
 
 interface DutchPayBottomSheetProps {
   visible: boolean;
@@ -13,6 +15,7 @@ interface DutchPayBottomSheetProps {
   transaction: SlotTransaction;
   theme: any;
   accountId?: string;
+  accountSlotId?: string;
 }
 
 export const DutchPayBottomSheet: React.FC<DutchPayBottomSheetProps> = ({
@@ -21,9 +24,11 @@ export const DutchPayBottomSheet: React.FC<DutchPayBottomSheetProps> = ({
   transaction,
   theme,
   accountId,
+  accountSlotId,
 }) => {
   const [participantCount, setParticipantCount] = useState('');
   const [perPersonAmount, setPerPersonAmount] = useState<number | null>(null);
+  const queryClient = useQueryClient();
 
 
   // 1인당 금액 계산
@@ -42,22 +47,12 @@ export const DutchPayBottomSheet: React.FC<DutchPayBottomSheetProps> = ({
   }, [transaction?.amount, participantCount]);
 
   const handleDutchPayRequest = async () => {
-    console.log('🔥 handleDutchPayRequest 함수 호출됨!');
     
     if (!accountId || !transaction.transactionId || !participantCount.trim()) {
-      console.log('❌ 필수 정보 누락:', {
-        accountId: !!accountId,
-        transactionId: !!transaction?.transactionId,
-        participantCount: participantCount.trim()
-      });
       Alert.alert('오류', '필수 정보가 누락되었습니다.');
       return;
     }
 
-    console.log('🚀 더치페이 API 요청 시작');
-    console.log('- accountId:', accountId);
-    console.log('- transactionId:', transaction.transactionId);
-    console.log('- participantCount:', Number(participantCount));
 
     try {
       const response = await transactionApi.requestDutchPay(
@@ -65,12 +60,31 @@ export const DutchPayBottomSheet: React.FC<DutchPayBottomSheetProps> = ({
         transaction.transactionId,
         Number(participantCount)
       );
+
       
-      console.log('✅ 더치페이 API 응답 성공:', response);
-      Alert.alert('성공', '더치페이 요청이 전송되었습니다!');
+      // 더치페이 성공 시 관련 데이터 새로고침
+      if (accountId) {
+        // 슬롯 목록 새로고침
+        await queryClient.invalidateQueries({
+          queryKey: queryKeys.slots.byAccount(accountId)
+        });
+        
+        // 해당 슬롯의 거래내역 새로고침
+        if (accountSlotId) {
+          await queryClient.invalidateQueries({
+            queryKey: queryKeys.slots.transactions(accountId, accountSlotId)
+          });
+        }
+        
+        // 계좌 잔액 정보 새로고침
+        await queryClient.invalidateQueries({
+          queryKey: queryKeys.accounts.balance(accountId)
+        });
+
+      }
+      
       onClose();
     } catch (error) {
-      console.error('❌ 더치페이 API 요청 실패:', error);
       Alert.alert('오류', '더치페이 요청에 실패했습니다.');
     }
   };
