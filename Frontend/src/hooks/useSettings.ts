@@ -22,25 +22,10 @@ export const useLinkedAccounts = () => {
   return useQuery({
     queryKey: queryKeys.settings.linkedAccounts(),
     queryFn: async () => {
-      // MOCK: 서버 호출 대신 하드코딩 데이터 반환
-      return [
-        {
-          accountId: 'linked-acc-1',
-          bankId: 'bank-001',
-          bankName: '국민은행',
-          accountNo: '1234567890',
-          alias: '연동계좌1',
-          balance: 1500000,
-        },
-        {
-          accountId: 'linked-acc-2',
-          bankId: 'bank-002',
-          bankName: '신한은행',
-          accountNo: '0987654321',
-          alias: '연동계좌2',
-          balance: 500000,
-        },
-      ];
+      const response = await fetch('/api/accounts/link');
+      const data = await response.json();
+      const accounts = data.data?.accounts || [];
+      return accounts;
     },
     staleTime: 5 * 60 * 1000, // 5분
   });

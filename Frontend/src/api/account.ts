@@ -1,8 +1,8 @@
 import { apiClient } from '@/src/api/client';
 import {
-  AccountsResponse,
-  BaseResponse,
-  UserAccount
+    AccountsResponse,
+    BaseResponse,
+    UserAccount
 } from '@/src/types';
 import { fetchAccountBalanceFallback, isAmbiguousAxiosBody, normalizeAccountList } from './responseNormalizer';
 
