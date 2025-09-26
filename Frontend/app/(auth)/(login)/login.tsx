@@ -1,5 +1,7 @@
 import { authApi } from '@/src/api/auth';
 import { AuthKeypad, PinDots } from '@/src/components';
+import { featureFlags } from '@/src/config/featureFlags';
+import { appService } from '@/src/services/appService';
 import { getOrCreateDeviceId } from '@/src/services/deviceIdService';
 import { saveAccessToken, saveRefreshToken } from '@/src/services/tokenService';
 import { unifiedPushService } from '@/src/services/unifiedPushService';
@@ -8,14 +10,14 @@ import { useLocalUserStore } from '@/src/store/localUserStore';
 import { router } from 'expo-router';
 import React, { useRef, useState } from 'react';
 import {
-  Alert,
-  KeyboardAvoidingView,
-  Platform,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    Alert,
+    KeyboardAvoidingView,
+    Platform,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -147,6 +149,15 @@ export default function LoginScreen() {
       try {
         await useAuthStore.getState().checkAuthStatus();
       } catch {}
+
+      // 온보딩 완료 처리 (로그인 성공 시)
+      try {
+        await appService.setOnboardingCompleted(true);
+        featureFlags.setOnboardingEnabled(true);
+        console.log('✅ 로그인 성공 - 온보딩 완료 처리됨');
+      } catch (error) {
+        console.error('⚠️ 로그인 성공 - 온보딩 완료 처리 실패:', error);
+      }
 
     // 로그인 직후 푸시 초기화 및 토큰 등록(401 방지)
     try { await unifiedPushService.initialize(); } catch {}

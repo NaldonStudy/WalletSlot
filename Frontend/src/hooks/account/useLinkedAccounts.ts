@@ -1,7 +1,7 @@
-import React from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { accountApi, queryKeys } from "@/src/api";
-import type { UserAccount, AccountsResponse, BaseResponse } from "@/src/types";
+import type { UserAccount } from "@/src/types";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import React from "react";
 
 /**
  * 연동된 계좌 목록 조회 훅
@@ -13,10 +13,12 @@ type UseLinkedAccountsOptions = {
 export const useLinkedAccounts = ({ enabled = true }: UseLinkedAccountsOptions = {}) => {
   const queryClient = useQueryClient();
   
-  // 컴포넌트 마운트 시 캐시 무효화
+  // 컴포넌트 마운트 시 캐시 무효화 (enabled가 true일 때만)
   React.useEffect(() => {
-    queryClient.invalidateQueries({ queryKey: queryKeys.accounts.linked() });
-  }, []);
+    if (enabled) {
+      queryClient.invalidateQueries({ queryKey: queryKeys.accounts.linked() });
+    }
+  }, [enabled]);
   
   const {
     data: accounts,
@@ -40,7 +42,8 @@ export const useLinkedAccounts = ({ enabled = true }: UseLinkedAccountsOptions =
   });
 
   if (isError && error) {
-    console.error('[useLinkedAccounts] 에러 발생:', error.message);
+    console.warn('[useLinkedAccounts] API 호출 실패:', error.message);
+    // 에러를 콘솔 에러로 표시하지 않고 경고로만 표시
   }
 
   // 계좌 수정 후 캐시 무효화 함수

@@ -1,13 +1,10 @@
 import { apiClient } from '@/src/api/client';
 import {
-  AccountsResponse,
-  BaseResponse,
-  PaginatedResponse,
-  Transaction,
-  TransactionCategory,
-  UserAccount
+    AccountsResponse,
+    BaseResponse,
+    UserAccount
 } from '@/src/types';
-import { isAmbiguousAxiosBody, fetchAccountsFallback, fetchAccountBalanceFallback, normalizeAccountList } from './responseNormalizer';
+import { fetchAccountBalanceFallback, isAmbiguousAxiosBody, normalizeAccountList } from './responseNormalizer';
 
 /**
  * 계좌 관련 API 서비스

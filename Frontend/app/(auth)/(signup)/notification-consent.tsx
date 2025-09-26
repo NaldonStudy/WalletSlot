@@ -1,4 +1,6 @@
 import { authApi } from '@/src/api/auth';
+import { featureFlags } from '@/src/config/featureFlags';
+import { appService } from '@/src/services/appService';
 import { getOrCreateDeviceId } from '@/src/services/deviceIdService';
 import { saveAccessToken, saveRefreshToken } from '@/src/services/tokenService';
 import { unifiedPushService } from '@/src/services/unifiedPushService';
@@ -89,11 +91,22 @@ export default function NotificationConsentScreen() {
         pin: '****', // 보안을 위해 PIN은 마스킹
         pushToken: fcmToken ? `${fcmToken.substring(0, 20)}...` : 'null'
       });
+      
+      // signupTicket 상세 로깅
+      console.log('🔍 signupTicket 상세 정보:', {
+        signupTicket,
+        length: signupTicket?.length,
+        type: typeof signupTicket,
+        isUsed: signupTicket === 'used' || signupTicket === 'expired'
+      });
 
   // 회원가입 API 호출
   const response = await authApi.completeSignup(signupData);
       
   if (response.success) {
+        // signupTicket 사용 후 즉시 무효화 (중복 사용 방지)
+        clearSignupTicket();
+        console.log('✅ signupTicket 사용 완료 및 무효화');
         console.log('✅ 회원가입 성공:', {
           userId: response.data.userId,
           hasAccessToken: !!response.data.accessToken,
@@ -115,7 +128,16 @@ export default function NotificationConsentScreen() {
         resetSignupStore();
         console.log('✅ signupStore 초기화 완료');
         
-        // 4. welcome 화면으로 이동
+        // 4. 온보딩 완료 처리
+        try {
+          await appService.setOnboardingCompleted(true);
+          featureFlags.setOnboardingEnabled(true);
+          console.log('✅ 온보딩 완료 처리됨');
+        } catch (error) {
+          console.error('⚠️ 온보딩 완료 처리 실패:', error);
+        }
+        
+        // 5. welcome 화면으로 이동
         router.push('/(auth)/(signup)/welcome');
       } else {
         const msg = response.message || '회원가입에 실패했습니다.';
@@ -156,6 +178,51 @@ export default function NotificationConsentScreen() {
           },
         ]);
         return; // 처리 완료: 재throw로 인한 중복 Alert 방지
+      }
+
+      // 409/중복 요청 처리
+      if (code === 'HTTP_409' || /409/.test(String(code))) {
+        title = '중복된 요청';
+        if (/signupTicket|티켓|이미 사용/i.test(message)) {
+          message = '이미 사용된 인증입니다. SMS 인증부터 다시 진행해주세요.';
+          // 티켓/핀 정리 후 휴대폰 인증 화면으로 이동
+          try {
+            clearSignupTicket();
+            clearPin();
+          } catch {}
+          Alert.alert(title, message, [
+            {
+              text: '확인',
+              onPress: () => {
+                try {
+                  router.replace('/(auth)/(signup)/phone' as any);
+                } catch {}
+              },
+            },
+          ]);
+          return;
+        } else if (/phone|전화번호|이미 가입/i.test(message)) {
+          message = '이미 가입된 전화번호입니다. 로그인을 시도해주세요.';
+          Alert.alert(title, message, [
+            {
+              text: '로그인하기',
+              onPress: () => {
+                try {
+                  router.replace('/(auth)/(login)/login' as any);
+                } catch {}
+              },
+            },
+            {
+              text: '취소',
+              style: 'cancel',
+            },
+          ]);
+          return;
+        } else {
+          message = '중복된 요청입니다. 잠시 후 다시 시도해주세요.';
+        }
+        Alert.alert(title, message);
+        return;
       }
 
       // 500/서버 내부 오류는 요청 ID와 함께 안내

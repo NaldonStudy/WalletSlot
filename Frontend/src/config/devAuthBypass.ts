@@ -3,7 +3,7 @@
 // 주의: 실제 배포 전 반드시 false로 돌려주세요.
 
 export const DEV_AUTH_BYPASS = {
-  enabled: true, // 손쉽게 ON/OFF
+  enabled: false,// 손쉽게 ON/OFF
   // 액세스/리프레시 토큰 (예시 값)
   tokens: {
     accessToken:
