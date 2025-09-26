@@ -14,6 +14,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
+
 @RestController
 @RequestMapping("/api")
 @RequiredArgsConstructor
@@ -23,7 +25,7 @@ import org.springframework.web.bind.annotation.*;
  * 거래내역을 다루는 성격의 메서드들을 TransactionController에서 작성하였습니다.
  * 거래내역을 슬롯에 배정해서 지출금액을 차감하는 우리 서비스 특성 상, TransactionController에 있는 메서드이더라도 대부분의 매핑 경로가 /accounts로 시작합니다.
  */
-public class TransactionController {
+public class TransactionRestController {
 
     // Field
     private final TransactionService transactionService;
@@ -32,7 +34,7 @@ public class TransactionController {
     @GetMapping("/accounts/{accountId}/transactions")
     @Operation(
             summary = "6-1-1 계좌 거래내역 전체조회",
-            description = "계좌의 거래내역을 전체 조회합니다.",
+            description = "계좌의 거래내역을 전체 조회합니다. (날짜기준 내림차순)",
             responses = {
                     @ApiResponse(
                             responseCode = "200",
@@ -42,14 +44,14 @@ public class TransactionController {
             }
 
     )
-    public ResponseEntity<GetAccountTransactionListResponseDto> getAccountTransactions(@AuthenticationPrincipal UserPrincipal principal, @PathVariable String accountId) {
-        return ResponseEntity.status(HttpStatus.OK).body(transactionService.getAccountTransactions(principal.userId(), accountId));
+    public ResponseEntity<GetAccountTransactionListResponseDto> getAccountTransactions(@AuthenticationPrincipal UserPrincipal principal, @PathVariable String accountId, @RequestParam(required = false) LocalDateTime cursor) {
+        return ResponseEntity.status(HttpStatus.OK).body(transactionService.getAccountTransactions(principal.userId(), accountId, cursor));
     }
 
     @GetMapping("/accounts/{accountId}/slots/{accountSlotId}/transactions")
     @Operation(
             summary = "6-1-2 슬롯 거래내역 전체조회",
-            description = "슬롯의 거래내역을 전체 조회합니다.",
+            description = "슬롯의 거래내역을 전체 조회합니다. (날짜기준 내림차순)",
             responses = {
                     @ApiResponse(
                             responseCode = "200",
@@ -59,8 +61,8 @@ public class TransactionController {
             }
 
     )
-    public ResponseEntity<GetAccountSlotTransactionListResponseDto> getAccountSlotTransactions(@AuthenticationPrincipal UserPrincipal principal, @PathVariable String accountId, @PathVariable String accountSlotId) {
-        return ResponseEntity.status(HttpStatus.OK).body(transactionService.getAccountSlotTransactions(principal.userId(), accountId, accountSlotId));
+    public ResponseEntity<GetAccountSlotTransactionListResponseDto> getAccountSlotTransactions(@AuthenticationPrincipal UserPrincipal principal, @PathVariable String accountId, @PathVariable String accountSlotId, @RequestParam(required = false) LocalDateTime cursor) {
+        return ResponseEntity.status(HttpStatus.OK).body(transactionService.getAccountSlotTransactions(principal.userId(), accountId, accountSlotId, cursor));
     }
 
     @GetMapping("/accounts/{accountId}/slots/{accountSlotId}/transactions/{transactionId}")
