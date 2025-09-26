@@ -110,4 +110,12 @@ public class AccountSlot {
     public void minusSpent(Long spent) {
         this.spent -= spent;
     }
+
+    public String getName() {
+        if(this.isCustom == true) {
+            return this.customName;
+        } else {
+            return this.slot.getName();
+        }
+    }
 }

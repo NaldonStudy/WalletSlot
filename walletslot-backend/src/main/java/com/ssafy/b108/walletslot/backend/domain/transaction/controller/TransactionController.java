@@ -63,9 +63,26 @@ public class TransactionController {
         return ResponseEntity.status(HttpStatus.OK).body(transactionService.getAccountSlotTransactions(principal.userId(), accountId, accountSlotId));
     }
 
+    @GetMapping("/accounts/{accountId}/slots/{accountSlotId}/transactions/{transactionId}")
+    @Operation(
+            summary = "6-1-3 슬롯 거래내역 상세조회",
+            description = "슬롯의 거래내역을 상세 조회합니다.",
+            responses = {
+                    @ApiResponse(
+                            responseCode = "200",
+                            description = "[SlotService - 001] 슬롯 거래내역 상세조회 성공",
+                            content = @Content(schema = @Schema(implementation = GetAccountSlotTransactionDetailResponseDto.class))
+                    )
+            }
+
+    )
+    public ResponseEntity<GetAccountSlotTransactionDetailResponseDto> getAccountSlotTransactionDetail(@AuthenticationPrincipal UserPrincipal principal, @PathVariable String accountId, @PathVariable String accountSlotId, @PathVariable String transactionId) {
+        return ResponseEntity.status(HttpStatus.OK).body(transactionService.getAccountSlotTransactionDetail(principal.userId(), accountId, accountSlotId, transactionId));
+    }
+
     @PatchMapping("/accounts/{accountId}/transactions/{transactionId}")
     @Operation(
-            summary = "6-1-3 거래내역을 다른 슬롯으로 이동",
+            summary = "6-1-4 거래내역을 다른 슬롯으로 이동",
             description = "거래내역을 다른 슬롯으로 이동합니다. 기존 슬롯에서는 남은 예산이 다시 늘어나고, 새로운 슬롯의 예산에서 거래내역의 지출금액이 차감됩니다.",
             responses = {
                     @ApiResponse(
