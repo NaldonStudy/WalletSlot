@@ -10,7 +10,7 @@ export {
 } from './profile';
 export { queryClient } from './queryClient';
 export { queryKeys } from './queryKeys';
-export { reportApi } from './report';
+export { aiReportApi } from './report';
 export {
     changePin, deleteDevice, deleteLinkedAccount, getDevices, getLinkedAccounts,
     refreshMyData, updateDevice

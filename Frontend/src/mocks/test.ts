@@ -4,13 +4,15 @@
  * MSW가 올바르게 작동하는지 확인하기 위한 테스트 함수들
  */
 
+import { API_CONFIG } from '@/src/constants/api';
+
 // MSW 상태 테스트 함수
 export const testMSWConnection = async () => {
   try {
     console.log('🧪 MSW 연결 테스트 시작...');
     
     // 1. 기본 헬스체크
-    const healthResponse = await fetch('https://api.walletslot.com/api/health');
+    const healthResponse = await fetch(API_CONFIG.BASE_URL + '/api/health');
     const healthData = await healthResponse.json();
     
     if (healthData.status === 'ok') {
@@ -32,7 +34,7 @@ export const testMSWConnection = async () => {
 // 개발 도구: API 엔드포인트 목록 출력
 export const showAvailableAPIs = async () => {
   try {
-    const response = await fetch('https://api.walletslot.com/api');
+    const response = await fetch(API_CONFIG.BASE_URL + '/api');
     const data = await response.json();
     
     console.log('📋 사용 가능한 Mock API 엔드포인트:');
@@ -68,7 +70,7 @@ export const runBasicTests = async () => {
 export const testNotificationsFetch = async () => {
   try {
     console.log('🔔 알림 목록 테스트 시작...');
-    const res = await fetch('/api/notifications');
+  const res = await fetch('/api/notifications');
     const data = await res.json();
     const length = Array.isArray(data?.data) ? data.data.length : (Array.isArray(data) ? data.length : 0);
     console.log(`🔔 알림 목록 응답: items=${length}`, data?._fallback ? '(fallback handler)' : '');
@@ -80,7 +82,7 @@ export const testNotificationsFetch = async () => {
 // 연결된 금융사 목록 테스트
 export const testMyDataConnections = async () => {
   try {
-    const res = await fetch('/api/users/me/mydata/connections');
+  const res = await fetch('/api/users/me/mydata/connections');
     const data = await res.json();
     
     if (!data.success || !data.data?.connections) {
@@ -95,20 +97,15 @@ export const testMyDataConnections = async () => {
 export const testSpendingReport = async () => {
   try {
     console.log('📊 소비 레포트 테스트 시작... (전체 계좌 통합)');
-    const res = await fetch(`/api/reports/spending`);
+  const res = await fetch(`/api/accounts/test-account/ai-reports/months`);
     const data = await res.json();
-    console.log('📊 소비 레포트 API 응답:', data);
+    console.log('📊 AI report months API 응답:', data);
     
-    if (data.success && data.data) {
-      console.log('📊 레포트 데이터 구조 확인:');
-      console.log('- 기간:', data.data.period);
-      console.log('- 예산 비교:', data.data.budgetComparison);
-      console.log('- 카테고리 분석 수:', data.data.categoryAnalysis?.length || 0);
-      console.log('- 또래 비교:', data.data.peerComparison?.demographicInfo);
-      console.log('- 상위 지출 수:', data.data.topSpendingCategories?.length || 0);
-      console.log('✅ 소비 레포트 테스트 성공');
+    if (data.success && data.data && data.data.yearMonths) {
+      console.log('📊 AI months received:', data.data.yearMonths.slice(0,3));
+      console.log('✅ AI report months test success');
     } else {
-      console.warn('📊 소비 레포트 데이터 구조가 예상과 다릅니다:', data);
+      console.warn('📊 AI report months structure unexpected:', data);
     }
   } catch (e) {
     console.error('📊 소비 레포트 테스트 실패:', e);

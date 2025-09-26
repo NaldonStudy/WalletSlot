@@ -1,4 +1,5 @@
-import type { BaseResponse, SpendingReport } from '@/src/types';
+import { API_ENDPOINTS } from '@/src/constants/api';
+import type { SpendingReport } from '@/src/types';
 import { faker } from '@faker-js/faker';
 import { http, HttpResponse } from 'msw';
 
@@ -179,20 +180,27 @@ const generateSpendingReport = (): SpendingReport => {
 };
 
 export const reportHandlers = [
-  // 전체 계좌 통합 소비 레포트 조회
-  http.get('/api/reports/spending', (info) => {
-    console.log('[MSW] 🎯 GET /api/reports/spending 핸들러 호출됨!');
-    console.log('[MSW] Request info:', info.request.url);
-    
-    const reportData = generateSpendingReport();
-    
-    const response: BaseResponse<SpendingReport> = {
-      success: true,
-      data: reportData,
-      message: '소비 레포트 조회 성공',
-    };
+  // AI report months
+  http.get(API_ENDPOINTS.AI_REPORTS_MONTHS(':accountId'), ({ params }) => {
+    console.log('[MSW] 🎯 GET AI_REPORTS_MONTHS called for account', params.accountId);
+    const now = new Date();
+    const months = Array.from({ length: 6 }).map((_, i) => {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    });
+    return HttpResponse.json({ success: true, data: { yearMonths: months } });
+  }),
 
-    console.log('[MSW] 응답 데이터 생성 완료:', response.success);
-    return HttpResponse.json(response);
+  // AI report archive
+  http.get(API_ENDPOINTS.AI_REPORTS_ARCHIVE(':accountId'), (info) => {
+    console.log('[MSW] 🎯 GET AI_REPORTS_ARCHIVE called', info.request.url);
+    // Reuse the generateSpendingReport to produce a plausible archive entry
+    const reportData = generateSpendingReport();
+    const archive = {
+      yearMonth: new Date().toISOString().slice(0,7),
+      reports: [reportData],
+      yearMonths: []
+    };
+    return HttpResponse.json({ success: true, data: archive });
   }),
 ];

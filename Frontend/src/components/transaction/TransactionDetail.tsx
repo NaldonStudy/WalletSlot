@@ -8,29 +8,20 @@ import { useSlotStore } from '@/src/store/useSlotStore';
 
 interface TransactionDetailProps {
   transaction: SlotTransaction;
-  slotName?: string; // 부모에서 내려주는 원래 슬롯 이름
+  slot?: {
+    accountSlotId: string;
+    name: string;
+  };
 }
 
 const TransactionDetail: React.FC<TransactionDetailProps> = ({
   transaction,
-  slotName,
+  slot,
 }) => {
   const colorScheme = useColorScheme() ?? 'light';
   const theme = themes[colorScheme];
   const [isBottomModalVisible, setIsBottomModalVisible] = useState(false);
   const { selectedSlot, setSelectedSlot } = useSlotStore();
-
-  // 👉 화면 표시용 슬롯 이름 (전역 상태와 분리)
-  const [displaySlot, setDisplaySlot] = useState(
-    selectedSlot?.name || selectedSlot?.customName || slotName || ''
-  );
-
-  // 부모에서 slotName이 바뀌면 동기화 (뒤로가기 시 원래 슬롯 복원)
-  useEffect(() => {
-    if (slotName) {
-      setDisplaySlot(slotName);
-    }
-  }, [slotName]);
 
   const formatDateTime = (dateTimeString: string) => {
     try {
@@ -74,7 +65,7 @@ const TransactionDetail: React.FC<TransactionDetailProps> = ({
 
       {/* 상세 정보 */}
       <View style={[styles.detailSection, { backgroundColor: theme.colors.background.primary }]}>
-        {displaySlot && (
+        {slot?.name && (
           <View
             style={[styles.detailRow, { borderBottomColor: theme.colors.border.light }]}
           >
@@ -82,7 +73,7 @@ const TransactionDetail: React.FC<TransactionDetailProps> = ({
               슬롯 설정
             </Text>
             <View style={styles.valueWithIcon}>
-              <Text style={[styles.detailValue, { color: '#60A5FA' }]}>{displaySlot}</Text>
+              <Text style={[styles.detailValue, { color: '#60A5FA' }]}>{slot.name}</Text>
               <TouchableOpacity onPress={() => setIsBottomModalVisible(true)}>
                 <ChevronRight
                   width={16}
@@ -139,7 +130,8 @@ const TransactionDetail: React.FC<TransactionDetailProps> = ({
         visible={isBottomModalVisible}
         onClose={() => setIsBottomModalVisible(false)}
         transaction={transaction}
-                onSlotSelect={() => {
+        accountSlotId={slot?.accountSlotId}
+        onSlotSelect={() => {
                     // 슬롯 이동 성공 시 이 콜백은 호출되지 않음
                     // 대신 SlotTransferModal에서 직접 네비게이션 처리
                 }}

@@ -1,16 +1,11 @@
 // screens/AccountConnectScreen.tsx
 import { ThemedText } from '@/components/ThemedText';
-import { apiClient } from '@/src/api/client';
+import { accountApi } from '@/src/api';
 import { BANK_CODES } from '@/src/constants/banks';
 import { useAccountsStore } from '@/src/store/accountsStore';
 import { useBankSelectionStore } from '@/src/store/bankSelectionStore';
 import { useLocalUserStore } from '@/src/store/localUserStore';
-import type {
-  AccountLinkRequest,
-  AccountUpdateRequest,
-  AccountUpdateResponse,
-  UserAccount
-} from '@/src/types';
+import type { UserAccount } from '@/src/types';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
@@ -108,13 +103,13 @@ export default function AccountConnectScreen() {
     if (isSettingPrimary) return;
     setIsSettingPrimary(true);
     try {
-      const requestData: AccountUpdateRequest = { isPrimary: true };
+      const requestData = { isPrimary: true };
       console.log('[Account Connect] 대표 계좌 설정 요청:', accountId, requestData);
-      
-      const response = await apiClient.patch<AccountUpdateResponse>(`/api/accounts/${accountId}`, requestData);
-      console.log('[Account Connect] 대표 계좌 설정 성공:', response.data);
-      
-      if (response.success && response.data) {
+
+      const response = await accountApi.setMainAccount(accountId, requestData);
+      console.log('[Account Connect] 대표 계좌 설정 성공:', response);
+
+      if (response.success) {
         router.push('/(mydata)/classifySlots' as any);
       } else {
         throw new Error(response.message || '대표 계좌 설정에 실패했습니다.');
@@ -131,21 +126,24 @@ export default function AccountConnectScreen() {
     if (isLinkingAccounts) return;
     setIsLinkingAccounts(true);
     try {
-      const selectedAccounts = Array.from(selectedIds).map(id => {
-        const account = filteredAccounts[Number(id)];
-        const normalizedNo = (account.accountNo || '').replace(/\D/g, '');
-        return { bankId: account.bankId, accountNo: normalizedNo };
-      });
+      const selectedIndexList = Array.from(selectedIds);
+      const selectedAccounts = selectedIndexList
+        .map(id => filteredAccounts[Number(id)])
+        .filter(Boolean);
 
-      const requestData: AccountLinkRequest = { accounts: selectedAccounts };
+      const accountIds = selectedAccounts
+        .map(acc => acc.accountId)
+        .filter((v): v is string => typeof v === 'string' && v.length > 0);
+
+      const requestData = { accountIds };
       console.log('[Account Connect] 계좌 연동 요청:', requestData);
-      
-      const response = await apiClient.post<any>('/api/accounts/link', requestData);
-      console.log('[Account Connect] 계좌 연동 성공:', response.data?.accounts);
 
-      if (response.success && response.data?.accounts) {
-        // 연동된 계좌들만 저장 (다음 화면에서 표시할 용도)
-        setAccounts(response.data.accounts);
+      const response = await accountApi.linkAccounts(requestData);
+      console.log('[Account Connect] 계좌 연동 성공:', response);
+
+      if (response.success) {
+        // 연동된 계좌들만 저장 (다음 화면에서 표시할 용도). 서버가 목록을 반환하지 않으므로 선택된 계좌로 구성
+        setAccounts(selectedAccounts);
         setIsAccountsLinked(true);
         setPhase('representative');
         setRepId(null);

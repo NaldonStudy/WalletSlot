@@ -346,7 +346,8 @@ export interface NotificationItem {
 // ===== Push Endpoint API Types (Based on Swagger) =====
 
 /**
- * 푸시 엔드포인트 등록/갱신 요청 (POST /api/push/endpoints)
+ * 푸시 엔드포인트 등록/갱신 요청 (POST ` /api/push/endpoints` )
+ * @note 코드에서는 중앙화된 상수 `API_ENDPOINTS.PUSH_ENDPOINTS` 사용 권장
  */
 export interface RegisterDeviceRequestDto {
   deviceId?: string;
@@ -373,24 +374,26 @@ export interface RegisterDeviceResponseDto {
 }
 
 /**
- * 디바이스 목록 조회 응답 (GET /api/push/endpoints)
+ * 디바이스 목록 조회 응답 (GET ` /api/push/endpoints`)
+ * @note 코드에서는 중앙화된 상수 `API_ENDPOINTS.PUSH_ENDPOINTS` 사용 권장
  */
 export interface GetDeviceListResponseDto {
   success: boolean;
   message?: string;
   data: {
-    devices: Array<{
+    devices: {
       deviceId: string;
       platform: 'ANDROID' | 'IOS';
       status: 'ACTIVE' | 'LOGGED_OUT' | 'ACCOUNT_LOCKED' | 'USER_WITHDRAW';
       pushEnabled: boolean;
       tokenPresent: boolean;
-    }>;
+    }[];
   };
 }
 
 /**
- * 디바이스 업데이트 요청 (PATCH /api/push/endpoints/{deviceId})
+ * 디바이스 업데이트 요청 (PATCH ` /api/push/endpoints/{deviceId}`)
+ * @note 코드에서는 중앙화된 상수 `API_ENDPOINTS.PUSH_ENDPOINT_BY_ID(deviceId)` 사용 권장
  */
 export interface UpdateDeviceRequestDto {
   remoteLogout?: boolean;
@@ -401,7 +404,8 @@ export interface UpdateDeviceRequestDto {
 }
 
 /**
- * 토큰 교체 요청 (POST /api/devices/{deviceId}/token)
+ * 토큰 교체 요청 (POST ` /api/devices/{deviceId}/token`)
+ * @note 코드에서는 중앙화된 상수 `API_ENDPOINTS.DEVICE_TOKEN(deviceId)` 사용 권장
  */
 export interface ReplaceTokenRequestDto {
   token?: string;

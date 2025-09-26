@@ -24,9 +24,7 @@ export const useLinkedAccounts = () => {
   return useQuery({
     queryKey: queryKeys.settings.linkedAccounts(),
     queryFn: async () => {
-      const response = await fetch('/api/accounts/link');
-      const data = await response.json();
-      const accounts = data.data?.accounts || [];
+      const accounts = await settingsApi.getLinkedAccounts();
       return accounts;
     },
     staleTime: 5 * 60 * 1000, // 5분
@@ -82,15 +80,7 @@ export const useDeleteLinkedAccount = () => {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: async (accountId: string) => {
-      const response = await fetch(`/api/accounts/${accountId}`, {
-        method: 'DELETE',
-      });
-      if (!response.ok) {
-        throw new Error('계좌 삭제에 실패했습니다.');
-      }
-      return await response.json();
-    },
+    mutationFn: async (accountId: string) => settingsApi.deleteLinkedAccount(accountId),
     onSuccess: (data, accountId) => {
       // 낙관적 업데이트: 캐시에서 직접 제거 (가장 빠른 UI 반영)
       queryClient.setQueryData(queryKeys.settings.linkedAccounts(), (oldData: any) => {
@@ -114,25 +104,8 @@ export const useRefreshMyData = () => {
   
   return useMutation({
     mutationFn: async () => {
-      // MOCK: 서버 호출 대신 하드코딩 데이터 반환
-      return [
-        {
-          accountId: 'linked-acc-1',
-          bankId: 'bank-001',
-          bankName: '국민은행',
-          accountNo: '1234567890',
-          alias: '연동계좌1',
-          balance: 1500000,
-        },
-        {
-          accountId: 'linked-acc-2',
-          bankId: 'bank-002',
-          bankName: '신한은행',
-          accountNo: '0987654321',
-          alias: '연동계좌2',
-          balance: 500000,
-        },
-      ];
+      const accounts = await settingsApi.refreshMyData();
+      return accounts;
     },
     onSuccess: () => {
       // 설정/대시보드 양쪽 캐시 모두 무효화하여 동기화

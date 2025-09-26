@@ -1,5 +1,5 @@
 import { featureFlags } from '@/src/config/featureFlags';
-import { ENABLE_NOTIFICATION_FALLBACK } from '@/src/constants/api';
+import { API_ENDPOINTS, ENABLE_NOTIFICATION_FALLBACK } from '@/src/constants/api';
 import type {
   BaseResponse,
   CountUnreadResponseDto,
@@ -37,7 +37,7 @@ const parseOptionalNumber = (value: unknown): number | undefined => {
   return Number.isFinite(parsed) ? parsed : undefined;
 };
 
-const extractPushData = (...sources: Array<Record<string, any> | undefined>): NotificationItem['pushData'] | undefined => {
+const extractPushData = (...sources: (Record<string, any> | undefined)[]): NotificationItem['pushData'] | undefined => {
   for (const source of sources) {
     if (!source) continue;
     const candidate = isRecord(source.pushData) ? source.pushData : source;
@@ -149,7 +149,7 @@ export const notificationApi = {
    */
   registerPushEndpoint: async (data: RegisterDeviceRequestDto): Promise<RegisterDeviceResponseDto> => {
     try {
-      const response = await apiClient.post('/api/push/endpoints', data);
+  const response = await apiClient.post(API_ENDPOINTS.PUSH_ENDPOINTS, data);
       return response as RegisterDeviceResponseDto;
     } catch (error) {
       console.error('[NOTIF_API] 푸시 엔드포인트 등록 실패:', error);
@@ -174,7 +174,7 @@ export const notificationApi = {
    */
   getPushEndpoints: async () => {
     try {
-      return await apiClient.get('/api/push/endpoints');
+  return await apiClient.get(API_ENDPOINTS.PUSH_ENDPOINTS);
     } catch (error) {
       console.error('[NOTIF_API] 푸시 엔드포인트 목록 조회 실패:', error);
       return {
@@ -190,7 +190,7 @@ export const notificationApi = {
    */
   updatePushEndpoint: async (deviceId: string, data: UpdateDeviceRequestDto) => {
     try {
-      return await apiClient.patch(`/api/push/endpoints/${deviceId}`, data);
+  return await apiClient.patch(API_ENDPOINTS.PUSH_ENDPOINT_BY_ID(deviceId), data);
     } catch (error) {
       console.error('[NOTIF_API] 푸시 엔드포인트 수정 실패:', error);
       return {
@@ -206,7 +206,7 @@ export const notificationApi = {
    */
   deletePushEndpoint: async (deviceId: string) => {
     try {
-      return await apiClient.delete(`/api/push/endpoints/${deviceId}`);
+  return await apiClient.delete(API_ENDPOINTS.PUSH_ENDPOINT_BY_ID(deviceId));
     } catch (error) {
       console.error('[NOTIF_API] 푸시 엔드포인트 삭제 실패:', error);
       return {
@@ -224,7 +224,7 @@ export const notificationApi = {
    */
   createNotification: async (data: CreateNotificationRequestDto): Promise<BaseResponse<NotificationItem>> => {
     try {
-      const response = await apiClient.post('/api/notifications', data);
+  const response = await apiClient.post(API_ENDPOINTS.NOTIFICATIONS, data);
       if (response?.success && response?.data) {
         return {
           ...response,
@@ -247,7 +247,7 @@ export const notificationApi = {
    */
   pullNotifications: async (): Promise<PullNotificationListResponseDto> => {
     try {
-      const response = await apiClient.post('/api/notifications/pull');
+  const response = await apiClient.post(API_ENDPOINTS.NOTIFICATIONS_PULL);
       const baseData: Record<string, any> = isRecord(response?.data) ? response!.data : {};
       return {
         ...(response ?? { success: false, message: '미전송 알림 조회에 실패했습니다.' }),
@@ -271,7 +271,7 @@ export const notificationApi = {
    */
   markAsDelivered: async (notificationUuid: string): Promise<SimpleOkResponseDto> => {
     try {
-      const response = await apiClient.patch(`/api/notifications/${notificationUuid}/delivered`);
+  const response = await apiClient.patch(`${API_ENDPOINTS.NOTIFICATION_BY_ID(notificationUuid)}/delivered`);
       return response as SimpleOkResponseDto;
     } catch (error) {
       console.error('[NOTIF_API] 알림 전송 처리 실패:', error);
@@ -288,7 +288,7 @@ export const notificationApi = {
   updatePushToken: async (data: UpdateTokenRequest): Promise<BaseResponse<void>> => {
     try {
       // 새로운 API 엔드포인트 사용
-      await apiClient.post(`/api/devices/${data.deviceId}/token`, {
+  await apiClient.post(API_ENDPOINTS.DEVICE_TOKEN(data.deviceId), {
         token: data.token
       });
       return {
@@ -326,7 +326,7 @@ export const notificationApi = {
       if (params?.size !== undefined) queryParams.size = params.size;
       if (params?.sort) queryParams.sort = params.sort;
 
-      const response = await apiClient.get('/api/notifications', queryParams);
+  const response = await apiClient.get(API_ENDPOINTS.NOTIFICATIONS, queryParams);
       console.log('[NOTIF_API] getNotifications response:', response);
 
       const safeResponse: BaseResponse<any> = (response as BaseResponse<any>) ?? {
@@ -419,7 +419,7 @@ export const notificationApi = {
      * 3) 최종적으로 항상 PaginatedResponse 형태 보장
      */
     try {
-      const raw: any = await apiClient.get('/api/notifications', params);
+  const raw: any = await apiClient.get(API_ENDPOINTS.NOTIFICATIONS, params);
       console.log('[NOTIF_API] getNotificationsLegacy raw(type, keys)=', typeof raw, raw && typeof raw === 'object' ? Object.keys(raw) : 'n/a');
 
       // 모호한 응답이면 fallback fetch 시도
@@ -461,7 +461,7 @@ export const notificationApi = {
    */
   markAsRead: async (notificationUuid: string): Promise<SimpleOkResponseDto> => {
     try {
-      const response = await apiClient.patch(`/api/notifications/${notificationUuid}/read`);
+  const response = await apiClient.patch(`${API_ENDPOINTS.NOTIFICATION_BY_ID(notificationUuid)}/read`);
       return response as SimpleOkResponseDto;
     } catch (error) {
       console.error('[NOTIF_API] 알림 읽음 처리 실패:', error);
@@ -483,7 +483,7 @@ export const notificationApi = {
    */
   markAllAsRead: async (): Promise<SimpleOkResponseDto> => {
     try {
-      const response = await apiClient.post('/api/notifications/read-all');
+  const response = await apiClient.post(API_ENDPOINTS.NOTIFICATIONS_READ_ALL);
       return response as SimpleOkResponseDto;
     } catch (error) {
       console.error('[NOTIF_API] 전체 알림 읽음 처리 실패:', error);
@@ -499,7 +499,7 @@ export const notificationApi = {
    */
   getSettings: async (): Promise<BaseResponse<NotificationSettings>> => {
     try {
-      return await apiClient.get('/api/notifications/settings');
+  return await apiClient.get(API_ENDPOINTS.NOTIFICATIONS_SETTINGS);
     } catch (error) {
   console.error('[NOTIF_API] 알림 설정 조회 실패:', error);
       return {
@@ -521,7 +521,7 @@ export const notificationApi = {
    */
   updateSettings: async (settings: Partial<NotificationSettings>): Promise<BaseResponse<NotificationSettings>> => {
     try {
-      return await apiClient.put('/api/notifications/settings', settings);
+  return await apiClient.put(API_ENDPOINTS.NOTIFICATIONS_SETTINGS, settings);
     } catch (error) {
   console.error('[NOTIF_API] 알림 설정 업데이트 실패:', error);
       return {
@@ -544,7 +544,9 @@ export const notificationApi = {
    */
   sendTestNotification: async (data: SendNotificationRequest): Promise<BaseResponse<void>> => {
     try {
-      return await apiClient.post('/notifications/send-test', data);
+      // Use absolute API path prefixed by API endpoint base; this endpoint is dev-only and may not exist on prod.
+      const testPath = API_ENDPOINTS.NOTIFICATIONS + '/send-test';
+      return await apiClient.post(testPath, data);
     } catch (error) {
       console.error('[NOTIF_API] 테스트 알림 전송 실패:', error);
       // TODO: 실제 API 구현 전까지 임시 응답
@@ -561,7 +563,7 @@ export const notificationApi = {
    */
   deleteNotification: async (notificationUuid: string) => {
     try {
-      return await apiClient.delete(`/api/notifications/${notificationUuid}`);
+  return await apiClient.delete(API_ENDPOINTS.NOTIFICATION_BY_ID(notificationUuid));
     } catch (error) {
       console.error('[NOTIF_API] 알림 삭제 실패:', error);
       return {
@@ -577,7 +579,7 @@ export const notificationApi = {
    */
   getUnreadCount: async (): Promise<CountUnreadResponseDto> => {
     try {
-      const response = await apiClient.get('/api/notifications/unread-count');
+  const response = await apiClient.get(API_ENDPOINTS.NOTIFICATIONS_UNREAD_COUNT);
       console.log('[NOTIF_API] getUnreadCount response:', response);
       
       return response as CountUnreadResponseDto;

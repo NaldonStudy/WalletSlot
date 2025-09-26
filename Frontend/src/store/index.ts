@@ -14,6 +14,7 @@ export { useBankSelectionStore } from './bankSelectionStore';
 export { useLocalUserStore } from './localUserStore';
 export { useSignupStore } from './signupStore';
 export { useSlotStore } from './useSlotStore';
+export { useAccountSelectionStore } from './accountSelectionStore';
 
 
 

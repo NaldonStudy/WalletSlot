@@ -1,10 +1,11 @@
 import { apiClient } from '@/src/api/client';
+import { API_ENDPOINTS } from '@/src/constants/api';
 import {
   ApiError,
   BaseResponse,
   SlotDailySpendingResponse,
-  SlotsResponse,
-  SlotHistoryResponse
+  SlotHistoryResponse,
+  SlotsResponse
 } from '@/src/types';
 
 /**
@@ -16,7 +17,7 @@ export const slotApi = {
    */
   getSlotsByAccount: async (accountId: string): Promise<BaseResponse<SlotsResponse>> => {
     try {
-      return await apiClient.get<SlotsResponse>(`/api/accounts/${accountId}/slots`);
+    return await apiClient.get<SlotsResponse>(API_ENDPOINTS.ACCOUNT_SLOTS(accountId));
     } catch (error) {
       console.error(
         '[getSlotsByAccount] API 호출 실패:',
@@ -31,9 +32,15 @@ export const slotApi = {
    */
   getSlotDailySpending: async (accountId: string, slotId: string): Promise<BaseResponse<SlotDailySpendingResponse>> => {
     try {
-      return await apiClient.get<SlotDailySpendingResponse>(
-        `/api/accounts/${accountId}/slots/${slotId}/daily-spending`
-      );
+      // return await apiClient.get<SlotDailySpendingResponse>(
+      //   API_ENDPOINTS.ACCOUNT_SLOT_DAILY_SPENDING(accountId, slotId)
+      // );
+      console.warn('[slotApi] getSlotDailySpending: legacy endpoint removed; returning default empty payload');
+      return {
+        success: true,
+        message: 'endpoint-removed',
+        data: { startDate: '', transactions: [] }
+      } as BaseResponse<SlotDailySpendingResponse>;
     } catch (error) {
       const apiError = error as ApiError | Error;
       const message =
@@ -52,7 +59,7 @@ export const slotApi = {
   getSlotHistory: async (accountId: string, slotId: string): Promise<BaseResponse<SlotHistoryResponse>> => {
     try {
       return await apiClient.get<SlotHistoryResponse>(
-        `/api/accounts/${accountId}/slots/${slotId}/history`
+        API_ENDPOINTS.ACCOUNT_SLOT_HISTORY(accountId, slotId)
       );
     } catch (error) {
       const apiError = error as ApiError | Error;

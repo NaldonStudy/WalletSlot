@@ -6,8 +6,11 @@
 
 /**
  * SMS 인증코드 발송 요청
- * POST /api/auth/sms/send
+ * POST ` /api/auth/sms/send`
+ * @note 코드 내에서는 `API_ENDPOINTS.AUTH_SMS_SEND` 사용 권장
  */
+import type { BaseResponse } from './index';
+
 export interface SmsSendRequest {
   phone: string;
   purpose: 'LOGIN' | 'SIGNUP' | 'FORGOT_PIN' | 'PROFILE_UPDATE' | 'DEVICE_VERIFY';
@@ -16,7 +19,8 @@ export interface SmsSendRequest {
 
 /**
  * SMS 인증코드 발송 응답
- * POST /api/auth/sms/send
+ * POST ` /api/auth/sms/send`
+ * @note 코드 내에서는 `API_ENDPOINTS.AUTH_SMS_SEND` 사용 권장
  */
 export interface SmsSendResponse {
   success: boolean;
@@ -31,7 +35,8 @@ export interface SmsSendResponse {
 
 /**
  * 가입용 SMS 검증 요청
- * POST /api/auth/sms/verify-signup
+ * POST ` /api/auth/sms/verify-signup`
+ * @note 코드 내에서는 `API_ENDPOINTS.AUTH_SMS_VERIFY_SIGNUP` 사용 권장
  */
 export interface SmsVerifySignupRequest {
   phone: string;
@@ -41,7 +46,8 @@ export interface SmsVerifySignupRequest {
 
 /**
  * 가입용 SMS 검증 응답
- * POST /api/auth/sms/verify-signup
+ * POST ` /api/auth/sms/verify-signup`
+ * @note 코드 내에서는 `API_ENDPOINTS.AUTH_SMS_VERIFY_SIGNUP` 사용 권장
  */
 export interface SmsVerifySignupResponse {
   success: boolean;
@@ -57,7 +63,8 @@ export interface SmsVerifySignupResponse {
 
 /**
  * 로그인/공통 SMS 검증 요청
- * POST /api/auth/sms/verify
+ * POST ` /api/auth/sms/verify`
+ * @note 코드 내에서는 `API_ENDPOINTS.AUTH_SMS_VERIFY` 사용 권장
  */
 export interface SmsVerifyRequest {
   phone: string;
@@ -67,7 +74,8 @@ export interface SmsVerifyRequest {
 
 /**
  * 로그인/공통 SMS 검증 응답
- * POST /api/auth/sms/verify
+ * POST ` /api/auth/sms/verify`
+ * @note 코드 내에서는 `API_ENDPOINTS.AUTH_SMS_VERIFY` 사용 권장
  */
 export interface SmsVerifyResponse {
   success: boolean;
@@ -193,8 +201,6 @@ export interface AccountVerificationRequestRequest {
   accountNo: string;
   userName: string;
 }
-
-import type { BaseResponse } from './index';
 
 export interface AccountVerificationRequestResponse extends BaseResponse<{ authIdentifier: string }> {}
 

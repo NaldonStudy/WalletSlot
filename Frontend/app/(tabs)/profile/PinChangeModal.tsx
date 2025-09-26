@@ -1,7 +1,7 @@
 import { AuthKeypad, CommonModal, PinDots } from '@/src/components'
-import { useChangePin } from '@/src/hooks'
+import { useChangePin, useVerifyPin } from '@/src/hooks'
 import { monitoringService } from '@/src/services/monitoringService'
-import React, { useMemo, useState } from 'react'
+import React, { useState } from 'react'
 import { Alert, KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
@@ -30,37 +30,25 @@ export default function PinChangeModal({ visible, onClose, onSuccess }: Props) {
     }
   }, [visible])
 
-  const dots = useMemo(() => (count: number) => {
-    const arr = []
-    for (let i = 0; i < count; i++) arr.push(i)
-    return arr
-  }, [])
+  // dots helper removed (unused)
+
+  const { verify, error: verifyError, setError: setVerifyError } = useVerifyPin()
 
   const handleVerify = async (pinValue: string) => {
-    if (!/^[0-9]{6}$/.test(pinValue)) { 
-      Alert.alert('오류', 'PIN은 6자리 숫자여야 합니다.')
-      setCurrentPin('') // PIN 초기화
-      return 
+    const result = await verify(pinValue)
+    if (!result.success) {
+      Alert.alert('오류', verifyError || '인증에 실패했습니다.')
+      setCurrentPin('')
+      setVerifyError(null)
+      return
     }
-    try {
-      const res = await fetch('/api/auth/pin/verify', { method: 'POST', body: JSON.stringify({ pin: pinValue }) })
-      if (!res.ok) { 
-        Alert.alert('오류', 'PIN이 일치하지 않습니다.')
-        setCurrentPin('') // PIN 초기화
-        return 
-      }
-      const json = await res.json()
-      if (json?.valid) {
-        monitoringService.logUserInteraction('navigation', { to: 'PinChangeNew' })
-        setStep('new')
-        setCurrentPin(pinValue)
-      } else {
-        Alert.alert('오류', '인증에 실패했습니다.')
-        setCurrentPin('') // PIN 초기화
-      }
-    } catch (e) {
-      Alert.alert('오류', '서버와 통신 중 오류가 발생했습니다.')
-      setCurrentPin('') // PIN 초기화
+    if (result.valid) {
+      monitoringService.logUserInteraction('navigation', { to: 'PinChangeNew' })
+      setStep('new')
+      setCurrentPin(pinValue)
+    } else {
+      Alert.alert('오류', '인증에 실패했습니다.')
+      setCurrentPin('')
     }
   }
 
@@ -86,7 +74,7 @@ export default function PinChangeModal({ visible, onClose, onSuccess }: Props) {
         newPin
       })
       
-      monitoringService.logUserInteraction('setting_change', { key: 'pin_change', success: true })
+  monitoringService.logSettingChange('pin_change', undefined, true)
       setNewPin('')
       setConfirmPin('')
       onClose()

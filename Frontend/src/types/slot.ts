@@ -53,11 +53,45 @@ export interface SlotTransactionsResponse {
   pageSize: number;
 }
 
-// 거래내역 이동 API 응답 타입
+// 거래 이동 응답 타입
 export interface MoveTransactionResponse {
-  transaction: SlotTransaction;
-  originalSlot: SlotData;
-  reassignedSlot: SlotData;
+  transaction: {
+    transactionId: string;
+    type: string;
+    opponentAccountNo: string | null;
+    summary: string;
+    amount: number;
+    balance: number;
+    transactionAt: string;
+  };
+  originalSlot: {
+    accountSlotId: string;
+    name: string;
+    icon?: string | null;
+    color?: string | null;
+    customName?: string | null;
+    currentBudget: number;
+    spent: number;
+    remainingBudget: number;
+    exceededBudget: number;
+    isSaving: boolean;
+    isCustom: boolean;
+    isBudgetExceeded: boolean;
+  };
+  reassignedSlot: {
+    accountSlotId: string;
+    name: string;
+    icon?: string | null;
+    color?: string | null;
+    customName?: string | null;
+    currentBudget: number;
+    spent: number;
+    remainingBudget: number;
+    exceededBudget: number;
+    isSaving: boolean;
+    isCustom: boolean;
+    isBudgetExceeded: boolean;
+  };
 }
 
 // 슬롯 히스토리 아이템

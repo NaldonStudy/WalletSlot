@@ -6,23 +6,22 @@
  * 격리하여 fallback fetch 로직을 캡슐화합니다.
  */
 
-import type { AccountsResponse, BaseResponse, PaginatedResponse, SlotDailySpendingResponse, SlotData, SlotsResponse } from '@/src/types';
+import { API_ENDPOINTS } from '@/src/constants/api';
+import type {
+  AccountsResponse,
+  BaseResponse,
+  NotificationItem,
+  PaginatedResponse,
+  SlotDailySpendingResponse,
+  SlotData,
+  SlotsResponse,
+} from '@/src/types';
 
-/** 알림 목록 응답 형태 후보 타입 (느슨한 any 구조) */
-export type RawNotificationListResponse = any; // 다양한 케이스 수용
-
-/** 계좌 목록 응답 형태 후보 타입 (느슨한 any 구조) */
-export type RawAccountListResponse = any; // 다양한 케이스 수용
-
-/** 계좌 잔액 응답 형태 후보 타입 (느슨한 any 구조) */
-export type RawAccountBalanceResponse = any; // 다양한 케이스 수용
-
-/** 슬롯 목록 응답 형태 후보 타입 (느슨한 any 구조) */
-export type RawSlotsResponse = any; // 다양한 케이스 수용
-
-/**
- * 느슨한 원본 응답 타입
- */
+/** 알림/계좌/슬롯 등 원시 응답을 느슨하게 표현하는 타입들 (any로 허용) */
+export type RawNotificationListResponse = any;
+export type RawAccountListResponse = any;
+export type RawAccountBalanceResponse = any;
+export type RawSlotsResponse = any;
 export type RawListResponse = any;
 
 /**
@@ -122,20 +121,41 @@ export async function fetchFallback<T = any>(url: string, params?: { page?: numb
 /**
  * 단일 리소스용 폴백 fetch
  * @example const json = await fetchJsonFallback('/api/users/me')
+ * @note 권장: 런타임에서 상수 사용 권장 (예: `fetchJsonFallback(API_CONFIG.BASE_URL + API_ENDPOINTS.USER_ME)`)
  */
 export async function fetchJsonFallback(url: string) {
   try {
-    const res = await fetch(url);
+    // 요청 시 JSON 응답을 우선적으로 요청하도록 Accept 헤더 추가
+    const res = await fetch(url, { headers: { Accept: 'application/json' } });
+
+    const contentType = (res.headers && res.headers.get && res.headers.get('content-type')) || '';
+    const status = res.status;
+
+    // Content-Type에 application/json이 명시되어 있지 않으면 JSON 파싱을 시도하지 않음
+    if (!contentType.toLowerCase().includes('application/json')) {
+      // 짧은 본문 스니펫을 읽어 로그에 남김 (개발/디버깅용)
+      const text = await res.text().catch(() => '<body unavailable>');
+      const snippet = typeof text === 'string' ? text.substring(0, 512) : '<non-string-body>';
+      console.log('[NORMALIZER] fetchJsonFallback: non-json response', { url, status, contentType, snippet });
+      return null;
+    }
+
+    // 안전하게 JSON 파싱
     const json = await res.json();
     return json;
-  } catch (e) {
+  } catch (e: any) {
+    // 만약 JSON 파싱 중 에러가 발생하면 응답 텍스트를 가져와 함께 로그에 남김
+    try {
+      const res2 = await fetch(url, { headers: { Accept: 'application/json' } });
+      const text = await res2.text().catch(() => '<unavailable>');
+      console.log('[NORMALIZER] fetchJsonFallback 실패 - 파싱중 예외, 응답 스니펫:', text.substring(0, 512));
+    } catch {
+      console.log('[NORMALIZER] fetchJsonFallback 실패: unable to fetch response text');
+    }
     console.log('[NORMALIZER] fetchJsonFallback 실패:', e);
     return null;
   }
 }
-
-// 기존 알림 전용 헬퍼는 호환성을 위해 유지
-import type { NotificationItem } from '@/src/types';
 export function normalizeNotificationList(raw: any, params?: { page?: number; limit?: number }) {
   return normalizePaginatedList<NotificationItem>(raw, params);
 }
@@ -146,7 +166,7 @@ export async function fetchNotificationsFallback(params?: { page?: number; limit
   if (params?.limit) qs.append('limit', String(params.limit));
   if (params?.unreadOnly) qs.append('unreadOnly', 'true');
   if (params?.type) qs.append('type', params.type);
-  const url = `/api/notifications${qs.toString() ? '?' + qs.toString() : ''}`;
+  const url = `${API_ENDPOINTS.NOTIFICATIONS}${qs.toString() ? '?' + qs.toString() : ''}`;
   try {
     const res = await fetch(url);
     const json = await res.json();
@@ -224,7 +244,7 @@ export function normalizeAccountList(raw: RawAccountListResponse): BaseResponse<
  */
 export async function fetchAccountsFallback(): Promise<BaseResponse<AccountsResponse> | null> {
   try {
-    const res = await fetch('/api/accounts/link');
+    const res = await fetch(API_ENDPOINTS.ACCOUNTS_LINK);
     const json = await res.json();
     if (json) {
       return normalizeAccountList(json);
@@ -278,7 +298,7 @@ export function normalizeAccountBalance(raw: RawAccountBalanceResponse): BaseRes
  */
 export async function fetchAccountBalanceFallback(accountId: string): Promise<BaseResponse<{ balance: number }> | null> {
   try {
-    const res = await fetch(`/api/accounts/${accountId}/balance`);
+  const res = await fetch(API_ENDPOINTS.ACCOUNT_BALANCE(accountId));
     const json = await res.json();
     if (json) {
       return normalizeAccountBalance(json);
@@ -343,7 +363,7 @@ export function normalizeSlots(raw: RawSlotsResponse): BaseResponse<SlotsRespons
  */
 export async function fetchSlotsFallback(accountId: string): Promise<BaseResponse<SlotsResponse> | null> {
   try {
-    const res = await fetch(`/api/accounts/${accountId}/slots`);
+  const res = await fetch(API_ENDPOINTS.ACCOUNT_SLOTS(accountId));
     const json = await res.json();
     if (json) {
       return normalizeSlots(json);
@@ -405,7 +425,7 @@ export function normalizeSlotDetail(raw: RawSlotsResponse): BaseResponse<SlotDat
  */
 export async function fetchSlotDetailFallback(slotId: string): Promise<BaseResponse<SlotData> | null> {
   try {
-    const res = await fetch(`/api/slots/${slotId}`);
+  const res = await fetch(API_ENDPOINTS.SLOT_BY_ID(slotId));
     const json = await res.json();
     if (json) {
       return normalizeSlotDetail(json);
@@ -455,11 +475,10 @@ export function normalizeSlotDailySpending(raw: any): BaseResponse<SlotDailySpen
  */
 export async function fetchSlotDailySpendingFallback(accountId: string, slotId: string): Promise<BaseResponse<SlotDailySpendingResponse> | null> {
   try {
-    const res = await fetch(`/api/accounts/${accountId}/slots/${slotId}/daily-spending`);
-    const json = await res.json();
-    if (json) {
-      return normalizeSlotDailySpending(json);
-    }
+    // The `/daily-spending` endpoint is not part of the current backend spec.
+    // Avoid attempting to fetch a non-existent route. Return a safe default instead.
+    console.log('[SLOT_DAILY_SPENDING_NORMALIZER] endpoint removed; returning empty result');
+    return normalizeSlotDailySpending({ startDate: '', transactions: [] });
   } catch (e) {
     console.log('[SLOT_DAILY_SPENDING_NORMALIZER] fallback fetch 실패:', e);
   }
