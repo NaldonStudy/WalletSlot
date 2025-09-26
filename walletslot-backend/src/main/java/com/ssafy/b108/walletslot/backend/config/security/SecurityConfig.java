@@ -69,6 +69,9 @@ public class SecurityConfig {
                         // 인증 필요한 API
                         .requestMatchers("/api/auth/me").authenticated()
 
+                        // ocr을 위한
+                        .requestMatchers("/api/ocr/**").authenticated()
+
                         // 헬스체크 & 인증 엔드포인트
                         .requestMatchers(
                                 "/actuator/health",
