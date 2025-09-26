@@ -1,6 +1,5 @@
 package com.ssafy.b108.walletslot.backend.domain.notification.repository;
 
-import com.ssafy.b108.walletslot.backend.domain.account.entity.Account;
 import com.ssafy.b108.walletslot.backend.domain.notification.entity.Notification;
 import com.ssafy.b108.walletslot.backend.domain.user.entity.User;
 import org.springframework.data.domain.Page;
@@ -34,4 +33,8 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
     long countByUserAndIsReadFalse(User user);
 
     List<Notification> findByUser(User user);
+
+    Page<Notification> findByUserAndIsReadFalseOrderByIdDesc(User user, Pageable pageable);
+
+    Page<Notification> findByUserAndTypeAndIsReadFalseOrderByIdDesc(User user, Notification.Type type, Pageable pageable);
 }
