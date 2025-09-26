@@ -166,7 +166,54 @@ public class TransactionService {
     }
 
     /**
-     * 6-1-3 거래내역을 다른 슬롯으로 이동
+     * 6-1-3 거래내역을 상세조회
+     */
+    public GetAccountSlotTransactionDetailResponseDto getAccountSlotTransactionDetail(Long userId, String accountUuid, String accountSlotUuid, String transactionUuid) {
+
+        // userId != account userId 이면 403 응답
+        Account account = accountRepository.findByUuid(accountUuid).orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "TransactionService - 004"));
+        if(userId != account.getUser().getId()) {
+            throw new AppException(ErrorCode.FORBIDDEN, "TransactionService - 005");
+        }
+
+        // account != account slot의 account 이면 400 응답
+        AccountSlot accountSlot = accountSlotRepository.findByUuid(accountSlotUuid).orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "TransactionService - 006"));
+        if(!account.getUuid().equals(accountSlot.getAccount().getUuid())) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "TransactionService - 007");
+        }
+
+        // Transaction 객체 조회
+        Transaction transaction = transactionRepository.findByUuid(transactionUuid).orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "TransactionService - 008"));
+
+        // dto > slot
+        GetAccountSlotTransactionDetailResponseDto.SlotDto slotDto = GetAccountSlotTransactionDetailResponseDto.SlotDto.builder()
+                .accountSlotId(accountSlotUuid)
+                .name(accountSlot.getName())
+                .build();
+
+        // dto > transaction
+        GetAccountSlotTransactionDetailResponseDto.TransactionDto transactionDto = GetAccountSlotTransactionDetailResponseDto.TransactionDto.builder()
+                .transactionId(transaction.getUuid())
+                .type(transaction.getType())
+                .opponentAccountNo(transaction.getOpponentAccountNo())
+                .summary(transaction.getSummary())
+                .amount(transaction.getAmount())
+                .balance(transaction.getBalance())
+                .transactionAt(transaction.getTransactionAt())
+                .build();
+
+        // dto
+        GetAccountSlotTransactionDetailResponseDto getAccountSlotTransactionDetailResponseDto = GetAccountSlotTransactionDetailResponseDto.builder()
+                .success(true)
+                .message("[TransactionService - 000] 거래내역 상세조회 성공")
+                .data(GetAccountSlotTransactionDetailResponseDto.Data.builder().slot(slotDto).transaction(transactionDto).build())
+                .build();
+
+        return getAccountSlotTransactionDetailResponseDto;
+    }
+
+    /**
+     * 6-1-4 거래내역을 다른 슬롯으로 이동
      */
     public ModifyTransactionResponseDto modifyTransaction(Long userId, String accountUuid, String transactionUuid, String accountSlotUuid) {
 
