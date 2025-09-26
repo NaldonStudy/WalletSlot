@@ -1,12 +1,13 @@
-import React, { useEffect } from 'react';
-import { useLocalSearchParams, router , Stack } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Alert, View, StyleSheet, useColorScheme } from 'react-native';
-import { SlotTransaction } from '@/src/types/slot';
-import { useSlotStore } from '@/src/store/useSlotStore';
-import TransactionDetail from '@/src/components/transaction/TransactionDetail';
 import { Button } from '@/src/components/Button';
+import { DutchPayBottomSheet } from '@/src/components/transaction/DutchPayBottomSheet';
+import TransactionDetail from '@/src/components/transaction/TransactionDetail';
 import { Spacing, themes } from '@/src/constants/theme';
+import { useSlotStore } from '@/src/store/useSlotStore';
+import { SlotTransaction } from '@/src/types/slot';
+import { router, Stack, useLocalSearchParams } from 'expo-router';
+import React, { useEffect, useState } from 'react';
+import { Alert, StyleSheet, useColorScheme, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function TransactionDetailScreen() {
   const { slotId, transactionId, transactionData } = useLocalSearchParams<{ 
@@ -18,6 +19,9 @@ export default function TransactionDetailScreen() {
   const { selectedSlot } = useSlotStore();
   const colorScheme = useColorScheme() ?? 'light';
   const theme = themes[colorScheme];
+
+  // BottomSheet 상태 관리
+  const [isDutchPayBottomSheetVisible, setIsDutchPayBottomSheetVisible] = useState(false);
 
   // 버튼 핸들러 함수들
   const handleAmountSplit = () => {
@@ -34,16 +38,10 @@ export default function TransactionDetailScreen() {
   };
 
   const handleDutchPay = () => {
-    Alert.alert(
-      '더치페이',
-      '더치페이 기능을 구현하시겠습니까?',
-      [
-        { text: '취소', style: 'cancel' },
-        { text: '확인', onPress: () => {
-          // TODO: 더치페이 로직 구현
-        }}
-      ]
-    );
+    console.log('🔍 더치페이 버튼 클릭됨!');
+    console.log('- selectedSlot:', selectedSlot);
+    console.log('- accountId:', selectedSlot?.accountId);
+    setIsDutchPayBottomSheetVisible(true);
   };
 
   useEffect(() => {
@@ -150,6 +148,16 @@ export default function TransactionDetailScreen() {
           style={styles.actionButton}
         />
       </View>
+
+      {/* 더치페이 BottomSheet */}
+      <DutchPayBottomSheet
+        visible={isDutchPayBottomSheetVisible}
+        onClose={() => setIsDutchPayBottomSheetVisible(false)}
+        transaction={transaction}
+        theme={theme}
+        accountId={selectedSlot?.accountId}
+        accountSlotId={selectedSlot?.accountSlotId}
+      />
     </SafeAreaView>
   );
 }

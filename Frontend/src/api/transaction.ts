@@ -95,5 +95,42 @@ export const transactionApi = {
       });
       throw error;
     }
+  },
+
+  /**
+   * 더치페이 요청
+   */
+  requestDutchPay: async (
+    accountId: string,
+    transactionId: string,
+    participantCount: number
+  ): Promise<BaseResponse<any>> => {
+    const url = `/api/accounts/${accountId}/transactions/${transactionId}/dutchpays?n=${participantCount}`;
+    
+    console.log('[transactionApi.requestDutchPay] 요청 정보:', {
+      url,
+      accountId,
+      transactionId,
+      participantCount
+    });
+    
+    try {
+      const result = await apiClient.post<BaseResponse<any>>(url);
+      console.log('[transactionApi.requestDutchPay] 응답:', result);
+      return result.data;
+    } catch (error: any) {
+      console.error('[transactionApi.requestDutchPay] 에러 상세:', {
+        message: error.message,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        config: {
+          url: error.config?.url,
+          method: error.config?.method,
+          data: error.config?.data
+        }
+      });
+      throw error;
+    }
   }
 };
