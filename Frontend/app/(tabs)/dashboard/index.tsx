@@ -6,19 +6,18 @@ import { UncategorizedSlotCard } from '@/src/components/slot/UncategorizedSlotCa
 import { BANK_CODES } from '@/src/constants/banks';
 import { UNCATEGORIZED_SLOT_ID } from '@/src/constants/slots';
 import { Spacing, themes, Typography } from '@/src/constants/theme';
-import { useAccountBalance, useAccounts, useSlots } from '@/src/hooks';
+import { useAccountBalance, useAccounts, useSlots, useUserProfile } from '@/src/hooks';
 import type { UserAccount, SlotData } from '@/src/types';
 import { profileApi } from '@/src/api/profile';
-import { faker } from '@faker-js/faker';
 import React, { memo, useCallback, useMemo, useRef, useState } from 'react';
 import { Animated, StyleSheet, Text, useColorScheme, View, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 // 헤더 컴포넌트 분리 (메모이제이션)
-const DashboardHeader = memo(({ userData, theme }: { userData: any, theme: any }) => (
+const DashboardHeader = memo(({ userProfile, theme }: { userProfile: any, theme: any }) => (
   <View style={styles.header}>
     <Text style={[styles.greeting, { color: theme.colors.text.primary }]}>
-      안녕하세요, {userData.userName}님!
+      안녕하세요, {userProfile?.name || '사용자'}님!
     </Text>
     <Text style={[styles.subtitle, { color: theme.colors.text.secondary }]}>
       오늘의 지출 현황을 확인해보세요
@@ -27,16 +26,6 @@ const DashboardHeader = memo(({ userData, theme }: { userData: any, theme: any }
 ));
 
 DashboardHeader.displayName = 'DashboardHeader';
-
-// 현실적인 샘플 데이터 생성
-const generateUserData = () => {
-  const koreanLastNames = ['김', '이', '박', '최', '정', '강', '조', '윤', '장', '임'];
-  const koreanFirstNames = ['민수', '영희', '철수', '수빈', '지현', '준호', '혜진', '동훈', '소영', '태현'];
-
-  const lastName = faker.helpers.arrayElement(koreanLastNames);
-  const firstName = faker.helpers.arrayElement(koreanFirstNames);
-  return { userName: lastName + firstName };
-};
 
 export default function DashboardScreen() {
   const colorScheme = useColorScheme() ?? 'light';
@@ -58,8 +47,8 @@ export default function DashboardScreen() {
   const [accountCarouselY, setAccountCarouselY] = useState(0);
   const mainScrollViewRef = useRef<ScrollView>(null);
 
-  // 사용자 데이터와 슬롯 데이터를 한 번만 생성 (메모이제이션)
-  const userData = useMemo(() => generateUserData(), []);
+  // 사용자 프로필 데이터 조회
+  const { data: userProfile, isLoading: isProfileLoading } = useUserProfile();
 
   // MSW API를 통한 계좌 데이터 조회
   const { linked } = useAccounts();
@@ -264,7 +253,7 @@ export default function DashboardScreen() {
         onTouchStart={handleScreenPress}
       >
         {/* 헤더 */}
-        <DashboardHeader userData={userData} theme={theme} />
+        <DashboardHeader userProfile={userProfile} theme={theme} />
 
         {/* 캐러셀 */}
         <Animated.View
