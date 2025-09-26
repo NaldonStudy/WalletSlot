@@ -26,7 +26,7 @@ public class FcmService {
     private final GoogleAccessTokenUtil googleAccessTokenUtil;
 
     // Method
-    public void sendMessage(String targetFcmToken, String title, String body) {
+    public Mono<String> sendMessage(String targetFcmToken, String title, String body) {
 
         // AccessToken 발급
         String accessToken = googleAccessTokenUtil.getAccessToken();
@@ -44,14 +44,12 @@ public class FcmService {
 
         try {
             // WebClient 호출
-            fcmWebClient.post()
+            return fcmWebClient.post()
                     .header(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken)
                     .contentType(MediaType.APPLICATION_JSON)
                     .body(Mono.just(message), Map.class)
                     .retrieve()
-                    .bodyToMono(String.class)
-                    .doOnError(e -> System.err.println("❌ FCM 전송 실패: " + e.getMessage()))
-                    .subscribe(response -> System.out.println("✅ FCM 전송 성공: " + response));
+                    .bodyToMono(String.class);
         } catch (Exception e) {
             e.printStackTrace();
             throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "FcmService - 000");

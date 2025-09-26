@@ -28,16 +28,13 @@ public class Slot {
     @Builder.Default
     private boolean isSaving = false;
 
-    @Lob
-    @Column(columnDefinition = "TEXT", nullable = false)
-    private String icon;
-
-    @Column(nullable = false, length = 64)
-    private String color;
-
     @Column(nullable = false)
     private Integer rank;
 
     @OneToMany(mappedBy = "slot", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<AccountSlot> accountSlots;
+
+    // Method
+    public void increaseRank() { this.rank++; }
+    public void decreaseRank() { this.rank--; }
 }

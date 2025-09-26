@@ -47,8 +47,6 @@ public class GetSlotListResponseDto {
         @JsonProperty("isSaving")
         private boolean isSaving;
 
-        private String icon;
-        private String color;
         private Integer rank;
     }
 }

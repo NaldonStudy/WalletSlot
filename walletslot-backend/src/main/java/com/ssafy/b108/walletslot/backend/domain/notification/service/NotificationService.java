@@ -14,6 +14,8 @@ public interface NotificationService {
 
     CountUnreadResponseDto unreadCount(long userId);
 
+    GetNotificationPageResponseDto getUnreadPage(final long userId, final Notification.Type type, final Pageable pageable);
+
     SimpleOkResponseDto markDelivered(long userId, String notificationUuid);
 
     SimpleOkResponseDto markRead(long userId, String notificationUuid);

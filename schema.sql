@@ -111,8 +111,6 @@ CREATE TABLE `slot` (
   `uuid` VARCHAR(64) NOT NULL,
   `name` VARCHAR(128) NOT NULL,
   `is_saving` BOOLEAN NOT NULL DEFAULT FALSE,
-  `icon` TEXT,
-  `color` VARCHAR(64),
   `rank` INT UNSIGNED COMMENT '사람들이 많이 사용하는 순위'
 ) ENGINE=InnoDB;
 
