@@ -16,7 +16,7 @@ import type {
 } from '@/src/types';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Easing, FlatList, Image, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 const SELECT_BLUE = '#2383BD';
@@ -55,13 +55,15 @@ export default function AccountConnectScreen() {
   // ========================================
   // 2. API 호출 및 데이터 처리
   // ========================================
-  const fetchedRef = useRef(false);
 
-  const loadAccounts = useCallback(async () => {
+
+  // API 호출 함수 (수동으로 호출)
+  const fetchAccounts = async () => {
+    if (selectedBanks.length === 0) return; // 은행이 선택되지 않았으면 호출 안함
+    
     setIsApiLoading(true);
     setApiError(null);
     try {
-      // 선택된 은행 UUID들을 POST 요청으로 전송
       const requestData: AccountsRequest = {
         selectBanks: selectedBanks.map(bank => ({
           bankId: bank.bankId
@@ -82,16 +84,16 @@ export default function AccountConnectScreen() {
     } catch (e: any) {
       console.error('[Account Connect] API 호출 실패:', e);
       setApiError(e?.message ?? '계좌 정보를 불러오는데 실패했습니다.');
+      setProgress(100); // 에러 시 progress를 100으로 설정하여 로딩 중단
     } finally {
       setIsApiLoading(false);
     }
-  }, [setAccounts, selectedBanks]);
+  };
 
+  // 컴포넌트 마운트 시에만 API 호출 (selectedBanks는 이미 선택 완료된 상태)
   useEffect(() => {
-    if (fetchedRef.current) return;
-    fetchedRef.current = true;
-    loadAccounts();
-  }, [loadAccounts]);
+    fetchAccounts();
+  }, []); // 빈 의존성 배열 - 마운트 시에만 실행
 
   // 백엔드에서 이미 필터링된 계좌들 (추가 필터링 불필요)
   const filteredAccounts = useMemo(() => {
@@ -281,15 +283,17 @@ export default function AccountConnectScreen() {
     if (repId === null) setRepBalance(null);
   }, [repId]);
 
-  // 로깅(개발용)
+  // 로깅(개발용) - API 완료 시에만 실행
   useEffect(() => {
     if (__DEV__) {
-      console.log('[Account Connect] 선택된 bankId들:', selectedBanks.map(b => b.bankId));
       console.log('[Account Connect] API 완료 여부:', isApiCompleted);
-      console.log('[Account Connect] 받은 계좌 수:', allAccounts.length);
-      console.log('[Account Connect] 표시할 계좌 수:', filteredAccounts.length);
+      if (isApiCompleted) {
+        console.log('[Account Connect] 선택된 bankId들:', selectedBanks.map(b => b.bankId));
+        console.log('[Account Connect] 받은 계좌 수:', allAccounts.length);
+        console.log('[Account Connect] 표시할 계좌 수:', filteredAccounts.length);
+      }
     }
-  }, [selectedBanks, isApiCompleted, allAccounts.length, filteredAccounts.length]);
+  }, [isApiCompleted]); // API 완료 시에만 실행
 
   // ========================================
   // 8. 렌더링 함수들
@@ -373,9 +377,34 @@ export default function AccountConnectScreen() {
             <ThemedText style={styles.errorMessage}>{apiError}</ThemedText>
             <TouchableOpacity
               style={styles.retryButton}
-              onPress={() => {
+              onPress={async () => {
                 // 재시도: 가드 무시하고 바로 호출 가능
-                loadAccounts();
+                setIsApiLoading(true);
+                setApiError(null);
+                try {
+                  const requestData: AccountsRequest = {
+                    selectBanks: selectedBanks.map(bank => ({
+                      bankId: bank.bankId
+                    }))
+                  };
+                  
+                  console.log('[Account Connect] 재시도 API 호출: POST /api/accounts', requestData);
+                  const res = await apiClient.post<AccountsResponse>('/api/accounts', requestData);
+                  console.log('[Account Connect] 재시도 API 응답:', res);
+
+                  if (res.success && res.data?.accounts) {
+                    setAllAccounts(res.data.accounts);
+                    setAccounts(res.data.accounts);
+                    setIsApiCompleted(true);
+                  } else {
+                    throw new Error(res.message || '계좌 정보를 불러올 수 없습니다.');
+                  }
+                } catch (e: any) {
+                  console.error('[Account Connect] 재시도 API 호출 실패:', e);
+                  setApiError(e?.message ?? '계좌 정보를 불러오는데 실패했습니다.');
+                } finally {
+                  setIsApiLoading(false);
+                }
               }}
             >
               <ThemedText style={styles.retryButtonText}>다시 시도</ThemedText>
