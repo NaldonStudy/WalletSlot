@@ -28,17 +28,17 @@ public class AccountRestController {
     @GetMapping
     @Operation(
             summary = "4-1-1 마이데이터 연동",
-            description = "사용자의 마이데이터를 불러옵니다. (from. SSAFY 교육용 금융망 API)",
+            description = "사용자가 선택한 은행에 있는 마이데이터를 불러옵니다. (from. SSAFY 교육용 금융망 API)",
             responses = {
                     @ApiResponse(
                             responseCode = "200",
                             description = "[AccountService - 000] 마이데이터 연동 성공",
-                            content = @Content(schema = @Schema(implementation = GetAccountListResponseDto.class))
+                            content = @Content(schema = @Schema(implementation = GetAccountsResponseDto.class))
                     )
             }
     )
-    public ResponseEntity<GetAccountListResponseDto> getAccountList(@AuthenticationPrincipal UserPrincipal principal) {
-        return ResponseEntity.status(HttpStatus.OK).body(accountService.getAccountList(principal.userId()));
+    public ResponseEntity<GetAccountsResponseDto> getAccountList(@AuthenticationPrincipal UserPrincipal principal, @RequestBody GetAccountsRequestDto request) {
+        return ResponseEntity.status(HttpStatus.OK).body(accountService.getAccounts(principal.userId(), request.getBanks()));
     }
 
     @GetMapping("/link")
@@ -65,7 +65,7 @@ public class AccountRestController {
                     @ApiResponse(
                             responseCode = "200",
                             description = "[AccountService - 000] 계좌 상세조회 성공",
-                            content = @Content(schema = @Schema(implementation = GetAccountResponseDto.class))
+                            content = @Content(schema = @Schema(implementation = GetAccountsResponseDto.class))
                     )
             }
     )
