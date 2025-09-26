@@ -26,7 +26,7 @@ export { useNotificationLogic } from './useNotificationLogic';
 export { useNotificationNavigation } from './useNotificationNavigation';
 
 // 레포트 관련
-export { useSpendingReport } from './useSpendingReport';
+// (useSpendingReport는 더 이상 사용되지 않으므로 export에서 제거)
 
 // 프로필 관련
 export {
@@ -56,6 +56,9 @@ export {
     useRefreshMyData,
     useUpdateDevice
 } from './useSettings';
+
+// PIN verification hook
+export { useVerifyPin } from './useVerifyPin';
 
 // 공통 유틸리티 훅
 export const useDebounce = (value: string, delay: number) => {

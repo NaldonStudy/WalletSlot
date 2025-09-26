@@ -1,4 +1,5 @@
 import { apiClient } from '@/src/api/client';
+import { API_ENDPOINTS } from '@/src/constants/api';
 import {
   AccountVerificationRequestRequest,
   AccountVerificationRequestResponse,
@@ -29,7 +30,7 @@ export const authApi = {
    * POST /api/auth/login/full
    */
   loginFull: async (data: LoginRequest): Promise<LoginResponse> => {
-    return apiClient.post('/api/auth/login/full', data);
+    return apiClient.post(API_ENDPOINTS.AUTH_LOGIN_FULL, data);
   },
 
   /**
@@ -37,7 +38,7 @@ export const authApi = {
    * POST /api/auth/sms/send
    */
   sendSms: async (data: SmsSendRequest): Promise<SmsSendResponse> => {
-    return apiClient.post('/api/auth/sms/send', data);
+    return apiClient.post(API_ENDPOINTS.AUTH_SMS_SEND, data);
   },
 
   /**
@@ -45,7 +46,7 @@ export const authApi = {
    * POST /api/auth/sms/verify-signup
    */
   verifySmsSignup: async (data: SmsVerifySignupRequest): Promise<SmsVerifySignupResponse> => {
-    return apiClient.post('/api/auth/sms/verify-signup', data);
+    return apiClient.post(API_ENDPOINTS.AUTH_SMS_VERIFY_SIGNUP, data);
   },
 
   /**
@@ -53,7 +54,7 @@ export const authApi = {
    * POST /api/auth/sms/verify
    */
   verifySms: async (data: SmsVerifyRequest): Promise<SmsVerifyResponse> => {
-    return apiClient.post('/api/auth/sms/verify', data);
+    return apiClient.post(API_ENDPOINTS.AUTH_SMS_VERIFY, data);
   },
 
   /**
@@ -61,7 +62,7 @@ export const authApi = {
    * POST /api/auth/password/reset
    */
   resetPin: async (data: ResetPinRequest): Promise<ResetPinResponse> => {
-    return apiClient.post('/api/auth/password/reset', data);
+    return apiClient.post(API_ENDPOINTS.AUTH_PASSWORD_RESET, data);
   },
 
   /**
@@ -69,7 +70,7 @@ export const authApi = {
    * POST /api/auth/password/reset-request
    */
   requestPinReset: async (data: RequestPinResetRequest): Promise<RequestPinResetResponse> => {
-    return apiClient.post('/api/auth/password/reset-request', data);
+    return apiClient.post(API_ENDPOINTS.AUTH_PASSWORD_RESET_REQUEST, data);
   },
   /**
    * 1원 인증 요청
@@ -78,7 +79,7 @@ export const authApi = {
   requestAccountVerification: async (
     data: AccountVerificationRequestRequest,
   ): Promise<AccountVerificationRequestResponse> => {
-    return apiClient.postNoAuth('/api/accounts/verification/request', data);
+  return apiClient.postNoAuth(API_ENDPOINTS.ACCOUNTS_VERIFICATION_REQUEST, data);
   },
 
   /**
@@ -88,7 +89,7 @@ export const authApi = {
   verifyAccountVerification: async (
     data: AccountVerificationVerifyRequest,
   ): Promise<AccountVerificationVerifyResponse> => {
-    return apiClient.postNoAuth('/api/accounts/verification/verify', data);
+  return apiClient.postNoAuth(API_ENDPOINTS.ACCOUNTS_VERIFICATION_VERIFY, data);
   },
 
   /**
@@ -96,6 +97,20 @@ export const authApi = {
    * POST /api/auth/signup
    */
   completeSignup: async (data: CompleteSignupRequest): Promise<CompleteSignupResponse> => {
-    return apiClient.postWithConfig('/api/auth/signup', data, { skipAuth: true, disableRetry: true });
+    return apiClient.postWithConfig(API_ENDPOINTS.AUTH_SIGNUP, data, { skipAuth: true, disableRetry: true });
+  },
+  
+  refresh: async (data: { refreshToken: string; deviceId: string }) => {
+    return apiClient.post(API_ENDPOINTS.AUTH_REFRESH, data);
+  },
+  logout: async (data: { refreshToken: string; deviceId: string }) => {
+    return apiClient.post(API_ENDPOINTS.AUTH_LOGOUT, data);
+  },
+  /**
+   * PIN 검증
+   * POST /api/auth/pin/verify
+   */
+  verifyPin: async (data: { pin: string }) => {
+    return apiClient.post<{ valid?: boolean }>(`${API_ENDPOINTS.PIN_CHANGE}/verify`, data);
   },
 };

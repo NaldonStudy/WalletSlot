@@ -3,6 +3,7 @@
  * API 명세에 맞춰 /api/users/me 엔드포인트만 사용
  */
 
+import { API_ENDPOINTS } from '@/src/constants/api';
 import {
     BaseResponse,
     MePatchRequestDto,
@@ -29,7 +30,7 @@ const SAMPLE_USER_PROFILE: UserProfile = {
 
 export const profileHandlers = [
   // 사용자 프로필 조회 (GET /api/users/me)
-  http.get('*/api/users/me', () => {
+  http.get(`*${API_ENDPOINTS.USER_ME}`, () => {
     console.log('[MSW] GET /api/users/me - 사용자 프로필 조회');
     
     const response: MeResponseDto = {
@@ -48,7 +49,7 @@ export const profileHandlers = [
   }),
 
   // 사용자 프로필 수정 (PATCH /api/users/me)
-  http.patch('*/api/users/me', async ({ request }) => {
+  http.patch(`*${API_ENDPOINTS.USER_ME}`, async ({ request }) => {
     console.log('[MSW] PATCH /api/users/me - 사용자 프로필 수정');
     
     const body = await request.json() as MePatchRequestDto;

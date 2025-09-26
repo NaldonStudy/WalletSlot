@@ -1,3 +1,4 @@
+import { API_ENDPOINTS } from '@/src/constants/api'
 import { faker } from '@faker-js/faker'
 import { http, HttpResponse } from 'msw'
 
@@ -147,7 +148,7 @@ let mockConnections: BankConnection[] = [
 ]
 
 // 연결된 금융사 목록 조회 (10-4-1)
-export const getMyDataConnections = http.get('/api/users/me/mydata/connections', () => {
+export const getMyDataConnections = http.get(API_ENDPOINTS.USER_ME + '/mydata/connections', () => {
   // 삭제되지 않은 연결만 반환
   const activeConnections = mockConnections.filter(conn => conn.status !== 'deleted')
   
@@ -164,7 +165,7 @@ export const getMyDataConnections = http.get('/api/users/me/mydata/connections',
 })
 
 // 특정 계좌 연결 상세 조회 (10-4-2)
-export const getConnectionDetail = http.get('/api/users/me/mydata/connections/:accountId', ({ params }) => {
+export const getConnectionDetail = http.get(API_ENDPOINTS.USER_ME + '/mydata/connections/:accountId', ({ params }) => {
   const { accountId } = params
   const connections = generateMockConnections()
   const connection = connections.find(c => c.accountId === accountId)
@@ -188,7 +189,7 @@ export const getConnectionDetail = http.get('/api/users/me/mydata/connections/:a
 })
 
 // 연결 가능한 금융사 목록 조회 (10-4-3)
-export const getAvailableInstitutions = http.get('/api/mydata/institutions', () => {
+export const getAvailableInstitutions = http.get(API_ENDPOINTS.MYDATA_INSTITUTIONS, () => {
   return HttpResponse.json({
     success: true,
     data: {
@@ -205,7 +206,7 @@ export const getAvailableInstitutions = http.get('/api/mydata/institutions', () 
 })
 
 // 특정 금융사 연결 추가 (10-4-4)
-export const addConnection = http.post('/api/users/me/mydata/connections', async ({ request }) => {
+export const addConnection = http.post(API_ENDPOINTS.USER_ME + '/mydata/connections', async ({ request }) => {
   const body = await request.json() as {
     bankCode: string
     accountNumber: string
@@ -241,7 +242,7 @@ export const addConnection = http.post('/api/users/me/mydata/connections', async
 })
 
 // 특정 계좌 연결 해제 (10-4-5)
-export const deleteConnection = http.delete('/api/users/me/mydata/connections/:accountId', ({ params }) => {
+export const deleteConnection = http.delete(API_ENDPOINTS.USER_ME + '/mydata/connections/:accountId', ({ params }) => {
   const { accountId } = params
   
   console.log('[MSW] 🗑️ 계좌 연결 해제 요청:', accountId)

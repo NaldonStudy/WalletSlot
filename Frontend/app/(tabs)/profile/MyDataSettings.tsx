@@ -1,5 +1,6 @@
 import { SettingCard } from '@/components/SettingCard'
 import { SettingRow } from '@/components/SettingRow'
+import { mydataApi } from '@/src/api/mydata'
 import React, { useEffect, useState } from 'react'
 import { View } from 'react-native'
 
@@ -14,25 +15,21 @@ const MyDataSettings = () => {
 
   useEffect(() => {
     let mounted = true
-    ;(async () => {
-      try {
-        const res = await fetch('/api/users/me/mydata/connections')
-        if (!res.ok) return
-        const json = await res.json()
-        if (mounted) setConnections(json.data || [])
-      } catch {
-        // 무시
-      }
-    })()
+      ;(async () => {
+        try {
+          const list = await mydataApi.getConnections()
+          if (mounted) setConnections(list as Connection[])
+        } catch {
+          // ignore
+        }
+      })()
     return () => { mounted = false }
   }, [])
 
   const handleAdd = async () => {
     try {
-      const res = await fetch('/api/users/me/mydata/connections', { method: 'POST', body: JSON.stringify({ institutionId: '새은행' }) })
-      if (!res.ok) return
-      const json = await res.json()
-      setConnections((s) => [json.data, ...s])
+      const added = await mydataApi.addConnection({ institutionId: '새은행' })
+      if (added) setConnections((s) => [added as Connection, ...s])
     } catch {
       // ignore
     }
@@ -40,9 +37,8 @@ const MyDataSettings = () => {
 
   const handleRemove = async (accountId: string) => {
     try {
-      const res = await fetch(`/api/users/me/mydata/connections/${accountId}`, { method: 'DELETE' })
-      if (!res.ok) return
-      setConnections((s) => s.filter(c => c.accountId !== accountId))
+      const ok = await mydataApi.deleteConnection(accountId)
+      if (ok) setConnections((s) => s.filter(c => c.accountId !== accountId))
     } catch {
       // ignore
     }

@@ -5,10 +5,11 @@
  * 도메인별로 분리된 핸들러들을 조합
  */
 
+import { API_CONFIG, API_ENDPOINTS } from '@/src/constants/api';
 import { http, HttpResponse, passthrough } from 'msw';
 
 // 각 도메인별 핸들러 import
-import { accountHandlers } from './accounts';
+// accountHandlers import removed: no local './accounts' handler file exists in this project
 import { mydataHttpHandlers } from './mydataHttpHandlers';
 import { notificationHandlers } from './notifications';
 import { profileHandlers } from './profile';
@@ -28,7 +29,7 @@ const internalHandlers = [
 // 기본 상태 확인 핸들러
 const baseHandlers = [
   // MSW 서버 상태 확인용 엔드포인트
-  http.get('https://api.walletslot.com/api/health', () => {
+  http.get(API_CONFIG.BASE_URL + '/api/health', () => {
     return HttpResponse.json({
       status: 'ok',
       message: 'MSW 서버가 정상 작동 중입니다',
@@ -38,14 +39,14 @@ const baseHandlers = [
   }),
 
   // 기본 API 정보
-  http.get('https://api.walletslot.com/api', () => {
+  http.get(API_CONFIG.BASE_URL + '/api', () => {
     return HttpResponse.json({
       name: 'WalletSlot Mock API',
       version: '1.0.0',
       description: 'MSW를 사용한 Mock API 서버',
       endpoints: {
-        notifications: '/api/notifications/*',
-        profile: '/api/users/me/*'
+        notifications: API_ENDPOINTS.NOTIFICATIONS + '/*',
+        profile: API_ENDPOINTS.USER_ME + '/*'
       },
     });
   }),

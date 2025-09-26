@@ -247,6 +247,13 @@ class MonitoringService {
   }
 
   /**
+   * 설정 변경 로깅(편의 함수)
+   */
+  logSettingChange(key: string, enabled?: boolean, success?: boolean, extra?: Record<string, any>) {
+    this.logUserInteraction('setting_change', { key, enabled, success, ...extra });
+  }
+
+  /**
    * 로그 내보내기 (디버깅용)
    */
   exportLogs(): LogEntry[] {

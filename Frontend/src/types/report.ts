@@ -36,12 +36,12 @@ export interface PeerComparison {
     gender: 'M' | 'F' | 'O';
     incomeRange: string; // "200-300만원" 등
   };
-  categories: Array<{
+  categories: {
     categoryName: string;
     mySpending: number;      // 내 지출 (원)
     peerAverage: number;     // 또래 평균 (원)
     comparisonPercent: number; // 또래 대비 비율 (%) - 100% 기준
-  }>;
+  }[];
 }
 
 // 상위 지출 카테고리 (Top 3)
@@ -55,23 +55,23 @@ export interface TopSpendingCategory {
 // 다음 달 예산 제안
 export interface BudgetSuggestion {
   totalSuggested: number; // 제안 총 예산 (원)
-  categories: Array<{
+  categories: {
     categoryName: string;
     currentBudget: number;     // 현재 예산 (원)
     suggestedBudget: number;   // 제안 예산 (원)
     reason: string;            // 제안 이유
-  }>;
+  }[];
 }
 
 // 개인화 인사이트 (GPT 분석 결과)
 export interface PersonalizedInsight {
   spendingType: string;      // "외식형", "쇼핑형" 등
   spendingTypeDescription: string; // 소비 유형 설명
-  suggestions: Array<{
+  suggestions: {
     title: string;
     description: string;
     actionItems: string[];   // 실행 가능한 액션 아이템들
-  }>;
+  }[];
   strengths: string[];       // 잘하고 있는 부분들
   improvements: string[];    // 개선이 필요한 부분들
 }

@@ -16,20 +16,20 @@ export const AccountSummary = memo(({ account }: AccountSummaryProps) => {
     const bankInfo = BANK_CODES[account.bankId as keyof typeof BANK_CODES];
     const [imageLoaded, setImageLoaded] = useState(false);
 
-    // bankInfo가 없으면 기본값 사용
-    if (!bankInfo) {
-        console.warn('[AccountSummary] 은행 정보를 찾을 수 없습니다:', account.bankId);
-        return null; // 또는 기본 UI 반환
-    }
-
     const colorScheme = useColorScheme() ?? 'light';
     const theme = themes[colorScheme];
-    const textColor = { color: theme.colors.text.primary }
+    const textColor = { color: theme.colors.text.primary };
 
     // 계좌가 변경될 때마다 이미지 로딩 상태 리셋
     React.useEffect(() => {
         setImageLoaded(false);
     }, [account.bankId]);
+
+    // bankInfo가 없으면 기본값 사용
+    if (!bankInfo) {
+        console.warn('[AccountSummary] 은행 정보를 찾을 수 없습니다:', account.bankId);
+        return null; // 또는 기본 UI 반환
+    }
 
     const balanceNumber = Number(account.accountBalance ?? 0);
 

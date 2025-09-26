@@ -104,7 +104,6 @@ export default function AccountSelectionScreen() {
         console.log('[Account Selection] 선택된 은행 데이터:', {
           selectedBankData,
           bankName: selectedBankData?.name,
-          bankShortName: selectedBankData?.shortName,
           selectedBank
         });
         console.log('[Account Selection] 전달할 bankName:', selectedBankData?.name);
