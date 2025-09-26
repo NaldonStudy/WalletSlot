@@ -36,7 +36,7 @@ export default function ConnectedBanks({ visible, onClose }: Props) {
   const [selectedConnection, setSelectedConnection] = useState<BankConnection | null>(null)
   
   // 새로운 API hooks 사용
-  const { accounts: linkedAccounts, isLoading: loading, error } = useAccountsLinked()
+  const { accounts: linkedAccounts, isLoading: loading, error } = useAccountsLinked({ enabled: false })
   const deleteAccountMutation = useDeleteLinkedAccount()
   const refreshMyDataMutation = useRefreshMyData()
 

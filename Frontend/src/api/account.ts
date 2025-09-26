@@ -1,8 +1,8 @@
 import { apiClient } from '@/src/api/client';
 import {
-    AccountsResponse,
-    BaseResponse,
-    UserAccount
+  AccountsResponse,
+  BaseResponse,
+  UserAccount
 } from '@/src/types';
 import { fetchAccountBalanceFallback, isAmbiguousAxiosBody, normalizeAccountList } from './responseNormalizer';
 
@@ -15,7 +15,7 @@ export const accountApi = {
    * 사용자 연동 계좌 목록 조회
    */
   getLinkedAccounts: async (): Promise<BaseResponse<AccountsResponse>> => {
-    const res = await apiClient.get('/api/accounts/link');
+    const res = await apiClient.post('/api/accounts/link', {});
     return normalizeAccountList(res);
   },
 
@@ -38,12 +38,6 @@ export const accountApi = {
     }
   },
 
-  /**
-   * 마이데이터로 연동 가능한 계좌 목록 조회
-   */
-  getAvailableAccounts: async (): Promise<BaseResponse<UserAccount[]>> => {
-    return apiClient.get('/api/accounts');
-  },
 
   /**
    * 계좌 서비스 연동

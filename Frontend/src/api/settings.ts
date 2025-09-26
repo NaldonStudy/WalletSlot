@@ -96,7 +96,7 @@ export const changePin = async (request: PinChangeRequest): Promise<void> => {
  */
 export const getLinkedAccounts = async (): Promise<LinkedAccount[]> => {
   try {
-    const response = await apiClient.get(API_ENDPOINTS.ACCOUNTS_LINK);
+    const response = await apiClient.post(API_ENDPOINTS.ACCOUNTS_LINK, {});
     
     // axios 응답이 모호한 경우 fallback 사용
     if (isAmbiguousAxiosBody(response)) {
@@ -142,11 +142,11 @@ export const deleteLinkedAccount = async (accountId: string): Promise<void> => {
  */
 export const refreshMyData = async (): Promise<LinkedAccount[]> => {
   try {
-    const response = await apiClient.get('/api/accounts');
+    const response = await apiClient.post(API_ENDPOINTS.ACCOUNTS_LINK, {});
     
     // axios 응답이 모호한 경우 fallback 사용
     if (isAmbiguousAxiosBody(response)) {
-      const fallbackData = await fetchJsonFallback('/api/accounts');
+      const fallbackData = await fetchJsonFallback(API_ENDPOINTS.ACCOUNTS_LINK);
       const userAccounts = fallbackData?.data?.accounts || [];
       return convertUserAccountsToLinkedAccounts(userAccounts);
     }
@@ -156,7 +156,7 @@ export const refreshMyData = async (): Promise<LinkedAccount[]> => {
     return convertUserAccountsToLinkedAccounts(userAccounts);
   } catch (error) {
     console.warn('[SETTINGS_API] refreshMyData axios 실패, fallback 시도');
-    const fallbackData = await fetchJsonFallback('/api/accounts');
+    const fallbackData = await fetchJsonFallback(API_ENDPOINTS.ACCOUNTS_LINK);
     const userAccounts = fallbackData?.data?.accounts || [];
     return convertUserAccountsToLinkedAccounts(userAccounts);
   }

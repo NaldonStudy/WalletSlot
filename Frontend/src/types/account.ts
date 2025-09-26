@@ -40,7 +40,7 @@ export interface AccountLinkResponse {
   data: {
     accounts: {
       accountId: string;
-      bankCode: string;
+      bankId: string;
       bankName: string;
       accountNo: string;
       alias: string;

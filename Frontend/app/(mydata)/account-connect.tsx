@@ -10,14 +10,13 @@ import type {
   AccountLinkResponse,
   AccountUpdateRequest,
   AccountUpdateResponse,
-  AccountsRequest,
   AccountsResponse,
-  UserAccount,
+  UserAccount
 } from '@/src/types';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, Easing, FlatList, Image, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Animated, FlatList, Image, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 const SELECT_BLUE = '#2383BD';
 
@@ -57,21 +56,19 @@ export default function AccountConnectScreen() {
   // ========================================
 
 
-  // API 호출 함수 (수동으로 호출)
+  // API 호출 함수 (수동 호출)
   const fetchAccounts = async () => {
     if (selectedBanks.length === 0) return; // 은행이 선택되지 않았으면 호출 안함
     
     setIsApiLoading(true);
     setApiError(null);
     try {
-      const requestData: AccountsRequest = {
-        selectBanks: selectedBanks.map(bank => ({
-          bankId: bank.bankId
-        }))
+      const requestData: any = {
+        banks: selectedBanks.map(bank => ({ bankId: bank.bankId }))
       };
       
-      console.log('[Account Connect] API 호출 시작: POST /api/accounts', requestData);
-      const res = await apiClient.post<AccountsResponse>('/api/accounts', requestData);
+      console.log('[Account Connect] API 호출 시작: GET /api/accounts', requestData);
+      const res = await apiClient.getWithBody<AccountsResponse>('/api/accounts', requestData);
       console.log('[Account Connect] API 응답:', res);
 
       if (res.success && res.data?.accounts) {
@@ -90,10 +87,10 @@ export default function AccountConnectScreen() {
     }
   };
 
-  // 컴포넌트 마운트 시에만 API 호출 (selectedBanks는 이미 선택 완료된 상태)
+  // 마운트 시 1회 호출 (백엔드 실연동 플로우)
   useEffect(() => {
     fetchAccounts();
-  }, []); // 빈 의존성 배열 - 마운트 시에만 실행
+  }, []);
 
   // 백엔드에서 이미 필터링된 계좌들 (추가 필터링 불필요)
   const filteredAccounts = useMemo(() => {
@@ -102,53 +99,19 @@ export default function AccountConnectScreen() {
   }, [isApiCompleted, allAccounts]);
 
   // ========================================
-  // 3. UI 상태 및 애니메이션
+  // 3. UI 상태 및 애니메이션 (로딩/스피너 제거)
   // ========================================
-  const [progress, setProgress] = useState(0);
-  useEffect(() => {
-    let id: any;
-    if (isApiLoading) {
-      setProgress(0);
-      id = setInterval(() => setProgress(p => Math.min(100, p + 1)), 40);
-    } else if (isApiCompleted) {
-      setProgress(100);
-    }
-    return () => id && clearInterval(id);
-  }, [isApiLoading, isApiCompleted]);
 
-  const isLoading = progress < 100 || isApiLoading;
-
-  // 콘텐츠 페이드 인 애니메이션
+  // 콘텐츠 페이드 인 애니메이션 (진입 시 1회)
   const contentOpacity = useRef(new Animated.Value(0)).current;
   useEffect(() => {
-    if (!isLoading) {
-      contentOpacity.setValue(0);
-      Animated.timing(contentOpacity, {
-        toValue: 1,
-        duration: 350,
-        useNativeDriver: true,
-      }).start();
-    }
-  }, [isLoading, contentOpacity]);
-
-  // 로딩 스피너 애니메이션
-  const spinAnimSlow = useRef(new Animated.Value(0)).current;
-  useEffect(() => {
-    if (isLoading) {
-      const slowLoop = Animated.loop(
-        Animated.timing(spinAnimSlow, {
-          toValue: 1,
-          duration: 1800,
-          easing: Easing.linear,
-          useNativeDriver: true,
-        })
-      );
-      spinAnimSlow.setValue(0);
-      slowLoop.start();
-      return () => slowLoop.stop();
-    }
-  }, [isLoading, spinAnimSlow]);
-  const rotateSlow = spinAnimSlow.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] });
+    contentOpacity.setValue(0);
+    Animated.timing(contentOpacity, {
+      toValue: 1,
+      duration: 350,
+      useNativeDriver: true,
+    }).start();
+  }, [contentOpacity]);
 
   // ========================================
   // 4. 비즈니스 로직 함수들
@@ -161,9 +124,11 @@ export default function AccountConnectScreen() {
     try {
       const requestData: AccountUpdateRequest = { isPrimary: true };
       console.log('[Account Connect] 대표 계좌 설정 요청:', accountId, requestData);
+      
       const response = await apiClient.patch<AccountUpdateResponse>(`/api/accounts/${accountId}`, requestData);
-      if (response.success && (response.data as any)) {
-        console.log('[Account Connect] 대표 계좌 설정 성공:', (response.data as any));
+      console.log('[Account Connect] 대표 계좌 설정 성공:', response.data);
+      
+      if (response.success && response.data) {
         router.push('/(mydata)/classifySlots' as any);
       } else {
         throw new Error(response.message || '대표 계좌 설정에 실패했습니다.');
@@ -187,10 +152,11 @@ export default function AccountConnectScreen() {
 
       const requestData: AccountLinkRequest = { accounts: selectedAccounts };
       console.log('[Account Connect] 계좌 연동 요청:', requestData);
+      
       const response = await apiClient.post<AccountLinkResponse>('/api/accounts/link', requestData);
+      console.log('[Account Connect] 계좌 연동 성공:', response.data?.accounts);
 
       if (response.success && response.data?.accounts) {
-        console.log('[Account Connect] 계좌 연동 성공:', response.data.accounts);
         // 연동된 계좌들만 저장 (다음 화면에서 표시할 용도)
         setAccounts(response.data.accounts);
         setIsAccountsLinked(true);
@@ -326,9 +292,7 @@ export default function AccountConnectScreen() {
               </ThemedText>
             )}
           </View>
-          {isLoading ? (
-            <Image source={require('@/src/assets/images/loading/loop.png')} style={styles.inlineSpinner} resizeMode="contain" />
-          ) : selected ? (
+          {selected ? (
             <View style={styles.checkBadge}>
               <ThemedText style={styles.checkBadgeText}>✓</ThemedText>
             </View>
@@ -346,52 +310,22 @@ export default function AccountConnectScreen() {
 
   return (
     <View style={styles.container}>
-      {/* ======================================== */}
-      {/* 1. 로딩 화면 (API 호출 중) */}
-      {/* ======================================== */}
-      {isLoading ? (
-        <>
-          <ThemedText style={styles.title}>{displayName}님의 계좌를 불러오고 있어요.</ThemedText>
-          <FlatList
-            data={filteredAccounts}
-            keyExtractor={(item) => item.accountId ?? `${item.bankId}-${item.accountNo}`}
-            contentContainerStyle={[styles.list, styles.listWhileLoading]}
-            renderItem={renderItem}
-          />
-          <View style={styles.loadingFooter}>
-            <ThemedText style={styles.progressText}>{progress}%</ThemedText>
-            <Animated.Image
-              source={require('@/src/assets/images/loading/spinner.png')}
-              style={[styles.spinner, { transform: [{ rotate: rotateSlow }] }]}
-              resizeMode="contain"
-            />
-          </View>
-        </>
-      ) : (
-        /* ======================================== */
-        /* 2. 에러 화면 (API 실패 시) */
-        /* ======================================== */
-        apiError ? (
+      {/* 1. 에러 화면 (API 실패 시) */}
+      {(apiError ? (
           <View style={styles.errorContainer}>
             <ThemedText style={styles.errorTitle}>계좌 정보를 불러올 수 없습니다</ThemedText>
             <ThemedText style={styles.errorMessage}>{apiError}</ThemedText>
             <TouchableOpacity
               style={styles.retryButton}
               onPress={async () => {
-                // 재시도: 가드 무시하고 바로 호출 가능
+                // 재시도: 가드 무시하고 바로 호출
                 setIsApiLoading(true);
                 setApiError(null);
                 try {
-                  const requestData: AccountsRequest = {
-                    selectBanks: selectedBanks.map(bank => ({
-                      bankId: bank.bankId
-                    }))
-                  };
-                  
-                  console.log('[Account Connect] 재시도 API 호출: POST /api/accounts', requestData);
-                  const res = await apiClient.post<AccountsResponse>('/api/accounts', requestData);
+                  const requestData: any = { banks: selectedBanks.map(bank => ({ bankId: bank.bankId })) };
+                  console.log('[Account Connect] 재시도 API 호출: GET /api/accounts', requestData);
+                  const res = await apiClient.getWithBody<AccountsResponse>('/api/accounts', requestData);
                   console.log('[Account Connect] 재시도 API 응답:', res);
-
                   if (res.success && res.data?.accounts) {
                     setAllAccounts(res.data.accounts);
                     setAccounts(res.data.accounts);
@@ -411,10 +345,7 @@ export default function AccountConnectScreen() {
             </TouchableOpacity>
           </View>
         ) : (
-          /* ======================================== */
-          /* 3. 계좌 선택 화면 (연동할 계좌 선택) */
-          /* 4. 대표 계좌 선택 화면 (대표 계좌 선택) */
-          /* ======================================== */
+          /* 계좌 선택 화면 + 대표 계좌 선택 화면 */
           <Animated.View style={{ flex: 1, opacity: contentOpacity }}>
             {/* 상단 뒤로가기 */}
             <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
@@ -439,7 +370,7 @@ export default function AccountConnectScreen() {
             )}
 
             {/* 계좌 목록 또는 계좌 없음 메시지 */}
-            {!isLoading && !hasAccountsForSelectedBanks ? (
+            {!hasAccountsForSelectedBanks ? (
               <View style={styles.noAccountsContainer}>
                 <ThemedText style={styles.noAccountsText}>
                   저런! 선택하신 은행에 고객님의 계좌가 없어요!{'\n'}다시 선택해주세요
@@ -517,8 +448,7 @@ export default function AccountConnectScreen() {
               </ThemedText>
             </TouchableOpacity>
           </Animated.View>
-        )
-      )}
+        )}
     </View>
   );
 }

@@ -79,7 +79,6 @@ export const useAuthStore = create<AuthState>()(
           try {
             const { useBankSelectionStore } = await import('@/src/store/bankSelectionStore');
             useBankSelectionStore.getState().setSelectedBanks([]);
-            useBankSelectionStore.getState().setSelectedBankCodes([]);
           } catch (e) {
             console.warn('[🔐AUTH_STORE] bankSelectionStore reset skip:', e);
           }

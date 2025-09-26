@@ -22,10 +22,25 @@ export const useLinkedAccounts = () => {
   return useQuery({
     queryKey: queryKeys.settings.linkedAccounts(),
     queryFn: async () => {
-      const response = await fetch('/api/accounts/link');
-      const data = await response.json();
-      const accounts = data.data?.accounts || [];
-      return accounts;
+      // MOCK: 서버 호출 대신 하드코딩 데이터 반환
+      return [
+        {
+          accountId: 'linked-acc-1',
+          bankId: 'bank-001',
+          bankName: '국민은행',
+          accountNo: '1234567890',
+          alias: '연동계좌1',
+          balance: 1500000,
+        },
+        {
+          accountId: 'linked-acc-2',
+          bankId: 'bank-002',
+          bankName: '신한은행',
+          accountNo: '0987654321',
+          alias: '연동계좌2',
+          balance: 500000,
+        },
+      ];
     },
     staleTime: 5 * 60 * 1000, // 5분
   });
@@ -112,14 +127,25 @@ export const useRefreshMyData = () => {
   
   return useMutation({
     mutationFn: async () => {
-      const response = await fetch('/api/accounts', {
-        method: 'GET',
-      });
-      if (!response.ok) {
-        throw new Error('마이데이터 재연동에 실패했습니다.');
-      }
-      const data = await response.json();
-      return data.data?.accounts || [];
+      // MOCK: 서버 호출 대신 하드코딩 데이터 반환
+      return [
+        {
+          accountId: 'linked-acc-1',
+          bankId: 'bank-001',
+          bankName: '국민은행',
+          accountNo: '1234567890',
+          alias: '연동계좌1',
+          balance: 1500000,
+        },
+        {
+          accountId: 'linked-acc-2',
+          bankId: 'bank-002',
+          bankName: '신한은행',
+          accountNo: '0987654321',
+          alias: '연동계좌2',
+          balance: 500000,
+        },
+      ];
     },
     onSuccess: () => {
       // 설정/대시보드 양쪽 캐시 모두 무효화하여 동기화
