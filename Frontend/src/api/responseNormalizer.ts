@@ -7,26 +7,21 @@
  */
 
 import { API_ENDPOINTS } from '@/src/constants/api';
-import type { AccountsResponse, BaseResponse, PaginatedResponse, SlotDailySpendingResponse, SlotData, SlotsResponse } from '@/src/types';
+import type {
+  AccountsResponse,
+  BaseResponse,
+  NotificationItem,
+  PaginatedResponse,
+  SlotDailySpendingResponse,
+  SlotData,
+  SlotsResponse,
+} from '@/src/types';
 
-// 기존 알림 전용 헬퍼는 호환성을 위해 유지
-import type { NotificationItem } from '@/src/types';
-
-/** 알림 목록 응답 형태 후보 타입 (느슨한 any 구조) */
-export type RawNotificationListResponse = any; // 다양한 케이스 수용
-
-/** 계좌 목록 응답 형태 후보 타입 (느슨한 any 구조) */
-export type RawAccountListResponse = any; // 다양한 케이스 수용
-
-/** 계좌 잔액 응답 형태 후보 타입 (느슨한 any 구조) */
-export type RawAccountBalanceResponse = any; // 다양한 케이스 수용
-
-/** 슬롯 목록 응답 형태 후보 타입 (느슨한 any 구조) */
-export type RawSlotsResponse = any; // 다양한 케이스 수용
-
-/**
- * 느슨한 원본 응답 타입
- */
+/** 알림/계좌/슬롯 등 원시 응답을 느슨하게 표현하는 타입들 (any로 허용) */
+export type RawNotificationListResponse = any;
+export type RawAccountListResponse = any;
+export type RawAccountBalanceResponse = any;
+export type RawSlotsResponse = any;
 export type RawListResponse = any;
 
 /**
