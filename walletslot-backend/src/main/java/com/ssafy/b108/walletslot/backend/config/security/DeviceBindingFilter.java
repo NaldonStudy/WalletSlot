@@ -25,6 +25,8 @@ public class DeviceBindingFilter extends OncePerRequestFilter {
     private static final String AUTH_HEADER   = "Authorization";
     private static final String BEARER_PREFIX = "Bearer ";
 
+    private static final String VERIFY_PREFIX = "/api/accounts/verification/"; // ✅ 추가
+
     // 공개 엔드포인트(디바이스 검사 제외)
     private static final Set<String> SKIP_PREFIX = Set.of(
             "/swagger-ui",
@@ -33,20 +35,24 @@ public class DeviceBindingFilter extends OncePerRequestFilter {
             "/webjars",
             "/actuator/health",
             "/error",
-            "/api/auth",         // 로그인/리프레시/로그아웃 등
-            "/api/ping/public",  // 퍼블릭 핑
+            "/api/ping/public",
             "/api/dev"
     );
 
     private final JwtProvider jwtProvider;
 
-    /** /api/** 보호 자원만 검사하며, 공개/프리플라이트는 제외 */
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
-        final String uri = request.getRequestURI();
+        final String uri = request.getServletPath(); // 컨텍스트 패스 제외
+
         if (HttpMethod.OPTIONS.matches(request.getMethod())) return true; // CORS preflight
-        if (!uri.startsWith("/api/")) return true;                        // 비-API 경로는 제외
-        return SKIP_PREFIX.stream().anyMatch(uri::startsWith);            // 공개 프리픽스 제외
+        if (!uri.startsWith("/api/")) return true;                        // 비-API 경로 제외
+
+        // 1원 인증은 회원가입 전 공개 → 디바이스 바인딩 검사 제외
+        if (uri.startsWith(VERIFY_PREFIX)) return true;
+
+        // 스웨거/헬스 등 공개 프리픽스 제외
+        return SKIP_PREFIX.stream().anyMatch(uri::startsWith);
     }
 
     @Override
@@ -67,27 +73,20 @@ public class DeviceBindingFilter extends OncePerRequestFilter {
             return;
         }
 
-        // 2) 토큰 did: principal(UserPrincipal) 1순위 → details 2순위 → 토큰 재파싱 3순위
+        // 2) 토큰 did
         String tokenDid = null;
 
-        // 2-1) principal 우선
-        Object principal = auth.getPrincipal();
-        if (principal instanceof UserPrincipal p) {
+        if (auth.getPrincipal() instanceof UserPrincipal p) {
             tokenDid = trimOrNull(p.deviceId());
         }
-
-        // 2-2) details 보조(구 호환)
         if (tokenDid == null && auth instanceof AbstractAuthenticationToken aat) {
             Object d = aat.getDetails();
             if (d instanceof String s) tokenDid = trimOrNull(s);
         }
-
-        // 2-3) 마지막 fallback: Authorization 헤더에서 토큰 재파싱
         if (tokenDid == null) {
             String authz = req.getHeader(AUTH_HEADER);
             String token = (authz != null && authz.startsWith(BEARER_PREFIX))
-                    ? authz.substring(BEARER_PREFIX.length())
-                    : null;
+                    ? authz.substring(BEARER_PREFIX.length()) : null;
             if (token == null) {
                 write401(res, "인증 토큰이 없습니다.");
                 return;
@@ -109,7 +108,6 @@ public class DeviceBindingFilter extends OncePerRequestFilter {
     }
 
     /* ------------------------ helpers ------------------------ */
-
     private String trimOrNull(String s) {
         if (s == null) return null;
         String t = s.trim();
@@ -117,7 +115,7 @@ public class DeviceBindingFilter extends OncePerRequestFilter {
     }
 
     private void write401(HttpServletResponse res, String message) throws IOException {
-        res.setStatus(HttpServletResponse.SC_UNAUTHORIZED); // 401로 통일
+        res.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
         res.setCharacterEncoding(StandardCharsets.UTF_8.name());
         res.setContentType("application/json;charset=UTF-8");
         res.getWriter().write("{\"message\":\"" + message + "\"}");

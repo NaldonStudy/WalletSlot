@@ -5,6 +5,7 @@ import com.ssafy.b108.walletslot.backend.domain.slot.entity.AccountSlot;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
@@ -25,31 +26,52 @@ public class Transaction {
     private String uuid = UUID.randomUUID().toString();
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "account_id", nullable = false, insertable = false, updatable = false)
+    @JoinColumn(name = "account_id", nullable = false)
     private Account account;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "account_slot_id", nullable = false, insertable = false, updatable = false)
+    @JoinColumn(name = "account_slot_id", nullable = false)
     private AccountSlot accountSlot;
 
-    @Column(nullable = false, insertable = false, updatable = false)
+    @Column(nullable = false)
     private Long uniqueNo;
 
-    @Column(nullable = false, insertable = false, updatable = false)
+    @Column(nullable = false)
     private String type;
 
-    @Column(insertable = false, updatable = false)
-    private Long opponentAccountNo;
+    @Column(length = 255)
+    private String opponentAccountNo;
 
-    @Column(nullable = false, insertable = false, updatable = false)
-    private String counterParty;
+    @Column(nullable = false)
+    private String summary;
 
-    @Column(nullable = false, insertable = false, updatable = false)
+    @Column(nullable = false)
     private Long amount;
 
-    @Column(nullable = false, insertable = false, updatable = false)
+    @Column(nullable = false)
     private Long balance;
 
-    @Column(nullable = false, insertable = false, updatable = false)
-    private String transactionAt;
+    @Column(nullable = false)
+    private LocalDateTime transactionAt;
+
+    // Method
+    public void addAmount(Long amount) {
+        this.amount += amount;
+    }
+
+    public void minusAmount(Long amount) {
+        this.amount -= amount;
+    }
+
+    public void addBalance(Long balance) {
+        this.balance += balance;
+    }
+
+    public void minusBalance(Long balance) {
+        this.balance -= balance;
+    }
+
+    public void changeAccountSlot(AccountSlot accountSlot) {
+        this.accountSlot = accountSlot;    // 이것에 따라 발생해야하는 다른 비즈니스 로직들은 해당 Service에서 수행하도록 함. (엔티티 클래스가 과도하게 비즈니스 로직을 수행하는 것 방지)
+    }
 }

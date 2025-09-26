@@ -4,6 +4,7 @@ import com.ssafy.b108.walletslot.backend.global.dto.ErrorResponse;
 import com.ssafy.b108.walletslot.backend.global.error.AppException;
 import com.ssafy.b108.walletslot.backend.global.error.ErrorCode;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -31,7 +32,17 @@ public class GlobalExceptionHandler {
                 .body(ErrorResponse.builder().message(msg).build());
     }
 
-    // 🔴 비즈니스 오류를 400으로
+    @ExceptionHandler(OcrUpstreamException.class)
+    public ResponseEntity<String> handleOcrUpstream(OcrUpstreamException ex) {
+        log.warn("CLOVA upstream error: status={}, body={}", ex.getStatus(), ex.getPayload());
+        String body = (ex.getPayload() == null || ex.getPayload().isBlank())
+                ? "{\"message\":\"Upstream error\"}" : ex.getPayload();
+        return ResponseEntity.status(ex.getStatus())
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(body);
+    }
+
+    // 비즈니스 오류를 400으로
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ErrorResponse> handleIllegalArgument(IllegalArgumentException ex) {
         log.warn("Bad request: {}", ex.getMessage());
@@ -49,6 +60,7 @@ public class GlobalExceptionHandler {
     // 기타 예상 못한 오류는 500으로 숨김
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleEtc(Exception ex) {
+        ex.printStackTrace();
         ErrorResponse body = ErrorResponse.builder()
                 .message(ErrorCode.INTERNAL_SERVER_ERROR.getMessage()) // 내부 메시지 노출 X
                 .build();

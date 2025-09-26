@@ -4,11 +4,12 @@ import com.ssafy.b108.walletslot.backend.domain.account.entity.Account;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 @Entity
 @Table(name = "account_slot")
-@Getter @Setter
+@Getter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -38,10 +39,12 @@ public class AccountSlot {
     private Long currentBudget;
 
     @Column(nullable = false)
-    private Long spent;
+    @Builder.Default
+    private Long spent = 0L;
 
     @Column(nullable = false)
-    private int budgetChangeCount;
+    @Builder.Default
+    private Integer budgetChangeCount = 0;
 
     @Column(nullable = false, insertable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -63,4 +66,52 @@ public class AccountSlot {
     @Column(nullable = false)
     @Builder.Default
     private boolean isAlertSent = false;
+
+    @OneToMany(mappedBy = "accountSlot", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<SlotHistory> slotHistoryList;
+
+    // Method
+    public void updateCustomName(String customName) {
+        this.customName = customName;
+    }
+
+    public void updateIsCustom(boolean isCustom) {
+        this.isCustom = isCustom;
+    }
+
+    public void updateBudget(Long newBudget) {
+        this.currentBudget = newBudget;
+    }
+
+    public void increaseBudgetChangeCount() {
+        this.budgetChangeCount++;
+    }
+
+    public void updateSpent(Long spent) {
+        this.spent = spent;
+    }
+
+    public void updateIsBudgetExceeded(boolean isBudgetExceeded) {
+        this.isBudgetExceeded = isBudgetExceeded;
+    }
+
+    public void addBudget(Long budget) {
+        this.currentBudget += budget;
+        this.budgetChangeCount++;
+    }
+
+    public void addSpent(Long spent) {
+        this.spent += spent;
+    }
+    public void minusSpent(Long spent) {
+        this.spent -= spent;
+    }
+
+    public String getName() {
+        if(this.isCustom == true) {
+            return this.customName;
+        } else {
+            return this.slot.getName();
+        }
+    }
 }

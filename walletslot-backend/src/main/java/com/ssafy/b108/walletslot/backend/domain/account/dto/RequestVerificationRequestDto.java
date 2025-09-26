@@ -10,5 +10,7 @@ import lombok.*;
 public class RequestVerificationRequestDto {
 
     // Field
+    private String userName;
+    private String bankId;
     private String accountNo;
 }
