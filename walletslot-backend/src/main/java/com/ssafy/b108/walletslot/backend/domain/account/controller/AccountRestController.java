@@ -25,7 +25,7 @@ public class AccountRestController {
     private final AccountService accountService;
 
     // Method
-    @GetMapping
+    @PostMapping
     @Operation(
             summary = "4-1-1 마이데이터 연동",
             description = "사용자가 선택한 은행에 있는 마이데이터를 불러옵니다. (from. SSAFY 교육용 금융망 API)",
