@@ -72,13 +72,19 @@ export default function RootLayout() {
         const completed = await appService.getOnboardingCompleted();
         setOnboardingDone(completed);
         // 마이데이터 연결 완료 여부 조회
-        const myDataConnectCompleted = featureFlags.isMyDataConnectEnabled();
+        let myDataConnectCompleted = featureFlags.isMyDataConnectEnabled();
         console.log('[APP_INIT] myDataConnect 상태 초기화:', {
           값: myDataConnectCompleted,
           시간: new Date().toISOString()
         });
-        // 임시로 false로 강제 설정 (테스트용)
-        setMyDataConnectDone(false);
+        
+        // 개발용 바이패스 설정 적용
+        if (DEV_AUTH_BYPASS.enabled && DEV_AUTH_BYPASS.myDataConnectEnabled !== undefined) {
+          myDataConnectCompleted = DEV_AUTH_BYPASS.myDataConnectEnabled;
+          console.log('[DEV_AUTH_BYPASS] myDataConnect 강제 설정:', myDataConnectCompleted);
+        }
+        
+        setMyDataConnectDone(myDataConnectCompleted);
         // 인증 상태 초기 확인
         await useAuthStore.getState().checkAuthStatus();
 
@@ -126,13 +132,19 @@ export default function RootLayout() {
         console.error('앱 초기화 중 오류:', error);
         const completed = await appService.getOnboardingCompleted();
         setOnboardingDone(completed);
-        const myDataConnectCompleted = featureFlags.isMyDataConnectEnabled();
+        let myDataConnectCompleted = featureFlags.isMyDataConnectEnabled();
         console.log('[APP_INIT] myDataConnect 상태 초기화 (에러 시):', {
           값: myDataConnectCompleted,
           시간: new Date().toISOString()
         });
-        // 임시로 false로 강제 설정 (테스트용)
-        setMyDataConnectDone(false);
+        
+        // 개발용 바이패스 설정 적용 (에러 시에도)
+        if (DEV_AUTH_BYPASS.enabled && DEV_AUTH_BYPASS.myDataConnectEnabled !== undefined) {
+          myDataConnectCompleted = DEV_AUTH_BYPASS.myDataConnectEnabled;
+          console.log('[DEV_AUTH_BYPASS] myDataConnect 강제 설정 (에러 시):', myDataConnectCompleted);
+        }
+        
+        setMyDataConnectDone(myDataConnectCompleted);
       }
     })();
   }, []);

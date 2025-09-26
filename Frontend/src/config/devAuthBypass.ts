@@ -19,4 +19,8 @@ export const DEV_AUTH_BYPASS = {
   // 디바이스 ID를 강제로 지정하고 싶다면 설정 (없으면 무시)
   // deviceIdOverride를 지정하지 않으면 기존/생성된 값 사용
   deviceIdOverride: '1234',
+  // 마이데이터 연결 상태 테스트용 설정
+  // true: 마이데이터 연결 완료 상태로 시작 (메인 앱으로 이동)
+  // false: 마이데이터 연결 미완료 상태로 시작 (마이데이터 화면으로 이동)
+  myDataConnectEnabled: false,
 } as const;
