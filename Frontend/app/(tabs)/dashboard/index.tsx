@@ -234,7 +234,11 @@ export default function DashboardScreen() {
       }]}>
         <View style={{ position: 'relative' }}>
           <View style={{ position: 'absolute', bottom: -50, width: '90%' }}>
-            <UncategorizedSlotCard remain={uncategorizedAmount} unreadCount={3} />
+            <UncategorizedSlotCard 
+              remain={uncategorizedAmount} 
+              unreadCount={3} 
+              accountId={currentAccount?.accountId}
+            />
           </View>
           {currentAccountForSummary && (
             <AccountSummary account={currentAccountForSummary} />

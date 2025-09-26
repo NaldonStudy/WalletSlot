@@ -4,6 +4,7 @@ import { SlotData } from '@/src/types';
 import SlotItem from './SlotItem';
 import { router } from 'expo-router';
 import { useSlotStore } from '@/src/store/useSlotStore';
+import { useAccountSelectionStore } from '@/src/store';
 import { UNCATEGORIZED_SLOT_ID } from '@/src/constants/slots';
 
 type SlotListProps = {
@@ -15,6 +16,9 @@ type SlotListProps = {
 
 const SlotList = ({ slots, accountId, openTooltipId, setOpenTooltipId }: SlotListProps) => {
   const [localOpenTooltipId, setLocalOpenTooltipId] = useState<string | null>(null);
+  
+  // 계좌 선택 스토어 사용
+  const { setSelectedAccount } = useAccountSelectionStore();
 
   // 부모에서 상태 전달받으면 그걸 사용, 아니면 로컬 상태 사용
   const currentOpenTooltipId = openTooltipId !== undefined ? openTooltipId : localOpenTooltipId;
@@ -29,6 +33,10 @@ const SlotList = ({ slots, accountId, openTooltipId, setOpenTooltipId }: SlotLis
 
   const handleEdit = (slot: SlotData) => {
     currentSetOpenTooltipId(null);
+    
+    // 계좌 선택 정보를 스토어에 저장
+    setSelectedAccount(accountId, slot.accountSlotId);
+    
     // Store에도 선택한 slot 저장 (화면에서 불러쓸 수 있게)
     useSlotStore.getState().setSelectedSlot({ ...slot, accountId });
 
@@ -41,6 +49,10 @@ const SlotList = ({ slots, accountId, openTooltipId, setOpenTooltipId }: SlotLis
 
   const handleHistory = (slot: SlotData) => {
     currentSetOpenTooltipId(null);
+    
+    // 계좌 선택 정보를 스토어에 저장
+    setSelectedAccount(accountId, slot.accountSlotId);
+    
     // Store에도 선택한 slot 저장 (화면에서 불러쓸 수 있게)
     useSlotStore.getState().setSelectedSlot({ ...slot, accountId });
 
@@ -61,6 +73,9 @@ const SlotList = ({ slots, accountId, openTooltipId, setOpenTooltipId }: SlotLis
               currentSetOpenTooltipId(null);
 
               if (currentOpenTooltipId === slot.slotId) return;
+
+              // 계좌 선택 정보를 스토어에 저장
+              setSelectedAccount(accountId, slot.accountSlotId);
 
               useSlotStore.getState().setSelectedSlot({ ...slot, accountId });
               router.navigate({
