@@ -10,7 +10,7 @@ import { STORAGE_KEYS } from '@/src/constants';
 async function getNotifications(): Promise<typeof NotificationsType | null> {
   try {
     // dynamic import for cross-platform compatibility
-    // eslint-disable-next-line @typescript-eslint/no-var-requires, global-require
+     
     const mod = await import('expo-notifications');
     return mod as typeof NotificationsType;
   } catch (e) {

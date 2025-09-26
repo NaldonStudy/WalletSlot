@@ -1,14 +1,13 @@
-import React, { useEffect, useState } from 'react';
-import { useLocalSearchParams, router } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Stack } from 'expo-router';
-import { Alert, View, StyleSheet, useColorScheme } from 'react-native';
-import { SlotTransaction } from '@/src/types/slot';
-import { useSlotStore } from '@/src/store/useSlotStore';
-import TransactionDetail from '@/src/components/transaction/TransactionDetail';
 import { Button } from '@/src/components/Button';
 import { DutchPayBottomSheet } from '@/src/components/transaction/DutchPayBottomSheet';
+import TransactionDetail from '@/src/components/transaction/TransactionDetail';
 import { Spacing, themes } from '@/src/constants/theme';
+import { useSlotStore } from '@/src/store/useSlotStore';
+import { SlotTransaction } from '@/src/types/slot';
+import { router, Stack, useLocalSearchParams } from 'expo-router';
+import React, { useEffect, useState } from 'react';
+import { Alert, StyleSheet, useColorScheme, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function TransactionDetailScreen() {
   const { slotId, transactionId, transactionData } = useLocalSearchParams<{ 

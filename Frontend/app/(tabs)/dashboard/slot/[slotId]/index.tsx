@@ -1,12 +1,11 @@
 import React from 'react';
 import { View, Text, StyleSheet, useColorScheme, ScrollView } from 'react-native';
-import { useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams , Stack } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useSlotStore } from '@/src/store/useSlotStore';
 import { Spacing, themes, Typography } from '@/src/constants/theme';
 import { SLOT_CATEGORIES } from '@/src/constants/slots';
 import SlotHeader from '@/src/components/slot/SlotHeader';
-import { Stack } from 'expo-router';
 import SlotSpendingChart from '@/src/components/slot/SlotSpendingChart';
 import SlotBalanceCard from '@/src/components/slot/SlotBalanceCard';
 import { useSlotDailySpending } from '@/src/hooks/slots/useSlotDailySpending';

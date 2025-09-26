@@ -1,6 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState , useEffect } from 'react';
 import { View, Text, StyleSheet, useColorScheme, TouchableOpacity, Alert, ScrollView } from 'react-native';
-import { useEffect } from 'react';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Spacing, themes, Typography } from '@/src/constants/theme';

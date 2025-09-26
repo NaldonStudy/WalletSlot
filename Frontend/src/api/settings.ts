@@ -92,6 +92,14 @@ export const changePin = async (request: PinChangeRequest): Promise<void> => {
 };
 
 /**
+ * 생체 인증 설정(활성화/비활성화)
+ */
+export const setBiometric = async (enabled: boolean): Promise<boolean> => {
+  const res = await apiClient.patch<{ biometric?: boolean }>(`${API_ENDPOINTS.USER_ME}/settings/biometric`, { enabled });
+  return !!(res && res.success && (res.data?.biometric ?? enabled));
+};
+
+/**
  * 연동된 계좌 목록 조회 (UserAccount를 LinkedAccount로 변환)
  */
 export const getLinkedAccounts = async (): Promise<LinkedAccount[]> => {
@@ -142,11 +150,11 @@ export const deleteLinkedAccount = async (accountId: string): Promise<void> => {
  */
 export const refreshMyData = async (): Promise<LinkedAccount[]> => {
   try {
-    const response = await apiClient.get('/api/accounts');
+  const response = await apiClient.get(API_ENDPOINTS.ACCOUNTS);
     
     // axios 응답이 모호한 경우 fallback 사용
     if (isAmbiguousAxiosBody(response)) {
-      const fallbackData = await fetchJsonFallback('/api/accounts');
+  const fallbackData = await fetchJsonFallback(API_ENDPOINTS.ACCOUNTS);
       const userAccounts = fallbackData?.data?.accounts || [];
       return convertUserAccountsToLinkedAccounts(userAccounts);
     }
@@ -156,7 +164,7 @@ export const refreshMyData = async (): Promise<LinkedAccount[]> => {
     return convertUserAccountsToLinkedAccounts(userAccounts);
   } catch (error) {
     console.warn('[SETTINGS_API] refreshMyData axios 실패, fallback 시도');
-    const fallbackData = await fetchJsonFallback('/api/accounts');
+  const fallbackData = await fetchJsonFallback(API_ENDPOINTS.ACCOUNTS);
     const userAccounts = fallbackData?.data?.accounts || [];
     return convertUserAccountsToLinkedAccounts(userAccounts);
   }

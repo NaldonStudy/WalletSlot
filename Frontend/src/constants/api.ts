@@ -33,19 +33,63 @@ export const API_ENDPOINTS = {
   PUSH_ENDPOINTS: '/api/push/endpoints',
   PUSH_ENDPOINT_BY_ID: (deviceId: string) => `/api/push/endpoints/${deviceId}`,
   
+  // Notifications
+  NOTIFICATIONS: '/api/notifications',
+  NOTIFICATION_BY_ID: (id: string) => `/api/notifications/${id}`,
+  NOTIFICATIONS_PULL: '/api/notifications/pull',
+  NOTIFICATIONS_READ_ALL: '/api/notifications/read-all',
+  NOTIFICATIONS_UNREAD_COUNT: '/api/notifications/unread-count',
+  // Notification settings (client and MSW use this path; server may choose a different one)
+  NOTIFICATIONS_SETTINGS: '/api/notifications/settings',
+  
   // Auth
   PIN_CHANGE: '/api/auth/pin',
+  // PIN verify helper used by MSW test handlers
+  PIN_VERIFY: '/api/auth/pin/verify',
+  PIN_RESET_REQUEST: '/api/auth/pin/reset/request',
+  PIN_RESET_CONFIRM: '/api/auth/pin/reset/confirm',
+  AUTH_LOGIN_FULL: '/api/auth/login/full',
+  AUTH_LOGIN: '/api/auth/login',
+  AUTH_SIGNUP: '/api/auth/signup',
+  AUTH_REFRESH: '/api/auth/refresh',
+  AUTH_LOGOUT: '/api/auth/logout',
+  AUTH_SMS_SEND: '/api/auth/sms/send',
+  AUTH_SMS_VERIFY: '/api/auth/sms/verify',
+  AUTH_SMS_VERIFY_SIGNUP: '/api/auth/sms/verify-signup',
+  AUTH_PASSWORD_RESET: '/api/auth/password/reset',
+  AUTH_PASSWORD_RESET_REQUEST: '/api/auth/password/reset-request',
   
   // Accounts
   ACCOUNTS_LINK: '/api/accounts/link',
   ACCOUNT_BY_ID: (accountId: string) => `/api/accounts/${accountId}`,
   ACCOUNTS: '/api/accounts',
+  ACCOUNT_BALANCE: (accountId: string) => `/api/accounts/${accountId}/balance`,
+  ACCOUNT_SLOTS: (accountId: string) => `/api/accounts/${accountId}/slots`,
+  ACCOUNT_SLOT_TRANSACTIONS: (accountId: string, slotId: string) => `/api/accounts/${accountId}/slots/${slotId}/transactions`,
+  // NOTE: `/daily-spending` endpoint was removed from the API spec and is intentionally omitted
+  // Slot history (budget change history)
+  ACCOUNT_SLOT_HISTORY: (accountId: string, slotId: string) => `/api/accounts/${accountId}/slots/${slotId}/history`,
+  ACCOUNTS_VERIFICATION_REQUEST: '/api/accounts/verification/request',
+  ACCOUNTS_VERIFICATION_VERIFY: '/api/accounts/verification/verify',
 
   // MyData Consents
   MYDATA_CONSENTS: '/api/mydata/consents',
+  MYDATA_INSTITUTIONS: '/api/mydata/institutions',
   MYDATA_CONSENTS_REVOKE: '/api/mydata/consents/revoke',
   MYDATA_CONSENTS_RENEW: '/api/mydata/consents/renew',
   
+  // Reports
+  // NOTE: legacy `/api/reports/spending` removed — use AI report endpoints under /api/accounts/{accountId}/ai-reports
+  // AI 기반 소비 레포트
+  AI_REPORTS_BASE: (accountId: string) => `/api/accounts/${accountId}/ai-reports`,
+  AI_REPORTS_MONTHS: (accountId: string) => `/api/accounts/${accountId}/ai-reports/months`,
+  AI_REPORTS_ARCHIVE: (accountId: string) => `/api/accounts/${accountId}/ai-reports/archive`,
+  
   // User Profile
   USER_ME: '/api/users/me',
+  USER_ME_BASE_DAY: '/api/users/me/base-day',
+  
+  // Slots
+  SLOTS: '/api/slots',
+  SLOT_BY_ID: (slotId: string) => `/api/slots/${slotId}`,
 } as const;

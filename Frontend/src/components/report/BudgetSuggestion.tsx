@@ -1,3 +1,5 @@
+// src/components/report/BudgetSuggestion.tsx
+
 import { Spacing, Typography } from '@/src/constants/theme';
 import type { BudgetSuggestion } from '@/src/types/report';
 import React from 'react';
@@ -10,25 +12,30 @@ interface BudgetSuggestionProps {
   theme: any;
 }
 
-/**
- * AI 기반 다음 달 예산 조정 제안을 표시하는 카드 컴포넌트
- * 
- * 주요 기능:
- * - 전체 예산 조정 권유 메시지 표시
- * - 카테고리별 예산 증감 제안 및 이유 설명
- * - 예산 증가(빨강)/감소(초록) 색상 구분
- * - 사용자 친화적인 예산 조정 가이드 제공
- * 
- * @param budgetSuggestion - AI 예산 제안 데이터
- * @param theme - 테마 설정
- */
 export const BudgetSuggestionCard: React.FC<BudgetSuggestionProps> = ({
   budgetSuggestion,
   theme
 }) => {
+  // budgetSuggestion이 null 또는 undefined일 경우를 대비하여 기본값을 설정합니다.
+  const { totalSuggested = 0, categories = [] } = budgetSuggestion || {};
+
   const formatCurrency = (amount: number) => {
     return `${Math.round(amount / 10000)}만원`;
   };
+
+  // 제안 데이터가 아예 없는 경우를 위한 UI 처리
+  if (!totalSuggested && categories.length === 0) {
+    return (
+      <View style={[styles.container, { backgroundColor: '#F3F4F6' }]}>
+        <Text style={[styles.sectionTitle, { color: theme.colors.text.primary }]}>
+          다음 달 예산 제안
+        </Text>
+        <Text style={{ color: theme.colors.text.secondary }}>
+          이번 달에는 예산 제안이 없습니다.
+        </Text>
+      </View>
+    );
+  }
 
   return (
     <View style={[styles.container, { backgroundColor: '#FEF3CD' }]}>
@@ -36,7 +43,6 @@ export const BudgetSuggestionCard: React.FC<BudgetSuggestionProps> = ({
         다음 달 예산 제안
       </Text>
 
-      {/* 전체 제안 예산 */}
       <View style={styles.totalSuggestionContainer}>
         <Text style={[styles.suggestionIcon, { color: theme.colors.text.primary }]}>
           💡
@@ -48,14 +54,13 @@ export const BudgetSuggestionCard: React.FC<BudgetSuggestionProps> = ({
           <Text 
             style={[styles.suggestionAmount, { color: theme.colors.text.secondary }]}
           >
-            식비 슬롯을 {formatCurrency(budgetSuggestion.totalSuggested)}로 조정하세요
+            식비 슬롯을 {formatCurrency(totalSuggested)}로 조정하세요
           </Text>
         </View>
       </View>
 
-      {/* 카테고리별 제안 */}
       <View style={styles.categorySuggestions}>
-        {budgetSuggestion.categories.map((category, index) => {
+        {categories.map((category, index) => {
           const difference = category.suggestedBudget - category.currentBudget;
           const isIncrease = difference > 0;
           
@@ -90,7 +95,7 @@ const styles = StyleSheet.create({
     padding: Spacing.lg,
     marginBottom: Spacing.base,
     borderRadius: 16,
-    alignSelf: 'stretch', // 컨테이너가 가능한 공간을 모두 사용
+    alignSelf: 'stretch',
   },
   sectionTitle: {
     fontSize: Typography.fontSize.lg,
@@ -113,7 +118,7 @@ const styles = StyleSheet.create({
   suggestionText: {
     flex: 1,
     paddingRight: Spacing.xs,
-    justifyContent: 'flex-start', // 텍스트가 위에서부터 시작
+    justifyContent: 'flex-start',
   },
   suggestionTitle: {
     fontSize: Typography.fontSize.lg,
@@ -131,7 +136,7 @@ const styles = StyleSheet.create({
   categoryItem: {
     marginBottom: Spacing.base,
     paddingVertical: Spacing.sm,
-    overflow: 'visible', // 텍스트가 잘리지 않도록
+    overflow: 'visible',
   },
   categoryHeader: {
     flexDirection: 'row',

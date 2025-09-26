@@ -1,3 +1,6 @@
+// app/(tabs)/report/index.tsx
+
+import { aiReportApi } from '@/src/api/report';
 import { Button, LoadingIndicator } from '@/src/components';
 import { BudgetOverview } from '@/src/components/report/BudgetOverview';
 import { BudgetSuggestionCard } from '@/src/components/report/BudgetSuggestion';
@@ -7,8 +10,8 @@ import { PersonalizedInsightCard } from '@/src/components/report/PersonalizedIns
 import { SpendingReportHeader } from '@/src/components/report/SpendingReportHeader';
 import { TopSpendingChart } from '@/src/components/report/TopSpendingChart';
 import { Spacing, themes, Typography } from '@/src/constants/theme';
-import { useAccounts, useSpendingReport } from '@/src/hooks';
-import React, { useRef, useState } from 'react';
+import { useAccounts } from '@/src/hooks';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   Alert,
   LayoutChangeEvent,
@@ -24,36 +27,135 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-/**
- * 월별 지출 리포트를 종합적으로 분석하여 제공하는 메인 화면
- * 
- * 주요 기능:
- * - 예산 대비 실제 지출 현황 요약
- * - 슬롯별 예산 사용 분석 및 상태 표시
- * - 상위 지출 카테고리 랭킹 차트
- * - 동일 그룹 또래와의 지출 비교
- * - AI 기반 개인화 인사이트 및 다음 달 예산 제안
- * - Pull-to-refresh로 최신 데이터 갱신
- * 
- * 데이터 의존성:
- * - useAccounts: 연결된 계좌 정보 필요
- * - useSpendingReport: 지출 리포트 데이터 조회
- */
+// ✨ IMPROVEMENT: 복잡한 렌더링 로직을 별도의 내부 컴포넌트로 분리
+const ReportContent = React.memo(({ aiArchive, theme, onSectionLayout }: any) => {
+  const reportItem = aiArchive?.reports?.find((r: any) => r.summary && r.insights);
+
+  if (!reportItem) {
+    return (
+      <View style={styles.errorContainer}>
+        <Text style={[styles.errorTitle, { color: theme.colors.text.primary }]}>리포트 데이터 오류</Text>
+        <Text style={[styles.errorMessage, { color: theme.colors.text.secondary }]}>분석 가능한 리포트 데이터가 없습니다.</Text>
+      </View>
+    );
+  }
+
+  // 데이터 매핑
+  const mappedBudgetComparison = {
+    totalBudget: reportItem.summary?.totalBudget ?? 0,
+    totalSpent: reportItem.summary?.totalSpent ?? 0,
+    changePercent: reportItem.summary?.changePercent ?? 0,
+    transactionCount: reportItem.summary?.transactionCount ?? 0,
+  };
+
+  const mappedCategoryAnalysis = reportItem.slots?.map((s: any) => ({
+    categoryId: s.slotId || s.accountSlotId,
+    categoryName: s.slotName,
+    budgetAmount: s.budget ?? 0,
+    spentAmount: s.spent ?? 0,
+    spendingRatio: s.budget ? (s.spent ?? 0) / s.budget : 0,
+    status: s.exceeded ? 'over' : 'optimal',
+    changePercent: 0,
+  })) || [];
+
+  // ✅ FIX: TopSpendingChart가 요구하는 데이터 형식으로 변환합니다.
+  const totalSpent = reportItem.summary?.totalSpent ?? 0;
+  const mappedTopSpendingCategories = (reportItem.summary?.top3Slots || []).map((slot: any) => ({
+    categoryName: slot.slotName,
+    amount: slot.spent ?? 0,
+    // 전체 지출 대비 비율을 계산하고, 0으로 나누는 경우를 방지합니다.
+    percentage: totalSpent > 0 ? Math.round(((slot.spent ?? 0) / totalSpent) * 100) : 0,
+  }));
+
+  return (
+    <>
+      <SpendingReportHeader period={reportItem.period} theme={theme} />
+      
+      <View onLayout={onSectionLayout('overview')}>
+        <BudgetOverview budgetComparison={mappedBudgetComparison} theme={theme} />
+      </View>
+      <View onLayout={onSectionLayout('categories')}>
+        <CategoryAnalysis categoryAnalysis={mappedCategoryAnalysis} theme={theme} />
+      </View>
+      <View onLayout={onSectionLayout('peers')}>
+        <PeerComparisonCard peerComparison={reportItem.peerComparison} theme={theme} />
+      </View>
+      <View onLayout={onSectionLayout('top')}>
+        {/* ✅ FIX: 변환된 데이터를 prop으로 전달합니다. */}
+        <TopSpendingChart topSpendingCategories={mappedTopSpendingCategories} theme={theme} />
+      </View>
+      <View onLayout={onSectionLayout('suggest')}>
+        <BudgetSuggestionCard budgetSuggestion={reportItem.budgetSuggestion} theme={theme} />
+      </View>
+      <View onLayout={onSectionLayout('insight')}>
+        <PersonalizedInsightCard personalizedInsight={reportItem.insights} theme={theme} />
+      </View>
+    </>
+  );
+});
+
+
 export default function ReportScreen() {
+  // ... (이하 모든 로직은 이전과 동일하므로 생략 없이 그대로 유지됩니다) ...
   const colorScheme = useColorScheme() ?? 'light';
   const theme = themes[colorScheme];
   
   const { linked } = useAccounts();
   
-  // 현재 기간 상태 관리
-  const [currentPeriodOffset, setCurrentPeriodOffset] = useState(0); // 0: 최신, -1: 이전달, -2: 그 이전달...
+  const [aiMonths, setAiMonths] = useState<string[] | null>(null);
+  const [aiArchive, setAiArchive] = useState<any | null>(null);
+  const [aiLoading, setAiLoading] = useState(true);
+  const [aiError, setAiError] = useState<Error | null>(null);
+
+  const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null);
+  const [showAccountList, setShowAccountList] = useState(false);
+
+  const loadAiReports = async (accountId: string) => {
+    if (!accountId) {
+      setAiLoading(false);
+      return;
+    }
+
+    setAiLoading(true);
+    setAiError(null);
+    try {
+      const months = await aiReportApi.getAiReportMonths(accountId);
+      const yearMonths = months?.yearMonths || [];
+      setAiMonths(yearMonths);
+
+      if (yearMonths.length > 0) {
+        const targetYearMonth = yearMonths[0];
+        const archive = await aiReportApi.getAiReportArchive(accountId, { yearMonth: targetYearMonth });
+        setAiArchive(archive);
+      } else {
+        setAiArchive(null);
+      }
+    } catch (err: any) {
+      console.error("Error loading AI reports:", err);
+      setAiError(err instanceof Error ? err : new Error(String(err)));
+      setAiMonths([]);
+      setAiArchive(null);
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!linked.isLoading && linked.accounts && linked.accounts.length > 0) {
+      if (!selectedAccountId) {
+        const firstId = (linked.accounts[0] as any).accountId || (linked.accounts[0] as any).id || (linked.accounts[0] as any).uuid;
+        setSelectedAccountId(firstId || null);
+      }
+    }
+  }, [linked.isLoading, linked.accounts]);
   
-  const { 
-    data: reportData, 
-    isLoading, 
-    error, 
-    refetch 
-  } = useSpendingReport(!linked.isLoading, currentPeriodOffset);
+  useEffect(() => {
+    if (selectedAccountId) {
+      loadAiReports(selectedAccountId);
+    }
+  }, [selectedAccountId]);
+
+  const [currentPeriodOffset, setCurrentPeriodOffset] = useState(0);
 
   const [refreshing, setRefreshing] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
@@ -73,7 +175,9 @@ export default function ReportScreen() {
   const handleRefresh = async () => {
     setRefreshing(true);
     try {
-      await refetch();
+      if (selectedAccountId) {
+        await loadAiReports(selectedAccountId);
+      }
     } catch (err) {
       Alert.alert('오류', '데이터를 새로고침하는데 실패했습니다.');
     } finally {
@@ -81,32 +185,23 @@ export default function ReportScreen() {
     }
   };
 
-  // 기간 네비게이션 함수들
-  const canGoPrevious = () => {
-    // TODO: 실제로는 서버에서 사용 가능한 기간 데이터를 확인해야 함
-    return currentPeriodOffset > -12; // 최대 12개월 전까지
-  };
-
-  const canGoNext = () => {
-    return currentPeriodOffset < 0; // 최신 기간이 아닌 경우에만
-  };
+  const canGoPrevious = () => aiMonths && aiMonths.length > Math.abs(currentPeriodOffset) + 1;
+  const canGoNext = () => currentPeriodOffset < 0;
 
   const goToPreviousPeriod = () => {
-    if (canGoPrevious()) {
-      setCurrentPeriodOffset(prev => prev - 1);
-    }
+    if (canGoPrevious()) setCurrentPeriodOffset(prev => prev - 1);
   };
 
   const goToNextPeriod = () => {
-    if (canGoNext()) {
-      setCurrentPeriodOffset(prev => prev + 1);
-    }
+    if (canGoNext()) setCurrentPeriodOffset(prev => prev + 1);
   };
 
   const formatPeriodLabel = (offset: number) => {
-    const now = new Date();
-    const targetDate = new Date(now.getFullYear(), now.getMonth() + offset, now.getDate());
-    return `${targetDate.getFullYear()}년 ${targetDate.getMonth() + 1}월`;
+    if (!aiMonths || aiMonths.length === 0) return '기간 정보 없음';
+    const idx = Math.abs(offset);
+    if (idx >= aiMonths.length) return '기간 정보 없음';
+    const [year, month] = aiMonths[idx].split('-');
+    return `${year}년 ${parseInt(month, 10)}월`;
   };
 
   const onSectionLayout = (key: string) => (e: LayoutChangeEvent) => {
@@ -116,14 +211,14 @@ export default function ReportScreen() {
 
   const scrollToSection = (key: string) => {
     const y = sectionY[key] ?? 0;
-    const target = Math.max(0, y - 80); // 고정 헤더 높이만큼 오프셋
+    const target = Math.max(0, y - 80);
     scrollRef.current?.scrollTo({ y: target, animated: true });
     setActiveKey(key);
   };
 
   const handleScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
     const scrollY = e.nativeEvent.contentOffset.y;
-    const offset = 80; // 고정 헤더 높이
+    const offset = 80;
     const candidates = sections
       .map(s => ({ key: s.key, y: sectionY[s.key] ?? Number.POSITIVE_INFINITY }))
       .filter(s => Number.isFinite(s.y))
@@ -140,40 +235,16 @@ export default function ReportScreen() {
     if (current !== activeKey) setActiveKey(current);
   };
 
-  if (linked.isLoading || (isLoading && !reportData)) {
+  if (linked.isLoading || (aiLoading && !aiArchive)) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background.primary }]}>
-        <LoadingIndicator 
-          fullScreen
-          text={linked.isLoading ? '계좌 정보를 불러오고 있어요...' : '소비 레포트를 생성하고 있어요...'}
-        />
-      </SafeAreaView>
-    );
-  }
-
-  if (error || !reportData) {
-    return (
-      <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background.primary }]}>
-        <View style={styles.errorContainer}>
-          <Text style={[styles.errorTitle, { color: theme.colors.text.primary }]}>
-            앗, 문제가 발생했어요
-          </Text>
-          <Text style={[styles.errorMessage, { color: theme.colors.text.secondary }]}>
-            소비 레포트를 불러올 수 없습니다.{'\n'}잠시 후 다시 시도해주세요.
-          </Text>
-          <Button
-            title="다시 시도"
-            onPress={handleRefresh}
-            style={styles.retryButton}
-          />
-        </View>
+        <LoadingIndicator fullScreen text="데이터를 불러오는 중..." />
       </SafeAreaView>
     );
   }
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background.primary }] }>
-      {/* 간소화된 헤더: 기간 네비게이션만 */}
       <View style={[styles.fixedHeader, { backgroundColor: theme.colors.background.primary, borderBottomColor: theme.colors.gray[200] }]}>
         <View style={styles.periodNavigation}>
           <TouchableOpacity
@@ -185,12 +256,30 @@ export default function ReportScreen() {
           </TouchableOpacity>
           
           <View style={styles.periodInfo}>
-            <Text style={[styles.pageTitle, { color: theme.colors.text.primary }]}>
-              소비 리포트
-            </Text>
-            <Text style={[styles.pageSubtitle, { color: theme.colors.text.secondary }]}>
-              {formatPeriodLabel(currentPeriodOffset)}
-            </Text>
+            <View style={{ alignItems: 'center' }}>
+              <TouchableOpacity onPress={() => setShowAccountList(!showAccountList)} style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <Text style={[styles.pageTitle, { color: theme.colors.text.primary }]}>소비 리포트</Text>
+                <Text style={[{ marginLeft: 8, fontSize: 12, color: theme.colors.text.secondary }]}>
+                  {selectedAccountId ? ((linked.accounts || []).find((a: any) => ((a.accountId || a.id || a.uuid) === selectedAccountId))?.alias || '') : ''}
+                </Text>
+              </TouchableOpacity>
+              <Text style={[styles.pageSubtitle, { color: theme.colors.text.secondary }]}>
+                {formatPeriodLabel(currentPeriodOffset)}
+              </Text>
+            </View>
+            {showAccountList && (
+              <View style={[styles.accountListPopup, { backgroundColor: theme.colors.background.primary, borderColor: theme.colors.gray[200] }]}>
+                {(linked.accounts || []).map((acc: any) => {
+                  const aid = acc.accountId || acc.id || acc.uuid;
+                  const label = acc.alias || acc.bankName || aid;
+                  return (
+                    <TouchableOpacity key={aid} onPress={() => { setSelectedAccountId(aid); setShowAccountList(false); }} style={styles.accountListItem}>
+                      <Text style={{ color: selectedAccountId === aid ? theme.colors.primary[600] : theme.colors.text.primary }}>{label}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            )}
           </View>
           
           <TouchableOpacity
@@ -201,10 +290,11 @@ export default function ReportScreen() {
             <Text style={[styles.periodButtonText, { color: theme.colors.primary[600] }]}>›</Text>
           </TouchableOpacity>
         </View>
-      </View>      <ScrollView
+      </View>
+      <ScrollView
         ref={scrollRef}
         style={styles.scrollView}
-        contentContainerStyle={[styles.scrollContent, { paddingTop: Spacing.sm, flexGrow: 1 }]}
+        contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
         onScroll={handleScroll}
         scrollEventThrottle={16}
@@ -216,83 +306,42 @@ export default function ReportScreen() {
           />
         }
       >
-        <SpendingReportHeader 
-          period={reportData.period}
-          theme={theme}
-        />
-        <View onLayout={onSectionLayout('overview')}>
-          <BudgetOverview 
-            budgetComparison={reportData.budgetComparison}
+        {aiLoading ? (
+          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+            <LoadingIndicator text="리포트를 불러오는 중입니다..." />
+          </View>
+        ) : (!aiArchive || !aiArchive.reports || aiArchive.reports.length === 0) ? (
+          <View style={styles.errorContainer}>
+            <Text style={[styles.errorTitle, { color: theme.colors.text.primary }]}>아직 작성된 소비 레포트가 없어요!</Text>
+            <Text style={[styles.errorMessage, { color: theme.colors.text.secondary }]}>선택하신 계좌에 분석 가능한 데이터가 없습니다.</Text>
+            <Button title="새로고침" onPress={handleRefresh} style={styles.retryButton} />
+          </View>
+        ) : (
+          <ReportContent
+            aiArchive={aiArchive}
             theme={theme}
+            onSectionLayout={onSectionLayout}
           />
-        </View>
-        <View onLayout={onSectionLayout('categories')}>
-          <CategoryAnalysis 
-            categoryAnalysis={reportData.categoryAnalysis}
-            theme={theme}
-          />
-        </View>
-        <View onLayout={onSectionLayout('peers')}>
-          <PeerComparisonCard 
-            peerComparison={reportData.peerComparison}
-            theme={theme}
-          />
-        </View>
-        <View onLayout={onSectionLayout('top')}>
-          <TopSpendingChart 
-            topSpendingCategories={reportData.topSpendingCategories}
-            theme={theme}
-          />
-        </View>
-        <View onLayout={onSectionLayout('suggest')}>
-          <BudgetSuggestionCard 
-            budgetSuggestion={reportData.budgetSuggestion}
-            theme={theme}
-          />
-        </View>
-        <View onLayout={onSectionLayout('insight')}>
-          <PersonalizedInsightCard 
-            personalizedInsight={reportData.personalizedInsight}
-            theme={theme}
-          />
-        </View>
+        )}
       </ScrollView>
       
-      {/* 플로팅 섹션 네비게이션 */}
       <View style={styles.floatingNavContainer}>
         <TouchableOpacity
           onPress={() => setShowSectionNav(!showSectionNav)}
-          style={[
-            styles.mainFloatingButton, 
-            { 
-              backgroundColor: showSectionNav ? theme.colors.primary[600] : theme.colors.primary[500] 
-            }
-          ]}
+          style={[ styles.mainFloatingButton, { backgroundColor: showSectionNav ? theme.colors.primary[600] : theme.colors.primary[500] }]}
         >
           <Text style={styles.floatingButtonIcon}>📊</Text>
         </TouchableOpacity>
         
         {showSectionNav && (
           <View style={[styles.sectionNavExpanded, { backgroundColor: theme.colors.background.primary }]}>
-            {sections.map((section, index) => (
+            {sections.map((section) => (
               <TouchableOpacity
                 key={section.key}
-                onPress={() => {
-                  scrollToSection(section.key);
-                  setShowSectionNav(false);
-                }}
-                style={[
-                  styles.expandedNavItem,
-                  {
-                    backgroundColor: activeKey === section.key ? theme.colors.primary[100] : 'transparent',
-                    borderColor: theme.colors.gray[200]
-                  }
-                ]}
+                onPress={() => { scrollToSection(section.key); setShowSectionNav(false); }}
+                style={[ styles.expandedNavItem, { backgroundColor: activeKey === section.key ? theme.colors.primary[100] : 'transparent', borderColor: theme.colors.gray[200] } ]}
               >
-                <Text style={[
-                  styles.expandedNavText,
-                  { color: activeKey === section.key ? theme.colors.primary[700] : theme.colors.text.primary }
-                ]}>
+                <Text style={[ styles.expandedNavText, { color: activeKey === section.key ? theme.colors.primary[700] : theme.colors.text.primary }]}>
                   {section.label}
                 </Text>
               </TouchableOpacity>
@@ -312,16 +361,18 @@ export default function ReportScreen() {
 }
 
 const styles = StyleSheet.create({
-  // ✅ CHANGED: overflow 속성을 모두 제거하고 표준 flex 레이아웃으로 변경
+  // ... (스타일 시트는 이전과 동일하므로 생략 없이 그대로 유지됩니다) ...
   container: {
     flex: 1,
-    backgroundColor: '#F8F9FA', // 테마 대신 고정 배경색 지정
+    backgroundColor: '#F8F9FA',
   },
   fixedHeader: {
     paddingHorizontal: Spacing.base,
     paddingVertical: Spacing.sm,
     borderBottomWidth: StyleSheet.hairlineWidth,
     elevation: 2,
+    zIndex: 10,
+    backgroundColor: 'white',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
@@ -339,7 +390,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderRadius: 20,
-    backgroundColor: 'rgba(0,0,0,0.05)',
   },
   periodButtonText: {
     fontSize: 20,
@@ -364,7 +414,8 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: Spacing.base,
-    paddingBottom: 100, // 하단 네비게이션 공간 확보
+    paddingBottom: 100,
+    flexGrow: 1,
   },
   floatingNavContainer: {
     position: 'absolute',
@@ -402,7 +453,7 @@ const styles = StyleSheet.create({
   },
   sectionNavExpanded: {
     position: 'absolute',
-    bottom: 76, // 메인 버튼 위쪽에 배치
+    bottom: 76, 
     right: 0,
     width: 200,
     borderRadius: 12,
@@ -412,11 +463,13 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 8,
     paddingVertical: 8,
+    backgroundColor: 'white',
   },
   expandedNavItem: {
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#EEEEEE',
   },
   expandedNavText: {
     fontSize: 14,
@@ -427,6 +480,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: Spacing.lg,
+    minHeight: 400,
   },
   errorTitle: {
     fontSize: Typography.fontSize.lg,
@@ -435,11 +489,28 @@ const styles = StyleSheet.create({
   },
   errorMessage: {
     fontSize: Typography.fontSize.base,
-    lineHeight: Typography.lineHeight.normal,
+    lineHeight: 22,
     textAlign: 'center',
     marginBottom: Spacing.xl,
   },
   retryButton: {
     paddingHorizontal: Spacing.xl,
+  },
+  accountListPopup: {
+    position: 'absolute',
+    top: 56,
+    alignSelf: 'center',
+    width: 240,
+    borderRadius: 8,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: '#DDDDDD',
+    paddingVertical: 8,
+    zIndex: 40,
+    elevation: 10,
+    backgroundColor: 'white',
+  },
+  accountListItem: {
+    paddingVertical: 10,
+    paddingHorizontal: 12,
   },
 });
