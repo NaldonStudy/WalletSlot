@@ -8,7 +8,7 @@ import {
   TransactionCategory,
   UserAccount
 } from '@/src/types';
-import { fetchAccountBalanceFallback, isAmbiguousAxiosBody } from './responseNormalizer';
+import { fetchAccountBalanceFallback, fetchAccountsFallback, isAmbiguousAxiosBody, normalizeAccountList } from './responseNormalizer';
 
 /**
  * 계좌 관련 API 서비스
@@ -19,8 +19,15 @@ export const accountApi = {
    * 사용자 연동 계좌 목록 조회
    */
   getLinkedAccounts: async (): Promise<BaseResponse<AccountsResponse>> => {
-  const res = await apiClient.get(API_ENDPOINTS.ACCOUNTS_LINK);
-    return res as BaseResponse<AccountsResponse>;
+    const res = await apiClient.get(API_ENDPOINTS.ACCOUNTS_LINK);
+
+    // 응답 구조가 모호한 경우를 위한 fallback 처리(필요하면 유지)
+    if (isAmbiguousAxiosBody((res as any)?.data)) {
+      const fallbackResult = await fetchAccountsFallback();
+      if (fallbackResult) return fallbackResult;
+    }
+
+    return normalizeAccountList(res);
   },
 
   /**

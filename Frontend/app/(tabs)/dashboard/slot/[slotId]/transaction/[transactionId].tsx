@@ -28,7 +28,6 @@ export default function TransactionDetailScreen() {
         { text: '취소', style: 'cancel' },
         { text: '확인', onPress: () => {
           // TODO: 금액 나누기 로직 구현
-          console.log('금액 나누기 기능 실행');
         }}
       ]
     );
@@ -42,7 +41,6 @@ export default function TransactionDetailScreen() {
         { text: '취소', style: 'cancel' },
         { text: '확인', onPress: () => {
           // TODO: 더치페이 로직 구현
-          console.log('더치페이 기능 실행');
         }}
       ]
     );
@@ -120,7 +118,7 @@ export default function TransactionDetailScreen() {
   }
 
   return (
-    <SafeAreaView style={{ flex: 1 }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background.primary }}>
       <Stack.Screen
         options={{
           title: "상세 내역",
@@ -128,12 +126,14 @@ export default function TransactionDetailScreen() {
         }}
       />
       
-      <TransactionDetail 
-        transaction={transaction} 
-        slotName={selectedSlot?.name || selectedSlot?.customName}
-      />
+      <View style={[styles.contentContainer, { backgroundColor: theme.colors.background.primary }]}>
+        <TransactionDetail 
+          transaction={transaction} 
+          slotName={selectedSlot?.name || selectedSlot?.customName}
+        />
+      </View>
       
-      {/* 액션 버튼들 */}
+      {/* 액션 버튼들 - 하단 고정 */}
       <View style={[styles.buttonContainer, { backgroundColor: theme.colors.background.primary }]}>
         <Button
           title="금액 나누기"
@@ -155,10 +155,13 @@ export default function TransactionDetailScreen() {
 }
 
 const styles = StyleSheet.create({
+  contentContainer: {
+    flex: 1,
+  },
   buttonContainer: {
     flexDirection: 'row',
     paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.base,
+    paddingVertical: Spacing.sm,
     gap: Spacing.sm,
   },
   actionButton: {

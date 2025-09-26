@@ -25,7 +25,7 @@ export const useSlotDailySpending = (accountId?: string, slotId?: string) => {
       },
       select: (res) => res.data, // ✅ BaseResponse → 실제 데이터만 반환
       enabled: !!accountId && !!slotId,
-      staleTime: 5 * 60 * 1000, // 5분 캐시
-      gcTime: 10 * 60 * 1000,   // 10분간 가비지 컬렉션 방지
+      staleTime: 1 * 60 * 1000, // 1분간 fresh 상태 유지
+      gcTime: 5 * 60 * 1000,    // 5분간 캐시 유지
     });
   };

@@ -53,5 +53,32 @@ export interface SlotTransactionsResponse {
   pageSize: number;
 }
 
+// 거래내역 이동 API 응답 타입
+export interface MoveTransactionResponse {
+  transaction: SlotTransaction;
+  originalSlot: SlotData;
+  reassignedSlot: SlotData;
+}
+
+// 슬롯 히스토리 아이템
+export interface SlotHistoryItem {
+  slotHistoryId: string;
+  oldBudget: number;
+  newBudget: number;
+  changedAt: string;
+}
+
+// 슬롯 히스토리 응답
+export interface SlotHistoryResponse {
+  slot: {
+    slotId: string;
+    slotName: string;
+    customName: string;
+    custom: boolean;
+    isCustom: boolean;
+  };
+  history: SlotHistoryItem[];
+}
+
 
 

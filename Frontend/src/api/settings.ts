@@ -133,7 +133,7 @@ function convertUserAccountsToLinkedAccounts(userAccounts: any[]): LinkedAccount
     bankId: account.bankId,
     bankName: account.bankName,
     accountNo: account.accountNo,
-    alias: account.alias || '연동된 계좌',
+    alias: account.alias, // normalizeAccountList에서 이미 처리됨
     balance: Number(account.accountBalance || 0),
   }));
 }

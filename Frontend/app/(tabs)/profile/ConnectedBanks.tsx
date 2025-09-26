@@ -69,7 +69,7 @@ export default function ConnectedBanks({ visible, onClose }: Props) {
         bankColor: getBankColor(account.bankId), // bankId를 사용
         accountNumber: account.accountNo,
         accountType: '일반계좌', // 기본값
-        accountName: account.alias || '연동된 계좌',
+        accountName: account.alias, // normalizeAccountList에서 이미 처리됨
         connectionDate: '2024-01-01', // 기본값
         expiryDate: '2025-12-31', // 기본값
         status: 'active' as const,

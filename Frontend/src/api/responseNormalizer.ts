@@ -162,6 +162,17 @@ export async function fetchNotificationsFallback(params?: { page?: number; limit
 }
 
 /**
+ * 개별 계좌 데이터를 정규화합니다.
+ * alias가 null이면 bankName으로 설정합니다.
+ */
+export function normalizeAccount(account: any): any {
+  return {
+    ...account,
+    alias: account.alias || account.bankName,
+  };
+}
+
+/**
  * 계좌 목록 응답을 표준 형태로 변환합니다.
  * @param raw 서버 또는 MSW, 혹은 fallback fetch로부터 수신한 원본 응답
  */
@@ -172,7 +183,7 @@ export function normalizeAccountList(raw: RawAccountListResponse): BaseResponse<
       success: true,
       message: raw.message || '계좌 목록 조회 성공',
       data: {
-        accounts: raw.data.accounts,
+        accounts: raw.data.accounts.map(normalizeAccount),
       },
     };
   }
@@ -183,7 +194,7 @@ export function normalizeAccountList(raw: RawAccountListResponse): BaseResponse<
       success: true,
       message: raw.message || '계좌 목록 조회 성공',
       data: {
-        accounts: raw.data,
+        accounts: raw.data.map(normalizeAccount),
       },
     };
   }
@@ -194,7 +205,7 @@ export function normalizeAccountList(raw: RawAccountListResponse): BaseResponse<
       success: true,
       message: '계좌 목록 조회 성공',
       data: {
-        accounts: raw,
+        accounts: raw.map(normalizeAccount),
       },
     };
   }
@@ -386,7 +397,6 @@ export function normalizeSlotDetail(raw: RawSlotsResponse): BaseResponse<SlotDat
       isSaving: false,
       isCustom: false,
       isBudgetExceeded: false,
-  // Keep only known SlotData properties
     },
   };
 }

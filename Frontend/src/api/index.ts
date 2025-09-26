@@ -1,5 +1,5 @@
 // API 서비스 export
-export { accountApi, transactionApi, transactionCategoryApi } from './account';
+export { accountApi } from './account';
 export { authApi } from './auth';
 export { apiClient } from './client';
 export { notificationApi } from './notification';
@@ -16,4 +16,5 @@ export {
     refreshMyData, updateDevice
 } from './settings';
 export { slotApi } from './slot';
+export { transactionApi } from './transaction';
 

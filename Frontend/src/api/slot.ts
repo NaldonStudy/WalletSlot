@@ -4,8 +4,8 @@ import {
   ApiError,
   BaseResponse,
   SlotDailySpendingResponse,
-  SlotsResponse,
-  SlotTransactionsResponse,
+  SlotHistoryResponse,
+  SlotsResponse
 } from '@/src/types';
 
 /**
@@ -48,29 +48,28 @@ export const slotApi = {
   },
 
   /**
-   * 슬롯 거래내역 전체 조회
+   * 슬롯 예산 변경 히스토리 조회
    */
-  getSlotTransactions: async (
-    accountId: string, 
-    accountSlotId: string,
-    params?: {
-      page?: number;
-      pageSize?: number;
-      startDate?: string;
-      endDate?: string;
-    }
-  ): Promise<BaseResponse<SlotTransactionsResponse>> => {
+  getSlotHistory: async (accountId: string, slotId: string): Promise<BaseResponse<SlotHistoryResponse>> => {
     try {
-      return await apiClient.get<SlotTransactionsResponse>(
-        API_ENDPOINTS.ACCOUNT_SLOT_TRANSACTIONS(accountId, accountSlotId),
-        params
+      return await apiClient.get<SlotHistoryResponse>(
+        API_ENDPOINTS.ACCOUNT_SLOT_HISTORY(accountId, slotId)
       );
     } catch (error) {
-      console.error(
-        '[getSlotTransactions] API 호출 실패:',
-        error instanceof Error ? error.message : String(error)
-      );
-      throw error;
+      const apiError = error as ApiError | Error;
+      const message =
+        (apiError as ApiError)?.message ??
+        (apiError as Error)?.message ??
+        '슬롯 히스토리 조회에 실패했습니다.';
+
+      console.error('[getSlotHistory] API 호출 실패:', {
+        message,
+        error: apiError,
+        accountId,
+        slotId,
+        url: `/api/accounts/${accountId}/slots/${slotId}/history`
+      });
+      throw new Error(message);
     }
   },
 
