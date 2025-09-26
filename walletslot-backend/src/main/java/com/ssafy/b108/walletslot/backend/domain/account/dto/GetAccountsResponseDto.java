@@ -10,8 +10,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@Schema(name = "GetAccountListResponseDto")
-public class GetAccountListResponseDto {
+public class GetAccountsResponseDto {
 
     // Field
     private boolean success;
@@ -29,5 +28,20 @@ public class GetAccountListResponseDto {
 
         // Field
         private List<AccountResponseDto> accounts;
+    }
+
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    @Schema(name = "GetAccountListResponseDto_AccountResponseDto")
+    public static class AccountResponseDto {
+
+        // Field
+        private String bankId;
+        private String bankName;
+        private String accountNo;
+        private String accountBalance;
     }
 }

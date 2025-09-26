@@ -28,10 +28,7 @@ import org.springframework.web.client.RestTemplate;
 
 import javax.crypto.SecretKey;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @Service
 @RequiredArgsConstructor
@@ -52,7 +49,7 @@ public class AccountService {
 
     // Method
     // 4-1-1
-    public GetAccountListResponseDto getAccountList(Long userId) {
+    public GetAccountsResponseDto getAccounts(Long userId, List<GetAccountsRequestDto.BankDto> bankDtos) {
 
         // user 조회 -> userKey 획득하기
         User user = userRepository.findById(userId).orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "[AccountService]"));
@@ -81,32 +78,59 @@ public class AccountService {
         HttpEntity<Map<String, Object>> httpEntity2 = new HttpEntity<>(body2);
 
         // 요청 보내기
-        ResponseEntity<SSAFYGetAccountListResponseDto> httpResponse2 = restTemplate.exchange(
+        ResponseEntity<SSAFYGetAccountsResponseDto> httpResponse2 = restTemplate.exchange(
                 url2,
                 HttpMethod.POST,
                 httpEntity2,
-                SSAFYGetAccountListResponseDto.class
+                SSAFYGetAccountsResponseDto.class
         );
+
+        // 요청으로 들어온 bankUuid들과 매핑되는 bankCode의 Set 만들어두기
+        List<String> bankUuids = new ArrayList<>();
+        for(GetAccountsRequestDto.BankDto bankDto : bankDtos) {
+            bankUuids.add(bankDto.getBankId());
+        }
+
+        Set<String> bankCodes = bankRepository.findCodesByUuids(bankUuids);
+
+        for(String bankCode : bankCodes) {
+            System.out.println(bankCode);
+        }
+
+        // 사용자가 선택한 은행의 계좌만 필터링
+        List<AccountDto> filteredAccounts = new ArrayList<>();
+        for(AccountDto accountDto : httpResponse2.getBody().getREC()) {
+            if(bankCodes.contains(accountDto.getBankCode())) {
+                filteredAccounts.add(accountDto);
+            }
+        }
 
         // SSAFY 금융망 API로부터 받은 응답 가지고 dto 조립
         // dto > data > accounts
-        List<AccountResponseDto> accountResponseDtoList = httpResponse2.getBody().getREC().stream().map(account -> AccountResponseDto.builder()
-                        .accountNo(account.getAccountNo())
-                        .bankName(account.getBankName())
-                        .bankId(bankRepository.findByCode(account.getBankCode()).orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "AccountService - 000")).getUuid())
-                        .accountBalance(account.getAccountBalance())
-                        .build())
-                .toList();
+        List<GetAccountsResponseDto.AccountResponseDto> accountResponseDtos = new ArrayList<>();
+        for(AccountDto accountDto : filteredAccounts) {
+
+            Bank bank = bankRepository.findByCode(accountDto.getBankCode()).orElseThrow(() -> new AppException(ErrorCode.BANK_NOT_FOUND, "AccountService - 000"));
+
+            GetAccountsResponseDto.AccountResponseDto accountResponseDto = GetAccountsResponseDto.AccountResponseDto.builder()
+                    .bankId(bank.getUuid())
+                    .bankName(bank.getName())
+                    .accountNo(accountDto.getAccountNo())
+                    .accountBalance(accountDto.getAccountBalance())
+                    .build();
+
+            accountResponseDtos.add(accountResponseDto);
+        }
 
         // dto
-        GetAccountListResponseDto getAccountListResponseDto = GetAccountListResponseDto.builder()
+        GetAccountsResponseDto getAccountsResponseDto = GetAccountsResponseDto.builder()
                 .success(true)
                 .message("[AccountService - 000] 마이데이터 연동 성공")
-                .data(GetAccountListResponseDto.Data.builder().accounts(accountResponseDtoList).build())
+                .data(GetAccountsResponseDto.Data.builder().accounts(accountResponseDtos).build())
                 .build();
 
         // 응답
-        return getAccountListResponseDto;
+        return getAccountsResponseDto;
     }
 
     // 4-1-2
