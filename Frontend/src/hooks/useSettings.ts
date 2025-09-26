@@ -10,8 +10,10 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 export const useDevices = () => {
   return useQuery({
     queryKey: queryKeys.settings.devices(),
-    queryFn: settingsApi.getDevices,
-    staleTime: 5 * 60 * 1000, // 5분
+    // 네트워크 호출 중단 (설정/프로필 영역 비활성화)
+    queryFn: async () => [],
+    staleTime: 5 * 60 * 1000,
+    enabled: false,
   });
 };
 

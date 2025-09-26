@@ -254,7 +254,7 @@ export default function NotificationConsentScreen() {
           console.log('FCM 토큰 발급 시작...(로그인 모드)');
           await unifiedPushService.initialize();
         } catch {}
-  router.replace('/(tabs)' as any);
+  router.replace('/(tabs)/dashboard' as any);
         return;
       }
 
@@ -294,7 +294,7 @@ export default function NotificationConsentScreen() {
       if (fromLogin) {
         setPushEnabled(false);
         console.log('알림 거부(로그인 모드) - 스토어에 저장');
-  router.replace('/(tabs)' as any);
+  router.replace('/(tabs)/dashboard' as any);
         return;
       }
 
