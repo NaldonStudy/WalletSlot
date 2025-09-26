@@ -28,7 +28,7 @@ public class GetAccountTransactionListResponseDto {
 
         // Field
         private List<TransactionDto> transactions;
-        private boolean hasNext;
+        private Boolean hasNext;
         private LocalDateTime nextCursor;
     }
 

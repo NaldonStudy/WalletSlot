@@ -78,7 +78,7 @@ public class TransactionService {
     private String lastSyncedDate="20250923";
     private final SecretKey encryptionKey;
 
-    private final int pageSize = 5;
+    private final int pageSize = 20;
 
     // Method
     /**
