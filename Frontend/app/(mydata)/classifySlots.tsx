@@ -1,4 +1,5 @@
 import { ThemedText } from '@/components/ThemedText';
+import { featureFlags } from '@/src/config/featureFlags';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import { Animated, Easing, StyleSheet, TouchableOpacity, View } from 'react-native';
@@ -168,7 +169,13 @@ export default function ClassifySlotsScreen() {
           <View style={styles.btnRow}>
             <TouchableOpacity 
               style={[styles.btn, styles.primary]}
-              onPress={() => router.push('/(slotDivide)/inputInfo')}
+              onPress={() => {
+                // 마이데이터 연결 완료 플래그 설정
+                featureFlags.setMyDataConnectEnabled(true);
+                console.log('[ClassifySlots] 슬롯 나누기 버튼 클릭 - 마이데이터 연결 완료 플래그 설정됨');
+                // 슬롯 나누기 화면으로 이동
+                router.push('/(slotDivide)/inputInfo');
+              }}
             >
               <ThemedText style={styles.btnText}>슬롯 나누기</ThemedText>
             </TouchableOpacity>

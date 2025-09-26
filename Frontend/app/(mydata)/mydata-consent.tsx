@@ -1,7 +1,10 @@
 import { ThemedText } from '@/components/ThemedText';
-import { mydataApi } from '@/src/api/mydata';
+import { apiClient } from '@/src/api/client';
+// consent API 호출 제거
+import { useAccountsStore } from '@/src/store/accountsStore';
 import { useBankSelectionStore } from '@/src/store/bankSelectionStore';
 import { useLocalUserStore } from '@/src/store/localUserStore';
+import type { AccountsResponse } from '@/src/types/account';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { Image, Modal, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
@@ -10,7 +13,8 @@ export default function MyDataConsentScreen() {
   const router = useRouter();
   const { user } = useLocalUserStore();
   const displayName = user?.userName || '사용자';
-  const selectedBankCodes = useBankSelectionStore(s => s.selectedBankCodes);
+  const selectedBanks = useBankSelectionStore(s => s.selectedBanks);
+  const setAccounts = useAccountsStore(s => s.setAccounts);
 
   const [showDoc1, setShowDoc1] = useState(false); // 전송요구서
   const [showDoc2, setShowDoc2] = useState(false); // 수집/이용 동의
@@ -22,47 +26,33 @@ export default function MyDataConsentScreen() {
 
   const canProceed = agreeTransfer && agree1 && agree2;
 
-  const [showCertModal, setShowCertModal] = useState(false);
-  const [selectedCert, setSelectedCert] = useState<string | null>(null);
+  // 인증서/동의 API 제거: 바로 POST로 진행
   const [creatingConsent, setCreatingConsent] = useState(false);
-  const [hasActiveConsent, setHasActiveConsent] = useState<boolean | null>(null);
 
-  React.useEffect(() => {
-    let mounted = true;
-    mydataApi
-      .listConsents('ACTIVE')
-      .then(list => {
-        if (!mounted) return;
-        setHasActiveConsent(list && list.length > 0);
-      })
-      .catch(() => setHasActiveConsent(false));
-    return () => {
-      mounted = false;
-    };
-  }, []);
+  // 동의 상태 조회 제거
 
   const handleProceed = async () => {
     if (!canProceed || creatingConsent) return;
     try {
       setCreatingConsent(true);
-      if (!hasActiveConsent) {
-        console.log('[MYDATA] 동의 생성 시도...');
-        // API 문서에 따라 expiredAt 필드 추가
-        const consentData = {
-          consentFormUuid: 'mydata-v1',
-          expiredAt: '2030-12-31T23:59:59' // 5년 후 만료
-        };
-        console.log('[MYDATA] 요청 데이터:', consentData);
-        await mydataApi.createConsent(consentData);
-        console.log('[MYDATA] 동의 생성 성공');
+      // 계좌 조회: 단일 진입점
+      const requestData: any = {
+        banks: (selectedBanks || []).map(b => ({ bankId: b.bankId }))
+      };
+      console.log('[MYDATA][CONSENT] POST /api/accounts 요청:', requestData);
+      const res = await apiClient.post<AccountsResponse>('/api/accounts', requestData);
+      console.log('[MYDATA][CONSENT] 응답:', res);
+      if (res.success && (res as any).data?.accounts) {
+        setAccounts((res as any).data.accounts);
+        router.push({ pathname: '/(mydata)/account-connect', params: { status: 'success' } } as any);
       } else {
-        console.log('[MYDATA] 이미 활성 동의가 있음, 건너뜀');
+        const msg = (res as any).message || '계좌 정보를 불러올 수 없습니다.';
+        router.push({ pathname: '/(mydata)/account-connect', params: { status: 'error', message: msg } } as any);
       }
-      setShowCertModal(true);
     } catch (e) {
-      console.error('[MYDATA] 동의 생성 실패:', e);
-      // 서버 오류여도 인증서 선택 모달은 표시
-      setShowCertModal(true);
+      console.error('[MYDATA] 동의/계좌 조회 실패:', e);
+      const msg = (e as any)?.message || '계좌 정보를 불러오는데 실패했습니다.';
+      router.push({ pathname: '/(mydata)/account-connect', params: { status: 'error', message: msg } } as any);
     } finally {
       setCreatingConsent(false);
     }
@@ -174,58 +164,7 @@ export default function MyDataConsentScreen() {
         imageSource={require('@/src/assets/images/mydataconsent/provideConsent.png')}
       />
 
-      {/* 인증서 선택 모달 */}
-      <Modal
-        visible={showCertModal}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setShowCertModal(false)}
-      >
-        <View style={styles.certOverlay}>
-          <View style={styles.certSheet}>
-            <View style={styles.certHeader}>
-              <ThemedText style={styles.certTitle}>인증서 선택</ThemedText>
-              <TouchableOpacity onPress={() => setShowCertModal(false)}>
-                <ThemedText style={styles.certClose}>✕</ThemedText>
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.certGrid}>
-              {[
-                { key: 'naver', label: '네이버 인증서', icon: require('@/src/assets/images/mydataconsent/naver.png') },
-                { key: 'kakao', label: '카카오톡 인증서', icon: require('@/src/assets/images/mydataconsent/kakao.png') },
-              ].map((item) => (
-                <TouchableOpacity
-                  key={item.key}
-                  style={[
-                    styles.certItem,
-                    selectedCert === item.key && styles.certItemSelected,
-                  ]}
-                  onPress={() => setSelectedCert(item.key)}
-                >
-                  <Image source={item.icon} style={styles.certIcon} resizeMode="contain" />
-                  <ThemedText style={styles.certLabel}>{item.label}</ThemedText>
-                  {selectedCert === item.key && (
-                    <View style={styles.certCheck}><ThemedText style={styles.certCheckText}>✓</ThemedText></View>
-                  )}
-                </TouchableOpacity>
-              ))}
-            </View>
-
-            <TouchableOpacity
-              style={[styles.primaryBtn, selectedCert ? styles.primaryOn : styles.primaryOff]}
-              disabled={!selectedCert}
-              onPress={() => {
-                if (!selectedCert) return;
-                setShowCertModal(false);
-                router.push({ pathname: '/(mydata)/authenticationPin', params: { banks: selectedBankCodes?.join(',') || '' } } as any);
-              }}
-            >
-              <ThemedText style={[styles.primaryText, !selectedCert && styles.primaryTextOff]}>확인</ThemedText>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
+      {/* 인증서 선택 모달 제거됨 */}
     </View>
   );
 }

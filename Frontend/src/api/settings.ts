@@ -104,7 +104,7 @@ export const setBiometric = async (enabled: boolean): Promise<boolean> => {
  */
 export const getLinkedAccounts = async (): Promise<LinkedAccount[]> => {
   try {
-    const response = await apiClient.get(API_ENDPOINTS.ACCOUNTS_LINK);
+    const response = await apiClient.post(API_ENDPOINTS.ACCOUNTS_LINK, {});
     
     // axios 응답이 모호한 경우 fallback 사용
     if (isAmbiguousAxiosBody(response)) {

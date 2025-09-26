@@ -5,14 +5,14 @@ import { useLocalUserStore } from '@/src/store/localUserStore';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  Animated,
-  Dimensions,
-  FlatList,
-  Image,
-  Modal,
-  StyleSheet,
-  TouchableOpacity,
-  View
+    Animated,
+    Dimensions,
+    FlatList,
+    Image,
+    Modal,
+    StyleSheet,
+    TouchableOpacity,
+    View
 } from 'react-native';
 
 const { width: screenWidth } = Dimensions.get('window');
@@ -32,7 +32,6 @@ export default function AccountSelectScreen() {
   const router = useRouter();
   const saveSelectedBanks = useBankSelectionStore(s => s.setSelectedBanks);
   const selectedBanks = useBankSelectionStore(s => s.selectedBanks);
-  const setPersistBanks = useBankSelectionStore(s => s.setSelectedBankCodes);
   const [isModalVisible, setIsModalVisible] = useState(false);
   
   // 애니메이션 값들
@@ -95,14 +94,12 @@ export default function AccountSelectScreen() {
     if (set.has(bankId)) {
       const next = selectedBanks.filter(b => b.bankId !== bankId);
       saveSelectedBanks(next);
-      setPersistBanks(next.map(b => b.bankId));
     } else {
       const next = [
         ...selectedBanks,
         { bankId, bankName: BANK_CODES[bankId as keyof typeof BANK_CODES]?.name || bankId },
       ];
       saveSelectedBanks(next);
-      setPersistBanks(next.map(b => b.bankId));
     }
   };
 
@@ -215,11 +212,9 @@ export default function AccountSelectScreen() {
             <TouchableOpacity style={styles.selectAllButton} onPress={() => {
               if (selectedBanks.length === bankList.length) {
                 saveSelectedBanks([]);
-                setPersistBanks([]);
               } else {
                 const all = bankList.map(b => ({ bankId: b.bankId, bankName: b.name }));
                 saveSelectedBanks(all);
-                setPersistBanks(all.map(b => b.bankId));
               }
             }}>
               <ThemedText style={styles.selectAllText}>

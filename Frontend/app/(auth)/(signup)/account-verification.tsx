@@ -22,10 +22,11 @@ const { width } = Dimensions.get('window');
 
 export default function AccountVerificationScreen() {
   const params = useLocalSearchParams();
-  const bankName = params.bankName as string; // 은행의 전체 이름 (예: "국민은행")
-  const accountNumber = params.accountNumber as string;
-  const bankId = params.bankId as string;
-  const pin = params.pin as string; // 백엔드에서 받은 4자리 인증번호 식별자
+  // 라우트 파라미터 방어적 파싱
+  const bankName = String(params.bankName ?? ''); // 은행의 전체 이름 (예: "국민은행")
+  const accountNumber = String(params.accountNumber ?? '');
+  const bankId = String(params.bankId ?? '');
+  const pin = String(params.pin ?? ''); // 백엔드에서 받은 4자리 인증번호 식별자
   const { name } = useSignupStore();
 
   // 상태 관리
@@ -73,6 +74,16 @@ export default function AccountVerificationScreen() {
   const canSubmit = code.length === 4 && timeLeft > 0 && !isLoading;
   const minutes = Math.floor(timeLeft / 60);
   const seconds = timeLeft % 60;
+
+  // 필수 파라미터 누락 시 즉시 안내 후 이전 화면
+  useEffect(() => {
+    const requiredMissing = !bankId || !accountNumber || !pin;
+    if (requiredMissing) {
+      Alert.alert('오류', '인증에 필요한 정보가 없습니다. 이전 단계로 돌아갑니다.', [
+        { text: '확인', onPress: () => router.back() }
+      ]);
+    }
+  }, [bankId, accountNumber, pin]);
 
   // 1원 입금 시뮬레이션 (실제로는 API 호출)
   useEffect(() => {
@@ -149,23 +160,26 @@ export default function AccountVerificationScreen() {
       
       // bankId로 BANK_CODES에서 name을 강제로 찾기 (bankName이 shortName일 수 있음)
       const bankInfo = BANK_CODES[bankId as keyof typeof BANK_CODES];
-      const actualBankName = bankInfo?.name || bankName || '은행';
+      const actualBankName = (bankInfo?.name || bankName || '은행').trim();
       console.log('[Account Verification] actualBankName:', actualBankName);
       
-      const authIdentifier = `${actualBankName} ${code}`; // 은행이름 + 공백 + 4자리 숫자 (예: "국민은행 2337")
+      // 계좌번호/코드 정규화
+      const normalizedAccountNo = String(accountNumber).replace(/\D/g, '');
+      const normalizedCode = String(code).replace(/\D/g, '').slice(0, 4);
+      const authIdentifier = `${actualBankName} ${normalizedCode}`; // 은행이름 + 공백 + 4자리 숫자 (예: "국민은행 2337")
       const requestData: AccountVerificationVerifyRequest = {
-        accountNo: accountNumber,
+        accountNo: normalizedAccountNo,
         authIdentifier: authIdentifier, // 은행이름 + 공백 + 4자리 인증번호
-        userName: name || '사용자' // 사용자 이름 (기본값 처리)
+        userName: (name || '사용자').toString()
       };
 
       console.log('[Account Verification] API 요청 데이터:', requestData);
       console.log('[Account Verification] 요청 데이터 상세:', {
-        accountNo: `"${accountNumber}" (길이: ${accountNumber.length})`,
+        accountNo: `"${normalizedAccountNo}" (길이: ${normalizedAccountNo.length})`,
         authIdentifier: `"${authIdentifier}" (길이: ${authIdentifier.length})`,
         bankName: `"${bankName}"`,
         actualBankName: `"${actualBankName}"`,
-        userInputCode: `"${code}" (길이: ${code.length})`,
+        userInputCode: `"${normalizedCode}" (길이: ${normalizedCode.length})`,
         userName: `"${name || '사용자'}"`
       });
       const response = await authApi.verifyAccountVerification(requestData);
