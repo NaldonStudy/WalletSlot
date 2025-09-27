@@ -22,9 +22,24 @@ export default function TransactionLayout() {
         }} 
       />
       <Stack.Screen 
-        name="ocr-result" 
+        name="item-split" 
         options={{ 
-          title: "OCR 결과",
+          title: "금액 나누기",
+          headerBackTitle: "",
+        }} 
+      />
+      <Stack.Screen 
+        name="image-edit" 
+        options={{ 
+          title: "영수증 스캔",
+          headerBackTitle: "",
+        }} 
+      />
+      <Stack.Screen 
+        name="ocr-loading" 
+        options={{ 
+          title: "영수증 스캔",
+          headerBackTitle: "",
         }} 
       />
     </Stack>

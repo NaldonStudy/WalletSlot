@@ -15,9 +15,8 @@ import { ocrApi } from '@/src/api/ocr';
 import { getDeviceId } from '@/src/services/deviceIdService';
 
 export default function ReceiptScanScreen() {
-  console.log('[ReceiptScan] 컴포넌트 렌더링 시작');
-  
-  const { slotId, transactionId, transactionData, slotData, slotName, accountId, accountSlotId } = useLocalSearchParams<{ 
+
+  const { slotId, transactionId, transactionData, slotData, slotName, accountId, accountSlotId, entryType } = useLocalSearchParams<{ 
     slotId: string; 
     transactionId: string;
     transactionData?: string;
@@ -25,9 +24,8 @@ export default function ReceiptScanScreen() {
     slotName?: string;
     accountId?: string;
     accountSlotId?: string;
+    entryType?: string;
   }>();
-  
-  console.log('[ReceiptScan] 파라미터:', { slotId, transactionId, accountId, accountSlotId });
   
   const colorScheme = useColorScheme() ?? 'light';
   const theme = themes[colorScheme];
@@ -63,16 +61,13 @@ export default function ReceiptScanScreen() {
 
   // 이미지 캡처 핸들러
   const handleImageCaptured = async (imageUri: string) => {
-    console.log('[ReceiptScan] handleImageCaptured 호출됨:', imageUri);
     
     try {
       setIsProcessing(true);
-      console.log('[ReceiptScan] 이미지 캡처됨 - isProcessing: true');
       
-      // 즉시 OCR 결과 화면으로 이동 (로딩 화면 표시)
-      console.log('[ReceiptScan] OCR 결과 화면으로 즉시 이동');
-      router.push({
-        pathname: './ocr-result',
+      // 즉시 OCR 로딩 화면으로 이동 (로딩 화면 표시)
+      router.replace({
+        pathname: './ocr-loading',
         params: {
           slotId: slotId || '',
           transactionId: transactionId || '',
@@ -82,6 +77,7 @@ export default function ReceiptScanScreen() {
           accountId: accountId || '',
           accountSlotId: accountSlotId || '',
           imageUri: imageUri, // 이미지 URI 전달
+          entryType: entryType || 'camera', // entryType 전달
         }
       });
       
@@ -93,38 +89,29 @@ export default function ReceiptScanScreen() {
       });
       Alert.alert('오류', '영수증 처리에 실패했습니다.');
     } finally {
-      console.log('[ReceiptScan] finally 블록 - isProcessing: false');
       setIsProcessing(false);
     }
   };
 
   // 영수증 서버 전송 및 OCR 처리
   const uploadReceiptForOCR = async (imageUri: string) => {
-    console.log('[ReceiptScan] uploadReceiptForOCR 시작:', imageUri);
     
     try {
-      console.log('[ReceiptScan] 서버 전송 시작:', imageUri);
-      
-      console.log('[ReceiptScan] 디바이스 ID 가져오기 시작');
       // 디바이스 ID 가져오기
       const deviceId = await getDeviceId();
-      console.log('[ReceiptScan] 디바이스 ID 가져오기 완료:', deviceId);
 
       if (!deviceId) {
         console.error('[ReceiptScan] 디바이스 ID가 null입니다');
         throw new Error('디바이스 ID를 가져올 수 없습니다.');
       }
 
-      console.log('[ReceiptScan] OCR API 호출 시작');
       // OCR API 호출
       const ocrResult = await ocrApi.processReceipt(imageUri, deviceId);
-      console.log('[ReceiptScan] OCR API 호출 완료, 결과:', ocrResult);
 
-      console.log('[ReceiptScan] OCR 결과 화면으로 이동 시작');
-      // OCR 결과 화면으로 이동
+      // OCR 로딩 화면으로 이동
       const ocrResultString = JSON.stringify(ocrResult);
-      router.push({
-        pathname: './ocr-result',
+      router.replace({
+        pathname: './ocr-loading',
         params: {
           slotId: slotId || '',
           transactionId: transactionId || '',
@@ -134,9 +121,10 @@ export default function ReceiptScanScreen() {
           accountId: accountId || '',
           accountSlotId: accountSlotId || '',
           ocrResultData: ocrResultString,
+          entryType: entryType || 'camera', // entryType 전달
         }
       });
-      console.log('[ReceiptScan] OCR 결과 화면으로 이동 완료');
+
       
     } catch (error) {
       console.error('[ReceiptScan] OCR 처리 오류:', {

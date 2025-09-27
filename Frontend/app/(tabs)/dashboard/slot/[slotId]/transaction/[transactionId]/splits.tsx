@@ -52,8 +52,20 @@ export default function AmountSplitScreen() {
   }
 
   const handleManualSplit = () => {
-    // TODO: 직접 나누기 화면으로 이동
-    console.log('직접 나누기 선택');
+    // 직접 입력 화면으로 이동
+    router.push({
+      pathname: './item-split',
+      params: {
+        slotId: slotId || '',
+        transactionId: transactionId || '',
+        transactionData: transactionData || '',
+        slotData: slotData || '',
+        slotName: slotName || '',
+        accountId: accountId || '',
+        accountSlotId: accountSlotId || '',
+        entryType: 'direct', // 직접 입력 표시
+      }
+    });
   };
 
   const handleReceiptUpload = () => {
@@ -69,7 +81,7 @@ export default function AmountSplitScreen() {
     
     // 영수증 스캔 화면으로 이동
     router.push({
-      pathname: '/dashboard/slot/[slotId]/transaction/[transactionId]/receipt-scan' as any,
+      pathname: './receipt-scan',
       params: {
         slotId: slotId || '',
         transactionId: transactionId || '',
@@ -78,6 +90,7 @@ export default function AmountSplitScreen() {
         slotName: slotName || '',
         accountId: accountId || '',
         accountSlotId: accountSlotId || '',
+        entryType: 'camera', // 카메라 표시
       }
     });
   };
@@ -94,16 +107,32 @@ export default function AmountSplitScreen() {
       // 갤러리에서 이미지 선택
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [4, 3],
-        quality: 1,
+        allowsEditing: false, // 커스텀 편집 화면 사용
+        quality: 1, // 원본 품질로 선택
+        base64: false,
+        exif: false,
+        allowsMultipleSelection: false,
       });
 
       if (!result.canceled && result.assets[0]) {
         console.log('선택된 이미지:', result.assets[0].uri);
         setIsActionSheetVisible(false);
-        // TODO: OCR 처리 또는 다음 단계로 이동
-        Alert.alert('성공', '영수증이 선택되었습니다.');
+        
+        // 커스텀 편집 화면으로 이동
+        router.push({
+          pathname: './image-edit',
+          params: {
+            slotId: slotId || '',
+            transactionId: transactionId || '',
+            transactionData: transactionData || '',
+            slotData: slotData || '',
+            slotName: slotName || '',
+            accountId: accountId || '',
+            accountSlotId: accountSlotId || '',
+            imageUri: result.assets[0].uri,
+            entryType: 'gallery', // 갤러리 표시
+          }
+        });
       }
     } catch (error) {
       console.error('갤러리 오류:', error);

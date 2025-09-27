@@ -194,5 +194,43 @@ export const transactionApi = {
       });
       throw error;
     }
+  },
+
+  /**
+   * 거래내역 나누기
+   */
+  splitTransaction: async (
+    accountId: string,
+    transactionId: string,
+    splits: Array<{ accountSlotId: string; amount: number }>
+  ): Promise<BaseResponse<any>> => {
+    const url = `/api/accounts/${accountId}/transactions/${transactionId}/splits`;
+    const requestBody = { transactions: splits };
+
+    console.log('[transactionApi.splitTransaction] 요청 정보:', {
+      url,
+      accountId,
+      transactionId,
+      requestBody
+    });
+
+    try {
+      const result = await apiClient.post<BaseResponse<any>>(url, requestBody);
+      console.log('[transactionApi.splitTransaction] 응답:', result);
+      return result.data;
+    } catch (error: any) {
+      console.error('[transactionApi.splitTransaction] 에러 상세:', {
+        message: error.message,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        config: {
+          url: error.config?.url,
+          method: error.config?.method,
+          data: error.config?.data
+        }
+      });
+      throw error;
+    }
   }
 };
