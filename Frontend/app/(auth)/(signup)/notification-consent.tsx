@@ -1,4 +1,5 @@
 import { authApi } from '@/src/api/auth';
+import { profileApi } from '@/src/api/profile';
 import { featureFlags } from '@/src/config/featureFlags';
 import { appService } from '@/src/services/appService';
 import { getOrCreateDeviceId } from '@/src/services/deviceIdService';
@@ -36,14 +37,35 @@ export default function NotificationConsentScreen() {
     carrier, 
     signupTicket, 
     pin, 
-    setPushEnabled,
     clearSignupTicket,
     clearPin,
     reset: resetSignupStore // signupStore 초기화용
   } = useSignupStore();
   
   // 로컬 사용자 스토어
-  const { setUser } = useLocalUserStore();
+  const { setUser, setPushEnabled } = useLocalUserStore();
+
+  // 사용자 정보 조회 함수 (로그인 모드에서만 사용)
+  const fetchUserProfile = async () => {
+    try {
+      console.log('사용자 프로필 정보 조회 시작...');
+      const userProfile = await profileApi.getMe();
+      console.log('사용자 프로필 조회 성공:', userProfile);
+      
+      // LocalUser 형식에 맞게 변환하여 저장
+      await setUser({
+        userId: userProfile.id,
+        userName: userProfile.name,
+        isPushEnabled: false, // 알림 설정은 나중에 처리
+        deviceId: await getOrCreateDeviceId(),
+      });
+      
+      console.log('✅ 사용자 정보가 localUserStore에 저장되었습니다.');
+    } catch (error) {
+      console.error('❌ 사용자 프로필 조회 실패:', error);
+      // 에러가 발생해도 알림 동의는 계속 진행
+    }
+  };
 
   // 최종 회원가입 API 호출 함수
   const completeSignup = async (pushEnabled: boolean, fcmToken?: string) => {
@@ -246,15 +268,23 @@ export default function NotificationConsentScreen() {
     setIsLoading(true);
     
     try {
-      // 로그인 경로: 동의 저장 + 푸시 초기화 후 메인으로
+      // 로그인 경로: 사용자 정보 조회 + 동의 저장 + 푸시 초기화 후 slotDivide로
       if (fromLogin) {
+        // 1. 사용자 프로필 정보 조회 및 저장
+        await fetchUserProfile();
+        
+        // 2. 알림 허용 설정
         setPushEnabled(true);
         console.log('알림 허용(로그인 모드) - 스토어에 저장');
+        
+        // 3. FCM 토큰 발급
         try {
           console.log('FCM 토큰 발급 시작...(로그인 모드)');
           await unifiedPushService.initialize();
         } catch {}
-  router.replace('/(tabs)/dashboard' as any);
+        
+        // 4. 슬롯 분배 화면으로 이동
+        router.replace('/(slotDivide)/s1electDay' as any);
         return;
       }
 
@@ -292,9 +322,15 @@ export default function NotificationConsentScreen() {
     
     try {
       if (fromLogin) {
+        // 1. 사용자 프로필 정보 조회 및 저장
+        await fetchUserProfile();
+        
+        // 2. 알림 거부 설정
         setPushEnabled(false);
         console.log('알림 거부(로그인 모드) - 스토어에 저장');
-  router.replace('/(tabs)/dashboard' as any);
+        
+        // 3. 슬롯 분배 화면으로 이동
+        router.replace('/(slotDivide)/s1electDay' as any);
         return;
       }
 
