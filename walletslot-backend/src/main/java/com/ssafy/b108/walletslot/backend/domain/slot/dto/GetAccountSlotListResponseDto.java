@@ -44,9 +44,6 @@ public class GetAccountSlotListResponseDto {
         @JsonProperty("isSaving")
         private boolean isSaving;
 
-        private String icon;
-        private String color;
-
         private String accountSlotId;
 
         @JsonProperty("isCustom")

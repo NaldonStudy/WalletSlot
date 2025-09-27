@@ -67,9 +67,6 @@ public class ModifyTransactionResponseDto {
         @JsonProperty("isSaving")
         private boolean isSaving;
 
-        private String icon;
-        private String color;
-
         @JsonProperty("isCustom")
         private boolean isCustom;
 

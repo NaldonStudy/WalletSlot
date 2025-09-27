@@ -41,4 +41,8 @@ public interface AiReportRepository extends JpaRepository<AiReport, Long> {
                                @Param("accountUuid") String accountUuid,
                                @Param("start") LocalDateTime start,
                                @Param("end") LocalDateTime end);
+
+    boolean existsByAccount_IdAndCreatedAtGreaterThanEqualAndCreatedAtLessThan(
+            Long accountId, LocalDateTime start, LocalDateTime end
+    );
 }

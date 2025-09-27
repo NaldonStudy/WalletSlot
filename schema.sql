@@ -138,6 +138,7 @@ CREATE TABLE `account` (
   `is_primary` BOOLEAN NOT NULL DEFAULT FALSE,
   `last_synced_transaction_unique_no` VARCHAR(255),
   `last_synced_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `last_synced_transaction_unique_no` VARCHAR(255),
   CONSTRAINT `fk_account_user_id`
     FOREIGN KEY (`user_id`) REFERENCES `user`(`id`)
       ON DELETE CASCADE
