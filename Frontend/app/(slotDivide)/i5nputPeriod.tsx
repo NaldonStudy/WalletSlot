@@ -19,8 +19,35 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 const { width } = Dimensions.get('window');
 
+// 수입 레벨 계산 함수
+const calculateIncomeLevel = (income: string): string => {
+  // 숫자만 추출 (콤마, 만원 등 제거)
+  const numericIncome = parseInt(income.replace(/[^0-9]/g, ''), 10);
+  
+  if (isNaN(numericIncome)) return '';
+  
+  // 만원 단위로 변환
+  const incomeInWon = numericIncome;
+  
+  if (incomeInWon <= 100) return 'E';      // 1백만원 이하
+  if (incomeInWon <= 200) return 'F';      // 1백만원 ~ 2백만원
+  if (incomeInWon <= 300) return 'G';      // 2백만원 ~ 3백만원
+  if (incomeInWon <= 400) return 'D';      // 3백만원 ~ 4백만원
+  if (incomeInWon <= 500) return 'C';      // 4백만원 ~ 5백만원
+  if (incomeInWon <= 1000) return 'B';     // 5백만원 ~ 1천만원
+  return 'A';                              // 1천만원 이상
+};
+
 export default function I5nputPeriodScreen() {
-  const { data, setPeriod } = useSlotDivideStore();
+  const { 
+    data, 
+    setPeriod, 
+    setDates, 
+    setUseAge, 
+    setUseGender, 
+    setIncomeLevel,
+    getApiData 
+  } = useSlotDivideStore();
 
   // 애니메이션 값들
   const contentOpacity = useState(new Animated.Value(0))[0];
@@ -92,13 +119,18 @@ export default function I5nputPeriodScreen() {
     }
   }, [selectedYear, selectedMonth]);
 
-  // 진입 애니메이션
+  // 모달 상태 디버깅
   useEffect(() => {
-    Animated.parallel([
-      Animated.timing(contentOpacity, { toValue: 1, duration: 500, useNativeDriver: true }),
-      Animated.timing(contentTranslateY, { toValue: 0, duration: 500, useNativeDriver: true }),
-    ]).start();
+    console.log('🎯 [MODAL_STATE] 모달 상태 변경:', { isModalVisible, modalType });
+  }, [isModalVisible, modalType]);
 
+  // 진입 애니메이션 (즉시 표시)
+  useEffect(() => {
+    // 즉시 표시
+    contentOpacity.setValue(1);
+    contentTranslateY.setValue(0);
+
+    // 떠다니는 애니메이션 즉시 시작
     const float = (v: Animated.Value) =>
       Animated.loop(
         Animated.sequence([
@@ -110,27 +142,35 @@ export default function I5nputPeriodScreen() {
     const dash = float(dashboardFloatY);
     const pie = float(circlechartFloatY);
     dash.start();
-    setTimeout(() => pie.start(), 600);
+    setTimeout(() => pie.start(), 600); // 0.6초 지연
     return () => {
       dash.stop();
       pie.stop();
     };
   }, []);
 
-  const handleGoBack = () => router.back();
+  const handleGoBack = () => {
+    console.log('🎯 [HANDLE_GO_BACK] i4nputIncome으로 이동');
+    router.push('/(slotDivide)/i4nputIncome' as any);
+  };
 
   const handleNext = () => {
     const hasEnoughData = Math.random() > 0.5;
+    console.log('🎯 [HANDLE_NEXT] 다음 버튼 클릭됨!', { hasEnoughData });
+    
     if (hasEnoughData) {
+      console.log('🎯 [HANDLE_NEXT] 기간 선택 모달 표시');
       setModalType('period');
       setIsModalVisible(true);
     } else {
+      console.log('🎯 [HANDLE_NEXT] 추천 기준 모달 표시');
       setModalType('criteria');
       setIsModalVisible(true);
     }
   };
 
   const handleCloseModal = () => {
+    console.log('🎯 [HANDLE_CLOSE_MODAL] 모달 닫기');
     setIsModalVisible(false);
     setPeriodInput('');
     setSelectedCriteria('');
@@ -189,16 +229,67 @@ export default function I5nputPeriodScreen() {
   };
 
   const handlePeriodConfirm = () => {
-    if (isCustomPeriod) setPeriod(`${startDate} ~ ${endDate}`);
-    else if (periodInput.trim()) setPeriod(periodInput);
-    else return;
+    if (isCustomPeriod) {
+      // 직접 설정: period에는 저장하지 않고 startDate, endDate만 저장
+      setDates(startDate, endDate);
+      console.log('🎯 [PERIOD] 직접 설정:', { startDate, endDate });
+    } else if (periodInput.trim()) {
+      // 정해진 기간: 숫자로 변환하여 저장
+      let periodValue = '';
+      switch (periodInput) {
+        case '3개월': periodValue = '3'; break;
+        case '6개월': periodValue = '6'; break;
+        case '9개월': periodValue = '9'; break;
+        case '1년': periodValue = '12'; break;
+        default: periodValue = periodInput;
+      }
+      setPeriod(periodValue);
+      console.log('🎯 [PERIOD] 정해진 기간:', { periodInput, periodValue });
+    } else {
+      return;
+    }
+    
+    // 전체 store 데이터 출력
+    const storeData = getApiData();
+    console.log('🎯 [SLOT_DIVIDE_STORE] 전체 데이터:', storeData);
+    
     setIsModalVisible(false);
     router.push('/(slotDivide)/r6eady' as any);
   };
 
   const handleCriteriaConfirm = () => {
     if (!selectedCriteria) return;
+    
+    // 추천 기준별로 개별 설정
+    const useAge = selectedCriteria.includes('age');
+    const useGender = selectedCriteria.includes('gender');
+    const useIncome = selectedCriteria.includes('income');
+    
+    setUseAge(useAge);
+    setUseGender(useGender);
+    
+    // 비슷한 수입대 선택 시 수입 레벨 계산
+    if (useIncome && data.income) {
+      const incomeLevel = calculateIncomeLevel(data.income);
+      setIncomeLevel(incomeLevel);
+      console.log('🎯 [CRITERIA] 수입 레벨 계산:', { income: data.income, incomeLevel });
+    }
+    
+    // period에는 선택된 기준들을 문자열로 저장
     setPeriod(selectedCriteria);
+    
+    console.log('🎯 [CRITERIA] 추천 기준 설정:', { 
+      selectedCriteria, 
+      useAge, 
+      useGender, 
+      useIncome,
+      income: data.income 
+    });
+    
+    // 전체 store 데이터 출력
+    const storeData = getApiData();
+    console.log('🎯 [SLOT_DIVIDE_STORE] 전체 데이터:', storeData);
+    
     setIsModalVisible(false);
     router.push('/(slotDivide)/r6eady' as any);
   };

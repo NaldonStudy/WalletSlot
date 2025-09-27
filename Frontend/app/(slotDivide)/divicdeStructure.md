@@ -4,8 +4,8 @@
 ├── l2oading.tsx             # ✅ 슬롯 추천 로딩 화면
 ├── p3ermission.tsx          # ✅ 권한 동의 화면
 ├── i4nputIncome.tsx         # ✅ 월 수입 입력 화면
-├── i5nputPeriod.tsx         # 🚧 분석 기간 선택 화면
-├── r6eady.tsx               # 🚧 추천 준비 완료 화면
+├── i5nputPeriod.tsx         # ✅ 분석 기간 선택 화면
+├── r6eady.tsx               # ✅ 추천 준비 완료 화면
 └── a7djustSlot.tsx          # 🚧 슬롯 조정 화면
 
 ## 화면 플로우 (파일명 숫자 순서)

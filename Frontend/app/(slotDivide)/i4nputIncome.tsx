@@ -33,15 +33,17 @@ export default function I4nputIncomeScreen() {
   };
 
   const goNext = () => {
-    // 스토어에 저장
-    setIncome(inputIncome);
-
     if (!inputIncome.trim()) {
       alert('월 수입을 입력해주세요!');
       return;
     }
 
-    // 다음 화면으로 이동
+    // 스토어에 수입 저장
+    console.log('🎯 [I4NPUT_INCOME] 수입 저장:', inputIncome);
+    setIncome(inputIncome);
+    
+    // 저장 완료 후 다음 화면으로 이동
+    console.log('🎯 [I4NPUT_INCOME] i5nputPeriod로 이동');
     router.push('/(slotDivide)/i5nputPeriod' as any);
   };
 
