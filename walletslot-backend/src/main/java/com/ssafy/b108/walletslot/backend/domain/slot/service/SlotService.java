@@ -144,7 +144,7 @@ public class SlotService {
             if(request.getNewBudget() == 0) {
 
                 // newBudget이 0이면 해당 슬롯 삭제하고 거기에 할당돼있던 예산과 거래내역을 모두 미분류 슬롯으로 이동
-                AccountSlot uncategorizedAccountSlot = accountSlotRepository.findUncategorizedSlot(account).orElseThrow(() -> new AppException(ErrorCode.MISSING_UNCATEGORIZED_SLOT, "SlotService - 000"));
+                AccountSlot uncategorizedAccountSlot = accountSlotRepository.findUncategorizedAccountSlot(accountSlotUuid).orElseThrow(() -> new AppException(ErrorCode.MISSING_UNCATEGORIZED_SLOT, "SlotService - 000"));
                 uncategorizedAccountSlot.updateBudget(uncategorizedAccountSlot.getCurrentBudget()+accountSlot.getCurrentBudget());
 
                 List<Transaction> transactions = transactionRepository.findByAccountSlot(accountSlot);
@@ -159,7 +159,7 @@ public class SlotService {
             } else {
                 Long oldBudget = accountSlot.getCurrentBudget(); // 기존 예산
                 accountSlot.updateBudget(request.getNewBudget()); // 새로운 예산
-                accountSlot.increaseBudgetChangeCount(); // 예산 변경횟수 +1
+                accountSlot.addBudgetChangeCount(); // 예산 변경횟수 +1
 
                 // 예산 초과여부 다시 검사
                 if(accountSlot.getSpent() > accountSlot.getCurrentBudget()) {
@@ -169,7 +169,7 @@ public class SlotService {
                         accountSlot.updateIsBudgetExceeded(true); // 일단 예산초과 필드 true로 바꿔주고
                         Notification notification = Notification.builder() // Notification 객체 만들어서 저장하기
                                 .user(user)
-                                .title("[지출초과] " + accountSlot.getName() + " 슬롯의 예산이 초과됐어요!⚠️")
+                                .title("[⚠️예산초과] " + accountSlot.getName() + " 슬롯의 예산이 초과됐어요!⚠️")
                                 .body("슬롯의 예산을 조금 증액하고, 남은 기간 동안 해당 슬롯에 대한 지출을 줄여서 예산 안에서 소비할 수 있도록 해보세요. 계획안 예산 안에서 소비해야 좋은 소비습관을 기를 수 있어요")
                                 .type(Notification.Type.BUDGET)
                                 .build();
@@ -232,7 +232,7 @@ public class SlotService {
 
         // accountSlot의 currentBudget을 미분류로 이동 (기존 accountSlot rank--)
         // accountSlot에 연결돼있던 거래내역들 전부 미분류로 이동
-        AccountSlot uncategorizedAccountSlot = accountSlotRepository.findUncategorizedSlot(account).orElseThrow(() -> new AppException(ErrorCode.MISSING_UNCATEGORIZED_SLOT, "SlotService - 000"));
+        AccountSlot uncategorizedAccountSlot = accountSlotRepository.findUncategorizedAccountSlot(accountUuid).orElseThrow(() -> new AppException(ErrorCode.MISSING_UNCATEGORIZED_SLOT, "SlotService - 000"));
         uncategorizedAccountSlot.updateBudget(uncategorizedAccountSlot.getCurrentBudget()+accountSlot.getCurrentBudget());
 
         List<Transaction> transactions = transactionRepository.findByAccountSlot(accountSlot);

@@ -74,33 +74,33 @@ SET @OLD_SQL_MODE := @@sql_mode;
 SET sql_mode = CONCAT(@@sql_mode, IF(@@sql_mode='', '', ','), 'NO_AUTO_VALUE_ON_ZERO');
 
 -- SLOT
-INSERT INTO `slot` (id, uuid, name, is_saving, icon, color, `rank`)
+INSERT INTO `slot` (id, uuid, name, is_saving, `rank`)
 VALUES
-(0, UUID(), '미분류', FALSE, NULL, NULL, NULL),
-(1, UUID(), '식비', FALSE, NULL, NULL, NULL),
-(2, UUID(), '교통비', FALSE, NULL, NULL, NULL),
-(3, UUID(), '의류/잡화', FALSE, NULL, NULL, NULL),
-(4, UUID(), '카페/간식', FALSE, NULL, NULL, NULL),
-(5, UUID(), '여가비', FALSE, NULL, NULL, NULL),
-(6, UUID(), '의료/건강', FALSE, NULL, NULL, NULL),
-(7, UUID(), '저축', TRUE, NULL, NULL, NULL),
-(8, UUID(), '자동차비', FALSE, NULL, NULL, NULL),
-(9, UUID(), '미용', FALSE, NULL, NULL, NULL),
-(10, UUID(), '취미', FALSE, NULL, NULL, NULL),
-(11, UUID(), '보험비', FALSE, NULL, NULL, NULL),
-(12, UUID(), '통신비', FALSE, NULL, NULL, NULL),
-(13, UUID(), '주거비', FALSE, NULL, NULL, NULL),
-(14, UUID(), '구독비', FALSE, NULL, NULL, NULL),
-(15, UUID(), '육아비', FALSE, NULL, NULL, NULL),
-(16, UUID(), '용돈/선물', FALSE, NULL, NULL, NULL),
-(17, UUID(), '반려동물', FALSE, NULL, NULL, NULL),
-(18, UUID(), '데이트', FALSE, NULL, NULL, NULL),
-(19, UUID(), '세금', FALSE, NULL, NULL, NULL),
-(20, UUID(), '교육비', FALSE, NULL, NULL, NULL),
-(21, UUID(), '경조사', FALSE, NULL, NULL, NULL),
-(22, UUID(), '회비', FALSE, NULL, NULL, NULL),
-(23, UUID(), '후원', FALSE, NULL, NULL, NULL),
-(24, UUID(), '여행/숙박', FALSE, NULL, NULL, NULL);
+(0, UUID(), '미분류', FALSE, NULL),
+(1, UUID(), '식비', FALSE, NULL),
+(2, UUID(), '교통비', FALSE, NULL),
+(3, UUID(), '의류/잡화', FALSE, NULL),
+(4, UUID(), '카페/간식', FALSE, NULL),
+(5, UUID(), '여가비', FALSE, NULL),
+(6, UUID(), '의료/건강', FALSE, NULL),
+(7, UUID(), '저축', TRUE, NULL),
+(8, UUID(), '자동차비', FALSE, NULL),
+(9, UUID(), '미용', FALSE, NULL),
+(10, UUID(), '취미', FALSE, NULL),
+(11, UUID(), '보험비', FALSE, NULL),
+(12, UUID(), '통신비', FALSE, NULL),
+(13, UUID(), '주거비', FALSE, NULL),
+(14, UUID(), '구독비', FALSE, NULL),
+(15, UUID(), '육아비', FALSE, NULL),
+(16, UUID(), '용돈/선물', FALSE, NULL),
+(17, UUID(), '반려동물', FALSE, NULL),
+(18, UUID(), '데이트', FALSE, NULL),
+(19, UUID(), '세금', FALSE, NULL),
+(20, UUID(), '교육비', FALSE, NULL),
+(21, UUID(), '경조사', FALSE, NULL),
+(22, UUID(), '회비', FALSE, NULL),
+(23, UUID(), '후원', FALSE, NULL),
+(24, UUID(), '여행/숙박', FALSE, NULL);
 
 
 -- ACCOUNT_SLOT

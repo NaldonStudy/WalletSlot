@@ -31,18 +31,16 @@ import com.ssafy.b108.walletslot.backend.domain.user.repository.UserRepository;
 import com.ssafy.b108.walletslot.backend.global.error.AppException;
 import com.ssafy.b108.walletslot.backend.global.error.ErrorCode;
 import com.ssafy.b108.walletslot.backend.infrastructure.fcm.service.FcmService;
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Slice;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.reactive.function.client.WebClient;
 
@@ -75,7 +73,7 @@ public class TransactionService {
 
     @Value("${api.ssafy.finance.apiKey}")
     private String ssafyFinanceApiKey;
-    private String lastSyncedDate="20250923";
+    private String lastSyncedDate="20250927";
     private final SecretKey encryptionKey;
 
     private final int pageSize = 20;
@@ -233,6 +231,9 @@ public class TransactionService {
      */
     public ModifyTransactionResponseDto modifyTransaction(Long userId, String accountUuid, String transactionUuid, String accountSlotUuid) {
 
+        // User 조회
+        User user = userRepository.findById(userId).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND, "TransactionService - 001"));
+
         // userId != account userId 이면 403 응답
         Account account = accountRepository.findByUuid(accountUuid).orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "TransactionService - 009"));
         if(userId != account.getUser().getId()) {
@@ -252,33 +253,92 @@ public class TransactionService {
         AccountSlot oldAccountSlot = transaction.getAccountSlot();
         transaction.changeAccountSlot(newAccountSlot);
 
-        // 기존 account slot의 지출금액 minus
-        oldAccountSlot.minusSpent(transaction.getAmount());
+        oldAccountSlot.decreaseSpent(transaction.getAmount()); // 기존 account slot의 지출금액 minus
+        newAccountSlot.increaseSpent(transaction.getAmount()); // 새로운 account slot 지출금액 add
 
         // isBudgetExceeded 여부 다시 조사
         if(oldAccountSlot.getSpent() > oldAccountSlot.getCurrentBudget()) {
-            oldAccountSlot.updateIsBudgetExceeded(true);
+            if(oldAccountSlot.isBudgetExceeded() == true) {
+                // 원래도 true였으면 그냥 가만히 있으면 됨
+            } else { // 그게 아니라 원래는 false 였다면 true로 바꿔주고, 푸시알림 보내야 함
+                oldAccountSlot.updateIsBudgetExceeded(true);
+
+                String title = "[⚠️예산초과] " + oldAccountSlot.getName() + "슬롯의 예산이 초과됐어요!";
+                String body = "(초과금액: " + (oldAccountSlot.getSpent() - oldAccountSlot.getCurrentBudget()) + "원)";
+
+                Notification notification = Notification.builder()
+                        .user(user)
+                        .title(title)
+                        .body(body)
+                        .type(Notification.Type.BUDGET)
+                        .build();
+
+                // Notification 객체 저장
+                notificationRepository.save(notification);
+
+                // 위에서 만든 notification 푸시알림 보내기
+                String targetFcmToken = pushEndpointRepository.findByUser(user).orElseThrow(() -> new AppException(ErrorCode.MISSING_PUSH_ENDPOINT, "TransactionService - 000")).getToken();
+                fcmService.sendMessage(targetFcmToken, notification.getTitle(), notification.getBody())
+                        .subscribe(
+                                response -> {
+                                    System.out.println("✅ [TransactionService - 000] 예산초과 알림 전송 성공 " + response);
+                                    notification.updateIsDelivered(true);
+                                },
+                                error -> {
+                                    System.err.println("❌ [TransactionService - 000] 예산초과 알림 전송 실패 : " + error.getMessage());
+                                    notification.updateIsDelivered(false);
+                                }
+                        );
+            }
         } else {
             oldAccountSlot.updateIsBudgetExceeded(false);
         }
-        
-        // 새로운 account slot 지출금액 add
-        newAccountSlot.addSpent(transaction.getAmount());
 
         // isBudgetExceeded 여부 다시 조사
         if(newAccountSlot.getSpent() > newAccountSlot.getCurrentBudget()) {
-            newAccountSlot.updateIsBudgetExceeded(true);
+            if(newAccountSlot.isBudgetExceeded() == true) {
+                // 원래도 true였으면 그냥 가만히 있으면 됨
+            } else { // 그게 아니라 원래는 false 였다면 true로 바꿔주고, 푸시알림 보내야 함
+                newAccountSlot.updateIsBudgetExceeded(true);
+
+                String title = "[⚠️예산초과] " + newAccountSlot.getName() + "슬롯의 예산이 초과됐어요!";
+                String body = "(초과금액: " + (newAccountSlot.getSpent() - newAccountSlot.getCurrentBudget()) + "원)";
+
+                Notification notification = Notification.builder()
+                        .user(user)
+                        .title(title)
+                        .body(body)
+                        .type(Notification.Type.BUDGET)
+                        .build();
+
+                // Notification 객체 저장
+                notificationRepository.save(notification);
+
+                // 위에서 만든 notification 푸시알림 보내기
+                String targetFcmToken = pushEndpointRepository.findByUser(user).orElseThrow(() -> new AppException(ErrorCode.MISSING_PUSH_ENDPOINT, "TransactionService - 000")).getToken();
+                fcmService.sendMessage(targetFcmToken, notification.getTitle(), notification.getBody())
+                        .subscribe(
+                                response -> {
+                                    System.out.println("✅ [TransactionService - 000] 예산초과 알림 전송 성공 " + response);
+                                    notification.updateIsDelivered(true);
+                                },
+                                error -> {
+                                    System.err.println("❌ [TransactionService - 000] 예산초과 알림 전송 실패 : " + error.getMessage());
+                                    notification.updateIsDelivered(false);
+                                }
+                        );
+            }
         } else {
             newAccountSlot.updateIsBudgetExceeded(false);
         }
 
-        // oldAccountSlot에 초과된 금액 계산 (초과하지 않았으면 0으로 세팅)
+        // oldAccountSlot 초과된 금액 계산 (초과하지 않았으면 0으로 세팅)
         Long oldAccountSlotExceededBudget = oldAccountSlot.getSpent() - oldAccountSlot.getCurrentBudget();
         if(oldAccountSlotExceededBudget < 0) {
             oldAccountSlotExceededBudget = 0L;
         }
 
-        // oldAccountSlot에 남은 금액 계산 (남지 않았으면 0으로 세팅)
+        // oldAccountSlot 남은 금액 계산 (남지 않았으면 0으로 세팅)
         Long oldAccountSlotRemainingBudget = oldAccountSlot.getCurrentBudget() - oldAccountSlot.getSpent();
         if(oldAccountSlotRemainingBudget < 0) {
             oldAccountSlotRemainingBudget = 0L;
@@ -298,13 +358,13 @@ public class TransactionService {
                 .exceededBudget(oldAccountSlotExceededBudget)
                 .build();
 
-        // newAccountSlot에 초과된 금액 계산 (초과하지 않았으면 0으로 세팅)
+        // newAccountSlot 초과된 금액 계산 (초과하지 않았으면 0으로 세팅)
         Long newAccountSlotExceededBudget = newAccountSlot.getSpent() - newAccountSlot.getCurrentBudget();
         if(newAccountSlotExceededBudget < 0) {
             newAccountSlotExceededBudget = 0L;
         }
 
-        // newAccountSlot에 남은 금액 계산 (남지 않았으면 0으로 세팅)
+        // newAccountSlot 남은 금액 계산 (남지 않았으면 0으로 세팅)
         Long newAccountSlotRemainingBudget = newAccountSlot.getCurrentBudget() - newAccountSlot.getSpent();
         if(newAccountSlotRemainingBudget < 0) {
             newAccountSlotRemainingBudget = 0L;
@@ -358,6 +418,9 @@ public class TransactionService {
      */
     public AddSplitTransactionsResponseDto addSplitTransactions(Long userId, String accountUuid, String transactionUuid, List<AddSplitTransactionsRequestDto.SplitTransactionDto> splitTransactions) {
 
+        // User 조회
+        User user = userRepository.findById(userId).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND, "TransactionService - 000"));
+
         // userId != account userId 이면 403 응답
         Account account = accountRepository.findByUuid(accountUuid).orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "TransactionService - 015"));
         if(userId != account.getUser().getId()) {
@@ -366,19 +429,47 @@ public class TransactionService {
 
         // transaction 조회
         Transaction originalTransaction = transactionRepository.findByUuid(transactionUuid).orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "TransactionService - 017"));
-        Long originalAmount = originalTransaction.getAmount();
-
-        // originalTransaction 삭제
-        transactionRepository.delete(originalTransaction);
 
         // originalTransaction이 속해있던 account slot의 지출금액 회복시키기
         // account slot 조회 후 지출금액 등 값 조정
         AccountSlot originalTransactionAccountSlot = originalTransaction.getAccountSlot();
-        originalTransactionAccountSlot.updateSpent(originalTransactionAccountSlot.getSpent() - originalTransaction.getAmount());
-        if(originalTransactionAccountSlot.getCurrentBudget() >= originalTransactionAccountSlot.getSpent()) {
-            originalTransactionAccountSlot.updateIsBudgetExceeded(false);
+        originalTransactionAccountSlot.decreaseSpent(originalTransaction.getAmount()); // 지출금액 다시 줄여놓기
+        // isBudgetExceeded 다시 검사
+        if(originalTransactionAccountSlot.getSpent() > originalTransactionAccountSlot.getCurrentBudget()) {
+            if(originalTransactionAccountSlot.isBudgetExceeded() == true) {
+                // 원래도 true였으면 그냥 가만히 있으면 됨
+            } else { // 그게 아니라 원래는 false 였다면 true로 바꿔주고, 푸시알림 보내야 함
+                originalTransactionAccountSlot.updateIsBudgetExceeded(true);
+
+                String title = "[⚠️예산초과] " + originalTransactionAccountSlot.getName() + "슬롯의 예산이 초과됐어요!";
+                String body = "(초과금액: " + (originalTransactionAccountSlot.getSpent() - originalTransactionAccountSlot.getCurrentBudget()) + "원)";
+
+                Notification notification = Notification.builder()
+                        .user(user)
+                        .title(title)
+                        .body(body)
+                        .type(Notification.Type.BUDGET)
+                        .build();
+
+                // Notification 객체 저장
+                notificationRepository.save(notification);
+
+                // 위에서 만든 notification 푸시알림 보내기
+                String targetFcmToken = pushEndpointRepository.findByUser(user).orElseThrow(() -> new AppException(ErrorCode.MISSING_PUSH_ENDPOINT, "TransactionService - 000")).getToken();
+                fcmService.sendMessage(targetFcmToken, notification.getTitle(), notification.getBody())
+                        .subscribe(
+                                response -> {
+                                    System.out.println("✅ [TransactionService - 000] 예산초과 알림 전송 성공: " + response);
+                                    notification.updateIsDelivered(true);
+                                },
+                                error -> {
+                                    System.err.println("❌ [TransactionService - 000] 예산초과 알림 전송 실패: " + error.getMessage());
+                                    notification.updateIsDelivered(false);
+                                }
+                        );
+            }
         } else {
-            originalTransactionAccountSlot.updateIsBudgetExceeded(true);
+            originalTransactionAccountSlot.updateIsBudgetExceeded(false);
         }
 
         // splitTransactions 돌면서 각각 Transaction 객체 만들어서 save.
@@ -392,13 +483,13 @@ public class TransactionService {
             splitAmountSum += splitTransactionDto.getAmount();
 
             // AccountSlot 조회
-            AccountSlot accountSlot = accountSlotRepository.findByUuid(splitTransactionDto.getAccountSlotId()).orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "TransactionService - 018"));
-            Slot slot = accountSlot.getSlot();  // 나눌 슬롯 정보도 줘야하니깐 Slot 객체 얻어놓기
+            AccountSlot splitAccountSlot = accountSlotRepository.findByUuid(splitTransactionDto.getAccountSlotId()).orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "TransactionService - 018"));
+            Slot slot = splitAccountSlot.getSlot();  // 나눌 슬롯 정보도 줘야하니깐 Slot 객체 얻어놓기
 
             // Transaction 객체 만들기
-            Transaction transaction = Transaction.builder()
+            Transaction splitTransaction = Transaction.builder()
                     .account(originalTransaction.getAccount())
-                    .accountSlot(accountSlot)
+                    .accountSlot(splitAccountSlot)
                     .uniqueNo(originalTransaction.getUniqueNo())
                     .type(originalTransaction.getType())
                     .opponentAccountNo(originalTransaction.getOpponentAccountNo())
@@ -409,47 +500,79 @@ public class TransactionService {
                     .build();
 
             // 저장
-            transactionRepository.save(transaction);
+            transactionRepository.save(splitTransaction);
 
-            // account slot 지출금액 늘리기
-            accountSlot.addSpent(splitTransactionDto.getAmount());
+            // splitAccountSlot 지출금액 늘리기
+            splitAccountSlot.increaseSpent(splitTransactionDto.getAmount());
 
-            // account slot 예산초과 여부 다시 조사하기
-            if(accountSlot.getSpent() > accountSlot.getCurrentBudget()) {
-                accountSlot.updateIsBudgetExceeded(true);
+            // splitAccountSlot isBudgetExceeded 다시 검사
+            if(splitAccountSlot.getSpent() > splitAccountSlot.getCurrentBudget()) {
+                if(splitAccountSlot.isBudgetExceeded() == true) {
+                    // 원래도 true였으면 그냥 가만히 있으면 됨
+                } else { // 그게 아니라 원래는 false 였다면 true로 바꿔주고, 푸시알림 보내야 함
+                    splitAccountSlot.updateIsBudgetExceeded(true);
+
+                    String title = "[⚠️예산초과] " + splitAccountSlot.getName() + "슬롯의 예산이 초과됐어요!";
+                    String body = "(초과금액: " + (splitAccountSlot.getSpent() - splitAccountSlot.getCurrentBudget()) + "원)";
+
+                    Notification notification = Notification.builder()
+                            .user(user)
+                            .title(title)
+                            .body(body)
+                            .type(Notification.Type.BUDGET)
+                            .build();
+
+                    // Notification 객체 저장
+                    notificationRepository.save(notification);
+
+                    // 위에서 만든 notification 푸시알림 보내기
+                    String targetFcmToken = pushEndpointRepository.findByUser(user).orElseThrow(() -> new AppException(ErrorCode.MISSING_PUSH_ENDPOINT, "TransactionService - 000")).getToken();
+                    fcmService.sendMessage(targetFcmToken, notification.getTitle(), notification.getBody())
+                            .subscribe(
+                                    response -> {
+                                        System.out.println("✅ [TransactionService - 000] 예산초과 알림 전송 성공: " + response);
+                                        notification.updateIsDelivered(true);
+                                    },
+                                    error -> {
+                                        System.err.println("❌ [TransactionService - 000] 예산초과 알림 전송 실패: " + error.getMessage());
+                                        notification.updateIsDelivered(false);
+                                    }
+                            );
+                }
             } else {
-                accountSlot.updateIsBudgetExceeded(false);
+                splitAccountSlot.updateIsBudgetExceeded(false);
             }
 
             // dto > data > splitTransactions > slot
             // 예산초과 상태 아닐 때를 대비하여, exceededBudget값만 미리 계산
-            Long exceededBudget = accountSlot.getSpent() - accountSlot.getCurrentBudget();
-            if(exceededBudget < 0) {
-                exceededBudget = 0L;
+            Long splitAccountSlotExceededBudget = splitAccountSlot.getSpent() - splitAccountSlot.getCurrentBudget();
+            if(splitAccountSlotExceededBudget < 0) {
+                splitAccountSlotExceededBudget = 0L;
             }
 
             // originalAccountSlot에 남은 금액 계산 (남지 않았으면 0으로 세팅)
-            Long accountSlotRemainingBudget = accountSlot.getCurrentBudget() - accountSlot.getSpent();
-            if(accountSlotRemainingBudget < 0) {
-                accountSlotRemainingBudget = 0L;
+            Long splitAccountSlotRemainingBudget = splitAccountSlot.getCurrentBudget() - splitAccountSlot.getSpent();
+            if(splitAccountSlotRemainingBudget < 0) {
+                splitAccountSlotRemainingBudget = 0L;
             }
 
+            // dto > data > splitTransactions > slot
             AddSplitTransactionsResponseDto.SlotDto slotDto = AddSplitTransactionsResponseDto.SlotDto.builder()
                     .accountSlotId(splitTransactionDto.getAccountSlotId())
-                    .name(slot.getName())
+                    .name(slot.getName()) // 원본 슬롯이름. (AccountSlot 엔티티에 getName() 메서드 만들기 전에 작성한 비즈니스 로직이라ㅠ)
                     .isSaving(slot.isSaving())
-                    .isCustom(accountSlot.isCustom())
-                    .customName(accountSlot.getCustomName())
-                    .currentBudget(accountSlot.getCurrentBudget())
-                    .spent(accountSlot.getSpent())
-                    .remainingBudget(accountSlotRemainingBudget)
-                    .isBudgetExceeded(accountSlot.isBudgetExceeded())
-                    .exceededBudget(exceededBudget)
+                    .isCustom(splitAccountSlot.isCustom())
+                    .customName(splitAccountSlot.getCustomName())
+                    .currentBudget(splitAccountSlot.getCurrentBudget())
+                    .spent(splitAccountSlot.getSpent())
+                    .remainingBudget(splitAccountSlotRemainingBudget)
+                    .isBudgetExceeded(splitAccountSlot.isBudgetExceeded())
+                    .exceededBudget(splitAccountSlotExceededBudget)
                     .build();
 
             // dto > data > splitTransactions > transaction
             AddSplitTransactionsResponseDto.TransactionDto transactionDto2 = AddSplitTransactionsResponseDto.TransactionDto.builder()
-                    .transactionId(transaction.getUuid())
+                    .transactionId(splitTransaction.getUuid())
                     .amount(splitTransactionDto.getAmount())
                     .build();
 
@@ -463,7 +586,7 @@ public class TransactionService {
         }
 
         // 마지막에 나눈 금액들의 합 == 원래 금액인지 검사하고, 같지 않으면 400 응답
-        if(!originalAmount.equals(splitAmountSum)) {
+        if(!originalTransaction.getAmount().equals(splitAmountSum)) {
             throw new AppException(ErrorCode.INVALID_SPLIT_AMOUNT, "TransactionService - 019");
         }
 
@@ -474,6 +597,7 @@ public class TransactionService {
                 .opponentAccountNo(originalTransaction.getOpponentAccountNo())
                 .summary(originalTransaction.getSummary())
                 .amount(originalTransaction.getAmount())
+                .balance(originalTransaction.getBalance())
                 .transactionAt(originalTransaction.getTransactionAt())
                 .build();
         
@@ -484,6 +608,9 @@ public class TransactionService {
                 .data(AddSplitTransactionsResponseDto.Data.builder().originalTransaction(originalTransactionDto).splitTransactions(splitTransactionDtos).build())
                 .build();
 
+        // originalTransaction 삭제
+        transactionRepository.delete(originalTransaction);
+
         // 응답
         return addSplitTransactionsResponseDto;
     }
@@ -493,39 +620,77 @@ public class TransactionService {
      */
     public AddDutchPayTransactionsResponseDto addDutchPayTransactions(Long userId, String accountUuid, String transactionUuid, Integer n) {
 
+        // User, Transaction, AccountSlot 조회
+        User user = userRepository.findById(userId).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND, "TransactionService - 000"));
+        Transaction originalTransaction = transactionRepository.findByUuid(transactionUuid).orElseThrow(() -> new AppException(ErrorCode.TRANSACTION_NOT_FOUND, "TransactionService - 000"));
+        AccountSlot originalAccountSlot = originalTransaction.getAccountSlot();
+
         // userId != account userId 이면 403 응답
         Account account = accountRepository.findByUuid(accountUuid).orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "TransactionService - 021"));
         if(userId != account.getUser().getId()) {
             throw new AppException(ErrorCode.FORBIDDEN, "TransactionService - 022");
         }
 
-        // transaction 조회하고 변경 전 지출금액과 거래 후 잔액 값 저장해두기
-        Transaction originalTransaction = transactionRepository.findByUuid(transactionUuid).orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "TransactionService - 023"));
+        // 변경 전 지출금액과 거래 후 잔액 값 저장해두기
         Long originalAmount = originalTransaction.getAmount();
         Long originalBalance = originalTransaction.getBalance();
 
         // 1/n 계산
-        Long perPersonAmount = originalAmount / n;
+        Long perPersonAmount = originalAmount / n; // 소수점 고려하지 않고, 몫만 원래 슬롯에 남겨두고 나머지를 전부 미분류 슬롯으로 이동시킬 예정
 
-        // originalTransaction의 지출금액과 거래 후 잔액 값 조정
-        originalTransaction.minusAmount(originalAmount - perPersonAmount);
-        originalTransaction.addBalance(originalAmount - perPersonAmount);
+        // originalTransaction의 지출금액, 거래 후 잔액 값 조정
+        originalTransaction.decreaseAmount(originalAmount - perPersonAmount);
+        originalTransaction.increaseBalance(originalAmount - perPersonAmount);
 
-        // originalTransaction이 속한 슬롯 조회
-        AccountSlot originalAccountSlot = originalTransaction.getAccountSlot();
-        
-        // originalAccountSlot 값들 미리 저장해두기
+        // originalAccountSlot spent, isBudgetExceeded 필드 조정하기 전에 값들 미리 저장해두기 (응답할 때 더처페이하기 전의 슬롯상태도 보여줘야 하기 때문에)
         Long originalSpent = originalAccountSlot.getSpent();
         Long originalCurrentBudget = originalAccountSlot.getCurrentBudget();
         boolean originalIsBudgetExceeded = originalAccountSlot.isBudgetExceeded();
-        
-        // originalAccountSlot 지출금액 1/n만 남겨두고 나머지는 회복시키기
-        originalAccountSlot.minusSpent(originalAmount- perPersonAmount);
+
+        // originalAccountSlot 지출금액 1/n만 남겨두고 조정
+        originalAccountSlot.decreaseSpent(originalAmount - perPersonAmount);
+
+        // originalTransaction이 속한 accountSlot의 예산 초과여부 다시 검사
+        if(originalAccountSlot.getSpent() > originalAccountSlot.getCurrentBudget()) {
+            if(originalAccountSlot.isBudgetExceeded() == true) {
+                // 원래도 true였으면 그냥 가만히 있으면 됨
+            } else { // 그게 아니라 원래는 false 였다면 true로 바꿔주고, 푸시알림 보내야 함
+                originalAccountSlot.updateIsBudgetExceeded(true);
+
+                String title = "[⚠️예산초과] " + originalAccountSlot.getName() + "슬롯의 예산이 초과됐어요!";
+                String body = "(초과금액: " + (originalAccountSlot.getSpent() - originalAccountSlot.getCurrentBudget()) + "원)";
+
+                Notification notification = Notification.builder()
+                        .user(user)
+                        .title(title)
+                        .body(body)
+                        .type(Notification.Type.BUDGET)
+                        .build();
+
+                // Notification 객체 저장
+                notificationRepository.save(notification);
+
+                // 위에서 만든 notification 푸시알림 보내기
+                String targetFcmToken = pushEndpointRepository.findByUser(user).orElseThrow(() -> new AppException(ErrorCode.MISSING_PUSH_ENDPOINT, "TransactionService - 000")).getToken();
+                fcmService.sendMessage(targetFcmToken, notification.getTitle(), notification.getBody())
+                        .subscribe(
+                                response -> {
+                                    System.out.println("✅ [TransactionService - 000] 예산초과 알림 전송 성공: " + response);
+                                    notification.updateIsDelivered(true);
+                                },
+                                error -> {
+                                    System.err.println("❌ [TransactionService - 000] 예산초과 알림 전송 실패: " + error.getMessage());
+                                    notification.updateIsDelivered(false);
+                                }
+                        );
+            }
+        } else {
+            originalAccountSlot.updateIsBudgetExceeded(false);
+        }
 
         // 미분류 슬롯에 들어갈 트랜잭션 객체 하나 더 만들고 save.
         // 이 계좌의 미분류 슬롯 객체 조회
-        Slot uncategorizedSlot = slotRepository.findById(0L).orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "TransactionService - 024"));
-        AccountSlot uncategorizedAccountSlot = accountSlotRepository.findByAccountAndSlot(account, uncategorizedSlot).orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "TransactionService - 025"));
+        AccountSlot uncategorizedAccountSlot = accountSlotRepository.findUncategorizedAccountSlot(accountUuid).orElseThrow(() -> new AppException(ErrorCode.MISSING_UNCATEGORIZED_SLOT, "TransactionService - 025"));
         Transaction newTransaction = Transaction.builder()
                 .account(account)
                 .accountSlot(uncategorizedAccountSlot)
@@ -541,19 +706,19 @@ public class TransactionService {
         transactionRepository.save(newTransaction);
 
         // 미분류 슬롯의 지출금액 증가
-        uncategorizedAccountSlot.addSpent(originalAmount - perPersonAmount);
+        uncategorizedAccountSlot.increaseSpent(originalAmount - perPersonAmount);
 
         // dto > data > originalTransaction
         // originalAccountSlot에 초과된 금액 계산 (초과하지 않았으면 0으로 세팅)
-        Long originalAccountSlotExceededBudget = originalSpent - originalCurrentBudget;
-        if(originalAccountSlotExceededBudget < 0) {
-            originalAccountSlotExceededBudget = 0L;
+        Long originalExceededBudget = originalSpent - originalCurrentBudget;
+        if(originalExceededBudget < 0) {
+            originalExceededBudget = 0L;
         }
 
         // originalAccountSlot에 남은 금액 계산 (남지 않았으면 0으로 세팅)
-        Long originalAccountSlotRemainingBudget = originalCurrentBudget - originalSpent;
-        if(originalAccountSlotRemainingBudget < 0) {
-            originalAccountSlotRemainingBudget = 0L;
+        Long originalRemainingBudget = originalCurrentBudget - originalSpent;
+        if(originalRemainingBudget < 0) {
+            originalRemainingBudget = 0L;
         }
 
         // dto > data > originalTransaction > slotDto
@@ -565,9 +730,9 @@ public class TransactionService {
                 .customName(originalAccountSlot.getCustomName())
                 .currentBudget(originalCurrentBudget)
                 .spent(originalSpent)
-                .remainingBudget(originalAccountSlotRemainingBudget)
+                .remainingBudget(originalRemainingBudget)
                 .isBudgetExceeded(originalIsBudgetExceeded)
-                .exceededBudget(originalAccountSlotExceededBudget)
+                .exceededBudget(originalExceededBudget)
                 .build();
 
         // dto > data > originalTransaction > transactionDto
@@ -581,8 +746,20 @@ public class TransactionService {
                 .transactionAt(originalTransaction.getTransactionAt())
                 .build();
 
-        // dto > data > dutchPayTransactions > slotDto > 0
-        AddDutchPayTransactionsResponseDto.SlotDto dutchPaySlotDto0 = AddDutchPayTransactionsResponseDto.SlotDto.builder()
+        // dto > data > dutchPayTransactions > slotDto (기존슬롯의 더치페이 후 값들을 보여주는 용도)
+        // 더치페이 후 originalAccountSlot에 초과된 금액 계산 (초과하지 않았으면 0으로 세팅)
+        Long originalExceededBudgetAfterDutchPay = originalAccountSlot.getSpent() - originalAccountSlot.getCurrentBudget();
+        if(originalExceededBudgetAfterDutchPay < 0) {
+            originalExceededBudgetAfterDutchPay = 0L;
+        }
+
+        // 더치페이 후 originalAccountSlot에 남은 금액 계산 (남지 않았으면 0으로 세팅)
+        Long originalRemainingBudgetAfterDutchPay = originalAccountSlot.getCurrentBudget() - originalAccountSlot.getSpent();
+        if(originalRemainingBudgetAfterDutchPay < 0) {
+            originalRemainingBudgetAfterDutchPay = 0L;
+        }
+
+        AddDutchPayTransactionsResponseDto.SlotDto originalSlotDtoAfterDutchPay = AddDutchPayTransactionsResponseDto.SlotDto.builder()
                 .accountSlotId(originalAccountSlot.getUuid())
                 .name(originalAccountSlot.getSlot().getName())
                 .isSaving(originalAccountSlot.getSlot().isSaving())
@@ -590,39 +767,13 @@ public class TransactionService {
                 .customName(originalAccountSlot.getCustomName())
                 .currentBudget(originalAccountSlot.getCurrentBudget())
                 .spent(originalAccountSlot.getSpent())
-                .remainingBudget(originalAccountSlot.getCurrentBudget() - originalAccountSlot.getSpent())
+                .remainingBudget(originalRemainingBudgetAfterDutchPay)
                 .isBudgetExceeded(originalAccountSlot.isBudgetExceeded())
-                .exceededBudget(originalAccountSlotExceededBudget)
+                .exceededBudget(originalExceededBudgetAfterDutchPay)
                 .build();
 
-        // uncategorizedAccountSlot에 초과된 금액 계산 (초과하지 않았으면 0으로 세팅)
-        Long uncategorizedAccountSlotExceededBudget = uncategorizedAccountSlot.getSpent() - uncategorizedAccountSlot.getCurrentBudget();
-        if(uncategorizedAccountSlotExceededBudget < 0) {
-            uncategorizedAccountSlotExceededBudget = 0L;
-        }
-
-        // uncategorizedAccountSlot에 남은 금액 계산 (남지 않았으면 0으로 세팅)
-        Long uncategorizedAccountSlotRemainingBudget = uncategorizedAccountSlot.getCurrentBudget() - uncategorizedAccountSlot.getSpent();
-        if(uncategorizedAccountSlotRemainingBudget < 0) {
-            uncategorizedAccountSlotRemainingBudget = 0L;
-        }
-
-        // dto > data > dutchPayTransactions > slotDto > 1
-        AddDutchPayTransactionsResponseDto.SlotDto dutchPaySlotDto1 = AddDutchPayTransactionsResponseDto.SlotDto.builder()
-                .accountSlotId(uncategorizedAccountSlot.getUuid())
-                .name(uncategorizedAccountSlot.getSlot().getName())
-                .isSaving(uncategorizedAccountSlot.getSlot().isSaving())
-                .isCustom(uncategorizedAccountSlot.isCustom())
-                .customName(uncategorizedAccountSlot.getCustomName())
-                .currentBudget(uncategorizedAccountSlot.getCurrentBudget())
-                .spent(uncategorizedAccountSlot.getSpent())
-                .remainingBudget(uncategorizedAccountSlotRemainingBudget)
-                .isBudgetExceeded(uncategorizedAccountSlot.isBudgetExceeded())
-                .exceededBudget(uncategorizedAccountSlotExceededBudget)
-                .build();
-
-        // dto > data > dutchPayTransactions > transactionDto > 0
-        AddDutchPayTransactionsResponseDto.TransactionDto dutchPayTransactionDto0 = AddDutchPayTransactionsResponseDto.TransactionDto.builder()
+        // dto > data > dutchPayTransactions > transactionDto (더치페이 후 거래내역의 값들)
+        AddDutchPayTransactionsResponseDto.TransactionDto originalTransactionAfterDutchPay = AddDutchPayTransactionsResponseDto.TransactionDto.builder()
                 .transactionId(originalTransaction.getUuid())
                 .type(originalTransaction.getType())
                 .opponentAccountNo(originalTransaction.getOpponentAccountNo())
@@ -632,8 +783,20 @@ public class TransactionService {
                 .transactionAt(originalTransaction.getTransactionAt())
                 .build();
 
-        // dto > data > dutchPayTransactions > transactionDto > 1
-        AddDutchPayTransactionsResponseDto.TransactionDto dutchPayTransactionDto1 = AddDutchPayTransactionsResponseDto.TransactionDto.builder()
+        // dto > data > dutchPayTransactions > slotDto (더치페이 후 미분류 슬롯의 값들)
+        AddDutchPayTransactionsResponseDto.SlotDto uncategorizedSlotDtoAfterDutchPay = AddDutchPayTransactionsResponseDto.SlotDto.builder()
+                .accountSlotId(uncategorizedAccountSlot.getUuid())
+                .name(uncategorizedAccountSlot.getSlot().getName())
+                .isSaving(uncategorizedAccountSlot.getSlot().isSaving())
+                .isCustom(uncategorizedAccountSlot.isCustom())
+                .customName(uncategorizedAccountSlot.getCustomName())
+                .currentBudget(uncategorizedAccountSlot.getCurrentBudget())
+                .spent(uncategorizedAccountSlot.getSpent())
+                .isBudgetExceeded(uncategorizedAccountSlot.isBudgetExceeded())
+                .build();
+        
+        // dto > data > dutchPayTransactions > transactionDto (더치페이하기 위해 미분류 슬롯에 새로 생긴 거래내역의 값들)
+        AddDutchPayTransactionsResponseDto.TransactionDto uncategorizedTransactionDtoAfterDutchPay = AddDutchPayTransactionsResponseDto.TransactionDto.builder()
                 .transactionId(newTransaction.getUuid())
                 .type(newTransaction.getType())
                 .opponentAccountNo(newTransaction.getOpponentAccountNo())
@@ -644,8 +807,8 @@ public class TransactionService {
                 .build();
 
         List<AddDutchPayTransactionsResponseDto.SlotAndTransactionDto> dutchPayTransactions = new ArrayList<>();
-        dutchPayTransactions.add(AddDutchPayTransactionsResponseDto.SlotAndTransactionDto.builder().slot(dutchPaySlotDto0).transaction(dutchPayTransactionDto0).build());
-        dutchPayTransactions.add(AddDutchPayTransactionsResponseDto.SlotAndTransactionDto.builder().slot(dutchPaySlotDto1).transaction(dutchPayTransactionDto1).build());
+        dutchPayTransactions.add(AddDutchPayTransactionsResponseDto.SlotAndTransactionDto.builder().slot(originalSlotDtoAfterDutchPay).transaction(originalTransactionAfterDutchPay).build());
+        dutchPayTransactions.add(AddDutchPayTransactionsResponseDto.SlotAndTransactionDto.builder().slot(uncategorizedSlotDtoAfterDutchPay).transaction(uncategorizedTransactionDtoAfterDutchPay).build());
 
         // dto > data
         AddDutchPayTransactionsResponseDto.Data data = AddDutchPayTransactionsResponseDto.Data.builder()
@@ -664,8 +827,13 @@ public class TransactionService {
         return addDutchPayTransactionsResponseDto;
     }
 
+    @Transactional(isolation = Isolation.READ_COMMITTED)
     @Scheduled(fixedRate = 60000)
     public void checkTransactions() {
+
+//        // 모아서 DB 가기 위해서 버퍼용 리스트 생성
+//        List<Transaction> transactionBuffer = new ArrayList<>();
+//        List<Notification> notificationBuffer = new ArrayList<>();
 
         // 우리 서비스 전체 유저
         List<User> users = userRepository.findAll();
@@ -730,10 +898,8 @@ public class TransactionService {
 
                 Transaction: for(SSAFYGetTransactionListResponseDto.Transaction transactionDto : transactions) {
 
-// account.getLastSyncedTransactionUniqueNo()
-
                     // transactionUniqueNo이 lastSyncedTransactionNo보다 큰 게 있다면 갱신
-                    if(transactionDto.getTransactionUniqueNo() > Long.parseLong("0")) {
+                    if(transactionDto.getTransactionUniqueNo() > account.getLastSyncedTransactionUniqueNo()) {
 
                         // 계좌 마지막 동기화 날짜 업데이트
                         account.updateLastSyncedTransactionUniqueNo(transactionDto.getTransactionUniqueNo());
@@ -743,77 +909,67 @@ public class TransactionService {
 
                         // 이 거래내역에서 쓸 Transaction, Notification, AccountSlot 객체와 푸시알림을 보낼 때 사용할 title, body
                         Transaction newTransaction = null;
+                        Notification notification;
                         AccountSlot accountSlot = null;
                         String title = null;
                         String body = null;
 
                         if(transactionType.equals("입금") || transactionType.equals("입금(이체)")) {    // 입금이면 무조건 미분류 슬롯에서 증액
-                            uncategorizedAccountSlot.addBudget(transactionDto.getTransactionBalance());
+                            uncategorizedAccountSlot.increaseSpent(transactionDto.getTransactionBalance());
 
                             // 푸시알림 내용
-                            title = "[입금알림] " + transactionDto.getTransactionSummary() + "님이 입금하신 " + transactionDto.getTransactionBalance() + "원을 미분류 금액으로 증액했어요!🚀";
+                            title = "[✉️입금알림] " + transactionDto.getTransactionSummary() + "님이 입금하신 " + transactionDto.getTransactionBalance() + "원을 미분류 금액으로 증액했어요!";
                             body = "(미분류 누적금액: " + uncategorizedAccountSlot.getSpent() + "원)";
 
                             // Notification 객체 생성
-                            Notification notification = Notification.builder()
+                            notification = Notification.builder()
                                     .user(user)
                                     .title(title)
                                     .body(body)
                                     .type(Notification.Type.UNCATEGORIZED)
                                     .build();
 
-                            // Notification 객체 저장
-                            notificationRepository.save(notification);
+//                            notificationBuffer.add(notification);
+//
+//                            // Notification 객체 저장
+//                            if (notificationBuffer.size() >= 100) { // transactionBuffer에 100개 이상 쌓이면 저장
+//                                notificationRepository.saveAll(notificationBuffer);
+//                                notificationRepository.flush();
+//                                notificationBuffer.clear();
+//                            }
 
+                            notificationRepository.save(notification);
+                            fcmService.sendMessageNotification(targetFcmToken, notification); // 알림발송
+                            
                             // accountSlot을 미분류 슬롯으로 세팅
                             accountSlot = uncategorizedAccountSlot;
 
-                            // 위에서 만든 notification 푸시알림 보내기
-                            targetFcmToken = pushEndpointRepository.findByUser(user).orElseThrow(() -> new AppException(ErrorCode.MISSING_PUSH_ENDPOINT, "TransactionService - 000")).getToken();
-                            System.out.println("알림보내는중...");
-                            fcmService.sendMessage(targetFcmToken, notification.getTitle(), notification.getBody())
-                                    .subscribe(
-                                            response -> {
-                                                System.out.println("✅ FCM 전송 성공: " + response);
-                                                notification.updateIsDelivered(true);
-                                            },
-                                            error -> {
-                                                System.err.println("❌ FCM 전송 실패: " + error.getMessage());
-                                                notification.updateIsDelivered(false);
-                                            }
-                                    );
                         } else if (transactionType.equals("출금(이체)")) {    // 출금(이체)이면 무조건 미분류 슬롯에서 차감
-                            uncategorizedAccountSlot.addSpent(transactionDto.getTransactionBalance());
+                            uncategorizedAccountSlot.increaseSpent(transactionDto.getTransactionBalance());
 
                             // 푸시알림 내용
-                            title = "[미분류 지출발생] " + transactionDto.getTransactionSummary() + "님에게 입금한 " + transactionDto.getTransactionBalance() + "원을 슬롯에 분배해주세요!🚀";
+                            title = "[🚀미분류 지출발생] " + transactionDto.getTransactionSummary() + "님에게 입금한 " + transactionDto.getTransactionBalance() + "원을 슬롯에 분배해주세요!";
                             body = "(미분류 누적금액: " + uncategorizedAccountSlot.getSpent() + "원)";
 
                             // Notification 객체 생성
-                            Notification notification = Notification.builder()
+                            notification = Notification.builder()
                                     .user(user)
                                     .title(title)
                                     .body(body)
                                     .type(Notification.Type.UNCATEGORIZED)
                                     .build();
 
-                            // Notification 객체 저장
-                            notificationRepository.save(notification);
+//                            notificationBuffer.add(notification);
+//
+//                            // Notification 객체 저장
+//                            if (notificationBuffer.size() >= 100) { // transactionBuffer에 100개 이상 쌓이면 저장
+//                                notificationRepository.saveAll(notificationBuffer);
+//                                notificationRepository.flush();
+//                                notificationBuffer.clear();
+//                            }
 
-                            // 위에서 만든 notification 푸시알림 보내기
-                            targetFcmToken = pushEndpointRepository.findByUser(user).orElseThrow(() -> new AppException(ErrorCode.MISSING_PUSH_ENDPOINT, "TransactionService - 000")).getToken();
-                            System.out.println("알림보내는중...");
-                            fcmService.sendMessage(targetFcmToken, notification.getTitle(), notification.getBody())
-                                    .subscribe(
-                                            response -> {
-                                                System.out.println("✅ FCM 전송 성공: " + response);
-                                                notification.updateIsDelivered(true);
-                                            },
-                                            error -> {
-                                                System.err.println("❌ FCM 전송 실패: " + error.getMessage());
-                                                notification.updateIsDelivered(false);
-                                            }
-                                    );
+                            notificationRepository.save(notification);
+                            fcmService.sendMessageNotification(targetFcmToken, notification); // 알림발송
 
                         } else {    // 출금이면 아래 로직 적용
                             String merchantName = transactionDto.getTransactionSummary();    // 발생한 거래내역 거래처 이름
@@ -829,7 +985,7 @@ public class TransactionService {
                                 if(accountSlot != null) { // 그 슬롯이 이 계좌에 있다면 그 슬롯으로 그대로 두고, Notification 객체 만들어서 저장
 
                                     // accountSlot 필드 최신화
-                                    accountSlot.addSpent(transactionDto.getTransactionBalance());
+                                    accountSlot.increaseSpent(transactionDto.getTransactionBalance());
                                     if((accountSlot.getCurrentBudget() - accountSlot.getSpent()) < 0) {    // 지출이 예산을 초과했다면...
 
                                         accountSlot.updateIsBudgetExceeded(true);
@@ -842,8 +998,8 @@ public class TransactionService {
                                             slotName = accountSlot.getSlot().getName();
                                         }
 
-                                        title = "[예산초과] " + slotName + "슬롯의 예산이 초과됐어요!";
-                                        body = "(초과금액: " + (accountSlot.getSpent() - accountSlot.getCurrentBudget()) + ")";
+                                        title = "[⚠️예산초과] " + slotName + "슬롯의 예산이 초과됐어요!";
+                                        body = "(초과금액: " + (accountSlot.getSpent() - accountSlot.getCurrentBudget()) + "원)";
 
                                         // Notification 객체 만들고 저장
                                         Notification budgetExceededNotification = Notification.builder()
@@ -853,20 +1009,17 @@ public class TransactionService {
                                                 .type(Notification.Type.BUDGET)
                                                 .build();
 
-                                        notificationRepository.save(budgetExceededNotification);
+//                                        notificationBuffer.add(budgetExceededNotification);
+//
+//                                        // Notification 객체 저장
+//                                        if (notificationBuffer.size() >= 100) { // transactionBuffer에 100개 이상 쌓이면 저장
+//                                            notificationRepository.saveAll(notificationBuffer);
+//                                            notificationRepository.flush();
+//                                            notificationBuffer.clear();
+//                                        }
 
-                                        // 푸시알림 전송... 아휴
-                                        fcmService.sendMessage(targetFcmToken, budgetExceededNotification.getTitle(), budgetExceededNotification.getBody())
-                                                .subscribe(
-                                                        response -> {
-                                                            System.out.println("✅ FCM 전송 성공: " + response);
-                                                            budgetExceededNotification.updateIsDelivered(true);
-                                                        },
-                                                        error -> {
-                                                            System.err.println("❌ FCM 전송 실패: " + error.getMessage());
-                                                            budgetExceededNotification.updateIsDelivered(false);
-                                                        }
-                                                );
+                                        notificationRepository.save(budgetExceededNotification);
+                                        fcmService.sendMessageNotification(targetFcmToken, budgetExceededNotification); // 알림발송
 
                                     } else {    // 지출이 예산을 초과하지 않았다면...
                                         accountSlot.updateIsBudgetExceeded(false);    // 혹시 모르니깐 예산초과 여부 false로 한번 더 덮어씌우기
@@ -881,7 +1034,7 @@ public class TransactionService {
                                     }
 
                                     // 푸시알림 내용
-                                    title = "[지출알림] " + transactionDto.getTransactionSummary() + "에서 결제한 " + transactionDto.getTransactionBalance() + "원을 " + slotName + " 슬롯에서 차감했어요!🚀";
+                                    title = "[💸지출알림] " + transactionDto.getTransactionSummary() + "에서 결제한 " + transactionDto.getTransactionBalance() + "원을 " + slotName + " 슬롯에서 차감했어요!🚀";
 
                                     Long remainingBudget = accountSlot.getCurrentBudget() - accountSlot.getSpent();
                                     if(remainingBudget < 0) {
@@ -891,37 +1044,31 @@ public class TransactionService {
                                     }
 
                                     // Notification 객체 생성
-                                    Notification notification = Notification.builder()
+                                    notification = Notification.builder()
                                             .user(user)
                                             .title(title)
                                             .body(body)
                                             .type(Notification.Type.SLOT)
                                             .build();
 
-                                    // Notification 객체 저장
-                                    notificationRepository.save(notification);
-                                    // 위에서 만든 notification 푸시알림 보내기
-                                    targetFcmToken = pushEndpointRepository.findByUser(user).orElseThrow(() -> new AppException(ErrorCode.MISSING_PUSH_ENDPOINT, "TransactionService - 000")).getToken();
-                                    System.out.println("알림보내는중...");
-                                    fcmService.sendMessage(targetFcmToken, notification.getTitle(), notification.getBody())
-                                            .subscribe(
-                                                    response -> {
-                                                        System.out.println("✅ FCM 전송 성공: " + response);
-                                                        notification.updateIsDelivered(true);
-                                                    },
-                                                    error -> {
-                                                        System.err.println("❌ FCM 전송 실패: " + error.getMessage());
-                                                        notification.updateIsDelivered(false);
-                                                    }
-                                            );
+//                                    notificationBuffer.add(notification);
+//
+//                                    // Notification 객체 저장
+//                                    if (notificationBuffer.size() >= 100) { // transactionBuffer에 100개 이상 쌓이면 저장
+//                                        notificationRepository.saveAll(notificationBuffer);
+//                                        notificationRepository.flush();
+//                                        notificationBuffer.clear();
+//                                    }
 
+                                    notificationRepository.save(notification);
+                                    fcmService.sendMessageNotification(targetFcmToken, notification); // 알림발송
 
                                 } else {    // 그 슬롯이 이 계좌에 개설돼있지 않다면...
                                     AccountSlot recommededAccountSlot = recommendSlotFromGPT(account, merchantName);    //    이 계좌에 있는 슬롯들 기준으로 추천받기
                                     if(recommededAccountSlot != null) {    // 추천된게 있으면...
                                         // 그래도 일단 미분류 슬롯에서 차감
                                         accountSlot = uncategorizedAccountSlot;
-                                        uncategorizedAccountSlot.addSpent(transactionDto.getTransactionBalance());
+                                        uncategorizedAccountSlot.increaseSpent(transactionDto.getTransactionBalance());
 
                                         // 슬롯이름 미리 받아두기
                                         String slotName = null;
@@ -932,68 +1079,57 @@ public class TransactionService {
                                         }
 
                                         // 푸시알림 내용
-                                        title = "[🤖AI추천] " + transactionDto.getTransactionSummary() + "에서 결제한 " + transactionDto.getTransactionBalance() + "원을 " + slotName + " 슬롯에서 차감할까요?☺️";
+                                        title = "[🤖AI추천] " + transactionDto.getTransactionSummary() + "에서 결제한 " + transactionDto.getTransactionBalance() + "원을 " + slotName + " 슬롯에서 차감할까요?";
                                         body = "(미분류 누적금액: " + uncategorizedAccountSlot.getSpent() + "원)";
 
                                         // Notification 객체 생성
-                                        Notification notification = Notification.builder()
+                                        notification = Notification.builder()
                                                 .user(user)
                                                 .title(title)
                                                 .body(body)
                                                 .type(Notification.Type.UNCATEGORIZED)
                                                 .build();
 
-                                        // Notification 객체 저장
-                                        notificationRepository.save(notification);
+//                                        notificationBuffer.add(notification);
+//
+//                                        // Notification 객체 저장
+//                                        if (notificationBuffer.size() >= 100) { // transactionBuffer에 100개 이상 쌓이면 저장
+//                                            notificationRepository.saveAll(notificationBuffer);
+//                                            notificationRepository.flush();
+//                                            notificationBuffer.clear();
+//                                        }
 
-                                        // 위에서 만든 notification 푸시알림 보내기
-                                        targetFcmToken = pushEndpointRepository.findByUser(user).orElseThrow(() -> new AppException(ErrorCode.MISSING_PUSH_ENDPOINT, "TransactionService - 000")).getToken();
-                                        System.out.println("알림보내는중...");
-                                        fcmService.sendMessage(targetFcmToken, notification.getTitle(), notification.getBody())
-                                                .subscribe(
-                                                        response -> {
-                                                            System.out.println("✅ FCM 전송 성공: " + response);
-                                                            notification.updateIsDelivered(true);
-                                                        },
-                                                        error -> {
-                                                            System.err.println("❌ FCM 전송 실패: " + error.getMessage());
-                                                            notification.updateIsDelivered(false);
-                                                        }
-                                                );
+                                        notificationRepository.save(notification);
+                                        fcmService.sendMessageNotification(targetFcmToken, notification); // 알림발송
+
                                     } else {    // 추천된게 없다면...
                                         // 미분류 슬롯에서 차감
                                         accountSlot = uncategorizedAccountSlot;
-                                        uncategorizedAccountSlot.addSpent(transactionDto.getTransactionBalance());
+                                        uncategorizedAccountSlot.increaseSpent(transactionDto.getTransactionBalance());
 
                                         // 푸시알림 내용
-                                        title = "[미분류 지출발생] " + transactionDto.getTransactionSummary() + "에서 결제한 " + transactionDto.getTransactionBalance() + "원을 슬롯에 분배해주세요!🚀";
+                                        title = "[🚀미분류 지출발생] " + transactionDto.getTransactionSummary() + "에서 결제한 " + transactionDto.getTransactionBalance() + "원을 슬롯에 분배해주세요!";
                                         body = "(미분류 누적금액: " + uncategorizedAccountSlot.getSpent() + "원)";
 
                                         // Notification 객체 생성
-                                        Notification notification = Notification.builder()
+                                        notification = Notification.builder()
                                                 .user(user)
                                                 .title(title)
                                                 .body(body)
                                                 .type(Notification.Type.UNCATEGORIZED)
                                                 .build();
 
-                                        // Notification 객체 저장
-                                        notificationRepository.save(notification);
+//                                        notificationBuffer.add(notification);
+//
+//                                        // Notification 객체 저장
+//                                        if (notificationBuffer.size() >= 100) { // transactionBuffer에 100개 이상 쌓이면 저장
+//                                            notificationRepository.saveAll(notificationBuffer);
+//                                            notificationRepository.flush();
+//                                            notificationBuffer.clear();
+//                                        }
 
-                                        // 위에서 만든 notification 푸시알림 보내기
-                                        targetFcmToken = pushEndpointRepository.findByUser(user).orElseThrow(() -> new AppException(ErrorCode.MISSING_PUSH_ENDPOINT, "TransactionService - 000")).getToken();
-                                        System.out.println("알림보내는중...");
-                                        fcmService.sendMessage(targetFcmToken, notification.getTitle(), notification.getBody())
-                                                .subscribe(
-                                                        response -> {
-                                                            System.out.println("✅ FCM 전송 성공: " + response);
-                                                            notification.updateIsDelivered(true);
-                                                        },
-                                                        error -> {
-                                                            System.err.println("❌ FCM 전송 실패: " + error.getMessage());
-                                                            notification.updateIsDelivered(false);
-                                                        }
-                                                );
+                                        notificationRepository.save(notification);
+                                        fcmService.sendMessageNotification(targetFcmToken, notification); // 알림발송
                                     }
                                 }
                             } else { // 우리 DB에 존재하지 않아도 GPT한테 추천받기
@@ -1001,7 +1137,7 @@ public class TransactionService {
                                 if(recommededAccountSlot != null) {    // 추천된게 있다면...
                                     // 그래도 일단 미분류 슬롯에서 차감
                                     accountSlot = uncategorizedAccountSlot;
-                                    uncategorizedAccountSlot.addSpent(transactionDto.getTransactionBalance());
+                                    uncategorizedAccountSlot.increaseSpent(transactionDto.getTransactionBalance());
 
                                     // 슬롯이름 미리 받아두기
                                     String slotName = null;
@@ -1012,66 +1148,58 @@ public class TransactionService {
                                     }
 
                                     // 푸시알림 내용
-                                    title = "[🤖AI추천] " + transactionDto.getTransactionSummary() + "에서 결제한 " + transactionDto.getTransactionBalance() + "원을 " + slotName + " 슬롯에서 차감할까요?☺️";
+                                    title = "[🤖AI추천] " + transactionDto.getTransactionSummary() + "에서 결제한 " + transactionDto.getTransactionBalance() + "원을 " + slotName + " 슬롯에서 차감할까요?";
                                     body = "(미분류 누적금액: " + uncategorizedAccountSlot.getSpent() + "원)";
 
                                     // Notification 객체 생성
-                                    Notification notification = Notification.builder()
+                                    notification = Notification.builder()
                                             .user(user)
                                             .title(title)
                                             .body(body)
                                             .type(Notification.Type.UNCATEGORIZED)
                                             .build();
 
-                                    // Notification 객체 저장
-                                    notificationRepository.save(notification);
+//                                    notificationBuffer.add(notification);
+//
+//                                    // Notification 객체 저장
+//                                    if (notificationBuffer.size() >= 100) { // transactionBuffer에 100개 이상 쌓이면 저장
+//                                        notificationRepository.saveAll(notificationBuffer);
+//                                        notificationRepository.flush();
+//                                        notificationBuffer.clear();
+//                                    }
 
-                                    // 위에서 만든 notification 푸시알림 보내기
-                                    targetFcmToken = pushEndpointRepository.findByUser(user).orElseThrow(() -> new AppException(ErrorCode.MISSING_PUSH_ENDPOINT, "TransactionService - 000")).getToken();
-                                    fcmService.sendMessage(targetFcmToken, notification.getTitle(), notification.getBody())
-                                            .subscribe(
-                                                    response -> {
-                                                        System.out.println("✅ FCM 전송 성공: " + response);
-                                                        notification.updateIsDelivered(true);
-                                                    },
-                                                    error -> {
-                                                        System.err.println("❌ FCM 전송 실패: " + error.getMessage());
-                                                        notification.updateIsDelivered(false);
-                                                    }
-                                            );
+                                    notificationRepository.save(notification);
+                                    fcmService.sendMessageNotification(targetFcmToken, notification); // 알림발송
+
                                 } else {    // 추천된게 없다면...
                                     // 미분류 슬롯에서 차감
                                     accountSlot = uncategorizedAccountSlot;
-                                    uncategorizedAccountSlot.addSpent(transactionDto.getTransactionBalance());
+                                    uncategorizedAccountSlot.increaseSpent(transactionDto.getTransactionBalance());
 
                                     // 푸시알림 내용
-                                    title = "[미분류 지출발생] " + transactionDto.getTransactionSummary() + "에서 결제한 " + transactionDto.getTransactionBalance() + "원을 슬롯에 분배해주세요!🚀";
+                                    title = "[🚀미분류 지출발생] " + transactionDto.getTransactionSummary() + "에서 결제한 " + transactionDto.getTransactionBalance() + "원을 슬롯에 분배해주세요!";
                                     body = "(미분류 누적금액: " + uncategorizedAccountSlot.getSpent() + "원)";
 
                                     // Notification 객체 생성
-                                    Notification notification = Notification.builder()
+                                    notification = Notification.builder()
                                             .user(user)
                                             .title(title)
                                             .body(body)
                                             .type(Notification.Type.UNCATEGORIZED)
                                             .build();
 
-                                    // Notification 객체 저장
-                                    notificationRepository.save(notification);
+//
+//                                    notificationBuffer.add(notification);
+//
+//                                    // Notification 객체 저장
+//                                    if (notificationBuffer.size() >= 100) { // transactionBuffer에 100개 이상 쌓이면 저장
+//                                        notificationRepository.saveAll(notificationBuffer);
+//                                        notificationRepository.flush();
+//                                        notificationBuffer.clear();
+//                                    }
 
-                                    // 위에서 만든 notification 푸시알림 보내기
-                                    targetFcmToken = pushEndpointRepository.findByUser(user).orElseThrow(() -> new AppException(ErrorCode.MISSING_PUSH_ENDPOINT, "TransactionService - 000")).getToken();
-                                    fcmService.sendMessage(targetFcmToken, notification.getTitle(), notification.getBody())
-                                            .subscribe(
-                                                    response -> {
-                                                        System.out.println("✅ FCM 전송 성공: " + response);
-                                                        notification.updateIsDelivered(true);
-                                                    },
-                                                    error -> {
-                                                        System.err.println("❌ FCM 전송 실패: " + error.getMessage());
-                                                        notification.updateIsDelivered(false);
-                                                    }
-                                            );
+                                    notificationRepository.save(notification);
+                                    fcmService.sendMessageNotification(targetFcmToken, notification); // 알림발송
                                 }
                             }
 
@@ -1088,8 +1216,15 @@ public class TransactionService {
                                     .transactionAt(LocalDateTimeFormatter.StringToLocalDateTime(transactionDto.getTransactionDate(), transactionDto.getTransactionTime()))
                                     .build();
 
-                            // Transaction 객체 저장
                             transactionRepository.save(newTransaction);
+
+//                            transactionBuffer.add(newTransaction); // 새로운 Transaction 객체를 buffer에 저장
+//
+//                            if (transactionBuffer.size() >= 100) { // transactionBuffer에 100개 이상 쌓이면 저장
+//                                transactionRepository.saveAll(transactionBuffer);
+//                                transactionRepository.flush();
+//                                transactionBuffer.clear();
+//                            }
 
                             // 계좌 각종 필드들 최신화 (마지막 동기일, 잔액)
                             // SSAFY 금융 API >>>>> 2.4.12 계좌 거래내역 조회
@@ -1131,14 +1266,23 @@ public class TransactionService {
                             // account 필드들 최신화
                             account.updateLastSyncedAt(LocalDateTime.now());
                             account.updateBalance(httpResponse2.getBody().getREC().getAccountBalance());
-
-                            // lastSyncedDate 변수 최신화
-                            lastSyncedDate = formattedDateTime.get("date");
                         }
+                        account.updateLastSyncedTransactionUniqueNo(transactionDto.getTransactionUniqueNo());
                     }
                 }
+
+//                if (!transactionBuffer.isEmpty()) {
+//                    transactionRepository.saveAll(transactionBuffer);
+//                }
+//
+//                if (!notificationBuffer.isEmpty()) {
+//                    notificationRepository.saveAll(notificationBuffer);
+//                }
             }
         }
+
+        // lastSyncedDate 변수 최신화
+        lastSyncedDate = LocalDateTimeFormatter.formatter().get("date");
     }
 
     /**
@@ -1163,9 +1307,17 @@ public class TransactionService {
         // gpt한테 보내기 위해 이 계좌 slot 전체조회
         List<AccountSlot> accountSlots = accountSlotRepository.findByAccount(account);
 
+        // 미분류 슬롯은 제외하기
+        List<AccountSlot> filteredAccountSlots = new ArrayList<>();
+        for(AccountSlot accountSlot : accountSlots){
+            if(accountSlot.getSlot().getId() != 0L) {
+                filteredAccountSlots.add(accountSlot);
+            }
+        }
+
         // 계좌 슬롯 담을 Dto 리스트
         List<AccountSlotDto> accountSlotDtos = new ArrayList<>();
-        for(AccountSlot accountSlot : accountSlots){
+        for(AccountSlot accountSlot : filteredAccountSlots){
 
             ChatGPTRequestDto.AccountSlotDto accountSlotDto = ChatGPTRequestDto.AccountSlotDto.builder()
                     .slotName(accountSlot.getSlot().getName())

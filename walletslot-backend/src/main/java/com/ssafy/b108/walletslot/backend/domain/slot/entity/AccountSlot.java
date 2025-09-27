@@ -83,28 +83,24 @@ public class AccountSlot {
         this.currentBudget = newBudget;
     }
 
-    public void increaseBudgetChangeCount() {
+    public void addBudgetChangeCount() {
         this.budgetChangeCount++;
     }
 
-    public void updateSpent(Long spent) {
-        this.spent = spent;
+    public void updateSpent(Long spent) { this.spent = spent; }
+
+    public void increaseSpent(Long spent) {
+        this.spent += spent;
     }
+
+    public void decreaseSpent(Long spent) { this.spent -= spent; }
 
     public void updateIsBudgetExceeded(boolean isBudgetExceeded) {
         this.isBudgetExceeded = isBudgetExceeded;
     }
 
-    public void addBudget(Long budget) {
+    public void increaseBudget(Long budget) {
         this.currentBudget += budget;
-        this.budgetChangeCount++;
-    }
-
-    public void addSpent(Long spent) {
-        this.spent += spent;
-    }
-    public void minusSpent(Long spent) {
-        this.spent -= spent;
     }
 
     public String getName() {
