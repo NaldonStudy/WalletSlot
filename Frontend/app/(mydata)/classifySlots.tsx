@@ -97,6 +97,13 @@ export default function ClassifySlotsScreen() {
           
           {/* 슬롯 파일들 (slotfiles.png)와 finalslot.png */}
           <View style={styles.slotContainer}>
+            {/* circleEllipsback.png - 맨 밑 배경 레이어 */}
+            <Animated.Image
+              source={require('@/src/assets/images/backgroundstyle/circleEllipsback.png')}
+              style={styles.circleEllipsbackImage}
+              resizeMode="contain"
+            />
+            
             {/* 배경 슬롯 파일들 */}
             {/*
             <Animated.Image
@@ -201,8 +208,17 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   
-  // 슬롯 파일들 (slotfiles.png) - 배경
+  // circleEllipsback.png - 맨 밑 배경 레이어
+  circleEllipsbackImage: {
+    width: 280,
+    height: 280,
+    position: 'absolute',
+    left: -35,    // ← 이 값으로 좌우 위치 조정
+    bottom: -37,  // ← 이 값으로 상하 위치 조정
+    zIndex: 0,    // ← 맨 밑 레이어
+  },
   
+  // 슬롯 파일들 (slotfiles.png) - 배경
   slotFilesImage: {
     width: 200,
     height: 200,

@@ -170,6 +170,7 @@ export default function RootLayout() {
       }, 2000);
     }
   }, [loaded, onboardingDone, myDataConnectDone, splashMinTimeElapsed]);
+
   
   // 앱 시작 시 기타 초기화 로직 + 선제 토큰 갱신
   useEffect(() => {
@@ -317,6 +318,7 @@ export default function RootLayout() {
             <Stack.Screen name="(auth)" options={{ headerShown: false }} />
             <Stack.Screen name="(mydata)" options={{ headerShown: false }} />
             <Stack.Screen name="+not-found" options={{ headerShown: false }} />
+            <Stack.Screen name="(slotDivide)" options={{ headerShown: false }} />
             {/* 공통 컴포넌트 테스트
             <Stack.Screen name="(dev)" options={{ headerShown: false }} /> */}
           </Stack>
