@@ -21,6 +21,12 @@ export default function TransactionLayout() {
           title: "영수증 스캔",
         }} 
       />
+      <Stack.Screen 
+        name="ocr-result" 
+        options={{ 
+          title: "OCR 결과",
+        }} 
+      />
     </Stack>
   );
 }

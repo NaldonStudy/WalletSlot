@@ -81,20 +81,31 @@ export default function ReceiptScanner({ onImageCaptured, onBack, theme }: Recei
 
   // 사진 촬영 함수
   const handleTakePicture = async () => {
-    if (!cameraRef.current) return;
+    console.log('[ReceiptScanner] handleTakePicture 호출됨');
+    
+    if (!cameraRef.current) {
+      console.log('[ReceiptScanner] cameraRef가 null입니다');
+      return;
+    }
 
     try {
       setIsProcessing(true);
-      console.log('[ReceiptScanner] 촬영 시작');
+      console.log('[ReceiptScanner] 촬영 시작 - isProcessing: true');
       
+      console.log('[ReceiptScanner] takePictureAsync 호출 전');
       const photo = await cameraRef.current.takePictureAsync({
         quality: 1.0, // 최고 품질로 촬영
         base64: false,
         skipProcessing: false,
       });
 
-      console.log('촬영된 영수증:', photo.uri);
+      console.log('[ReceiptScanner] 촬영 완료:', {
+        uri: photo.uri,
+        width: photo.width,
+        height: photo.height
+      });
       
+      console.log('[ReceiptScanner] 이미지 압축 시작');
       // 이미지 압축 및 리사이즈
       const manipulatedImage = await ImageManipulator.manipulateAsync(
         photo.uri,
@@ -107,15 +118,26 @@ export default function ReceiptScanner({ onImageCaptured, onBack, theme }: Recei
         }
       );
 
-      console.log('압축된 영수증:', manipulatedImage.uri);
+      console.log('[ReceiptScanner] 이미지 압축 완료:', {
+        uri: manipulatedImage.uri,
+        width: manipulatedImage.width,
+        height: manipulatedImage.height
+      });
       
+      console.log('[ReceiptScanner] onImageCaptured 콜백 호출');
       // 부모 컴포넌트로 이미지 URI 전달
       onImageCaptured(manipulatedImage.uri);
+      console.log('[ReceiptScanner] onImageCaptured 콜백 완료');
       
     } catch (error) {
-      console.error('촬영 오류:', error);
+      console.error('[ReceiptScanner] 촬영 오류:', {
+        error: error,
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined
+      });
       Alert.alert('오류', '영수증 촬영에 실패했습니다.');
     } finally {
+      console.log('[ReceiptScanner] finally 블록 - isProcessing: false');
       setIsProcessing(false);
     }
   };

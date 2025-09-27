@@ -11,6 +11,8 @@ import {
 import { Spacing, themes } from '@/src/constants/theme';
 import { useNavigation } from '@react-navigation/native';
 import ReceiptScanner from '@/src/components/camera/ReceiptScanner';
+import { ocrApi } from '@/src/api/ocr';
+import { getDeviceId } from '@/src/services/deviceIdService';
 
 export default function ReceiptScanScreen() {
   console.log('[ReceiptScan] 컴포넌트 렌더링 시작');
@@ -61,55 +63,87 @@ export default function ReceiptScanScreen() {
 
   // 이미지 캡처 핸들러
   const handleImageCaptured = async (imageUri: string) => {
+    console.log('[ReceiptScan] handleImageCaptured 호출됨:', imageUri);
+    
     try {
       setIsProcessing(true);
-      console.log('[ReceiptScan] 이미지 캡처됨:', imageUri);
+      console.log('[ReceiptScan] 이미지 캡처됨 - isProcessing: true');
       
-      // 서버로 이미지 전송 및 OCR 처리
-      await uploadReceiptForOCR(imageUri);
+      // 즉시 OCR 결과 화면으로 이동 (로딩 화면 표시)
+      console.log('[ReceiptScan] OCR 결과 화면으로 즉시 이동');
+      router.push({
+        pathname: './ocr-result',
+        params: {
+          slotId: slotId || '',
+          transactionId: transactionId || '',
+          transactionData: transactionData || '',
+          slotData: slotData || '',
+          slotName: slotName || '',
+          accountId: accountId || '',
+          accountSlotId: accountSlotId || '',
+          imageUri: imageUri, // 이미지 URI 전달
+        }
+      });
       
     } catch (error) {
-      console.error('[ReceiptScan] 이미지 처리 오류:', error);
+      console.error('[ReceiptScan] 이미지 처리 오류:', {
+        error: error,
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined
+      });
       Alert.alert('오류', '영수증 처리에 실패했습니다.');
     } finally {
+      console.log('[ReceiptScan] finally 블록 - isProcessing: false');
       setIsProcessing(false);
     }
   };
 
   // 영수증 서버 전송 및 OCR 처리
   const uploadReceiptForOCR = async (imageUri: string) => {
+    console.log('[ReceiptScan] uploadReceiptForOCR 시작:', imageUri);
+    
     try {
-      console.log('서버 전송 시작:', imageUri);
+      console.log('[ReceiptScan] 서버 전송 시작:', imageUri);
       
-      // FormData로 서버 전송
-      const formData = new FormData();
-      formData.append('image', {
-        uri: imageUri,
-        type: 'image/jpeg',
-        name: 'receipt.jpg',
-      } as any);
+      console.log('[ReceiptScan] 디바이스 ID 가져오기 시작');
+      // 디바이스 ID 가져오기
+      const deviceId = await getDeviceId();
+      console.log('[ReceiptScan] 디바이스 ID 가져오기 완료:', deviceId);
 
-      // TODO: 실제 API 엔드포인트로 교체
-      const response = await fetch('https://api.example.com/ocr', {
-        method: 'POST',
-        body: formData,
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error('서버 응답 오류');
+      if (!deviceId) {
+        console.error('[ReceiptScan] 디바이스 ID가 null입니다');
+        throw new Error('디바이스 ID를 가져올 수 없습니다.');
       }
 
-      const result = await response.json();
-      console.log('OCR 결과:', result);
+      console.log('[ReceiptScan] OCR API 호출 시작');
+      // OCR API 호출
+      const ocrResult = await ocrApi.processReceipt(imageUri, deviceId);
+      console.log('[ReceiptScan] OCR API 호출 완료, 결과:', ocrResult);
 
-      // OCR 결과 처리
-      Alert.alert('성공', '영수증이 성공적으로 인식되었습니다!');
+      console.log('[ReceiptScan] OCR 결과 화면으로 이동 시작');
+      // OCR 결과 화면으로 이동
+      const ocrResultString = JSON.stringify(ocrResult);
+      router.push({
+        pathname: './ocr-result',
+        params: {
+          slotId: slotId || '',
+          transactionId: transactionId || '',
+          transactionData: transactionData || '',
+          slotData: slotData || '',
+          slotName: slotName || '',
+          accountId: accountId || '',
+          accountSlotId: accountSlotId || '',
+          ocrResultData: ocrResultString,
+        }
+      });
+      console.log('[ReceiptScan] OCR 결과 화면으로 이동 완료');
       
     } catch (error) {
-      console.error('OCR 처리 오류:', error);
+      console.error('[ReceiptScan] OCR 처리 오류:', {
+        error: error,
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined
+      });
       Alert.alert('오류', '영수증 인식에 실패했습니다.');
     }
   };
