@@ -65,9 +65,25 @@ public class TransactionRestController {
         return ResponseEntity.status(HttpStatus.OK).body(transactionService.getAccountSlotTransactions(principal.userId(), accountId, accountSlotId, cursor));
     }
 
+    @GetMapping("/accounts/{accountId}/slots/{accountSlotId}/transactions/daily-spending")
+    @Operation(
+            summary = "6-1-3 기준일 이후 슬롯 거래내역 조회",
+            description = "슬롯 별 지출 누적그래프를 그리기 위해 기준일 이후의 거래내역을 조회합니다.",
+            responses = {
+                    @ApiResponse(
+                            responseCode = "200",
+                            description = "[SlotService - 001] 기준일 이후 슬롯 거래내역 조회 성공",
+                            content = @Content(schema = @Schema(implementation = GetAccountSlotTransactionDailySpendingResponseDto.class))
+                    )
+            }
+    )
+    public ResponseEntity<GetAccountSlotTransactionDailySpendingResponseDto> getAccountSlotTransactionDailySpending(@AuthenticationPrincipal UserPrincipal principal, @PathVariable String accountId, @PathVariable String accountSlotId) {
+        return ResponseEntity.status(HttpStatus.OK).body(transactionService.getAccountSlotTransactionDailySpending(principal.userId(), accountId, accountSlotId));
+    }
+
     @GetMapping("/accounts/{accountId}/slots/{accountSlotId}/transactions/{transactionId}")
     @Operation(
-            summary = "6-1-3 슬롯 거래내역 상세조회",
+            summary = "6-1-4 슬롯 거래내역 상세조회",
             description = "슬롯의 거래내역을 상세 조회합니다.",
             responses = {
                     @ApiResponse(

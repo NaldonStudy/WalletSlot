@@ -31,6 +31,7 @@ import com.ssafy.b108.walletslot.backend.domain.user.repository.UserRepository;
 import com.ssafy.b108.walletslot.backend.global.error.AppException;
 import com.ssafy.b108.walletslot.backend.global.error.ErrorCode;
 import com.ssafy.b108.walletslot.backend.infrastructure.fcm.service.FcmService;
+import org.springframework.cglib.core.Local;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -45,6 +46,7 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.reactive.function.client.WebClient;
 
 import javax.crypto.SecretKey;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -177,6 +179,65 @@ public class TransactionService {
 
         // 응답
         return getAccountSlotTransactionListResponseDto;
+    }
+
+    /**
+     * 6-1-3 기준일 이후 슬롯 거래내역 조회
+     */
+    public GetAccountSlotTransactionDailySpendingResponseDto getAccountSlotTransactionDailySpending(Long userId, String accountUuid, String accountSlotUuid) {
+
+        // userId != account userId 이면 403 응답
+        Account account = accountRepository.findByUuid(accountUuid).orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "TransactionService - 004"));
+        if(userId != account.getUser().getId()) {
+            throw new AppException(ErrorCode.FORBIDDEN, "TransactionService - 005");
+        }
+
+        // account != account slot의 account 이면 400 응답
+        AccountSlot accountSlot = accountSlotRepository.findByUuid(accountSlotUuid).orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "TransactionService - 006"));
+        if(!account.getUuid().equals(accountSlot.getAccount().getUuid())) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "TransactionService - 007");
+        }
+
+        // User 조회
+        User user = userRepository.findById(userId).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND, "TransactionService - 008"));
+
+        // user.getBaseDay() 해서 기준일이 현재 날짜의 이전이면서 같은 달에 있으면 그때부터 지금까지의 거래내역을 조회하고, 현재날짜의 이전이면서 같은달에는 없으면 지난달 그 일자로부터 지금까지의 거래내역을 조회하기
+        Short baseDay = user.getBaseDay();
+        if(baseDay == null) {
+            throw new AppException(ErrorCode.MISSING_BASE_DAY, "TransactionService - 000");
+        }
+
+        LocalDate today = LocalDate.now();
+        LocalDateTime startDate = null;
+
+        if (baseDay <= today.getDayOfMonth()) { // 기준일이 이번달에 있다면
+            startDate = today.withDayOfMonth(baseDay).atStartOfDay(); // 이번달의 기준일을 시작날짜로 하기
+        } else { // 기준일이 이번달에 없다면 지난달의 기준일을 시작날짜로 하기
+            startDate = today.withDayOfMonth(baseDay).minusMonths(1).atStartOfDay();
+        }
+
+        // startDate 이후의 slot 거래내역 전체조회하기 (오름차순)
+        List<Transaction> transactions = transactionRepository.findByAccountSlotUuidForGraph(accountSlotUuid, startDate);
+
+        // dto > data > transactions
+        List<GetAccountSlotTransactionDailySpendingResponseDto.TransactionDto> transactionDtos = new ArrayList<>();
+        for(Transaction transaction : transactions) {
+            GetAccountSlotTransactionDailySpendingResponseDto.TransactionDto transactionDto = GetAccountSlotTransactionDailySpendingResponseDto.TransactionDto.builder()
+                    .date(transaction.getTransactionAt().toLocalDate())
+                    .spent(transaction.getAmount())
+                    .build();
+
+            transactionDtos.add(transactionDto);
+        }
+
+        // dto
+        GetAccountSlotTransactionDailySpendingResponseDto getAccountSlotTransactionDailySpendingResponseDto = GetAccountSlotTransactionDailySpendingResponseDto.builder()
+                .success(true)
+                .message("[TransactionService - 000] 기준일 이후 슬롯 거래내역 조회 성공")
+                .data(GetAccountSlotTransactionDailySpendingResponseDto.Data.builder().startDate(startDate.toLocalDate()).transactions(transactionDtos).build())
+                .build();
+
+        return getAccountSlotTransactionDailySpendingResponseDto;
     }
 
     /**
@@ -1409,6 +1470,5 @@ public class TransactionService {
                 .bodyToMono(ChatGPTResponseDto.class)
                 .block();
     }
-
 
 }

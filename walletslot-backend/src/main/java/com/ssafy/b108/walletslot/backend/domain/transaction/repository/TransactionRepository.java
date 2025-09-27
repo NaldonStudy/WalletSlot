@@ -17,7 +17,7 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
 
     @Query(value = """
             SELECT t.* FROM transaction t JOIN account a ON t.account_id = a.id
-            WHERE a.uuid = :accountUuid AND (:cursor IS NULL OR t.transaction_at < :cursor)
+            WHERE (a.uuid = :accountUuid) AND (:cursor IS NULL OR t.transaction_at < :cursor)
             ORDER BY t.transaction_at DESC
             LIMIT :size
     """, nativeQuery = true)
@@ -25,15 +25,18 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
 
     @Query(value = """
             SELECT t.* FROM transaction t JOIN account_slot a ON t.account_slot_id = a.id
-            WHERE a.uuid = :accountSlotUuid AND (:cursor IS NULL OR t.transaction_at < :cursor)
+            WHERE (a.uuid = :accountSlotUuid) AND (:cursor IS NULL OR t.transaction_at < :cursor)
             ORDER BY t.transaction_at DESC
             LIMIT :size
     """, nativeQuery = true)
     List<Transaction> findByAccountSlotUuid(@Param("accountSlotUuid") String accountSlotUuid, @Param("cursor") LocalDateTime cursor, @Param("size") int size);
 
-    List<Transaction> findByAccount(Account account);
-    List<Transaction> findByAccountSlot(AccountSlot accountSlot);
-    Optional<Transaction> findByUuid(String transactionUuid);
+    @Query(value = """
+            SELECT t FROM Transaction t JOIN t.accountSlot a
+            WHERE (a.uuid = :accountSlotUuid) AND (t.transactionAt > :startDate)
+            ORDER BY t.transactionAt ASC
+    """)
+    List<Transaction> findByAccountSlotUuidForGraph(@Param("accountSlotUuid") String accountSlotUuid, @Param("startDate") LocalDateTime startDate);
 
     @Query("""
            select t
@@ -47,4 +50,7 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
             @Param("startAt") LocalDateTime startInclusive,   // ✅ String → LocalDateTime
             @Param("endAt")   LocalDateTime endInclusive      // ✅ String → LocalDateTime
     );
+
+    List<Transaction> findByAccountSlot(AccountSlot accountSlot);
+    Optional<Transaction> findByUuid(String transactionUuid);
 }

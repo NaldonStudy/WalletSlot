@@ -42,6 +42,7 @@ public enum ErrorCode {
     DEVICE_MISMATCH("요청한 deviceId가 토큰의 deviceId와 일치하지 않습니다.", HttpStatus.CONFLICT),
     TOKEN_INVALID("유효하지 않은 액세스 토큰입니다.", HttpStatus.UNAUTHORIZED),
     USER_NOT_FOUND("존재하지 않는 사용자입니다.", HttpStatus.NOT_FOUND),
+    MISSING_BASE_DAY("기준일이 없는 사용자입니다.", HttpStatus.NOT_FOUND),
 
     // Transaction
     INVALID_SPLIT_AMOUNT("나눈 금액들의 합이 원래 금액과 일치하지 않습니다.", HttpStatus.BAD_REQUEST),
