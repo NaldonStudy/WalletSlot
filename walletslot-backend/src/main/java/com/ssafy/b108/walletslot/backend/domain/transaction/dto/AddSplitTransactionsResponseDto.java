@@ -48,6 +48,7 @@ public class AddSplitTransactionsResponseDto {
         private String opponentAccountNo;
         private String summary;
         private Long amount;
+        private Long balance;
         private LocalDateTime transactionAt;
     }
 
@@ -64,9 +65,6 @@ public class AddSplitTransactionsResponseDto {
 
         @JsonProperty("isSaving")
         private boolean isSaving;
-
-        private String icon;
-        private String color;
 
         @JsonProperty("isCustom")
         private boolean isCustom;

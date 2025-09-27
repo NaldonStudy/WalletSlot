@@ -46,6 +46,7 @@ public enum ErrorCode {
     // Transaction
     INVALID_SPLIT_AMOUNT("나눈 금액들의 합이 원래 금액과 일치하지 않습니다.", HttpStatus.BAD_REQUEST),
     MISSING_FCM_TOKEN("FCM 토큰이 등록돼있지 않은 사용자가 존재합니다.", HttpStatus.INTERNAL_SERVER_ERROR),
+    TRANSACTION_NOT_FOUND("존재하지 않는 거래입니다. transactionId를 다시 확인해주세요.", HttpStatus.NOT_FOUND),
 
     // PushEndpoint
     MISSING_PUSH_ENDPOINT("Push Endpoint 기기가 등록돼있지 않은 사용자가 존재합니다.", HttpStatus.INTERNAL_SERVER_ERROR),

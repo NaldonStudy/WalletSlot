@@ -55,19 +55,19 @@ public class Transaction {
     private LocalDateTime transactionAt;
 
     // Method
-    public void addAmount(Long amount) {
+    public void increaseAmount(Long amount) {
         this.amount += amount;
     }
 
-    public void minusAmount(Long amount) {
+    public void decreaseAmount(Long amount) {
         this.amount -= amount;
     }
 
-    public void addBalance(Long balance) {
+    public void increaseBalance(Long balance) {
         this.balance += balance;
     }
 
-    public void minusBalance(Long balance) {
+    public void decreaseBalance(Long balance) {
         this.balance -= balance;
     }
 
