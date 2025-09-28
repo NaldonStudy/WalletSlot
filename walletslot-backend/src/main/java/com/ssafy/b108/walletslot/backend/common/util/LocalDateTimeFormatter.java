@@ -63,4 +63,15 @@ public class LocalDateTimeFormatter {
         // Period를 이용해 두 날짜 차이 계산
         return Period.between(birthDate, today).getYears();
     }
+
+    /**
+     * yyyyMMdd 형식 문자열을 LocalDate 타입으로 파싱해주는 메서드
+     */
+    public static LocalDate stringToLocalDate(String dateStr) {
+
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMdd");
+        LocalDate localDate = LocalDate.parse(dateStr, formatter);
+
+        return localDate;
+    }
 }

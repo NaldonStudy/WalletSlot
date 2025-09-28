@@ -20,6 +20,15 @@ public class WebClientConfig {
     }
 
     @Bean
+    public WebClient gptWebClient(@Value("${api.haeji.openai.key}") String openAiKey) {
+        return WebClient.builder()
+                .baseUrl("https://api.openai.com/v1")
+                .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                .defaultHeader(HttpHeaders.AUTHORIZATION, "Bearer " + openAiKey)
+                .build();
+    }
+
+    @Bean
     public WebClient fcmWebClient(@Value("${fcm.server.project-id}") String projectId) {
         return WebClient.builder()
                 .baseUrl("https://fcm.googleapis.com/v1/projects/" + projectId + "/messages:send")

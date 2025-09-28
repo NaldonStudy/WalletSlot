@@ -42,15 +42,30 @@ public class TransactionRestController {
                             content = @Content(schema = @Schema(implementation = GetAccountTransactionListResponseDto.class))
                     )
             }
-
     )
     public ResponseEntity<GetAccountTransactionListResponseDto> getAccountTransactions(@AuthenticationPrincipal UserPrincipal principal, @PathVariable String accountId, @RequestParam(required = false) LocalDateTime cursor) {
         return ResponseEntity.status(HttpStatus.OK).body(transactionService.getAccountTransactions(principal.userId(), accountId, cursor));
     }
 
+    @GetMapping("/accounts/{accountId}/transactions/history/check")
+    @Operation(
+            summary = "6-1-2 계좌 거래내역이 3개월 이상 있는지 조회",
+            description = "계좌의 거래내역이 3개월 이상 있는지 여부를 조회합니다.",
+            responses = {
+                    @ApiResponse(
+                            responseCode = "200",
+                            description = "[SlotService - 001] 계좌 거래내역이 3개월 이상 있는지 조회 성공",
+                            content = @Content(schema = @Schema(implementation = CheckAccountTransactionHistoryResponseDto.class))
+                    )
+            }
+    )
+    public ResponseEntity<CheckAccountTransactionHistoryResponseDto> checkAccountTransactionHistory(@AuthenticationPrincipal UserPrincipal principal, @PathVariable String accountId) {
+        return ResponseEntity.status(HttpStatus.OK).body(transactionService.checkAccountTransactionHistory(principal.userId(), accountId));
+    }
+
     @GetMapping("/accounts/{accountId}/slots/{accountSlotId}/transactions")
     @Operation(
-            summary = "6-1-2 슬롯 거래내역 전체조회",
+            summary = "6-1-3 슬롯 거래내역 전체조회",
             description = "슬롯의 거래내역을 전체 조회합니다. (날짜기준 내림차순)",
             responses = {
                     @ApiResponse(
@@ -59,7 +74,6 @@ public class TransactionRestController {
                             content = @Content(schema = @Schema(implementation = GetAccountSlotTransactionListResponseDto.class))
                     )
             }
-
     )
     public ResponseEntity<GetAccountSlotTransactionListResponseDto> getAccountSlotTransactions(@AuthenticationPrincipal UserPrincipal principal, @PathVariable String accountId, @PathVariable String accountSlotId, @RequestParam(required = false) LocalDateTime cursor) {
         return ResponseEntity.status(HttpStatus.OK).body(transactionService.getAccountSlotTransactions(principal.userId(), accountId, accountSlotId, cursor));
@@ -67,7 +81,7 @@ public class TransactionRestController {
 
     @GetMapping("/accounts/{accountId}/slots/{accountSlotId}/transactions/daily-spending")
     @Operation(
-            summary = "6-1-3 기준일 이후 슬롯 거래내역 조회",
+            summary = "6-1-4 기준일 이후 슬롯 거래내역 조회",
             description = "슬롯 별 지출 누적그래프를 그리기 위해 기준일 이후의 거래내역을 조회합니다.",
             responses = {
                     @ApiResponse(
@@ -83,7 +97,7 @@ public class TransactionRestController {
 
     @GetMapping("/accounts/{accountId}/slots/{accountSlotId}/transactions/{transactionId}")
     @Operation(
-            summary = "6-1-4 슬롯 거래내역 상세조회",
+            summary = "6-1-5 슬롯 거래내역 상세조회",
             description = "슬롯의 거래내역을 상세 조회합니다.",
             responses = {
                     @ApiResponse(
@@ -92,7 +106,6 @@ public class TransactionRestController {
                             content = @Content(schema = @Schema(implementation = GetAccountSlotTransactionDetailResponseDto.class))
                     )
             }
-
     )
     public ResponseEntity<GetAccountSlotTransactionDetailResponseDto> getAccountSlotTransactionDetail(@AuthenticationPrincipal UserPrincipal principal, @PathVariable String accountId, @PathVariable String accountSlotId, @PathVariable String transactionId) {
         return ResponseEntity.status(HttpStatus.OK).body(transactionService.getAccountSlotTransactionDetail(principal.userId(), accountId, accountSlotId, transactionId));
@@ -100,7 +113,7 @@ public class TransactionRestController {
 
     @PatchMapping("/accounts/{accountId}/transactions/{transactionId}")
     @Operation(
-            summary = "6-1-4 거래내역을 다른 슬롯으로 이동",
+            summary = "6-1-6 거래내역을 다른 슬롯으로 이동",
             description = "거래내역을 다른 슬롯으로 이동합니다. 기존 슬롯에서는 남은 예산이 다시 늘어나고, 새로운 슬롯의 예산에서 거래내역의 지출금액이 차감됩니다.",
             responses = {
                     @ApiResponse(
@@ -109,7 +122,6 @@ public class TransactionRestController {
                             content = @Content(schema = @Schema(implementation = ModifyTransactionResponseDto.class))
                     )
             }
-
     )
     public ResponseEntity<ModifyTransactionResponseDto> modifyTransaction(@AuthenticationPrincipal UserPrincipal principal, @PathVariable String accountId, @PathVariable String transactionId, @RequestBody ModifyTransactionReqeustDto request) {
         return ResponseEntity.status(HttpStatus.OK).body(transactionService.modifyTransaction(principal.userId(), accountId, transactionId, request.getAccountSlotId()));
@@ -126,7 +138,6 @@ public class TransactionRestController {
                             content = @Content(schema = @Schema(implementation = AddSplitTransactionsResponseDto.class))
                     )
             }
-
     )
     public ResponseEntity<AddSplitTransactionsResponseDto> addSplitTransactions(@AuthenticationPrincipal UserPrincipal principal, @PathVariable String accountId, @PathVariable String transactionId, @RequestBody AddSplitTransactionsRequestDto request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(transactionService.addSplitTransactions(principal.userId(), accountId, transactionId, request.getTransactions()));
@@ -143,7 +154,6 @@ public class TransactionRestController {
                             content = @Content(schema = @Schema(implementation = AddDutchPayTransactionsResponseDto.class))
                     )
             }
-
     )
     public ResponseEntity<AddDutchPayTransactionsResponseDto> addDutchPayTransactions(@AuthenticationPrincipal UserPrincipal principal, @PathVariable String accountId, @PathVariable String transactionId, @RequestParam Integer n) {
         return ResponseEntity.status(HttpStatus.CREATED).body(transactionService.addDutchPayTransactions(principal.userId(), accountId, transactionId, n));
