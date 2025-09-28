@@ -26,12 +26,12 @@ export default function SlotDetailScreen() {
     // API를 통해 최신 슬롯 데이터 가져오기
     const { slots, isLoading: slotsLoading } = useSlots(selectedSlot?.accountId);
     
-    // 현재 슬롯 결정 - 단순화된 로직
-    const currentSlot = selectedSlot;
+    // 현재 슬롯 결정 - 최신 데이터 우선 사용
+    const currentSlot = slots?.find(slot => slot.slotId === slotId) || selectedSlot;
 
     const { data: dailySpending, isLoading } = useSlotDailySpending(
         selectedSlot?.accountId, // 계좌 ID
-        slotId
+        selectedSlot?.accountSlotId // 계좌 슬롯 ID
     );
 
     // 실제 API를 사용한 거래내역 조회
@@ -72,13 +72,6 @@ export default function SlotDetailScreen() {
 
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background.primary }]}>
-            {/* 헤더 제목 */}
-            <Stack.Screen
-                options={{
-                    title: "슬롯 상세 거래내역",
-                    headerBackTitle: "", // iOS에서 뒤로가기 텍스트 안보이게
-                }}
-            />
             
             <ScrollView 
                 style={styles.scrollView}
@@ -132,7 +125,7 @@ export default function SlotDetailScreen() {
                         <TransactionList 
                             transactions={transactions} 
                             slotId={slotId}
-                            accountId={currentSlot?.accountId}
+                            accountId={selectedSlot?.accountId}
                             accountSlotId={currentSlot?.accountSlotId}
                         />
                     ) : (

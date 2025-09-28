@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { useLocalSearchParams, router } from 'expo-router';
+import { useLocalSearchParams, router, useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Stack } from 'expo-router';
 import { Alert, View, StyleSheet, useColorScheme, Text } from 'react-native';
 import { SlotTransaction } from '@/src/types/slot';
 import { useSlotStore } from '@/src/store/useSlotStore';
@@ -11,6 +10,7 @@ import { DutchPayBottomSheet } from '@/src/components/transaction/DutchPayBottom
 import { Spacing, themes } from '@/src/constants/theme';
 import { transactionApi } from '@/src/api/transaction';
 import { useQuery } from '@tanstack/react-query';
+import { useNavigation } from '@react-navigation/native';
 
 export default function TransactionDetailScreen() {
   const { slotId, transactionId, transactionData, slotData, slotName, accountId, accountSlotId } = useLocalSearchParams<{ 
@@ -26,6 +26,22 @@ export default function TransactionDetailScreen() {
   // selectedSlot 의존성 제거 - URL 파라미터만 사용
   const colorScheme = useColorScheme() ?? 'light';
   const theme = themes[colorScheme];
+  const navigation = useNavigation();
+
+  // 탭바 숨기기
+  useFocusEffect(
+    React.useCallback(() => {
+      navigation.getParent()?.setOptions({
+        tabBarStyle: { display: 'none' }
+      });
+
+      return () => {
+        navigation.getParent()?.setOptions({
+          tabBarStyle: { display: 'flex' }
+        });
+      };
+    }, [navigation])
+  );
 
   // BottomSheet 상태 관리
   const [isDutchPayBottomSheetVisible, setIsDutchPayBottomSheetVisible] = useState(false);
@@ -69,16 +85,24 @@ export default function TransactionDetailScreen() {
 
   // 버튼 핸들러 함수들
   const handleAmountSplit = () => {
-    Alert.alert(
-      '금액 나누기',
-      '금액 나누기 기능을 구현하시겠습니까?',
-      [
-        { text: '취소', style: 'cancel' },
-        { text: '확인', onPress: () => {
-          // TODO: 금액 나누기 로직 구현
-        }}
-      ]
-    );
+    // 거래 데이터가 있는 경우에만 네비게이션
+    if (transactionDetailData?.data?.transaction) {
+      const transactionData = transactionDetailData.data.transaction;
+      const transactionDataString = JSON.stringify(transactionData);
+      
+      router.push({
+        pathname: '/(tabs)/dashboard/slot/[slotId]/transaction/[transactionId]/splits',
+        params: {
+          slotId: slotId || '',
+          transactionId: transactionId || '',
+          transactionData: transactionDataString,
+          slotData: slotData || '',
+          slotName: slotName || '',
+          accountId: accountId || '',
+          accountSlotId: accountSlotId || '',
+        }
+      });
+    }
   };
 
   const handleDutchPay = () => {
@@ -105,12 +129,6 @@ export default function TransactionDetailScreen() {
   if (isTransactionLoading) {
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background.primary }}>
-        <Stack.Screen
-          options={{
-            title: "상세 내역",
-            headerBackTitle: "",
-          }}
-        />
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
           <Text style={{ color: theme.colors.text.primary }}>거래 정보를 불러오는 중...</Text>
         </View>
@@ -122,12 +140,6 @@ export default function TransactionDetailScreen() {
   if (!transactionDetailData) {
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background.primary }}>
-        <Stack.Screen
-          options={{
-            title: "상세 내역",
-            headerBackTitle: "",
-          }}
-        />
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
           <Text style={{ color: theme.colors.text.primary }}>거래 정보를 찾을 수 없습니다.</Text>
         </View>
@@ -144,13 +156,6 @@ export default function TransactionDetailScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background.primary }}>
-      <Stack.Screen
-        options={{
-          title: "상세 내역",
-          headerBackTitle: "",
-        }}
-      />
-      
       <View style={[styles.contentContainer, { backgroundColor: theme.colors.background.primary }]}>
         <TransactionDetail 
           transaction={transaction} 
@@ -203,4 +208,3 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 });
-

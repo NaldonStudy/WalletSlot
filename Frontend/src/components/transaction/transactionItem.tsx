@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, useColorScheme, TouchableOpacity } from "react-
 import { router } from "expo-router";
 import type { SlotTransaction } from "@/src/types/slot";
 import { themes } from "@/src/constants/theme";
+import { Spacing } from "@/src/constants/theme";
 import { useAccountSelectionStore } from "@/src/store";
 
 // 시간 포맷팅 함수
@@ -21,12 +22,13 @@ interface Props {
   transaction: SlotTransaction;
   showDate?: boolean;
   dateText?: string;
+  isLastInDate?: boolean;
   slotId?: string; // 슬롯 ID 추가
   accountId?: string; // 계좌 ID 추가
   accountSlotId?: string; // 계좌 슬롯 ID 추가
 }
 
-const TransactionItem = ({ transaction, showDate = false, dateText, slotId, accountId, accountSlotId }: Props) => {
+const TransactionItem = ({ transaction, showDate = false, dateText, isLastInDate = false, slotId, accountId, accountSlotId }: Props) => {
     const colorScheme = useColorScheme() ?? 'light';
     const theme = themes[colorScheme];
     
@@ -49,7 +51,7 @@ const TransactionItem = ({ transaction, showDate = false, dateText, slotId, acco
         
         if (finalAccountId && finalAccountSlotId) {
           router.push({
-            pathname: `/dashboard/slot/${slotId}/transaction/${transaction.transactionId}` as any,
+            pathname: `/dashboard/slot/${slotId}/transaction/${transaction.transactionId}/` as any,
             params: {
               accountId: finalAccountId,
               accountSlotId: finalAccountSlotId
@@ -60,36 +62,39 @@ const TransactionItem = ({ transaction, showDate = false, dateText, slotId, acco
     };
   
     return (
-      <TouchableOpacity 
-        style={[styles.container, showDate && styles.containerWithDate]}
-        onPress={handlePress}
-        activeOpacity={0.7}
-      >
-        <View style={styles.leftSection}>
-          {showDate && dateText ? (
-            <Text style={[styles.dateText, { color: theme.colors.text.secondary }]}>
-              {dateText}
-            </Text>
-          ) : (
-            <View style={styles.datePlaceholder} />
-          )}
-          <View style={styles.transactionInfo}>
-            <Text style={[styles.summary,{color: theme.colors.text.primary}]}>{transaction.summary}</Text>
-            <Text style={[styles.time,{color: theme.colors.text.secondary}]}>{formatTime(transaction.transactionAt)}</Text>
+      <View>
+        <TouchableOpacity 
+          style={styles.container}
+          onPress={handlePress}
+          activeOpacity={0.7}
+        >
+          <View style={styles.leftSection}>
+            {showDate && dateText ? (
+              <Text style={[styles.dateText, { color: theme.colors.text.secondary }]}>
+                {dateText}
+              </Text>
+            ) : (
+              <View style={styles.datePlaceholder} />
+            )}
+            <View style={styles.transactionInfo}>
+              <Text style={[styles.summary,{color: theme.colors.text.primary}]}>{transaction.summary}</Text>
+              <Text style={[styles.time,{color: theme.colors.text.secondary}]}>{formatTime(transaction.transactionAt)}</Text>
+            </View>
           </View>
-        </View>
-        <View>
-          <Text style={[
-            styles.amount, 
-            isIncome ? styles.income : isExpense ? styles.expense : styles.neutral
-          ]}>
-            {isExpense ? '-' : ''}{(Math.abs(transaction.amount ?? 0)).toLocaleString()}원
-          </Text>
-          <Text style={[styles.remaining,{color: theme.colors.text.secondary}]}>
-            잔액 {(transaction.balance ?? 0).toLocaleString()}원
-          </Text>
-        </View>
-      </TouchableOpacity>
+          <View>
+            <Text style={[
+              styles.amount, 
+              isIncome ? styles.income : isExpense ? styles.expense : styles.neutral
+            ]}>
+              {isExpense ? '-' : ''}{(Math.abs(transaction.amount ?? 0)).toLocaleString()}원
+            </Text>
+            <Text style={[styles.remaining,{color: theme.colors.text.secondary}]}>
+              잔액 {(transaction.balance ?? 0).toLocaleString()}원
+            </Text>
+          </View>
+        </TouchableOpacity>
+        {isLastInDate && <View style={styles.transactionBorder} />}
+      </View>
     );
   };
   
@@ -99,11 +104,12 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: "#E5E7EB",
+    marginHorizontal: Spacing.base, // 좌우 여백 추가
   },
-  containerWithDate: {
-    borderBottomWidth: 0, // 날짜가 있는 경우 밑줄 제거
+  transactionBorder: {
+    height: 1,
+    backgroundColor: "#E5E7EB",
+    marginHorizontal: Spacing.base, // 좌우 여백 추가
   },
   leftSection: {
     flexDirection: "row",

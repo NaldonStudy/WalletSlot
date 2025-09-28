@@ -2,6 +2,7 @@ import { apiClient } from '@/src/api/client';
 import {
   SlotTransactionsResponse,
   MoveTransactionResponse,
+  AccountTransactionsResponse,
   BaseResponse
 } from '@/src/types';
 import { isAmbiguousAxiosBody } from './responseNormalizer';
@@ -191,6 +192,75 @@ export const transactionApi = {
           method: error.config?.method,
           data: error.config?.data
         }
+      });
+      throw error;
+    }
+  },
+
+  /**
+   * 거래내역 나누기
+   */
+  splitTransaction: async (
+    accountId: string,
+    transactionId: string,
+    splits: Array<{ accountSlotId: string; amount: number }>
+  ): Promise<BaseResponse<any>> => {
+    const url = `/api/accounts/${accountId}/transactions/${transactionId}/splits`;
+    const requestBody = { transactions: splits };
+
+    console.log('[transactionApi.splitTransaction] 요청 정보:', {
+      url,
+      accountId,
+      transactionId,
+      requestBody
+    });
+
+    try {
+      const result = await apiClient.post<BaseResponse<any>>(url, requestBody);
+      console.log('[transactionApi.splitTransaction] 응답:', result);
+      return result.data;
+    } catch (error: any) {
+      console.error('[transactionApi.splitTransaction] 에러 상세:', {
+        message: error.message,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        config: {
+          url: error.config?.url,
+          method: error.config?.method,
+          data: error.config?.data
+        }
+      });
+      throw error;
+    }
+  },
+
+  /**
+   * 계좌 전체 거래내역 조회
+   */
+  getAccountTransactions: async (
+    accountId: string,
+    params?: {
+      cursor?: string;
+      limit?: number;
+    }
+  ): Promise<BaseResponse<AccountTransactionsResponse>> => {
+    try {
+      const queryParams = new URLSearchParams();
+      if (params?.cursor) queryParams.append('cursor', params.cursor);
+      if (params?.limit) queryParams.append('limit', params.limit.toString());
+
+      const url = `/api/accounts/${accountId}/transactions${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+      
+      const response = await apiClient.get<AccountTransactionsResponse>(url);
+      return response;
+    } catch (error: any) {
+      console.error('[getAccountTransactions] API 호출 실패:', {
+        accountId,
+        params,
+        error: error.message,
+        status: error.response?.status,
+        data: error.config?.data
       });
       throw error;
     }

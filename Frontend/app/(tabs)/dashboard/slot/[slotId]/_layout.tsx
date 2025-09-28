@@ -11,7 +11,6 @@ export default function SlotLayout() {
         name="index"
         options={{
           title: '슬롯 상세 내역',
-          presentation: 'modal'
         }}
       />
       <Stack.Screen
@@ -31,6 +30,10 @@ export default function SlotLayout() {
           headerStyle: { backgroundColor: theme.colors.background.primary },
           headerTintColor: theme.colors.text.primary,
         }}
+      />
+      <Stack.Screen
+        name="transaction/[transactionId]"
+        options={{ headerShown: false }} // 하위 레이아웃에 맡기기
       />
     </Stack>
   );
