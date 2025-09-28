@@ -32,9 +32,11 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
 
     long countByUserAndIsReadFalse(User user);
 
-    List<Notification> findByUser(User user);
+    long countByUserAndIsReadFalseAndType(User user, Notification.Type type);
 
     Page<Notification> findByUserAndIsReadFalseOrderByIdDesc(User user, Pageable pageable);
 
     Page<Notification> findByUserAndTypeAndIsReadFalseOrderByIdDesc(User user, Notification.Type type, Pageable pageable);
+
+    Optional<Notification> findFirstByUserAndTypeAndTxId(User user, Notification.Type type, Long txId);
 }

@@ -3,6 +3,7 @@ package com.ssafy.b108.walletslot.backend.domain.notification.entity;
 import com.ssafy.b108.walletslot.backend.domain.user.entity.User;
 import jakarta.persistence.*;
 import lombok.*;
+
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -14,14 +15,9 @@ import java.util.UUID;
 @Builder
 public class Notification {
 
-    // Enum
-    public enum Type {
-        SYSTEM, DEVICE, BUDGET, UNCATEGORIZED, SLOT, TRANSACTION, MARKETING
-    }
+    public enum Type { SYSTEM, DEVICE, BUDGET, UNCATEGORIZED, SLOT, TRANSACTION, MARKETING }
 
-    // Field
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @Column(nullable = false, unique = true, length = 64)
@@ -45,7 +41,7 @@ public class Notification {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    @lombok.Builder.Default
+    @Builder.Default
     private Type type = Type.SYSTEM;
 
     private LocalDateTime readAt;
@@ -56,19 +52,17 @@ public class Notification {
 
     private LocalDateTime deliveredAt;
 
-    // Method
-    public void markDelivered() {
-        if (Boolean.TRUE.equals(this.isDelivered))
-            return;
+    @Column(name = "tx_id")
+    private Long txId;
 
+    public void markDelivered() {
+        if (Boolean.TRUE.equals(this.isDelivered)) return;
         this.isDelivered = true;
         this.deliveredAt = LocalDateTime.now();
     }
 
     public void markRead() {
-        if (this.isRead)
-            return;
-
+        if (this.isRead) return;
         this.isRead = true;
         this.readAt = LocalDateTime.now();
     }

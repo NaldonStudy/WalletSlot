@@ -1,43 +1,51 @@
 package com.ssafy.b108.walletslot.backend.domain.notification.dto.notification;
 
 import com.ssafy.b108.walletslot.backend.domain.notification.entity.Notification;
-import lombok.Builder;
-import lombok.Value;
-import lombok.extern.jackson.Jacksonized;
+import lombok.*;
 
 import java.time.LocalDateTime;
 
-@Value
+@Getter
 @Builder
-@Jacksonized
+@AllArgsConstructor
+@NoArgsConstructor
 public class NotificationDto {
 
-    String uuid;
+    private String uuid;
+    private String title;
+    private String body;
+    private Notification.Type type;
+    private boolean isRead;
+    private Boolean isDelivered;
+    private LocalDateTime readAt;
+    private LocalDateTime deliveredAt;
 
-    String title;
+    private String transactionUuid;
 
-    String content;
-
-    Notification.Type type;
-
-    boolean read;
-
-    LocalDateTime readAt;
-
-    Boolean delivered;
-
-    LocalDateTime deliveredAt;
-
-    public static NotificationDto from(final Notification n) {
+    public static NotificationDto from(Notification n) {
         return NotificationDto.builder()
                 .uuid(n.getUuid())
                 .title(n.getTitle())
-                .content(n.getBody())
+                .body(n.getBody())
                 .type(n.getType())
-                .read(n.isRead())
+                .isRead(n.isRead())
+                .isDelivered(n.getIsDelivered())
                 .readAt(n.getReadAt())
-                .delivered(n.getIsDelivered())
                 .deliveredAt(n.getDeliveredAt())
+                .build();
+    }
+
+    public static NotificationDto from(Notification n, String transactionUuid) {
+        return NotificationDto.builder()
+                .uuid(n.getUuid())
+                .title(n.getTitle())
+                .body(n.getBody())
+                .type(n.getType())
+                .isRead(n.isRead())
+                .isDelivered(n.getIsDelivered())
+                .readAt(n.getReadAt())
+                .deliveredAt(n.getDeliveredAt())
+                .transactionUuid(transactionUuid)
                 .build();
     }
 }
