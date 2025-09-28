@@ -13,19 +13,17 @@ export default function TabLayout() {
 
   return (
     <Tabs
-      screenOptions={{
+      screenOptions={({ route }) => ({
         tabBarActiveTintColor: '#2383BD',
         headerShown: false,
         tabBarButton: HapticTab,
         tabBarBackground: TabBarBackground,
         tabBarStyle: Platform.select({
-          ios: {
-            // Use a transparent background on iOS to show the blur effect
-            position: 'absolute',
-          },
+          ios: { position: 'absolute' },
           default: {},
         }),
-      }}>
+      })}
+    >
       <Tabs.Screen
         name="dashboard"
         options={{
@@ -47,7 +45,7 @@ export default function TabLayout() {
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="heart.fill" color={color} />,
         }}
       />
-      
+
       <Tabs.Screen
         name="notifications"
         options={{
@@ -60,6 +58,24 @@ export default function TabLayout() {
         options={{
           title: '프로필',
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="person.fill" color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="dashboard/slot/[slotId]/transaction/[transactionId]"
+        options={{
+          href: null, // 탭에 표시 안 함
+        }}
+      />
+      <Tabs.Screen
+        name="dashboard/slot/[slotId]/transaction/[transactionId]/splits"
+        options={{
+          href: null, // 탭에 표시 안 함
+        }}
+      />
+      <Tabs.Screen
+        name="dashboard/slot/[slotId]/transaction/[transactionId]/receipt-scan"
+        options={{
+          href: null, // 탭에 표시 안 함
         }}
       />
     </Tabs>

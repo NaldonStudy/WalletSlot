@@ -66,7 +66,7 @@ export const API_ENDPOINTS = {
   ACCOUNT_BALANCE: (accountId: string) => `/api/accounts/${accountId}/balance`,
   ACCOUNT_SLOTS: (accountId: string) => `/api/accounts/${accountId}/slots`,
   ACCOUNT_SLOT_TRANSACTIONS: (accountId: string, slotId: string) => `/api/accounts/${accountId}/slots/${slotId}/transactions`,
-  ACCOUNT_SLOT_DAILY_SPENDING: (accountId: string, slotId: string) => `/api/accounts/${accountId}/slots/${slotId}/daily-spending`,
+  ACCOUNT_SLOT_DAILY_SPENDING: (accountId: string, accountSlotId: string) => `/api/accounts/${accountId}/slots/${accountSlotId}/transactions/daily-spending`,
   ACCOUNT_SLOT_HISTORY: (accountId: string, slotId: string) => `/api/accounts/${accountId}/slots/${slotId}/history`,
   ACCOUNTS_VERIFICATION_REQUEST: '/api/accounts/verification/request',
   ACCOUNTS_VERIFICATION_VERIFY: '/api/accounts/verification/verify',

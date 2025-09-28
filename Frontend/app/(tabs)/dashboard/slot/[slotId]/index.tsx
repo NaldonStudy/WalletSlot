@@ -31,7 +31,7 @@ export default function SlotDetailScreen() {
 
     const { data: dailySpending, isLoading } = useSlotDailySpending(
         selectedSlot?.accountId, // 계좌 ID
-        slotId
+        selectedSlot?.accountSlotId // 계좌 슬롯 ID
     );
 
     // 실제 API를 사용한 거래내역 조회
@@ -72,13 +72,6 @@ export default function SlotDetailScreen() {
 
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background.primary }]}>
-            {/* 헤더 제목 */}
-            <Stack.Screen
-                options={{
-                    title: "슬롯 상세 거래내역",
-                    headerBackTitle: "", // iOS에서 뒤로가기 텍스트 안보이게
-                }}
-            />
             
             <ScrollView 
                 style={styles.scrollView}

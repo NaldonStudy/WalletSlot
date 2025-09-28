@@ -49,7 +49,7 @@ const TransactionItem = ({ transaction, showDate = false, dateText, slotId, acco
         
         if (finalAccountId && finalAccountSlotId) {
           router.push({
-            pathname: `/dashboard/slot/${slotId}/transaction/${transaction.transactionId}` as any,
+            pathname: `/dashboard/slot/${slotId}/transaction/${transaction.transactionId}/` as any,
             params: {
               accountId: finalAccountId,
               accountSlotId: finalAccountSlotId
