@@ -21,6 +21,7 @@ public class ChatGPTRequestDto {
     private String model;
     private List<Message> messages;
 
+    // Nested Class
     @Getter
     @NoArgsConstructor
     @AllArgsConstructor

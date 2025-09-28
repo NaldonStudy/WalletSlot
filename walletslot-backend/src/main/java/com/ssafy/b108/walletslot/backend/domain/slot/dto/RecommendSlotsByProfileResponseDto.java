@@ -12,8 +12,8 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@Schema(name = "RecommendSlotListResponseDto")
-public class RecommendSlotListResponseDto {
+@Schema(name = "RecommendSlotsByProfileResponseDto")
+public class RecommendSlotsByProfileResponseDto {
 
     // Field
     private boolean success;
@@ -25,7 +25,7 @@ public class RecommendSlotListResponseDto {
     @NoArgsConstructor
     @AllArgsConstructor
     @Builder
-    @Schema(name = "RecommendSlotListResponseDto_Data")
+    @Schema(name = "RecommendSlotsByProfileResponseDto_Data")
     public static class Data {
 
         // Field
@@ -38,7 +38,7 @@ public class RecommendSlotListResponseDto {
     @NoArgsConstructor
     @AllArgsConstructor
     @Builder
-    @Schema(name = "RecommendSlotListResponseDto_BankDto")
+    @Schema(name = "RecommendSlotsByProfileResponseDto_BankDto")
     public static class BankDto {
 
         // Field
@@ -51,7 +51,7 @@ public class RecommendSlotListResponseDto {
     @NoArgsConstructor
     @AllArgsConstructor
     @Builder
-    @Schema(name = "RecommendSlotListResponseDto_AccountDto")
+    @Schema(name = "RecommendSlotsByProfileResponseDto_AccountDto")
     public static class AccountDto {
 
         // Field
@@ -64,7 +64,7 @@ public class RecommendSlotListResponseDto {
     @NoArgsConstructor
     @AllArgsConstructor
     @Builder
-    @Schema(name = "RecommendSlotListResponseDto_SlotDto")
+    @Schema(name = "RecommendSlotsByProfileResponseDto_SlotDto")
     public static class SlotDto {
 
         // Field

@@ -7,10 +7,9 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class RecommendSlotListRequestDto {
+public class RecommendSlotsRequestDto {
 
     // Field
-    Short baseDay;
-    String income;
-    Short period;
+    String startDate;
+    String endDate;
 }
