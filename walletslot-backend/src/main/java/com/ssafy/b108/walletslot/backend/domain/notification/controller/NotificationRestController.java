@@ -5,6 +5,8 @@ import com.ssafy.b108.walletslot.backend.domain.notification.dto.notification.*;
 import com.ssafy.b108.walletslot.backend.domain.notification.entity.Notification;
 import com.ssafy.b108.walletslot.backend.domain.notification.service.NotificationService;
 import com.ssafy.b108.walletslot.backend.global.dto.ErrorResponse;
+import com.ssafy.b108.walletslot.backend.global.error.AppException;
+import com.ssafy.b108.walletslot.backend.global.error.ErrorCode;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.extensions.Extension;
@@ -159,47 +161,20 @@ public class NotificationRestController {
     )
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "조회 성공",
-                    content = @Content(schema = @Schema(implementation = GetNotificationPageResponseDto.class),
-                            examples = @ExampleObject(name = "ok",
-                                    value = """
-                                    {
-                                      "success": true,
-                                      "message": "[NotificationService - 003] 알림 목록 조회 성공",
-                                      "data": {
-                                        "content": [
-                                          {
-                                            "uuid": "3c1e5f6a-7b22-4f24-9f55-9e0aef928f80",
-                                            "title": "분류되지 않은 지출이 있어요",
-                                            "body": "스타벅스 5,800원 • 2025-09-28T12:34:56\\nSTARBUCKS HONGDAE\\n카테고리를 지정해 주세요.",
-                                            "type": "UNCATEGORIZED",
-                                            "isRead": false,
-                                            "isDelivered": true,
-                                            "readAt": null,
-                                            "deliveredAt": "2025-09-28T13:10:00",
-                                            "transactionUuid": "tx-uuid-1234"
-                                          }
-                                        ],
-                                        "page": 0,
-                                        "size": 20,
-                                        "totalElements": 1,
-                                        "totalPages": 1
-                                      }
-                                    }
-                                    """))),
+                    content = @Content(schema = @Schema(implementation = GetNotificationPageResponseDto.class))),
             @ApiResponse(responseCode = "401", description = "미인증",
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
     })
     public ResponseEntity<GetNotificationPageResponseDto> list(
             @AuthenticationPrincipal @Parameter(hidden = true) final UserPrincipal principal,
             @Parameter(description = "알림 유형 필터", schema = @Schema(implementation = Notification.Type.class))
-            @RequestParam(required = false) final Notification.Type type,
+            @RequestParam(required = false) final String type,
             @ParameterObject final Pageable pageable
     ) {
-        final Pageable pg = (pageable == null || pageable.getPageSize() <= 0)
-                ? PageRequest.of(0, 20)
-                : pageable;
-
-        return ResponseEntity.ok(service.getNotificationPage(principal.userId(), type, pg));
+        if (principal == null) throw new AppException(ErrorCode.UNAUTHORIZED, "[NotificationController - list]");
+        final Pageable pg = clamp(pageable);
+        final Notification.Type t = parseTypeOrNull(type, "[NotificationController - list]");
+        return ResponseEntity.ok(service.getNotificationPage(principal.userId(), t, pg));
     }
 
     @GetMapping("/unread")
@@ -214,47 +189,20 @@ public class NotificationRestController {
     )
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "조회 성공",
-                    content = @Content(schema = @Schema(implementation = GetNotificationPageResponseDto.class),
-                            examples = @ExampleObject(name = "ok",
-                                    value = """
-                                    {
-                                      "success": true,
-                                      "message": "[NotificationService - 003U] 미읽음 목록 조회 성공",
-                                      "data": {
-                                        "content": [
-                                          {
-                                            "uuid": "8b7d1b2c-1b3a-4c9b-a2f1-33a6c0d2e777",
-                                            "title": "분류되지 않은 지출이 있어요",
-                                            "body": "이마트24 2,100원 • 2025-09-28T08:05:03\\nEMART24 GANGNAM\\n카테고리를 지정해 주세요.",
-                                            "type": "UNCATEGORIZED",
-                                            "isRead": false,
-                                            "isDelivered": true,
-                                            "readAt": null,
-                                            "deliveredAt": "2025-09-28T08:10:00",
-                                            "transactionUuid": "tx-uuid-5678"
-                                          }
-                                        ],
-                                        "page": 0,
-                                        "size": 20,
-                                        "totalElements": 1,
-                                        "totalPages": 1
-                                      }
-                                    }
-                                    """))),
+                    content = @Content(schema = @Schema(implementation = GetNotificationPageResponseDto.class))),
             @ApiResponse(responseCode = "401", description = "미인증",
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
     })
     public ResponseEntity<GetNotificationPageResponseDto> unreadList(
             @AuthenticationPrincipal @Parameter(hidden = true) final UserPrincipal principal,
             @Parameter(description = "알림 유형 필터", schema = @Schema(implementation = Notification.Type.class))
-            @RequestParam(required = false) final Notification.Type type,
+            @RequestParam(required = false) final String type,
             @ParameterObject final Pageable pageable
     ) {
-        final Pageable pg = (pageable == null || pageable.getPageSize() <= 0)
-                ? PageRequest.of(0, 20)
-                : pageable;
-
-        return ResponseEntity.ok(service.getUnreadPage(principal.userId(), type, pg));
+        if (principal == null) throw new AppException(ErrorCode.UNAUTHORIZED, "[NotificationController - unreadList]");
+        final Pageable pg = clamp(pageable);
+        final Notification.Type t = parseTypeOrNull(type, "[NotificationController - unreadList]");
+        return ResponseEntity.ok(service.getUnreadPage(principal.userId(), t, pg));
     }
 
     @GetMapping("/unread-count")
@@ -307,12 +255,13 @@ public class NotificationRestController {
             @AuthenticationPrincipal @Parameter(hidden = true) final UserPrincipal principal,
             @Parameter(description = "알림 유형(기본: UNCATEGORIZED)",
                     schema = @Schema(implementation = Notification.Type.class))
-            @RequestParam(required = false) final Notification.Type type
+            @RequestParam(required = false) final String type
     ) {
-        return ResponseEntity.ok(
-                service.unreadCountByType(principal.userId(),
-                        type == null ? Notification.Type.UNCATEGORIZED : type)
-        );
+        if (principal == null) throw new AppException(ErrorCode.UNAUTHORIZED, "[NotificationController - unreadCountByType]");
+        final Notification.Type t = (type == null || type.isBlank())
+                ? Notification.Type.UNCATEGORIZED
+                : parseTypeOrThrow(type, "[NotificationController - unreadCountByType]");
+        return ResponseEntity.ok(service.unreadCountByType(principal.userId(), t));
     }
 
     @PatchMapping("/{notificationUuid}/delivered")
@@ -488,5 +437,31 @@ public class NotificationRestController {
             @RequestBody final NotifyUncategorizedRequestDto req
     ) {
         return ResponseEntity.ok(service.notifyUncategorized(req));
+    }
+
+    /* ----------------- private helpers ----------------- */
+
+    private Pageable clamp(Pageable pageable) {
+        if (pageable == null) return PageRequest.of(0, 20);
+        int page = Math.max(0, pageable.getPageNumber());
+        int size = pageable.getPageSize() <= 0 ? 20 : Math.min(pageable.getPageSize(), 50);
+        return PageRequest.of(page, size);
+    }
+
+    private Notification.Type parseTypeOrNull(String type, String loc) {
+        if (type == null || type.isBlank()) return null;
+        try {
+            return Notification.Type.valueOf(type.trim().toUpperCase());
+        } catch (IllegalArgumentException e) {
+            throw new AppException(ErrorCode.BAD_REQUEST, loc + " invalid type: " + type);
+        }
+    }
+
+    private Notification.Type parseTypeOrThrow(String type, String loc) {
+        try {
+            return Notification.Type.valueOf(type.trim().toUpperCase());
+        } catch (Exception e) {
+            throw new AppException(ErrorCode.BAD_REQUEST, loc + " invalid type: " + type);
+        }
     }
 }
