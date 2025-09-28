@@ -77,6 +77,7 @@ export default function R6eadyScreen() {
         // 4. 응답 처리
         if (recommendationResponse.success) {
           // 성공: store에 저장하고 현재 진행률 → 100% 빠르게
+          isCompleted = true; // 🔥 중요: 성공 시에도 isCompleted 설정
           setRecommendationResult(recommendationResponse);
           const remainingProgress = 100 - currentProgress;
           const fastInterval = setInterval(() => {

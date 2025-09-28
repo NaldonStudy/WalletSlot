@@ -127,15 +127,25 @@ export default function AccountConnectScreen() {
     setIsLinkingAccounts(true);
     try {
       const selectedIndexList = Array.from(selectedIds);
+      console.log('[Account Connect] 선택된 인덱스들:', selectedIndexList);
+      console.log('[Account Connect] filteredAccounts:', filteredAccounts);
+      
       const selectedAccounts = selectedIndexList
         .map(id => filteredAccounts[Number(id)])
         .filter(Boolean);
+      
+      console.log('[Account Connect] 선택된 계좌들:', selectedAccounts);
 
-      const accountIds = selectedAccounts
-        .map(acc => acc.accountId)
-        .filter((v): v is string => typeof v === 'string' && v.length > 0);
+      const accounts = selectedAccounts
+        .map(acc => ({
+          bankId: acc.bankId,
+          accountNo: acc.accountNo
+        }))
+        .filter(acc => acc.bankId && acc.accountNo);
+      
+      console.log('[Account Connect] 추출된 accounts:', accounts);
 
-      const requestData = { accountIds };
+      const requestData = { accounts };
       console.log('[Account Connect] 계좌 연동 요청:', requestData);
 
       const response = await accountApi.linkAccounts(requestData);
@@ -195,12 +205,30 @@ export default function AccountConnectScreen() {
         linkSelectedAccounts();
       }
     } else {
-      if (repId !== null) {
-        const selectedAccount = filteredData[Number(repId)];
-        if (selectedAccount && selectedAccount.accountId) {
-          setPrimaryAccount(selectedAccount.accountId);
+      if (repId === null) return;
+      const selectedAccount = filteredData[Number(repId)];
+      (async () => {
+        try {
+          // 1) accountId가 있으면 바로 사용
+          if (selectedAccount?.accountId) {
+            await setPrimaryAccount(selectedAccount.accountId);
+            return;
+          }
+
+          // 2) 없으면 링크된 계좌 목록에서 bankId+accountNo로 accountId 매칭
+          const linked = await accountApi.getLinkedAccounts();
+          const match = linked.data.accounts.find(acc => 
+            acc.bankId === selectedAccount?.bankId && acc.accountNo === selectedAccount?.accountNo
+          );
+          if (match?.accountId) {
+            await setPrimaryAccount(match.accountId);
+          } else {
+            console.warn('[Account Connect] 대표계좌 설정 실패: accountId 매칭 실패', selectedAccount);
+          }
+        } catch (e) {
+          console.error('[Account Connect] 대표계좌 설정 처리 중 오류', e);
         }
-      }
+      })();
     }
   };
 
@@ -245,26 +273,26 @@ export default function AccountConnectScreen() {
   // ========================================
   // 8. 렌더링 함수들
   // ========================================
-  
+  // 계좌번호 마스킹: 앞 3자리-중간 전체 *-뒤 4자리
+  const maskAccountNumber = (accountNo: string) => {
+    const cleaned = (accountNo || '').replace(/\D/g, '');
+    if (cleaned.length === 0) return '***-****';
+    const head = cleaned.slice(0, 3);
+    if (cleaned.length <= 3) return head;
+    if (cleaned.length <= 7) {
+      const midLen = cleaned.length - 3;
+      return `${head}-${'*'.repeat(midLen)}`;
+    }
+    const tail = cleaned.slice(-4);
+    const midLen = cleaned.length - 7; // head 3 + tail 4 제외
+    return `${head}-${'*'.repeat(midLen)}-${tail}`;
+  };
+
   const renderItem = ({ item, index }: { item: UserAccount; index: number }) => {
     const id = `${index}`;
     const bank = BANK_CODES[item.bankId as keyof typeof BANK_CODES];
     const color = bank?.color || '#E5E7EB';
     const selected = phase === 'multi' ? selectedIds.has(id) : repId === id;
-
-    const formatAccountNumber = (accountNo: string) => {
-      const cleaned = (accountNo || '').replace(/\D/g, '');
-      if (cleaned.length === 0) return '***-****';
-      const head = cleaned.slice(0, 3);
-      if (cleaned.length <= 3) return head;
-      if (cleaned.length <= 7) {
-        const midLen = cleaned.length - 3;
-        return `${head}-${'*'.repeat(midLen)}`;
-      }
-      const tail = cleaned.slice(-4);
-      const midLen = cleaned.length - 7; // head 3 + tail 4 제외
-      return `${head}-${'*'.repeat(midLen)}-${tail}`;
-    };
 
     return (
       <TouchableOpacity onPress={() => toggleSelect(id)} activeOpacity={0.9}>
@@ -277,7 +305,7 @@ export default function AccountConnectScreen() {
               <ThemedText style={styles.bankName}>{item.bankName}</ThemedText>
             </View>
             <ThemedText style={styles.accountId}>
-              {formatAccountNumber(item.accountNo)}
+              {maskAccountNumber(item.accountNo)}
             </ThemedText>
             {phase !== 'multi' && item.accountBalance != null && (
               <ThemedText style={styles.accountBalance}>
@@ -364,15 +392,15 @@ export default function AccountConnectScreen() {
                 >
                   <ThemedText style={styles.repBankName}>{filteredData[Number(repId)]?.bankName}</ThemedText>
                   <View style={styles.repRow}>
-                    <ThemedText style={styles.repAccount}>
-                      {(() => {
-                        const account = filteredData[Number(repId)];
-                        if (account && account.accountNo) {
-                          return `302-****-${account.accountNo.replace(/\D/g, '').slice(-4)}`;
-                        }
-                        return '302-*****';
-                      })()}
-                    </ThemedText>
+                  <ThemedText style={styles.repAccount}>
+                    {(() => {
+                      const account = filteredData[Number(repId)];
+                      if (account && account.accountNo) {
+                        return maskAccountNumber(account.accountNo);
+                      }
+                      return '***-****';
+                    })()}
+                  </ThemedText>
                     <ThemedText style={styles.repAmount}>
                       {repBalance !== null
                         ? `${repBalance.toLocaleString()}원`

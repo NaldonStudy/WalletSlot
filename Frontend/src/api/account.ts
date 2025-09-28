@@ -62,7 +62,7 @@ export const accountApi = {
   /**
    * 계좌 서비스 연동
    */
-  linkAccounts: async (data: { accountIds: string[] }): Promise<BaseResponse<void>> => {
+  linkAccounts: async (data: any): Promise<BaseResponse<void>> => {
   return apiClient.post(API_ENDPOINTS.ACCOUNTS_LINK, data);
   },
 
@@ -99,14 +99,14 @@ export const accountApi = {
    * 슬롯 추천 (날짜 기반)
    */
   recommendSlotsByDate: async (accountId: string, request: SlotRecommendationRequest): Promise<SlotRecommendationResponse> => {
-    return apiClient.post(API_ENDPOINTS.ACCOUNT_SLOT_RECOMMEND(accountId), request);
+    return apiClient.postWithConfig(API_ENDPOINTS.ACCOUNT_SLOT_RECOMMEND(accountId), request, { timeout: 90000 });
   },
 
   /**
    * 슬롯 추천 (프로필 기반)
    */
   recommendSlotsByProfile: async (accountId: string, request: SlotRecommendationByProfileRequest): Promise<SlotRecommendationResponse> => {
-    return apiClient.post(API_ENDPOINTS.ACCOUNT_SLOT_RECOMMEND_BY_PROFILE(accountId), request);
+    return apiClient.postWithConfig(API_ENDPOINTS.ACCOUNT_SLOT_RECOMMEND_BY_PROFILE(accountId), request, { timeout: 90000 });
   },
 
 };
