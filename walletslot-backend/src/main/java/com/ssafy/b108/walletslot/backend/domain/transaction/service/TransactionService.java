@@ -78,6 +78,7 @@ public class TransactionService {
 
     @Qualifier("ssafyGmsWebClient") private final WebClient ssafyGmsWebClient;
     @Qualifier("fcmWebClient") private final WebClient fcmWebClient;
+    @Qualifier("gptWebClient") private final WebClient gptWebClient;
 
     @Value("${api.ssafy.finance.apiKey}")
     private String ssafyFinanceApiKey;
@@ -1484,7 +1485,7 @@ public class TransactionService {
                 .build();
 
         // 요청보내기
-        ChatGPTResponseDto httpResponse = callGMS(body);
+        ChatGPTResponseDto httpResponse = callGPT(body);
 
         // gpt로부터 받은 응답 역직렬화
         JsonNode node;
@@ -1509,6 +1510,16 @@ public class TransactionService {
         AccountSlot accountSlot = accountSlotRepository.findByAccountAndSlot(account, slot).orElse(null);
 
         return accountSlot;
+    }
+
+    // ChatGPT 호출할 때 쓸 메서드
+    private ChatGPTResponseDto callGPT(ChatGPTRequestDto body) {
+        return gptWebClient.post()
+                .uri("/chat/completions")
+                .bodyValue(body)
+                .retrieve()
+                .bodyToMono(ChatGPTResponseDto.class)
+                .block();
     }
 
     // ChatGPT 호출할 때 쓸 메서드
