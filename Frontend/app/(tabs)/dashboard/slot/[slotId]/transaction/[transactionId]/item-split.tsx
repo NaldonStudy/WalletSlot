@@ -1,8 +1,9 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useLocalSearchParams, router, useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { View, StyleSheet, useColorScheme, Text, ScrollView, TouchableOpacity, Modal, TextInput, Alert } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
+import { Image } from 'expo-image';
 import { Button } from '@/src/components/Button';
 import { Spacing, themes } from '@/src/constants/theme';
 import { useNavigation } from '@react-navigation/native';
@@ -33,6 +34,7 @@ export default function ItemSplitScreen() {
   const theme = themes[colorScheme];
   const navigation = useNavigation();
   const queryClient = useQueryClient();
+
 
   // 탭바 숨기기
   useFocusEffect(

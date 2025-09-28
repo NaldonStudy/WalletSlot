@@ -1,5 +1,7 @@
+import { accountApi } from '@/src/api/account';
 import { authApi } from '@/src/api/auth';
 import { profileApi } from '@/src/api/profile';
+import { slotApi } from '@/src/api/slot';
 import { featureFlags } from '@/src/config/featureFlags';
 import { appService } from '@/src/services/appService';
 import { getOrCreateDeviceId } from '@/src/services/deviceIdService';
@@ -65,6 +67,44 @@ export default function NotificationConsentScreen() {
     } catch (error) {
       console.error('❌ 사용자 프로필 조회 실패:', error);
       // 에러가 발생해도 알림 동의는 계속 진행
+    }
+  };
+
+  // 로그인/회원가입 이후에 적절한 화면으로 이동시키는 헬퍼
+  const determineAndRoute = async () => {
+    try {
+      console.log('[ROUTING_HELPER] 계좌 연동 확인 시작');
+      const accountsRes = await accountApi.getLinkedAccounts();
+      const accounts = accountsRes?.data?.accounts || [];
+
+      if (!accounts || accounts.length === 0) {
+        console.log('[ROUTING_HELPER] 연동된 계좌 없음 → (mydata)로 이동');
+        router.replace('/(mydata)' as any);
+        return;
+      }
+
+      // 계좌가 있으면 각 계좌에 슬롯이 있는지 확인
+      for (const acct of accounts) {
+        try {
+          const slotsRes = await slotApi.getSlotsByAccount(acct.accountId);
+          const slots = slotsRes?.data?.slots || [];
+          if (slots && slots.length > 0) {
+            console.log('[ROUTING_HELPER] 계좌에 슬롯 존재 → 대시보드로 이동', { accountId: acct.accountId });
+            router.replace('/(tabs)/dashboard' as any);
+            return;
+          }
+        } catch (e) {
+          console.warn('[ROUTING_HELPER] 특정 계좌 슬롯 조회 실패, 다음 계좌 시도:', acct.accountId, e);
+          // 계속 다음 계좌를 확인
+        }
+      }
+
+      // 모든 계좌에 슬롯이 없으면 슬롯 분배 화면으로 이동
+      console.log('[ROUTING_HELPER] 계좌는 있으나 슬롯 없음 → 슬롯 분배 화면으로 이동');
+      router.replace('/(slotDivide)/s1electDay' as any);
+    } catch (error) {
+      console.error('[ROUTING_HELPER] 계좌/슬롯 조회 중 오류 발생, 기본 동작: 마이데이터 연동 화면으로 이동', error);
+      router.replace('/(mydata)' as any);
     }
   };
 
@@ -293,7 +333,7 @@ export default function NotificationConsentScreen() {
         } catch {}
         
         // 4. 슬롯 분배 화면으로 이동
-        router.replace('/(slotDivide)/s1electDay' as any);
+        await determineAndRoute();
         return;
       }
 
@@ -339,7 +379,7 @@ export default function NotificationConsentScreen() {
         console.log('알림 거부(로그인 모드) - 스토어에 저장');
         
         // 3. 슬롯 분배 화면으로 이동
-        router.replace('/(slotDivide)/s1electDay' as any);
+        await determineAndRoute();
         return;
       }
 

@@ -1,6 +1,7 @@
 import React from "react";
 import { View, Text, StyleSheet, useColorScheme } from "react-native";
 import { themes } from "@/src/constants/theme";
+import { useUncategorizedNotificationCount } from '@/src/hooks/notifications/useUncategorizedNotificationCount';
 
 type UncategorizedSlotBalanceCardProps = {
   remaining: number;
@@ -13,6 +14,12 @@ const UncategorizedSlotBalanceCard: React.FC<UncategorizedSlotBalanceCardProps> 
 }) => {
   const colorScheme = useColorScheme() ?? "light";
   const theme = themes[colorScheme];
+
+  // 미분류 슬롯 관련 알림 개수 조회
+  const { data: notificationData, isLoading: isNotificationLoading } = useUncategorizedNotificationCount();
+  
+  // 미분류 슬롯 관련 알림 개수
+  const actualUnreadCount = notificationData?.data?.count || 0;
 
   return (
     <View
@@ -40,9 +47,9 @@ const UncategorizedSlotBalanceCard: React.FC<UncategorizedSlotBalanceCardProps> 
         <View style={styles.notificationSection}>
           <Text style={styles.label}>미읽음 알림</Text>
           <View style={styles.notificationContainer}>
-            {unreadCount > 0 ? (
+            {actualUnreadCount > 0 ? (
               <Text style={[styles.notificationText, { color: theme.colors.text.primary }]}>
-                {unreadCount}
+                {actualUnreadCount}
               </Text>
             ) : (
               <Text style={[styles.noNotificationText, { color: theme.colors.text.secondary }]}>

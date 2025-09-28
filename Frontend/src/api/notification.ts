@@ -593,6 +593,66 @@ export const notificationApi = {
     }
   },
 
+  /**
+   * 미읽음 목록 조회 (GET /api/notifications/unread)
+   */
+  getUnreadNotifications: async (params?: {
+    type?: 'UNCATEGORIZED' | 'SYSTEM' | 'DEVICE' | 'BUDGET' | 'TRANSACTION' | 'MARKETING';
+    page?: number;
+    size?: number;
+  }): Promise<GetNotificationPageResponseDto> => {
+    try {
+      const queryParams: any = {};
+      if (params?.type) queryParams.type = params.type;
+      if (params?.page !== undefined) queryParams.page = params.page;
+      if (params?.size !== undefined) queryParams.size = params.size;
+
+      const response = await apiClient.get('/api/notifications/unread', queryParams);
+      console.log('[NOTIF_API] getUnreadNotifications response:', response);
+
+      const safeResponse: BaseResponse<any> = (response as BaseResponse<any>) ?? {
+        success: false,
+        message: '미읽음 알림 목록 조회에 실패했습니다.',
+        data: {},
+      };
+      const rawData: Record<string, any> = isRecord(safeResponse.data) ? safeResponse.data : {};
+      const normalizedContent = normalizeNotificationCollection(rawData?.content);
+
+      return {
+        ...safeResponse,
+        data: {
+          ...rawData,
+          content: normalizedContent,
+          page: {
+            number: rawData?.page || 0,
+            size: rawData?.size || 20,
+            totalElements: rawData?.totalElements || 0,
+            totalPages: rawData?.totalPages || 0,
+            first: rawData?.page === 0,
+            last: rawData?.page >= (rawData?.totalPages - 1),
+          },
+        },
+      } as GetNotificationPageResponseDto;
+    } catch (error) {
+      console.error('[NOTIF_API] 미읽음 알림 목록 조회 실패:', error);
+      return {
+        success: false,
+        message: '미읽음 알림 목록 조회에 실패했습니다.',
+        data: {
+          content: [],
+          page: {
+            number: params?.page || 0,
+            size: params?.size || 20,
+            totalElements: 0,
+            totalPages: 0,
+            first: true,
+            last: true
+          }
+        }
+      };
+    }
+  },
+
     /**
    *  로그인 시, 로컬에 저장된 알림 여부 없을 경우, 서버 조회(구현 미완)
    *  true로 일단 하드 코딩.

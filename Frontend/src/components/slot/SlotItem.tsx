@@ -6,7 +6,6 @@ import { useColorScheme } from '@/hooks/useColorScheme';
 import { SLOT_CATEGORIES, Spacing } from '@/src/constants';
 import CircularProgress from '../common/CircularProgress';
 import WarningIcon from '@/src/assets/icons/common/warning.svg';
-import CautionIcon from '@/src/assets/icons/common/caution.svg';
 import ActionTooltip from '../common/ActionTooltip';
 
 type SlotItemProps = {
@@ -30,17 +29,6 @@ const SlotItem = ({ slot, isTooltipOpen = false, onMenuPress, onEdit, onHistory 
   const slotIcon = SLOT_CATEGORIES[slot.slotId as keyof typeof SLOT_CATEGORIES]?.icon;
   const slotName = slot.customName || slot.name;
   
-  // budgetChangeCount에 따른 경고 레벨 및 색상 결정
-  const getChangeWarningInfo = (changeCount: number) => {
-    if (changeCount === 0) return null;
-    if (changeCount === 1) return { color: '#F59E0B', level: '경미' }; // 노란색
-    if (changeCount === 2) return { color: '#F97316', level: '주의' }; // 주황색
-    if (changeCount === 3) return { color: '#EF4444', level: '경고' }; // 빨간 주황색
-    if (changeCount === 4) return { color: '#DC2626', level: '위험' }; // 빨간색
-    return { color: '#991B1B', level: '심각' }; // 진한 빨간색 (5회 이상)
-  };
-  
-  const changeWarning = getChangeWarningInfo(slot.budgetChangeCount || 0);
   return (
     <View style={[styles.card, theme.shadows.base, {
       backgroundColor: theme.colors.background.primary,
@@ -71,19 +59,6 @@ const SlotItem = ({ slot, isTooltipOpen = false, onMenuPress, onEdit, onHistory 
               fill="#CC0000" // 빨간색 적용
               style={{ marginLeft: Spacing.sm }}
             />
-          )}
-          {changeWarning && !isOverBudget && (
-            <View style={styles.changeWarningContainer}>
-              <CautionIcon
-                width={20}
-                height={20}
-                fill={changeWarning.color}
-                style={{ marginLeft: Spacing.sm }}
-              />
-              <Text style={[styles.changeCountText, { color: changeWarning.color }]}>
-                {slot.budgetChangeCount}회 변경
-              </Text>
-            </View>
           )}
         </View>
 
@@ -182,16 +157,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     flexWrap: 'wrap',
-  },
-  changeWarningContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginLeft: Spacing.sm,
-  },
-  changeCountText: {
-    fontSize: 12,
-    fontWeight: '600',
-    marginLeft: 4,
   },
   name: {
     fontSize: 18,

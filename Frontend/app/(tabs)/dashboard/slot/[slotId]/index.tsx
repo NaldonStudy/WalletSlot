@@ -28,29 +28,33 @@ export default function SlotDetailScreen() {
     // 현재 슬롯 결정 - 최신 데이터 우선 사용
     const currentSlot = slots?.find(slot => slot.slotId === slotId) || selectedSlot;
 
+    // 미분류 슬롯인지 확인
+    const isUncategorizedSlot = slotId === UNCATEGORIZED_SLOT_ID;
+
+    // 실제 슬롯 데이터에서 accountSlotId 가져오기
+    const actualAccountSlotId = currentSlot?.accountSlotId || selectedSlot?.accountSlotId || '';
+
+    // 일일 지출 데이터 조회 (모든 슬롯에 대해 동일한 API 사용)
     const { data: dailySpending, isLoading } = useSlotDailySpending(
-        selectedSlot?.accountId, // 계좌 ID
-        selectedSlot?.accountSlotId // 계좌 슬롯 ID
+        selectedSlot?.accountId || '', // 계좌 ID
+        actualAccountSlotId // 실제 accountSlotId 사용
     );
 
-    // 실제 API를 사용한 거래내역 조회
+    // 거래내역 조회 (모든 슬롯에 대해 동일한 API 사용)
     const { 
-        transactions: apiTransactions, 
+        transactions, 
         isLoading: isTransactionsLoading,
         totalPages,
         currentPage 
     } = useSlotTransactions({
         accountId: selectedSlot?.accountId || '',
-        accountSlotId: selectedSlot?.accountSlotId || '',
+        accountSlotId: actualAccountSlotId,
         params: {
             page: 1,
             pageSize: 20,
         },
-        enabled: !!selectedSlot?.accountId && !!selectedSlot?.accountSlotId
+        enabled: !!selectedSlot?.accountId && !!actualAccountSlotId
     });
-
-    // API에서 받은 거래내역 데이터 사용
-    const transactions = apiTransactions;
 
     // 로딩 중이거나 슬롯 데이터가 없을 때 처리
     if (slotsLoading) {
@@ -84,7 +88,7 @@ export default function SlotDetailScreen() {
                 {currentSlot.slotId === UNCATEGORIZED_SLOT_ID ? (
                     <UncategorizedSlotBalanceCard
                         remaining={currentSlot.remainingBudget}
-                        unreadCount={3} // TODO: 실제 미읽음 알림 개수로 교체
+                        unreadCount={0} // 실제 개수는 UncategorizedSlotCard 내부에서 API로 조회
                     />
                 ) : (
                     <SlotBalanceCard
@@ -106,6 +110,7 @@ export default function SlotDetailScreen() {
                             slotName={currentSlot.name}
                             color={SLOT_CATEGORIES[currentSlot.slotId as keyof typeof SLOT_CATEGORIES]?.color || '#F1A791'}
                             budget={currentSlot.currentBudget}
+                            isUncategorized={isUncategorizedSlot}
                         />
                     ) : (
                         <View style={styles.emptyCard}>
