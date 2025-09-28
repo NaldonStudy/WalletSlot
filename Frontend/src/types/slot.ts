@@ -53,6 +53,23 @@ export interface SlotTransactionsResponse {
   pageSize: number;
 }
 
+// 계좌 전체 거래내역
+export interface AccountTransaction {
+  transactionId: string;
+  type: string;
+  opponentAccountNo: string;
+  summary: string;
+  amount: number;
+  balance: number;
+  transactionAt: string;
+}
+
+export interface AccountTransactionsResponse {
+  transactions: AccountTransaction[];
+  hasNext: boolean;
+  nextCursor: string;
+}
+
 // 거래 이동 응답 타입
 export interface MoveTransactionResponse {
   transaction: {

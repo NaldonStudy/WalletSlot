@@ -26,8 +26,8 @@ export default function SlotDetailScreen() {
     // API를 통해 최신 슬롯 데이터 가져오기
     const { slots, isLoading: slotsLoading } = useSlots(selectedSlot?.accountId);
     
-    // 현재 슬롯 결정 - 단순화된 로직
-    const currentSlot = selectedSlot;
+    // 현재 슬롯 결정 - 최신 데이터 우선 사용
+    const currentSlot = slots?.find(slot => slot.slotId === slotId) || selectedSlot;
 
     const { data: dailySpending, isLoading } = useSlotDailySpending(
         selectedSlot?.accountId, // 계좌 ID
@@ -125,7 +125,7 @@ export default function SlotDetailScreen() {
                         <TransactionList 
                             transactions={transactions} 
                             slotId={slotId}
-                            accountId={currentSlot?.accountId}
+                            accountId={selectedSlot?.accountId}
                             accountSlotId={currentSlot?.accountSlotId}
                         />
                     ) : (

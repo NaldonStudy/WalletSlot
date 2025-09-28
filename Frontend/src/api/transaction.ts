@@ -2,6 +2,7 @@ import { apiClient } from '@/src/api/client';
 import {
   SlotTransactionsResponse,
   MoveTransactionResponse,
+  AccountTransactionsResponse,
   BaseResponse
 } from '@/src/types';
 import { isAmbiguousAxiosBody } from './responseNormalizer';
@@ -229,6 +230,37 @@ export const transactionApi = {
           method: error.config?.method,
           data: error.config?.data
         }
+      });
+      throw error;
+    }
+  },
+
+  /**
+   * 계좌 전체 거래내역 조회
+   */
+  getAccountTransactions: async (
+    accountId: string,
+    params?: {
+      cursor?: string;
+      limit?: number;
+    }
+  ): Promise<BaseResponse<AccountTransactionsResponse>> => {
+    try {
+      const queryParams = new URLSearchParams();
+      if (params?.cursor) queryParams.append('cursor', params.cursor);
+      if (params?.limit) queryParams.append('limit', params.limit.toString());
+
+      const url = `/api/accounts/${accountId}/transactions${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+      
+      const response = await apiClient.get<AccountTransactionsResponse>(url);
+      return response;
+    } catch (error: any) {
+      console.error('[getAccountTransactions] API 호출 실패:', {
+        accountId,
+        params,
+        error: error.message,
+        status: error.response?.status,
+        data: error.config?.data
       });
       throw error;
     }

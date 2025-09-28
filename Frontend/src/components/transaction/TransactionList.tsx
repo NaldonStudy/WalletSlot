@@ -63,6 +63,7 @@ const TransactionList = ({ transactions, slotId, accountId, accountSlotId }: Pro
                   transaction={transaction} 
                   showDate={index === 0}
                   dateText={formatDate(transaction.transactionAt)}
+                  isLastInDate={index === dayTransactions.length - 1}
                   slotId={slotId}
                   accountId={accountId}
                   accountSlotId={accountSlotId}

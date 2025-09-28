@@ -10,10 +10,11 @@ type UncategorizedSlotCardProps = {
     remain: number;
     unreadCount: number;
     accountId?: string;
+    onPress?: () => void;
 }
 
 
-export const UncategorizedSlotCard = ({ remain, unreadCount, accountId }: UncategorizedSlotCardProps) => {
+export const UncategorizedSlotCard = ({ remain, unreadCount, accountId, onPress }: UncategorizedSlotCardProps) => {
     const colorScheme = useColorScheme() ?? "light";
     const theme = themes[colorScheme];
     
@@ -57,11 +58,23 @@ export const UncategorizedSlotCard = ({ remain, unreadCount, accountId }: Uncate
     return (
       <TouchableOpacity
         activeOpacity={0.7}
-        onPress={handlePress}
+        onPress={onPress || handlePress}
         style={[
           styles.card,
           theme.shadows.base,
-          { backgroundColor: theme.colors.background.primary },
+          { 
+            backgroundColor: theme.colors.background.primary,
+            borderColor: theme.colors.border.light,
+            borderWidth: 1,
+            shadowColor: '#000',
+            shadowOffset: {
+              width: 0,
+              height: 2,
+            },
+            shadowOpacity: 0.1,
+            shadowRadius: 4,
+            elevation: 5,
+          },
         ]}
       >
         {/* 하단 row: 왼쪽 타이틀+뱃지, 오른쪽 잔액 */}
@@ -91,7 +104,7 @@ export const UncategorizedSlotCard = ({ remain, unreadCount, accountId }: Uncate
       marginTop: Spacing.sm,
       borderRadius: 12,
       padding: Spacing.base,
-      width: "100%",
+      width: "90%", // 부모 컨테이너의 90% 너비로 설정
       minHeight: 80, // 카드 높이 확보
       justifyContent: "flex-end", // 하단에 row 붙이기
     },

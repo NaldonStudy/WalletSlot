@@ -305,6 +305,10 @@ export default function ItemSplitScreen() {
             queryClient.invalidateQueries({ queryKey: queryKeys.slots.transactions(accountId, slotId) })
           ),
           queryClient.invalidateQueries({ queryKey: queryKeys.accounts.balance(accountId) }),
+          // 슬롯별 일일 지출 데이터 캐시 무효화
+          ...uniqueSlotIds.map(slotId => 
+            queryClient.invalidateQueries({ queryKey: queryKeys.slots.dailySpending(accountId, slotId) })
+          ),
         ]);
         
         const totalAmount = assignedItems.reduce((sum, item) => sum + item.price, 0);
@@ -316,9 +320,13 @@ export default function ItemSplitScreen() {
           [
             {
               text: '확인',
-              onPress: () => {
-                // 원래 슬롯 상세 화면으로 이동
-                router.push({
+              onPress: async () => {
+                // 추가 캐시 무효화로 그래프 데이터 최신화
+                await queryClient.invalidateQueries({ queryKey: queryKeys.slots.byAccount(accountId) });
+                await queryClient.invalidateQueries({ queryKey: queryKeys.slots.dailySpending(accountId, accountSlotId || '') });
+                
+                // 원래 슬롯 상세 화면으로 이동 (현재 화면을 교체)
+                router.replace({
                   pathname: '/(tabs)/dashboard/slot/[slotId]',
                   params: {
                     slotId: slotId || '',
