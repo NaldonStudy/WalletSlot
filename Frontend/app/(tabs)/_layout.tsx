@@ -78,6 +78,12 @@ export default function TabLayout() {
           href: null, // 탭에 표시 안 함
         }}
       />
+      <Tabs.Screen
+        name="index"
+        options={{
+          href: null, // 탭에 표시 안 함
+        }}
+      />
     </Tabs>
   );
 }

@@ -3,12 +3,12 @@ import { useSignupStore } from '@/src/store/signupStore';
 import { router } from 'expo-router';
 import React, { useState } from 'react';
 import {
-    KeyboardAvoidingView,
-    Platform,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  KeyboardAvoidingView,
+  Platform,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -45,7 +45,6 @@ export default function PasswordSetupScreen() {
       setIsConfirming(true);
       setPin(''); // PIN 초기화
       setError('');
-  // 다음 입력에서 키패드 셔플은 AuthPinEntry의 기본 셔플 옵션으로 처리됩니다
     } else {
       // 두 번째 PIN 입력 완료 - 비교
       if (firstPin === pin) {

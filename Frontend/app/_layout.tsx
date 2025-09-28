@@ -1,75 +1,86 @@
-// ✅ 1. 폴리필을 다른 어떤 코드보다 먼저 import 합니다.
+/**
+ * @file 앱의 진입점 역할을 하는 루트 레이아웃 컴포넌트입니다.
+ * @description 이 파일은 앱의 생명주기 동안 필요한 초기화, 상태 관리, 라우팅을 총괄합니다.
+ */
+
+// ✅ Polyfill은 다른 어떤 코드보다 먼저 import 되어야 합니다.
 import '@/src/polyfills';
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { useFonts } from 'expo-font';
-import { SplashScreen, Stack } from 'expo-router';
+import { router, SplashScreen, Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
-import { Platform } from 'react-native';
+import { AppState, Platform } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import 'react-native-reanimated';
 
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { queryClient } from '@/src/api/queryClient';
 import CustomSplashScreen from '@/src/components/CustomSplashScreen';
-import { DEV_AUTH_BYPASS } from '@/src/config/devAuthBypass';
 import { featureFlags } from '@/src/config/featureFlags';
 import { initializeMSW, isMSWEnabled } from '@/src/mocks';
 import { appService } from '@/src/services/appService';
-import { getOrCreateDeviceId, setDeviceId } from '@/src/services/deviceIdService';
-import { getAccessToken, needsRefreshSoon, saveAccessToken, saveRefreshToken } from '@/src/services/tokenService';
+import { getOrCreateDeviceId } from '@/src/services/deviceIdService';
+import { getAccessToken, needsRefreshSoon } from '@/src/services/tokenService';
 import { unifiedPushService } from '@/src/services/unifiedPushService';
 import { useAuthStore } from '@/src/store/authStore';
-import { useLocalUserStore } from '@/src/store/localUserStore';
 
-// 개발 환경에서 MSW(mock service worker) 활성화
-if (__DEV__) {
-  try {
-    if (isMSWEnabled()) {
-      initializeMSW();
-    }
-  } catch {}
+// 개발(dev) 환경이고, MSW(Mock Service Worker)가 활성화된 경우에만 초기화합니다.
+if (__DEV__ && isMSWEnabled()) {
+  initializeMSW();
 }
 
-// 리소스(폰트, 온보딩 상태)를 가져오는 동안 스플래시 화면을 유지합니다.
+// 모든 필수 리소스(폰트, 상태 등)가 로드될 때까지 네이티브 스플래시 화면을 유지합니다.
 SplashScreen.preventAutoHideAsync();
 
 /**
- * 앱의 루트 레이아웃 컴포넌트
- * - 폰트 로딩 및 온보딩 상태 관리
- * - 스플래시 화면 제어
- * - 기기 ID 초기화 및 인증 토큰 선제 갱신
+ * 앱의 루트 레이아웃 컴포넌트입니다.
+ * 앱의 시작점(entry point)으로서 다음과 같은 핵심 역할을 수행합니다.
+ * - 폰트, 기기 ID, 인증 상태 등 앱 실행에 필요한 리소스와 상태를 초기화합니다.
+ * - 모든 초기화가 완료될 때까지 스플래시 화면을 제어합니다.
+ * - 인증 및 온보딩 상태에 따라 사용자에게 보여줄 첫 화면을 결정하고 안내(라우팅)합니다.
+ * - 앱 전역에서 사용될 Provider(QueryClient, Theme 등)를 설정합니다.
+ * - 선제적 토큰 갱신, 푸시 알림 설정 등 백그라운드 서비스를 관리합니다.
  */
 export default function RootLayout() {
   const colorScheme = useColorScheme();
-  // 인증 상태
   const isLoggedIn = useAuthStore(state => state.isLoggedIn);
   const authLoading = useAuthStore(state => state.isLoading);
-  const [loaded, error] = useFonts({
+  
+  const [fontLoaded, fontError] = useFonts({
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
   });
-  // 온보딩 완료 여부: 직접 AsyncStorage에서 관리
+
   const [onboardingDone, setOnboardingDone] = useState<boolean | null>(null);
   // 마이데이터 연결 완료 여부: featureFlags에서 관리
   const [myDataConnectDone, setMyDataConnectDone] = useState<boolean | null>(null);
   // 스플래시 최소 표시 시간을 위한 상태
   const [splashMinTimeElapsed, setSplashMinTimeElapsed] = useState(false);
-  // 커스텀 스플래시 화면 표시 여부
   const [showCustomSplash, setShowCustomSplash] = useState(true);
 
-  // Expo Router는 Error Boundary를 사용해 네비게이션 트리의 에러를 처리합니다.
+  /**
+   * 폰트 로딩 중 발생한 에러를 Expo Router의 Error Boundary로 전달합니다.
+   */
   useEffect(() => {
-    if (error) throw error;
-  }, [error]);
+    if (fontError) throw fontError;
+  }, [fontError]);
 
-  // 앱 시작 시 1회: deviceId 초기화 및 온보딩 완료 여부를 비동기로 조회
+  /**
+   * 앱 시작 시 단 한 번 실행되는 비동기 초기화 로직입니다.
+   * 기기 ID, 온보딩 상태, 인증 상태를 최대한 빠르게 확인합니다.
+   */
   useEffect(() => {
-    (async () => {
+    async function initializeApp() {
       try {
-        const deviceId = await getOrCreateDeviceId();
-        // 온보딩 완료 여부 조회
-        const completed = await appService.getOnboardingCompleted();
+        // 앱 실행에 필수적인 기기 ID를 먼저 확보합니다.
+        await getOrCreateDeviceId();
+
+        // 온보딩 완료 여부를 비동기적으로 확인합니다. (최대 800ms 대기)
+        const completed = await Promise.race([
+          appService.getOnboardingCompleted(),
+          new Promise<boolean>(resolve => setTimeout(() => resolve(false), 800)),
+        ]);
         setOnboardingDone(completed);
         // 마이데이터 연결 완료 여부 조회
         let myDataConnectCompleted = featureFlags.isMyDataConnectEnabled();
@@ -78,56 +89,12 @@ export default function RootLayout() {
           시간: new Date().toISOString()
         });
         
-        // 개발용 바이패스 설정 적용
-        if (DEV_AUTH_BYPASS.enabled && DEV_AUTH_BYPASS.myDataConnectEnabled !== undefined) {
-          myDataConnectCompleted = DEV_AUTH_BYPASS.myDataConnectEnabled;
-          console.log('[DEV_AUTH_BYPASS] myDataConnect 강제 설정:', myDataConnectCompleted);
-        }
-        
         setMyDataConnectDone(myDataConnectCompleted);
         // 인증 상태 초기 확인
         await useAuthStore.getState().checkAuthStatus();
 
-        // 개발용 로그인 바이패스
-        if (DEV_AUTH_BYPASS.enabled) {
-          try {
-            // 디바이스 ID 강제 지정 (예: 서버에 등록된 1234와 맞추기 위함)
-            if (DEV_AUTH_BYPASS.deviceIdOverride !== undefined && DEV_AUTH_BYPASS.deviceIdOverride !== null) {
-              await setDeviceId(DEV_AUTH_BYPASS.deviceIdOverride);
-            }
-            // 토큰 저장
-            await saveAccessToken(DEV_AUTH_BYPASS.tokens.accessToken);
-            await saveRefreshToken(DEV_AUTH_BYPASS.tokens.refreshToken);
-            // 온보딩 완료 처리
-            await appService.setOnboardingCompleted(true);
-            setOnboardingDone(true);
-            // 로컬 사용자 세팅 (localUserStore)
-            const setUser = useLocalUserStore.getState().setUser;
-            await setUser({
-              userName: DEV_AUTH_BYPASS.user.userName,
-              isPushEnabled: DEV_AUTH_BYPASS.user.isPushEnabled,
-              deviceId: DEV_AUTH_BYPASS.deviceIdOverride ?? deviceId,
-            });
-
-            // AuthService에도 LocalUser 저장하여 authStore가 로그인 상태로 인식
-            const { authService } = await import('@/src/services/authService');
-            await authService.saveUser({
-              userName: DEV_AUTH_BYPASS.user.userName,
-              isPushEnabled: DEV_AUTH_BYPASS.user.isPushEnabled,
-              deviceId: DEV_AUTH_BYPASS.deviceIdOverride ?? deviceId,
-            });
-
-            // 인증 스토어 상태 강제 갱신
-            await useAuthStore.getState().checkAuthStatus();
-            // 푸시 등록 보장
-            unifiedPushService
-              .initialize()
-              .then(() => firebasePushEnsure())
-              .catch(() => {});
-          } catch (e) {
-            console.error('[DEV_AUTH_BYPASS] 초기화 실패:', e);
-          }
-        }
+        // 인증 상태 확인은 백그라운드에서 실행하여 화면 로딩을 막지 않습니다.
+        useAuthStore.getState().checkAuthStatus().catch(e => console.error('초기 인증 체크 실패:', e));
       } catch (error) {
         console.error('앱 초기화 중 오류:', error);
         const completed = await appService.getOnboardingCompleted();
@@ -138,50 +105,65 @@ export default function RootLayout() {
           시간: new Date().toISOString()
         });
         
-        // 개발용 바이패스 설정 적용 (에러 시에도)
-        if (DEV_AUTH_BYPASS.enabled && DEV_AUTH_BYPASS.myDataConnectEnabled !== undefined) {
-          myDataConnectCompleted = DEV_AUTH_BYPASS.myDataConnectEnabled;
-          console.log('[DEV_AUTH_BYPASS] myDataConnect 강제 설정 (에러 시):', myDataConnectCompleted);
-        }
-        
         setMyDataConnectDone(myDataConnectCompleted);
       }
-    })();
+    }
+
+    initializeApp();
   }, []);
 
-  // 스플래시 최소 표시 시간 (3초) 보장
+  /**
+   * 스플래시 화면이 최소 3초간 표시되도록 보장합니다.
+   * 로딩이 너무 빨라도 브랜드 로고를 충분히 인지할 수 있게 합니다.
+   */
   useEffect(() => {
     const timer = setTimeout(() => {
       setSplashMinTimeElapsed(true);
     }, 3000);
-
     return () => clearTimeout(timer);
   }, []);
 
-  // 폰트 로딩과 앱 초기화가 완료되면 스플래시 화면을 숨깁니다.
+  /**
+   * 모든 준비(폰트, 온보딩 확인, 최소 시간)가 완료되면 스플래시 화면을 숨깁니다.
+   */
   useEffect(() => {
-    if (loaded && onboardingDone !== null && myDataConnectDone !== null && splashMinTimeElapsed) {
+    if (fontLoaded && onboardingDone !== null && myDataConnectDone !== null && splashMinTimeElapsed) {
       // 네이티브 스플래시 숨기기
       SplashScreen.hideAsync();
       
-      // 커스텀 스플래시 추가 표시 시간 (2초)
+      // 네이티브 스플래시가 사라진 후, 부드러운 화면 전환을 위해
+      // 커스텀 스플래시를 2초간 추가로 표시합니다.
       setTimeout(() => {
         setShowCustomSplash(false);
       }, 2000);
     }
-  }, [loaded, onboardingDone, myDataConnectDone, splashMinTimeElapsed]);
+  }, [fontLoaded, onboardingDone, myDataConnectDone, splashMinTimeElapsed]);
 
   
   // 앱 시작 시 기타 초기화 로직 + 선제 토큰 갱신
   useEffect(() => {
-    // TODO: 실제 사용자 ID를 받아온 후 설정
-    // monitoringService.setUserId('user_123');
-    
-    // 플랫폼별 알림 설정
-    (async () => {
+    // 아직 인증 상태를 확인 중이거나 스플래시가 보이는 중에는 라우팅을 실행하지 않습니다.
+    if (authLoading || showCustomSplash) {
+      return;
+    }
+
+    if (isLoggedIn) {
+      router.replace('/(tabs)/dashboard');
+    } else if (onboardingDone) {
+      router.replace('/(auth)/(signup)/name');
+    } else if (onboardingDone === false) {
+      router.replace('/(onboarding)/onboarding');
+    }
+  }, [isLoggedIn, authLoading, onboardingDone, showCustomSplash]);
+
+  /**
+   * 알림 및 푸시 서비스 관련 초기화를 담당합니다.
+   * 온보딩 완료 여부에 따라 푸시 서비스 초기화를 진행합니다.
+   */
+  useEffect(() => {
+    async function setupNotifications() {
       try {
         const { setNotificationHandler } = await import('expo-notifications');
-        // 포그라운드 알림 표시 방식 설정
         setNotificationHandler({
           handleNotification: async () => ({
             shouldShowBanner: true,
@@ -190,57 +172,54 @@ export default function RootLayout() {
             shouldSetBadge: Platform.OS === 'ios',
           }),
         });
-        // 안드로이드 알림 채널 설정
+
         if (Platform.OS === 'android') {
           const Notifications = await import('expo-notifications');
           await Notifications.setNotificationChannelAsync('default', {
             name: 'WalletSlot 알림',
             importance: Notifications.AndroidImportance.HIGH,
           });
-          await Notifications.setNotificationChannelAsync('firebase', {
-            name: 'Firebase 푸시 알림',
-            importance: Notifications.AndroidImportance.HIGH,
-          });
-          // Android 알림 채널 설정 완료
-         }
-        // 알림 핸들러 설정 완료
-       } catch (error) {
+        }
+      } catch (error) {
         console.error('알림 설정 중 오류:', error);
-       }
-     })();
-    
-    // 푸시 서비스 자동 초기화 (온보딩 완료 후)
-    if (onboardingDone) {
-      unifiedPushService.initialize()
-        .then(result => console.log('✅ 푸시 서비스 초기화 완료:', result))
-        .catch(e => console.error('❌ 푸시 서비스 초기화 오류:', e));
+      }
     }
+    
+    setupNotifications();
 
-    // 선제 갱신: 앱 시작 시 1회 체크, 포그라운드 복귀 시마다 체크
+    if (onboardingDone) {
+      unifiedPushService.initialize().catch(e => console.error('❌ 푸시 서비스 초기화 오류:', e));
+    }
+  }, [onboardingDone]);
+
+  /**
+   * 앱이 활성화될 때마다 로그인 토큰이 곧 만료되는지 확인하고,
+   * 필요한 경우 백그라운드에서 조용히 갱신합니다.
+   */
+  useEffect(() => {
     const maybeSilentRefresh = async () => {
       try {
-        const at = await getAccessToken();
-        if (!at) return;
-        if (!needsRefreshSoon(at, 90)) return;
-        await useAuthStore.getState().refreshAccessToken();
+        const accessToken = await getAccessToken();
+        if (accessToken && needsRefreshSoon(accessToken, 90)) {
+          await useAuthStore.getState().refreshAccessToken();
+        }
       } catch (e) {
         console.error('토큰 선제 갱신 실패:', e);
       }
     };
 
-    maybeSilentRefresh();
+    maybeSilentRefresh(); // 앱 시작 시 1회 즉시 실행
 
-    const { AppState } = require('react-native');
-    const sub = AppState.addEventListener('change', (s: string) => {
-      if (s === 'active') {
+    const subscription = AppState.addEventListener('change', nextAppState => {
+      if (nextAppState === 'active') {
         maybeSilentRefresh();
       }
     });
 
     return () => {
-      sub?.remove?.();
+      subscription.remove();
     };
-  }, [onboardingDone]);
+  }, []);
 
   // 푸시 서버 등록 보장 헬퍼
   const firebasePushEnsure = async () => {
@@ -257,9 +236,9 @@ export default function RootLayout() {
   }
 
   // 폰트 로딩, 온보딩 상태, 마이데이터 연결 상태, 또는 인증 상태 확인 중일 때 스플래시 유지
-  if (!loaded || onboardingDone === null || myDataConnectDone === null || authLoading) {
+  if (!fontLoaded || onboardingDone === null || myDataConnectDone === null || authLoading) {
     console.log('⏳ [ROUTING] 스플래시 화면 유지 중...', {
-      loaded,
+      fontLoaded,
       onboardingDone,
       myDataConnectDone,
       authLoading
@@ -275,7 +254,7 @@ export default function RootLayout() {
       myDataConnectDone,
       isLoggedIn,
       authLoading,
-      loaded,
+      fontLoaded,
       splashMinTimeElapsed
     });
     
@@ -311,8 +290,7 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <QueryClientProvider client={queryClient}>
         <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-          <Stack initialRouteName={initialRoute}>
-            <Stack.Screen name="index" options={{ headerShown: false }} />
+          <Stack>
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
             <Stack.Screen name="(onboarding)" options={{ headerShown: false }} />
             <Stack.Screen name="(auth)" options={{ headerShown: false }} />

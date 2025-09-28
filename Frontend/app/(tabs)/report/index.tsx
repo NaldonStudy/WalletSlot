@@ -27,7 +27,6 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-// ✨ IMPROVEMENT: 복잡한 렌더링 로직을 별도의 내부 컴포넌트로 분리
 const ReportContent = React.memo(({ aiArchive, theme, onSectionLayout }: any) => {
   const reportItem = aiArchive?.reports?.find((r: any) => r.summary && r.insights);
 
@@ -58,7 +57,6 @@ const ReportContent = React.memo(({ aiArchive, theme, onSectionLayout }: any) =>
     changePercent: 0,
   })) || [];
 
-  // ✅ FIX: TopSpendingChart가 요구하는 데이터 형식으로 변환합니다.
   const totalSpent = reportItem.summary?.totalSpent ?? 0;
   const mappedTopSpendingCategories = (reportItem.summary?.top3Slots || []).map((slot: any) => ({
     categoryName: slot.slotName,
@@ -81,7 +79,6 @@ const ReportContent = React.memo(({ aiArchive, theme, onSectionLayout }: any) =>
         <PeerComparisonCard peerComparison={reportItem.peerComparison} theme={theme} />
       </View>
       <View onLayout={onSectionLayout('top')}>
-        {/* ✅ FIX: 변환된 데이터를 prop으로 전달합니다. */}
         <TopSpendingChart topSpendingCategories={mappedTopSpendingCategories} theme={theme} />
       </View>
       <View onLayout={onSectionLayout('suggest')}>
@@ -96,7 +93,6 @@ const ReportContent = React.memo(({ aiArchive, theme, onSectionLayout }: any) =>
 
 
 export default function ReportScreen() {
-  // ... (이하 모든 로직은 이전과 동일하므로 생략 없이 그대로 유지됩니다) ...
   const colorScheme = useColorScheme() ?? 'light';
   const theme = themes[colorScheme];
   
@@ -348,20 +344,12 @@ export default function ReportScreen() {
             ))}
           </View>
         )}
-        
-        <TouchableOpacity
-          onPress={() => scrollRef.current?.scrollTo({ y: 0, animated: true })}
-          style={[styles.secondaryFloatingButton, { backgroundColor: theme.colors.gray[100] }]}
-        >
-          <Text style={styles.floatingButtonIcon}>⬆️</Text>
-        </TouchableOpacity>
       </View>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  // ... (스타일 시트는 이전과 동일하므로 생략 없이 그대로 유지됩니다) ...
   container: {
     flex: 1,
     backgroundColor: '#F8F9FA',

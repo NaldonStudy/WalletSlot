@@ -1,21 +1,38 @@
-import { DEV_AUTH_BYPASS } from '@/src/config/devAuthBypass';
+// 인증 서비스
 import { API_CONFIG, STORAGE_KEYS } from '@/src/constants';
 import { API_ENDPOINTS } from '@/src/constants/api';
 import { getOrCreateDeviceId } from '@/src/services/deviceIdService';
 import { deleteAccessToken as ssDelAT, getAccessToken as ssGetAT, saveAccessToken as ssSaveAT, saveRefreshToken as ssSaveRT } from '@/src/services/tokenService';
 import { LocalUser } from '@/src/types';
+import type { LoginResponse } from '@/src/types/auth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
 
 // ===== 인증 관련 헬퍼 함수들 =====
-// Set-Cookie 헤더에서 refreshToken 추출
-function extractRefreshTokenFromCookie(setCookieHeader: string): string | null {
-    try {
-        const refreshTokenMatch = setCookieHeader.match(/refreshToken=([^;]+)/);
-        return refreshTokenMatch ? refreshTokenMatch[1] : null;
-    } catch (error) {
-        console.error('[AUTH_SERVICE] Set-Cookie 파싱 실패:', error);
-        return null;
+// (이 파일에서 Set-Cookie 기반 토큰 추출은 더 이상 사용하지 않음)
+
+// AsyncStorage에 대해 간단한 retry 래퍼 (일시적 unavailability 완화 목적)
+async function storageSetItemWithRetry(key: string, value: string, retries = 3, delayMs = 100): Promise<void> {
+    for (let attempt = 1; attempt <= retries; attempt++) {
+        try {
+            await AsyncStorage.setItem(key, value);
+            return;
+        } catch (err) {
+            if (attempt === retries) throw err;
+            await new Promise((r) => setTimeout(r, delayMs));
+        }
+    }
+}
+
+async function storageRemoveItemWithRetry(key: string, retries = 3, delayMs = 100): Promise<void> {
+    for (let attempt = 1; attempt <= retries; attempt++) {
+        try {
+            await AsyncStorage.removeItem(key);
+            return;
+        } catch (err) {
+            if (attempt === retries) throw err;
+            await new Promise((r) => setTimeout(r, delayMs));
+        }
     }
 }
 
@@ -26,7 +43,7 @@ export const authService = {
     // 사용자 정보 저장(JSON 통합합)
     async saveUser(user: LocalUser): Promise<void> {
         try {
-            await AsyncStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(user));
+            await storageSetItemWithRetry(STORAGE_KEYS.USER, JSON.stringify(user));
             console.log('[📝AUTH_SERVICE] ✅사용자 정보 저장 완료:', user.userId);
         } catch (error) {
             console.error('[📝AUTH_SERVICE] ❌사용자 정보 저장 실패:', error);
@@ -49,7 +66,7 @@ export const authService = {
     // 사용자 정보 삭제
     async clearUser(): Promise<void> {
         try {
-            await AsyncStorage.removeItem(STORAGE_KEYS.USER);
+            await storageRemoveItemWithRetry(STORAGE_KEYS.USER);
             console.log('[📝AUTH_SERVICE] ✅사용자 정보 삭제 완료');
         } catch (error) {
             console.error('[📝AUTH_SERVICE] ❌사용자 정보 삭제 실패:', error);
@@ -129,10 +146,7 @@ export const authService = {
                 // 상태별 분기 처리
                 if (response.status === 401 || response.status === 403) {
                     console.error('[🔑AUTH_SERVICE] ❌토큰 재발급 실패(권한):', response.status);
-                    // 개발 바이패스 중에는 토큰 삭제/로그아웃을 하지 않음
-                    if (!DEV_AUTH_BYPASS.enabled) {
-                        await this.clearAll();
-                    }
+                    await this.clearAll();
                     return null;
                 }
                 // 네트워크/서버 오류는 상위에서 재시도할 수 있도록 throw
@@ -151,10 +165,7 @@ export const authService = {
             return newAccessToken;
         } catch (error) {
             console.error('[🔄AUTH_SERVICE] ❌토큰 재발급 실패:', error);
-            // 개발 바이패스 중에는 토큰 삭제/로그아웃을 하지 않음
-            if (DEV_AUTH_BYPASS.enabled) {
-                return null;
-            }
+            // 기본 동작: 실패 시 모든 인증 상태를 제거
             await this.clearAll();
             return null;
         }
@@ -162,49 +173,45 @@ export const authService = {
 
 
 // ============= 통합 관리 =============
-    // 로그인 성공 시 모든 정보 저장 (response에서 자동으로 refreshToken 추출)
-    async saveLoginData(response: Response): Promise<void> {
+    // 로그인 성공 시 모든 정보 저장
+    // 이 함수는 이미 파싱된 API 응답(예: authApi.login()이 반환한 객체)을 기대합니다.
+    async saveLoginData(loginResp: LoginResponse): Promise<void> {
         try {
-            const responseData = await response.json();
-            const setCookieHeader = response.headers.get('Set-Cookie');
-            const refreshToken = setCookieHeader ? extractRefreshTokenFromCookie(setCookieHeader) : null;
-            
-            if (!refreshToken) {
-                throw new Error('RefreshToken을 Set-Cookie에서 추출할 수 없습니다');
-            }
-            
-            const data = responseData.data; // ← data.data에서 실제 사용자 데이터 추출
-            
-            // 알림 동의 상태 확인
+            const data = loginResp?.data ?? {};
+
+            // 알림 동의 상태 확인 (기존 동작 유지)
             const notificationConsent = await this.getNotificationConsent();
-            
-            const isPushEnabled = notificationConsent !== null 
-                ? notificationConsent 
+            const isPushEnabled = notificationConsent !== null
+                ? notificationConsent
                 : await (async () => {
                     try {
                         const { notificationApi } = await import('@/src/api/notification');
                         const response = await notificationApi.getUserNotificationSettings();
                         const value = response.data.isPushEnabled;
-                        // 서버에서 가져온 값을 로컬에 저장
-                        await AsyncStorage.setItem(STORAGE_KEYS.NOTIFICATION_CONSENT, value.toString());
+                        await storageSetItemWithRetry(STORAGE_KEYS.NOTIFICATION_CONSENT, value.toString());
                         return value;
                     } catch (error) {
                         console.error('[🔔AUTH_SERVICE] ❌서버 알림 설정 조회 실패:', error);
                         return true; // 에러 시 기본값
                     }
                 })();
-            
-            const localUser: LocalUser = {
-                userId: data.userId,
-                userName: data.name,
-                isPushEnabled: isPushEnabled,
-            };
-            
-            await Promise.all([
-                this.saveUser(localUser),
-                this.saveAccessToken(data.accessToken),
-                this.saveRefreshToken(refreshToken),
-            ]);
+
+            // 서버가 user 필드를 제공하면 저장, 아니면 토큰만 저장하고 사용자 정보는 따로 가져오는 흐름을 따릅니다.
+            let localUser: LocalUser | null = null;
+            if (data.user || data.userId) {
+                localUser = {
+                    userId: data.userId ?? data.user?.userId ?? 0,
+                    userName: data.user?.name ?? '사용자',
+                    isPushEnabled: isPushEnabled,
+                };
+            }
+
+            const tasks: Promise<void>[] = [];
+            if (localUser) tasks.push(this.saveUser(localUser));
+            if (data.accessToken) tasks.push(this.saveAccessToken(data.accessToken));
+            if (data.refreshToken) tasks.push(this.saveRefreshToken(data.refreshToken));
+
+            await Promise.all(tasks);
             console.log('[🎯AUTH_SERVICE] ✅로그인 데이터 저장 완료');
         } catch (error) {
             console.error('[🎯AUTH_SERVICE] ❌로그인 데이터 저장 실패:', error);
