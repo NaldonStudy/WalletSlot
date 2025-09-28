@@ -60,16 +60,17 @@ VALUES
 (18, UUID(), '싸피은행', '999', NULL);
 
 -- ACCOUNT
-INSERT INTO `account` (id, uuid, user_id, bank_id, alias, encrypted_account_no, balance, is_primary)
+INSERT INTO `account` (id, uuid, user_id, bank_id, alias, encrypted_account_no, balance, is_primary, last_synced_transaction_unique_no)
 VALUES
-(1, UUID(), 1, 3, NULL, 'XBaVgD2G8YWC6otR70CIB+QEUyihPrjpOEKmwzPhgco=', 5000000, TRUE),
-(2, UUID(), 1, 4, '비상금통장', '+XuHwQ48eiy4J3rSoCToieQEUyihPrjpOEKmwzPhgco=', 2000000, FALSE),
-(3, UUID(), 1, 5, NULL, 'iNmlCNGeZOAHc7k6ar6PFOQEUyihPrjpOEKmwzPhgco=', 1000000, TRUE),
-(4, UUID(), 1, 5, NULL, '3zkMX7fMlQXCAsR/mEnkR+QEUyihPrjpOEKmwzPhgco=', 1000000, TRUE),
-(5, UUID(), 1, 5, NULL, 'FqNF3m7Kc6hNMZ5c+22vkuQEUyihPrjpOEKmwzPhgco=', 1000000, TRUE),
-(6, UUID(), 1, 5, NULL, 'tSlPBJlPzR182rcfPeGQleQEUyihPrjpOEKmwzPhgco=', 1000000, TRUE),
-(7, UUID(), 1, 5, NULL, 'E6QSXu7oSvcgX3wr8U8wKuQEUyihPrjpOEKmwzPhgco=', 1000000, TRUE);
+(1, UUID(), 1, 3, NULL, 'XBaVgD2G8YWC6otR70CIB+QEUyihPrjpOEKmwzPhgco=', 5000000, TRUE, 0),
+(2, UUID(), 1, 4, '비상금통장', '+XuHwQ48eiy4J3rSoCToieQEUyihPrjpOEKmwzPhgco=', 2000000, FALSE, 0),
+(3, UUID(), 1, 5, NULL, 'iNmlCNGeZOAHc7k6ar6PFOQEUyihPrjpOEKmwzPhgco=', 1000000, TRUE, 0),
+(4, UUID(), 1, 5, NULL, '3zkMX7fMlQXCAsR/mEnkR+QEUyihPrjpOEKmwzPhgco=', 1000000, TRUE, 0),
+(5, UUID(), 1, 5, NULL, 'FqNF3m7Kc6hNMZ5c+22vkuQEUyihPrjpOEKmwzPhgco=', 1000000, TRUE, 0),
+(6, UUID(), 1, 5, NULL, 'tSlPBJlPzR182rcfPeGQleQEUyihPrjpOEKmwzPhgco=', 1000000, TRUE, 0),
+(7, UUID(), 1, 5, NULL, 'E6QSXu7oSvcgX3wr8U8wKuQEUyihPrjpOEKmwzPhgco=', 1000000, TRUE, 0);
 
+-- 0을 명시적으로 넣기 위해 필요 (미분류 슬롯 id=0)
 SET @OLD_SQL_MODE := @@sql_mode;
 SET sql_mode = CONCAT(@@sql_mode, IF(@@sql_mode='', '', ','), 'NO_AUTO_VALUE_ON_ZERO');
 
@@ -101,7 +102,6 @@ VALUES
 (22, UUID(), '회비', FALSE, NULL),
 (23, UUID(), '후원', FALSE, NULL),
 (24, UUID(), '여행/숙박', FALSE, NULL);
-
 
 -- ACCOUNT_SLOT
 INSERT INTO `account_slot` (id, uuid, account_id, slot_id, initial_budget, current_budget, spent, budget_change_count, is_budget_exceeded, is_custom, custom_name)
@@ -169,7 +169,7 @@ VALUES
 (19, UUID(), 1, 3, 80017, '출금', NULL, '편의점 기타',  9900,  4815600, '2025-08-06 21:10:00'),
 (20, UUID(), 1, 3, 80018, '출금', NULL, '기타 소액지출', 14000, 4801600, '2025-08-27 11:22:00'),
 
--- (옵션) 7월 데이터 몇 건 추가 – 월 필터링 잘 되는지 확인용 (레포트 대상월=8월이면 포함 X)
+-- (옵션) 7월 데이터 몇 건 추가 – 월 필터링 잘 되는지 확인용
 (21, UUID(), 1, 19, 70001, '출금', NULL, '스타벅스 도안DT점', 4200,  4797400, '2025-07-25 09:10:00'),
 (22, UUID(), 1,  2, 70002, '출금', NULL, 'KTX 부산',        61000, 4736400, '2025-07-29 06:50:00');
 
@@ -189,10 +189,17 @@ INSERT INTO `push_endpoint` (id, user_id, device_id, platform, token, status, is
 VALUES
 (1, 1, 'device-1234', 'ANDROID', 'eHGzIgD5Sz--716JANZ5V4:APA91bFRTcdxU_jAVtOlm5PWiH45WK4422QAE551LQQeJFVm8mD8aTABSya3mXi3kt5iX7I_db7WKZ-Ymz82MSVVBEVWIQpxXAV67k5c-avbRiM8ZOPfjr0', 'ACTIVE', TRUE);
 
--- NOTIFICATION  (ENUM: SYSTEM, DEVICE, BUDGET, TRANSACTION, MARKETING)
-INSERT INTO `notification` (id, uuid, user_id, title, body, is_delivered, delivered_at, is_read, read_at, type)
+-- NOTIFICATION
+-- 팀 규칙: DB에는 트랜잭션 id(tx_id) 저장, 응답 DTO에는 transactionUuid로 변환해 내려감
+INSERT INTO `notification`
+(id, uuid, user_id, title, body, is_delivered, delivered_at, is_read, read_at, type, tx_id)
 VALUES
-(1, UUID(), 1, '예산 초과 알림', '식비 예산을 초과했습니다.', TRUE, '2025-09-20 15:00:03', FALSE, NULL, 'BUDGET');
+-- 일반 BUDGET 알림(트랜잭션 연계 없음 → tx_id = NULL)
+(1, UUID(), 1, '예산 초과 알림', '식비 예산을 초과했습니다.', TRUE, '2025-09-20 15:00:03', FALSE, NULL, 'BUDGET', NULL),
+
+-- 미분류 알림 2건: 트랜잭션 id 19/20을 참조 (account_slot_id=3 → 슬롯=미분류)
+(2, UUID(), 1, '분류되지 않은 지출이 있어요', '편의점 기타 9,900원 • 2025-08-06 21:10:00\n카테고리를 지정해 주세요.', FALSE, NULL, FALSE, NULL, 'UNCATEGORIZED', 19),
+(3, UUID(), 1, '분류되지 않은 지출이 있어요', '기타 소액지출 14,000원 • 2025-08-27 11:22:00\n카테고리를 지정해 주세요.', FALSE, NULL, FALSE, NULL, 'UNCATEGORIZED', 20);
 
 -- WISHLIST
 INSERT INTO `wishlist` (id, uuid, user_id, name, price, image)
@@ -202,14 +209,14 @@ VALUES
 -- EMAIL
 INSERT INTO `email` (id, user_id, name, email, is_primary, verified_at, created_at)
 VALUES
--- user 1: 과거 이메일(비기본) + 현재 이메일(기본)
 (1, 1, '전해지', 'wjsgowl0224@naver.com', 0, '2024-07-10 10:00:00', '2024-07-10 10:00:00');
 
 -- AI_REPORT (옵션)
-# INSERT INTO `ai_report` (id, uuid, account_id, content)
-# VALUES
-# (1, UUID(), 1, JSON_OBJECT('summary', '이번달 식비 과다', 'advice', '다음달 식비 예산 상향 또는 지출 절감'));
+-- INSERT INTO `ai_report` (id, uuid, account_id, content)
+-- VALUES
+-- (1, UUID(), 1, JSON_OBJECT('summary', '이번달 식비 과다', 'advice', '다음달 식비 예산 상향 또는 지출 절감'));
 
+-- 확인용
 SELECT * FROM `user`;
 SELECT * FROM `pepper_keys`;
 SELECT * FROM `user_pin`;
@@ -226,3 +233,8 @@ SELECT * FROM `notification`;
 SELECT * FROM `wishlist`;
 SELECT * FROM `email`;
 SELECT * FROM `ai_report`;
+
+-- (참고) 알림-트랜잭션 매핑 확인용 조인
+-- SELECT n.id, n.type, n.tx_id, t.uuid AS transaction_uuid, t.summary, t.transaction_at
+-- FROM notification n LEFT JOIN `transaction` t ON t.id = n.tx_id
+-- ORDER BY n.id;
