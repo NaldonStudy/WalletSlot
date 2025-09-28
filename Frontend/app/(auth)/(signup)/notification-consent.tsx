@@ -1,5 +1,6 @@
 import { authApi } from '@/src/api/auth';
 import { getOrCreateDeviceId } from '@/src/services/deviceIdService';
+import { firebasePushService } from '@/src/services/firebasePushService';
 import { saveAccessToken, saveRefreshToken } from '@/src/services/tokenService';
 import { unifiedPushService } from '@/src/services/unifiedPushService';
 import { useLocalUserStore } from '@/src/store/localUserStore';
@@ -183,11 +184,17 @@ export default function NotificationConsentScreen() {
       if (fromLogin) {
         setPushEnabled(true);
         console.log('알림 허용(로그인 모드) - 스토어에 저장');
-        try {
-          console.log('FCM 토큰 발급 시작...(로그인 모드)');
-          await unifiedPushService.initialize();
-        } catch {}
-  router.replace('/(tabs)' as any);
+        // 1. 여기서 실제 권한을 요청합니다.
+        const pushResult = await unifiedPushService.initialize();
+        if (pushResult.success) {
+          // 2. 권한 요청 성공 시, 서버에 토큰을 등록합니다.
+          console.log('✅ FCM 토큰 발급 성공, 서버 등록 시도...');
+          await firebasePushService.ensureServerRegistration();
+        } else {
+          console.warn('⚠️ 알림 권한이 거부되었거나 토큰 발급에 실패했습니다.');
+        }
+        // 3. 올바른 대시보드 경로로 이동합니다.
+        router.replace('/');
         return;
       }
 
@@ -226,8 +233,8 @@ export default function NotificationConsentScreen() {
     try {
       if (fromLogin) {
         setPushEnabled(false);
-        console.log('알림 거부(로그인 모드) - 스토어에 저장');
-  router.replace('/(tabs)' as any);
+        console.log('알림 거부(로그인 모드)');
+        router.replace('/'); // 올바른 대시보드 경로로 이동
         return;
       }
 

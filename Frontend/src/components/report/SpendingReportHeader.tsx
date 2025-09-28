@@ -51,15 +51,15 @@ export const SpendingReportHeader: React.FC<SpendingReportHeaderProps> = ({
       <Text style={[styles.title, { color: theme.colors.text.primary }]}>
         이번달 소비 레포트가 도착했어요!
       </Text>
-      
+
       {/* 부제목 */}
       <Text style={[styles.subtitle, { color: theme.colors.primary[600] }]}>
         분석 완료됨
       </Text>
-      
+
       {/* 일러스트 영역 */}
       <View style={styles.illustrationContainer}>
-        <Text style={styles.illustration}>📊✨</Text>
+        <Text style={styles.illustration}>📈</Text>
       </View>
     </View>
   );

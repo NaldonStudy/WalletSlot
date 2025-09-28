@@ -1,5 +1,5 @@
 import { API_CONFIG } from '@/src/constants';
-import { API_ENDPOINTS, USE_MSW } from '@/src/constants/api';
+import { USE_MSW } from '@/src/constants/api';
 import { authService } from '@/src/services/authService';
 import { getOrCreateDeviceId } from '@/src/services/deviceIdService';
 import type { ApiError, BaseResponse } from '@/src/types';
@@ -90,15 +90,7 @@ class ApiClient {
         if (!skipAuth && token) {
           headers.Authorization = `Bearer ${token}`;
         }
-        // Dev bypass 중 푸시 엔드포인트 등록은 항상 인증 필요
-        try {
-          const { DEV_AUTH_BYPASS } = require('@/src/config/devAuthBypass');
-          const targetUrl = `${config.baseURL || ''}${config.url || ''}`;
-          // Use centralized endpoint constant to detect push endpoint registration URL
-          if (DEV_AUTH_BYPASS?.enabled && String(config.url || '').endsWith(API_ENDPOINTS.PUSH_ENDPOINTS) && token) {
-            headers.Authorization = `Bearer ${token}`;
-          }
-        } catch {}
+  // 개발 바이패스 없음: 일반 인증 헤더 동작을 유지합니다. 푸시 엔드포인트는 기존 토큰을 사용합니다.
 
         // RefreshToken은 재발급 전용이며 일반 요청에 포함하지 않음 (보안/사양 일치)
 
@@ -239,8 +231,9 @@ class ApiClient {
     return newToken;
   }
 
-  private async redirectToAuthScreen(): Promise<void> {
-    console.log('Redirect to PIN/Biometric authentication screen');
+    private async redirectToAuthScreen(): Promise<void> {
+      // 인증 화면(PIN/생체 인증)으로 리디렉션 처리(앱 내 네비게이션에서 처리할 수 있음)
+      console.log('인증 화면으로 이동 필요: PIN/생체 인증');
   }
 
   private handleError(error: AxiosError): ApiError {
