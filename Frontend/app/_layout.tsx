@@ -18,6 +18,7 @@ import 'react-native-reanimated';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { queryClient } from '@/src/api/queryClient';
 import CustomSplashScreen from '@/src/components/CustomSplashScreen';
+import { featureFlags } from '@/src/config/featureFlags';
 import { initializeMSW, isMSWEnabled } from '@/src/mocks';
 import { appService } from '@/src/services/appService';
 import { getOrCreateDeviceId } from '@/src/services/deviceIdService';
@@ -52,6 +53,9 @@ export default function RootLayout() {
   });
 
   const [onboardingDone, setOnboardingDone] = useState<boolean | null>(null);
+  // 마이데이터 연결 완료 여부: featureFlags에서 관리
+  const [myDataConnectDone, setMyDataConnectDone] = useState<boolean | null>(null);
+  // 스플래시 최소 표시 시간을 위한 상태
   const [splashMinTimeElapsed, setSplashMinTimeElapsed] = useState(false);
   const [showCustomSplash, setShowCustomSplash] = useState(true);
 
@@ -78,13 +82,30 @@ export default function RootLayout() {
           new Promise<boolean>(resolve => setTimeout(() => resolve(false), 800)),
         ]);
         setOnboardingDone(completed);
+        // 마이데이터 연결 완료 여부 조회
+        let myDataConnectCompleted = featureFlags.isMyDataConnectEnabled();
+        console.log('[APP_INIT] myDataConnect 상태 초기화:', {
+          값: myDataConnectCompleted,
+          시간: new Date().toISOString()
+        });
+        
+        setMyDataConnectDone(myDataConnectCompleted);
+        // 인증 상태 초기 확인
+        await useAuthStore.getState().checkAuthStatus();
 
         // 인증 상태 확인은 백그라운드에서 실행하여 화면 로딩을 막지 않습니다.
         useAuthStore.getState().checkAuthStatus().catch(e => console.error('초기 인증 체크 실패:', e));
       } catch (error) {
-        console.error('앱 초기화 중 심각한 오류:', error);
-        // 실패 시 온보딩 미완료 상태로 강제 전환하여 앱이 멈추는 것을 방지합니다.
-        setOnboardingDone(false);
+        console.error('앱 초기화 중 오류:', error);
+        const completed = await appService.getOnboardingCompleted();
+        setOnboardingDone(completed);
+        let myDataConnectCompleted = featureFlags.isMyDataConnectEnabled();
+        console.log('[APP_INIT] myDataConnect 상태 초기화 (에러 시):', {
+          값: myDataConnectCompleted,
+          시간: new Date().toISOString()
+        });
+        
+        setMyDataConnectDone(myDataConnectCompleted);
       }
     }
 
@@ -106,7 +127,8 @@ export default function RootLayout() {
    * 모든 준비(폰트, 온보딩 확인, 최소 시간)가 완료되면 스플래시 화면을 숨깁니다.
    */
   useEffect(() => {
-    if (fontLoaded && onboardingDone !== null && splashMinTimeElapsed) {
+    if (fontLoaded && onboardingDone !== null && myDataConnectDone !== null && splashMinTimeElapsed) {
+      // 네이티브 스플래시 숨기기
       SplashScreen.hideAsync();
       
       // 네이티브 스플래시가 사라진 후, 부드러운 화면 전환을 위해
@@ -115,12 +137,10 @@ export default function RootLayout() {
         setShowCustomSplash(false);
       }, 2000);
     }
-  }, [fontLoaded, onboardingDone, splashMinTimeElapsed]);
+  }, [fontLoaded, onboardingDone, myDataConnectDone, splashMinTimeElapsed]);
 
-  /**
-   * 인증 및 온보딩 상태에 따라 적절한 화면으로 명시적으로 이동시킵니다.
-   * 이 방식은 `initialRouteName`보다 더 안정적이며 경쟁 상태를 방지합니다.
-   */
+  
+  // 앱 시작 시 기타 초기화 로직 + 선제 토큰 갱신
   useEffect(() => {
     // 아직 인증 상태를 확인 중이거나 스플래시가 보이는 중에는 라우팅을 실행하지 않습니다.
     if (authLoading || showCustomSplash) {
@@ -201,11 +221,71 @@ export default function RootLayout() {
     };
   }, []);
 
-  // 모든 로딩이 끝나기 전까지는 커스텀 스플래시 화면을 표시합니다.
-  if (showCustomSplash || !fontLoaded || onboardingDone === null) {
+  // 푸시 서버 등록 보장 헬퍼
+  const firebasePushEnsure = async () => {
+    try {
+      const { firebasePushService } = await import('@/src/services/firebasePushService');
+      await firebasePushService.ensureServerRegistration();
+    } catch {}
+  };
+
+  // 커스텀 스플래시 화면 표시
+  if (showCustomSplash) {
+    console.log('⏳ [ROUTING] 커스텀 스플래시 화면 표시 중...');
     return <CustomSplashScreen />;
   }
+
+  // 폰트 로딩, 온보딩 상태, 마이데이터 연결 상태, 또는 인증 상태 확인 중일 때 스플래시 유지
+  if (!fontLoaded || onboardingDone === null || myDataConnectDone === null || authLoading) {
+    console.log('⏳ [ROUTING] 스플래시 화면 유지 중...', {
+      fontLoaded,
+      onboardingDone,
+      myDataConnectDone,
+      authLoading
+    });
+    return <CustomSplashScreen />;
+  }
+
+  // 라우팅 로직: 온보딩, 마이데이터 연결, 로그인 상태에 따라 다른 화면으로 이동
+  const getInitialRoute = () => {
+    console.log('🚀 [ROUTING] 앱 진입 시 라우팅 결정 시작');
+    console.log('[ROUTING] 상태 확인:', {
+      onboardingDone,
+      myDataConnectDone,
+      isLoggedIn,
+      authLoading,
+      fontLoaded,
+      splashMinTimeElapsed
+    });
+    
+    if (onboardingDone === false) {
+      // 온보딩 미완료 → 온보딩 화면
+      console.log('📍 [ROUTING] → (onboarding) - 온보딩 미완료');
+      return '(onboarding)';
+    }
+    
+    if (onboardingDone === true && myDataConnectDone === false) {
+      // 온보딩 완료 + 마이데이터 연결 미완료 → 마이데이터 연결 화면
+      console.log('📍 [ROUTING] → (mydata) - 마이데이터 연결 미완료');
+      return '(mydata)';
+    }
+    
+    if (onboardingDone === true && myDataConnectDone === true && isLoggedIn === true) {
+      // 온보딩 완료 + 마이데이터 연결 완료 + 로그인 완료 → 메인 앱
+      console.log('📍 [ROUTING] → (tabs) - 모든 조건 만족');
+      return '(tabs)';
+    }
+    
+    // 그 외의 경우 (로그인 안됨 등) → 인증 화면
+    console.log('📍 [ROUTING] → (auth) - 로그인 필요');
+    return '(auth)';
+  };
+
+  // 라우팅 로직: 온보딩, 마이데이터 연결, 로그인 상태에 따라 다른 화면으로 이동
+  const initialRoute = getInitialRoute();
   
+  console.log('✅ [ROUTING] 최종 라우팅 결정:', initialRoute);
+
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <QueryClientProvider client={queryClient}>
@@ -216,6 +296,9 @@ export default function RootLayout() {
             <Stack.Screen name="(auth)" options={{ headerShown: false }} />
             <Stack.Screen name="(mydata)" options={{ headerShown: false }} />
             <Stack.Screen name="+not-found" options={{ headerShown: false }} />
+            <Stack.Screen name="(slotDivide)" options={{ headerShown: false }} />
+            {/* 공통 컴포넌트 테스트
+            <Stack.Screen name="(dev)" options={{ headerShown: false }} /> */}
           </Stack>
           <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
         </ThemeProvider>

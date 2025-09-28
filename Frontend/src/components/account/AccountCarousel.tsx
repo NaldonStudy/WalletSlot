@@ -8,6 +8,7 @@ type AccountCarouselProps = {
     accounts: AccountCardData[];
     onIndexChange?: (index: number) => void;
     initialIndex?: number;
+    onViewTransactions?: () => void;
 };
 
 const CARD_WIDTH = screenWidth * 0.7;
@@ -15,13 +16,13 @@ const CARD_MARGIN = 12;
 
 const offset = CARD_WIDTH + CARD_MARGIN*2;
 
-const AccountCarousel: React.FC<AccountCarouselProps> = ({ accounts, onIndexChange, initialIndex = 0 }) => {
+const AccountCarousel: React.FC<AccountCarouselProps> = ({ accounts, onIndexChange, initialIndex = 0, onViewTransactions }) => {
     return (
         <View style={styles.container}>
             <FlatList
                 data={accounts}
                 renderItem={({ item }) =>
-                    <AccountCard {...item} style={{ width: CARD_WIDTH, marginHorizontal: CARD_MARGIN }} />}
+                    <AccountCard {...item} style={{ width: CARD_WIDTH, marginHorizontal: CARD_MARGIN }} onViewTransactions={onViewTransactions} />}
                 keyExtractor={(item) => item.accountNumber}
                 horizontal
                 pagingEnabled

@@ -3,6 +3,8 @@ import { View, Text, StyleSheet, useColorScheme, TouchableOpacity } from "react-
 import { router } from "expo-router";
 import type { SlotTransaction } from "@/src/types/slot";
 import { themes } from "@/src/constants/theme";
+import { Spacing } from "@/src/constants/theme";
+import { useAccountSelectionStore } from "@/src/store";
 
 // 시간 포맷팅 함수
 const formatTime = (dateTimeString: string) => {
@@ -20,12 +22,18 @@ interface Props {
   transaction: SlotTransaction;
   showDate?: boolean;
   dateText?: string;
+  isLastInDate?: boolean;
   slotId?: string; // 슬롯 ID 추가
+  accountId?: string; // 계좌 ID 추가
+  accountSlotId?: string; // 계좌 슬롯 ID 추가
 }
 
-const TransactionItem = ({ transaction, showDate = false, dateText, slotId }: Props) => {
+const TransactionItem = ({ transaction, showDate = false, dateText, isLastInDate = false, slotId, accountId, accountSlotId }: Props) => {
     const colorScheme = useColorScheme() ?? 'light';
-    const theme = themes[colorScheme];  
+    const theme = themes[colorScheme];
+    
+    // 계좌 선택 스토어 사용
+    const { getCurrentAccountId, getCurrentAccountSlotId } = useAccountSelectionStore();
     
     // type 필드를 기반으로 색상 결정
     const isIncome = transaction.type === '입금' || transaction.type === '입금(이체)';
@@ -33,46 +41,60 @@ const TransactionItem = ({ transaction, showDate = false, dateText, slotId }: Pr
 
     const handlePress = () => {
       if (slotId) {
-        router.push({
-          pathname: `/dashboard/slot/${slotId}/transaction/${transaction.transactionId}` as any,
-          params: {
-            transactionData: JSON.stringify(transaction)
-          }
-        });
+        // 스토어에서 현재 선택된 계좌 정보 가져오기
+        const currentAccountId = getCurrentAccountId();
+        const currentAccountSlotId = getCurrentAccountSlotId();
+        
+        // 파라미터로 전달된 값이 있으면 우선 사용, 없으면 스토어 값 사용
+        const finalAccountId = accountId || currentAccountId;
+        const finalAccountSlotId = accountSlotId || currentAccountSlotId;
+        
+        if (finalAccountId && finalAccountSlotId) {
+          router.push({
+            pathname: `/dashboard/slot/${slotId}/transaction/${transaction.transactionId}/` as any,
+            params: {
+              accountId: finalAccountId,
+              accountSlotId: finalAccountSlotId
+            }
+          });
+        }
       }
     };
   
     return (
-      <TouchableOpacity 
-        style={[styles.container, showDate && styles.containerWithDate]}
-        onPress={handlePress}
-        activeOpacity={0.7}
-      >
-        <View style={styles.leftSection}>
-          {showDate && dateText ? (
-            <Text style={[styles.dateText, { color: theme.colors.text.secondary }]}>
-              {dateText}
-            </Text>
-          ) : (
-            <View style={styles.datePlaceholder} />
-          )}
-          <View style={styles.transactionInfo}>
-            <Text style={[styles.summary,{color: theme.colors.text.primary}]}>{transaction.summary}</Text>
-            <Text style={[styles.time,{color: theme.colors.text.secondary}]}>{formatTime(transaction.transactionAt)}</Text>
+      <View>
+        <TouchableOpacity 
+          style={styles.container}
+          onPress={handlePress}
+          activeOpacity={0.7}
+        >
+          <View style={styles.leftSection}>
+            {showDate && dateText ? (
+              <Text style={[styles.dateText, { color: theme.colors.text.secondary }]}>
+                {dateText}
+              </Text>
+            ) : (
+              <View style={styles.datePlaceholder} />
+            )}
+            <View style={styles.transactionInfo}>
+              <Text style={[styles.summary,{color: theme.colors.text.primary}]}>{transaction.summary}</Text>
+              <Text style={[styles.time,{color: theme.colors.text.secondary}]}>{formatTime(transaction.transactionAt)}</Text>
+            </View>
           </View>
-        </View>
-        <View>
-          <Text style={[
-            styles.amount, 
-            isIncome ? styles.income : isExpense ? styles.expense : styles.neutral
-          ]}>
-            {isExpense ? '-' : ''}{(Math.abs(transaction.amount ?? 0)).toLocaleString()}원
-          </Text>
-          <Text style={[styles.remaining,{color: theme.colors.text.secondary}]}>
-            잔액 {(transaction.balance ?? 0).toLocaleString()}원
-          </Text>
-        </View>
-      </TouchableOpacity>
+          <View>
+            <Text style={[
+              styles.amount, 
+              isIncome ? styles.income : isExpense ? styles.expense : styles.neutral
+            ]}>
+              {isExpense ? '-' : ''}{(Math.abs(transaction.amount ?? 0)).toLocaleString()}원
+            </Text>
+            <Text style={[styles.remaining,{color: theme.colors.text.secondary}]}>
+              잔액 {(transaction.balance ?? 0).toLocaleString()}원
+            </Text>
+          </View>
+        </TouchableOpacity>
+        {isLastInDate && <View style={styles.transactionBorder} />}
+      </View>
     );
   };
   
@@ -82,11 +104,12 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: "#E5E7EB",
+    marginHorizontal: Spacing.base, // 좌우 여백 추가
   },
-  containerWithDate: {
-    borderBottomWidth: 0, // 날짜가 있는 경우 밑줄 제거
+  transactionBorder: {
+    height: 1,
+    backgroundColor: "#E5E7EB",
+    marginHorizontal: Spacing.base, // 좌우 여백 추가
   },
   leftSection: {
     flexDirection: "row",

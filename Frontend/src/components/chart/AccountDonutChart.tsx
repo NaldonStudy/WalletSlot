@@ -1,4 +1,4 @@
-import { SLOT_CATEGORIES } from '@/src/constants/slots';
+import { SLOT_CATEGORIES, UNCATEGORIZED_SLOT_ID } from '@/src/constants/slots';
 import { themes } from '@/src/constants/theme';
 import { SlotData } from '@/src/types';
 import React, { memo } from "react";
@@ -13,7 +13,10 @@ type AccountDonutChartProps = {
 const AccountDonutChart = memo(({ data, onSlotPress }: AccountDonutChartProps) => {
     const colorScheme = useColorScheme() ?? 'light';
     const theme = themes[colorScheme];
-    const totalBudget = data.reduce((sum, slot) => sum + slot.currentBudget, 0);
+    
+    // 미분류 슬롯 제외
+    const filteredData = data.filter(slot => slot.slotId !== UNCATEGORIZED_SLOT_ID);
+    const totalBudget = filteredData.reduce((sum, slot) => sum + slot.currentBudget, 0);
     const size = 180;
     const innerRadius = 60;
     const outerRadius = 80;
@@ -21,7 +24,7 @@ const AccountDonutChart = memo(({ data, onSlotPress }: AccountDonutChartProps) =
     const centerY = size / 2;
 
     // totalBudget이 0이면 빈 차트 표시
-    if (totalBudget === 0 || data.length === 0) {
+    if (totalBudget === 0 || filteredData.length === 0) {
         return (
             <View style={styles.container}>
                 <Text style={[styles.emptyText, { color: theme.colors.text.secondary }]}>
@@ -33,11 +36,11 @@ const AccountDonutChart = memo(({ data, onSlotPress }: AccountDonutChartProps) =
 
      // 각 슬롯의 각도 계산 (간격 포함)
      const gapAngle = 2; // 각 슬롯 사이 간격 (도)
-     const totalGapAngle = gapAngle * data.length; // 전체 간격
+     const totalGapAngle = gapAngle * filteredData.length; // 전체 간격
      const availableAngle = 360 - totalGapAngle; // 사용 가능한 각도
      
      let currentAngle = -90; // -90도부터 시작 (12시 방향)
-     const slots = data.map((slot, index) => {
+     const slots = filteredData.map((slot, index) => {
          const budgetRatio = slot.currentBudget / totalBudget;
          const angle = budgetRatio * availableAngle; // 간격을 제외한 각도
         const remainRatio = slot.currentBudget > 0 ? slot.remainingBudget / slot.currentBudget : 0;
@@ -231,7 +234,7 @@ const AccountDonutChart = memo(({ data, onSlotPress }: AccountDonutChartProps) =
 
             {/* 범례 */}
             <View style={styles.legend}>
-                {data.map((slot) => {
+                {filteredData.map((slot) => {
                     const remainPercentage = (slot.remainingBudget / slot.currentBudget * 100).toFixed(0);
                     const isOverBudget = slot.remainingBudget < 0;
                     const slotColor = SLOT_CATEGORIES[slot.slotId as keyof typeof SLOT_CATEGORIES]?.color || '#F1A791';

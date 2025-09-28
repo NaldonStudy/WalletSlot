@@ -4,6 +4,9 @@ import {
   AccountsResponse,
   BaseResponse,
   PaginatedResponse,
+  SlotRecommendationByProfileRequest,
+  SlotRecommendationRequest,
+  SlotRecommendationResponse,
   Transaction,
   TransactionCategory,
   UserAccount
@@ -59,7 +62,7 @@ export const accountApi = {
   /**
    * 계좌 서비스 연동
    */
-  linkAccounts: async (data: { accountIds: string[] }): Promise<BaseResponse<void>> => {
+  linkAccounts: async (data: any): Promise<BaseResponse<void>> => {
   return apiClient.post(API_ENDPOINTS.ACCOUNTS_LINK, data);
   },
 
@@ -77,6 +80,34 @@ export const accountApi = {
   return apiClient.get(API_ENDPOINTS.ACCOUNT_BY_ID(accountId));
   },
 
+  /**
+   * 대표 계좌 조회
+   */
+  getPrimaryAccount: async (): Promise<BaseResponse<UserAccount>> => {
+    return apiClient.get(API_ENDPOINTS.ACCOUNTS_PRIMARY);
+  },
+
+  /**
+   * 거래 내역 3개월 이상 조회 확인
+   */
+  checkTransactionHistory: async (accountId: string): Promise<{ hasThreeMonthsHistory: boolean }> => {
+    const response = await apiClient.get<{ hasThreeMonthsHistory: boolean }>(API_ENDPOINTS.ACCOUNT_TRANSACTION_HISTORY_CHECK(accountId));
+    return response.data;
+  },
+
+  /**
+   * 슬롯 추천 (날짜 기반)
+   */
+  recommendSlotsByDate: async (accountId: string, request: SlotRecommendationRequest): Promise<SlotRecommendationResponse> => {
+    return apiClient.postWithConfig(API_ENDPOINTS.ACCOUNT_SLOT_RECOMMEND(accountId), request, { timeout: 90000 });
+  },
+
+  /**
+   * 슬롯 추천 (프로필 기반)
+   */
+  recommendSlotsByProfile: async (accountId: string, request: SlotRecommendationByProfileRequest): Promise<SlotRecommendationResponse> => {
+    return apiClient.postWithConfig(API_ENDPOINTS.ACCOUNT_SLOT_RECOMMEND_BY_PROFILE(accountId), request, { timeout: 90000 });
+  },
 
 };
 

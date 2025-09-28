@@ -9,9 +9,12 @@ import { Spacing, themes, Typography } from '@/src/constants/theme';
 import { useAccountBalance, useAccounts, useSlots, useUserProfile } from '@/src/hooks';
 import type { UserAccount, SlotData } from '@/src/types';
 import { profileApi } from '@/src/api/profile';
+import { useAccountSelectionStore } from '@/src/store';
+import { useSlotStore } from '@/src/store/useSlotStore';
 import React, { memo, useCallback, useMemo, useRef, useState } from 'react';
 import { Animated, StyleSheet, Text, useColorScheme, View, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { router } from 'expo-router';
 
 // 헤더 컴포넌트 분리 (메모이제이션)
 const DashboardHeader = memo(({ userProfile, theme }: { userProfile: any, theme: any }) => (
@@ -152,7 +155,21 @@ export default function DashboardScreen() {
       console.log('[handleSlotPress] 스크롤 실패 - slotIndex:', slotIndex, 'mainScrollViewRef:', !!mainScrollViewRef.current);
     }
   }, [currentAccountSlots]);
-  
+
+  // 계좌 전체 거래 내역 조회 핸들러
+  const handleViewAllTransactions = useCallback(() => {
+    console.log('[handleViewAllTransactions] 계좌 전체 거래 내역 조회:', currentAccount?.accountId);
+    console.log('[handleViewAllTransactions] currentAccount:', currentAccount);
+    if (currentAccount?.accountId) {
+      router.push({
+        pathname: '/(tabs)/dashboard/account/[accountId]/transactions',
+        params: { accountId: currentAccount.accountId }
+      });
+    } else {
+      console.log('[handleViewAllTransactions] currentAccount.accountId가 없음');
+    }
+  }, [currentAccount?.accountId]);
+
   // AccountSummary용 데이터 (UserAccount 직접 사용)
   const currentAccountForSummary: UserAccount | undefined = currentAccount ? {
     ...currentAccount,
@@ -175,13 +192,44 @@ export default function DashboardScreen() {
 
   // 두 컴포넌트의 opacity는 하나의 scrollY를 interpolate해서 제어
   const summaryOpacity = scrollY.interpolate({
-    inputRange: [accountCarouselY - 50, accountCarouselY - 20],
+    inputRange: [10, 50], // 더 작은 값으로 조정
     outputRange: [0, 1],
     extrapolate: 'clamp',
   });
+  
+  // 디버깅용 로그
+  console.log('[Dashboard] accountCarouselY:', accountCarouselY);
+
+  // 터치 이벤트 제어를 위한 상태
+  const [isSummaryVisible, setIsSummaryVisible] = useState(false);
+  const currentOpacityRef = useRef(0);
+  const currentScrollYRef = useRef(0);
+  
+  // summaryOpacity 값에 따라 터치 이벤트 제어
+  React.useEffect(() => {
+    const listener = summaryOpacity.addListener(({ value }) => {
+      console.log('[Dashboard] summaryOpacity:', value, 'isSummaryVisible:', value > 0.3);
+      currentOpacityRef.current = value;
+      setIsSummaryVisible(value > 0.3); // 30% 이상 보일 때만 터치 이벤트 활성화
+    });
+    
+    // scrollY 값도 확인
+    const scrollListener = scrollY.addListener(({ value }) => {
+      console.log('[Dashboard] scrollY:', value);
+      currentScrollYRef.current = value;
+      // summaryOpacity 직접 계산
+      const calculatedOpacity = value < 10 ? 0 : value > 50 ? 1 : (value - 10) / (50 - 10);
+      console.log('[Dashboard] calculatedOpacity:', calculatedOpacity);
+    });
+    
+    return () => {
+      summaryOpacity.removeListener(listener);
+      scrollY.removeListener(scrollListener);
+    };
+  }, [summaryOpacity]);
 
   const carouselOpacity = scrollY.interpolate({
-    inputRange: [accountCarouselY - 50, accountCarouselY - 20],
+    inputRange: [accountCarouselY - 80, accountCarouselY - 50],
     outputRange: [1, 0],
     extrapolate: 'clamp',
   });
@@ -227,17 +275,85 @@ export default function DashboardScreen() {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background.primary }]}>
       {/* 요약은 항상 렌더링해두고 opacity로만 표시 */}
-      <Animated.View style={[styles.fixedHeader,
-      {
-        opacity: summaryOpacity,
-        backgroundColor: theme.colors.background.primary,
-      }]}>
+      <Animated.View 
+        style={[styles.fixedHeader,
+        {
+          opacity: summaryOpacity,
+          backgroundColor: theme.colors.background.primary,
+        }]}
+        pointerEvents="auto"
+      >
         <View style={{ position: 'relative' }}>
-          <View style={{ position: 'absolute', bottom: -50, width: '90%' }}>
-            <UncategorizedSlotCard remain={uncategorizedAmount} unreadCount={3} />
+          <View style={{ 
+            position: 'absolute', 
+            bottom: -50, 
+            width: '100%',
+            alignItems: 'center'
+          }}>
+            <UncategorizedSlotCard 
+              remain={uncategorizedAmount} 
+              unreadCount={3} 
+              accountId={currentAccount?.accountId}
+              onPress={() => {
+                // 직접 opacity 계산
+                const scrollValue = currentScrollYRef.current;
+                const calculatedOpacity = scrollValue < 10 ? 0 : scrollValue > 50 ? 1 : (scrollValue - 10) / (50 - 10);
+                console.log('[Dashboard] UncategorizedSlotCard onPress 호출됨, scrollValue:', scrollValue, 'calculatedOpacity:', calculatedOpacity);
+                // opacity가 0.5 미만이면 터치 무시
+                if (calculatedOpacity < 0.5) {
+                  console.log('[Dashboard] 투명도가 낮아서 미분류 슬롯 터치 무시');
+                  return;
+                }
+                // 원래 handlePress 로직 실행
+                const finalAccountId = currentAccount?.accountId;
+                if (!finalAccountId) return;
+                
+                // 현재 계좌 정보를 스토어에 저장
+                const { setSelectedAccount } = useAccountSelectionStore.getState();
+                setSelectedAccount(finalAccountId, UNCATEGORIZED_SLOT_ID);
+                
+                // Store에 미분류 슬롯 정보 저장
+                useSlotStore.getState().setSelectedSlot({
+                  slotId: UNCATEGORIZED_SLOT_ID,
+                  name: '미분류',
+                  accountSlotId: UNCATEGORIZED_SLOT_ID,
+                  customName: '미분류',
+                  initialBudget: 0,
+                  currentBudget: 0,
+                  spent: 0,
+                  remainingBudget: uncategorizedAmount,
+                  exceededBudget: 0,
+                  accountId: finalAccountId,
+                  budgetChangeCount: 0,
+                  isSaving: false,
+                  isCustom: false,
+                  isBudgetExceeded: false,
+                });
+                
+                // 미분류 슬롯 상세 페이지로 이동
+                router.push({
+                  pathname: `/dashboard/slot/[slotId]`,
+                  params: { slotId: UNCATEGORIZED_SLOT_ID, accountId: finalAccountId },
+                });
+              }}
+            />
           </View>
           {currentAccountForSummary && (
-            <AccountSummary account={currentAccountForSummary} />
+            <AccountSummary 
+              account={currentAccountForSummary} 
+              onViewTransactions={() => {
+                // 직접 opacity 계산
+                const scrollValue = currentScrollYRef.current;
+                const calculatedOpacity = scrollValue < 10 ? 0 : scrollValue > 50 ? 1 : (scrollValue - 10) / (50 - 10);
+                console.log('[Dashboard] AccountSummary onViewTransactions 호출됨, scrollValue:', scrollValue, 'calculatedOpacity:', calculatedOpacity);
+                // opacity가 0.5 미만이면 터치 무시
+                if (calculatedOpacity < 0.5) {
+                  console.log('[Dashboard] 투명도가 낮아서 터치 무시');
+                  return;
+                }
+                handleViewAllTransactions();
+              }} 
+            />
           )}
         </View>
       </Animated.View>
@@ -260,6 +376,7 @@ export default function DashboardScreen() {
           ref={accountCarouselRef}
           onLayout={(event) => {
             const { y } = event.nativeEvent.layout;
+            console.log('[Dashboard] accountCarousel onLayout y:', y);
             setAccountCarouselY(y);
           }}
           style={
@@ -272,6 +389,7 @@ export default function DashboardScreen() {
             accounts={linkedAccountsForCarousel}
             onIndexChange={handleIndexChange}
             initialIndex={selectedIndex}
+            onViewTransactions={handleViewAllTransactions}
           />
         </Animated.View>
 

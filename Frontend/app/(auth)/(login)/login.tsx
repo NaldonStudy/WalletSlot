@@ -2,6 +2,8 @@
 
 import { authApi } from '@/src/api/auth';
 import { AuthKeypad, PinDots } from '@/src/components';
+import { featureFlags } from '@/src/config/featureFlags';
+import { appService } from '@/src/services/appService';
 import { getOrCreateDeviceId } from '@/src/services/deviceIdService';
 import { useAuthStore } from '@/src/store/authStore';
 import { useLocalUserStore } from '@/src/store/localUserStore';
@@ -121,10 +123,18 @@ export default function LoginScreen() {
         throw new Error(resp.error?.message || 'PIN이 올바르지 않거나 등록되지 않은 사용자입니다.');
       }
 
-      // 기존 authService.saveLoginData(response)를 재사용하기 위해
-      // 파싱된 resp를 Response-like 객체로 래핑하여 authStore.login에 전달합니다.
-      // authService.saveLoginData now accepts parsed responses, so pass resp directly
+      // 로그인 완료 처리
       await useAuthStore.getState().login(resp);
+
+      // 온보딩 완료 처리 (로그인 성공 시)
+      try {
+        await appService.setOnboardingCompleted(true);
+        featureFlags.setOnboardingEnabled(true);
+        console.log('✅ 로그인 성공 - 온보딩 완료 처리됨');
+      } catch (error) {
+        console.error('⚠️ 로그인 성공 - 온보딩 완료 처리 실패:', error);
+      }
+
 
       router.replace({
         pathname: '/(auth)/(signup)/notification-consent',

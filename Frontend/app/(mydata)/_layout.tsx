@@ -5,13 +5,14 @@ export default function MyDataLayout() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
       <Stack
-        initialRouteName="bank-select"
+        initialRouteName="index"
         screenOptions={{
           headerShown: false,
           animation: 'slide_from_right',
           contentStyle: { backgroundColor: '#fff' }
         }}
       >
+        <Stack.Screen name="index" />
         <Stack.Screen name="account-connect" />
         <Stack.Screen name="account-select" />
         <Stack.Screen name="mydata-consent" />

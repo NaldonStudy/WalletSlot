@@ -7,8 +7,8 @@ import {
   ActivityIndicator,
   Alert,
   useColorScheme,
-  Image,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router } from 'expo-router';
 import { Stack } from 'expo-router';
@@ -223,8 +223,9 @@ export default function SlotHistoryScreen() {
             <Image 
               source={require('@/src/assets/images/dashboard/NotBudgetChange.png')}
               style={styles.emptyImage}
-              resizeMode="contain"
-              fadeDuration={0}
+              contentFit="contain"
+              transition={200}
+              cachePolicy="memory-disk"
             />
             <Text style={[styles.emptyTitle, { color: theme.colors.text.primary }]}>
               예산 변경 내역이 없어요

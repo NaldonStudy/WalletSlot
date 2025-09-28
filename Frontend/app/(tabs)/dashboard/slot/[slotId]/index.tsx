@@ -8,11 +8,13 @@ import { SLOT_CATEGORIES } from '@/src/constants/slots';
 import SlotHeader from '@/src/components/slot/SlotHeader';
 import SlotSpendingChart from '@/src/components/slot/SlotSpendingChart';
 import SlotBalanceCard from '@/src/components/slot/SlotBalanceCard';
+import UncategorizedSlotBalanceCard from '@/src/components/slot/UncategorizedSlotBalanceCard';
 import { useSlotDailySpending } from '@/src/hooks/slots/useSlotDailySpending';
 import { useSlotTransactions } from '@/src/hooks/slots/useSlotTransactions';
 import { useSlots } from '@/src/hooks/slots/useSlots';
 import TransactionList from '@/src/components/transaction/TransactionList';
 import { SlotTransaction } from '@/src/types/slot';
+import { UNCATEGORIZED_SLOT_ID } from '@/src/constants/slots';
 
 
 export default function SlotDetailScreen() {
@@ -24,39 +26,12 @@ export default function SlotDetailScreen() {
     // API를 통해 최신 슬롯 데이터 가져오기
     const { slots, isLoading: slotsLoading } = useSlots(selectedSlot?.accountId);
     
-    
-    // 현재 슬롯의 최신 데이터 찾기
-    // 1. selectedSlot이 있으면 우선 사용 (정확한 슬롯 정보)
-    // 2. 없으면 API에서 가져온 슬롯 목록에서 찾기
-    let currentSlot = selectedSlot;
-    
-    if (!currentSlot && slots.length > 0) {
-        // selectedSlot이 없으면 API 데이터에서 찾기
-        const foundSlot = slots.find(slot => slot.accountSlotId === slotId);
-        if (foundSlot && selectedSlot?.accountId) {
-            currentSlot = { ...foundSlot, accountId: selectedSlot.accountId };
-        }
-    }
-    
-    // 여전히 없으면 API 데이터에서 selectedSlot과 매칭되는 슬롯 찾기
-    if (!currentSlot && selectedSlot && slots.length > 0) {
-        const foundSlot = slots.find(slot => slot.accountSlotId === selectedSlot.accountSlotId);
-        if (foundSlot) {
-            currentSlot = { ...foundSlot, accountId: selectedSlot.accountId };
-        }
-    }
-    
-    // 슬롯 이동 후 잔액 업데이트를 위해 API 데이터 우선 사용
-    if (selectedSlot && slots.length > 0) {
-        const apiSlot = slots.find(slot => slot.accountSlotId === selectedSlot.accountSlotId);
-        if (apiSlot) {
-            currentSlot = { ...apiSlot, accountId: selectedSlot.accountId }; // API에서 가져온 최신 데이터 사용
-        }
-    }
+    // 현재 슬롯 결정 - 최신 데이터 우선 사용
+    const currentSlot = slots?.find(slot => slot.slotId === slotId) || selectedSlot;
 
     const { data: dailySpending, isLoading } = useSlotDailySpending(
         selectedSlot?.accountId, // 계좌 ID
-        slotId
+        selectedSlot?.accountSlotId // 계좌 슬롯 ID
     );
 
     // 실제 API를 사용한 거래내역 조회
@@ -97,13 +72,6 @@ export default function SlotDetailScreen() {
 
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background.primary }]}>
-            {/* 헤더 제목 */}
-            <Stack.Screen
-                options={{
-                    title: "슬롯 상세 거래내역",
-                    headerBackTitle: "", // iOS에서 뒤로가기 텍스트 안보이게
-                }}
-            />
             
             <ScrollView 
                 style={styles.scrollView}
@@ -114,11 +82,18 @@ export default function SlotDetailScreen() {
                 <SlotHeader slot={currentSlot} variant="large" />
 
                 {/* 잔액 현황 카드 */}
-                <SlotBalanceCard
-                    remaining={currentSlot.remainingBudget}
-                    budget={currentSlot.currentBudget}
-                    color={SLOT_CATEGORIES[currentSlot.slotId as keyof typeof SLOT_CATEGORIES]?.color || '#F1A791'}
-                />
+                {currentSlot.slotId === UNCATEGORIZED_SLOT_ID ? (
+                    <UncategorizedSlotBalanceCard
+                        remaining={currentSlot.remainingBudget}
+                        unreadCount={3} // TODO: 실제 미읽음 알림 개수로 교체
+                    />
+                ) : (
+                    <SlotBalanceCard
+                        remaining={currentSlot.remainingBudget}
+                        budget={currentSlot.currentBudget}
+                        color={SLOT_CATEGORIES[currentSlot.slotId as keyof typeof SLOT_CATEGORIES]?.color || '#F1A791'}
+                    />
+                )}
 
                 {/* 누적 지출 그래프 */}
                 <View style={styles.chartContainer}>
@@ -147,7 +122,12 @@ export default function SlotDetailScreen() {
                             <Text style={styles.loadingText}>거래내역을 불러오는 중...</Text>
                         </View>
                     ) : transactions.length > 0 ? (
-                        <TransactionList transactions={transactions} slotId={slotId} />
+                        <TransactionList 
+                            transactions={transactions} 
+                            slotId={slotId}
+                            accountId={selectedSlot?.accountId}
+                            accountSlotId={currentSlot?.accountSlotId}
+                        />
                     ) : (
                         <View style={styles.emptyCard}>
                             <Text style={styles.emptyText}>거래내역이 없습니다.</Text>

@@ -1,4 +1,7 @@
 import { authApi } from '@/src/api/auth';
+import { profileApi } from '@/src/api/profile';
+import { featureFlags } from '@/src/config/featureFlags';
+import { appService } from '@/src/services/appService';
 import { getOrCreateDeviceId } from '@/src/services/deviceIdService';
 import { firebasePushService } from '@/src/services/firebasePushService';
 import { saveAccessToken, saveRefreshToken } from '@/src/services/tokenService';
@@ -35,14 +38,35 @@ export default function NotificationConsentScreen() {
     carrier, 
     signupTicket, 
     pin, 
-    setPushEnabled,
     clearSignupTicket,
     clearPin,
     reset: resetSignupStore // signupStore 초기화용
   } = useSignupStore();
   
   // 로컬 사용자 스토어
-  const { setUser } = useLocalUserStore();
+  const { setUser, setPushEnabled } = useLocalUserStore();
+
+  // 사용자 정보 조회 함수 (로그인 모드에서만 사용)
+  const fetchUserProfile = async () => {
+    try {
+      console.log('사용자 프로필 정보 조회 시작...');
+      const userProfile = await profileApi.getMe();
+      console.log('사용자 프로필 조회 성공:', userProfile);
+      
+      // LocalUser 형식에 맞게 변환하여 저장
+      await setUser({
+        userId: userProfile.id,
+        userName: userProfile.name,
+        isPushEnabled: false, // 알림 설정은 나중에 처리
+        deviceId: await getOrCreateDeviceId(),
+      });
+      
+      console.log('✅ 사용자 정보가 localUserStore에 저장되었습니다.');
+    } catch (error) {
+      console.error('❌ 사용자 프로필 조회 실패:', error);
+      // 에러가 발생해도 알림 동의는 계속 진행
+    }
+  };
 
   // 최종 회원가입 API 호출 함수
   const completeSignup = async (pushEnabled: boolean, fcmToken?: string) => {
@@ -90,11 +114,22 @@ export default function NotificationConsentScreen() {
         pin: '****', // 보안을 위해 PIN은 마스킹
         pushToken: fcmToken ? `${fcmToken.substring(0, 20)}...` : 'null'
       });
+      
+      // signupTicket 상세 로깅
+      console.log('🔍 signupTicket 상세 정보:', {
+        signupTicket,
+        length: signupTicket?.length,
+        type: typeof signupTicket,
+        isUsed: signupTicket === 'used' || signupTicket === 'expired'
+      });
 
   // 회원가입 API 호출
   const response = await authApi.completeSignup(signupData);
       
   if (response.success) {
+        // signupTicket 사용 후 즉시 무효화 (중복 사용 방지)
+        clearSignupTicket();
+        console.log('✅ signupTicket 사용 완료 및 무효화');
         console.log('✅ 회원가입 성공:', {
           userId: response.data.userId,
           hasAccessToken: !!response.data.accessToken,
@@ -116,7 +151,16 @@ export default function NotificationConsentScreen() {
         resetSignupStore();
         console.log('✅ signupStore 초기화 완료');
         
-        // 4. welcome 화면으로 이동
+        // 4. 온보딩 완료 처리
+        try {
+          await appService.setOnboardingCompleted(true);
+          featureFlags.setOnboardingEnabled(true);
+          console.log('✅ 온보딩 완료 처리됨');
+        } catch (error) {
+          console.error('⚠️ 온보딩 완료 처리 실패:', error);
+        }
+        
+        // 5. welcome 화면으로 이동
         router.push('/(auth)/(signup)/welcome');
       } else {
         const msg = response.message || '회원가입에 실패했습니다.';
@@ -159,6 +203,51 @@ export default function NotificationConsentScreen() {
         return; // 처리 완료: 재throw로 인한 중복 Alert 방지
       }
 
+      // 409/중복 요청 처리
+      if (code === 'HTTP_409' || /409/.test(String(code))) {
+        title = '중복된 요청';
+        if (/signupTicket|티켓|이미 사용/i.test(message)) {
+          message = '이미 사용된 인증입니다. SMS 인증부터 다시 진행해주세요.';
+          // 티켓/핀 정리 후 휴대폰 인증 화면으로 이동
+          try {
+            clearSignupTicket();
+            clearPin();
+          } catch {}
+          Alert.alert(title, message, [
+            {
+              text: '확인',
+              onPress: () => {
+                try {
+                  router.replace('/(auth)/(signup)/phone' as any);
+                } catch {}
+              },
+            },
+          ]);
+          return;
+        } else if (/phone|전화번호|이미 가입/i.test(message)) {
+          message = '이미 가입된 전화번호입니다. 로그인을 시도해주세요.';
+          Alert.alert(title, message, [
+            {
+              text: '로그인하기',
+              onPress: () => {
+                try {
+                  router.replace('/(auth)/(login)/login' as any);
+                } catch {}
+              },
+            },
+            {
+              text: '취소',
+              style: 'cancel',
+            },
+          ]);
+          return;
+        } else {
+          message = '중복된 요청입니다. 잠시 후 다시 시도해주세요.';
+        }
+        Alert.alert(title, message);
+        return;
+      }
+
       // 500/서버 내부 오류는 요청 ID와 함께 안내
       if (code === 'HTTP_500' || /500/.test(String(code))) {
       const reqId = error?.details?.requestId;
@@ -180,21 +269,31 @@ export default function NotificationConsentScreen() {
     setIsLoading(true);
     
     try {
-      // 로그인 경로: 동의 저장 + 푸시 초기화 후 메인으로
+      // 로그인 경로: 사용자 정보 조회 + 동의 저장 + 푸시 초기화 후 slotDivide로
       if (fromLogin) {
+        // 1. 사용자 프로필 정보 조회 및 저장
+        await fetchUserProfile();
+        
+        // 2. 알림 허용 설정
         setPushEnabled(true);
         console.log('알림 허용(로그인 모드) - 스토어에 저장');
-        // 1. 여기서 실제 권한을 요청합니다.
-        const pushResult = await unifiedPushService.initialize();
-        if (pushResult.success) {
-          // 2. 권한 요청 성공 시, 서버에 토큰을 등록합니다.
-          console.log('✅ FCM 토큰 발급 성공, 서버 등록 시도...');
-          await firebasePushService.ensureServerRegistration();
-        } else {
-          console.warn('⚠️ 알림 권한이 거부되었거나 토큰 발급에 실패했습니다.');
-        }
-        // 3. 올바른 대시보드 경로로 이동합니다.
-        router.replace('/');
+        
+        // 3. FCM 토큰 발급
+        try {
+          console.log('FCM 토큰 발급 시작...(로그인 모드)');
+          // 1. 여기서 실제 권한을 요청합니다.
+          const pushResult = await unifiedPushService.initialize();
+          if (pushResult.success) {
+            // 2. 권한 요청 성공 시, 서버에 토큰을 등록합니다.
+            console.log('✅ FCM 토큰 발급 성공, 서버 등록 시도...');
+            await firebasePushService.ensureServerRegistration();
+          } else {
+            console.warn('⚠️ 알림 권한이 거부되었거나 토큰 발급에 실패했습니다.');
+          }
+        } catch {}
+        
+        // 4. 슬롯 분배 화면으로 이동
+        router.replace('/(slotDivide)/s1electDay' as any);
         return;
       }
 
@@ -232,9 +331,15 @@ export default function NotificationConsentScreen() {
     
     try {
       if (fromLogin) {
+        // 1. 사용자 프로필 정보 조회 및 저장
+        await fetchUserProfile();
+        
+        // 2. 알림 거부 설정
         setPushEnabled(false);
-        console.log('알림 거부(로그인 모드)');
-        router.replace('/'); // 올바른 대시보드 경로로 이동
+        console.log('알림 거부(로그인 모드) - 스토어에 저장');
+        
+        // 3. 슬롯 분배 화면으로 이동
+        router.replace('/(slotDivide)/s1electDay' as any);
         return;
       }
 

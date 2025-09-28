@@ -35,7 +35,6 @@ class ApiClient {
         'oldPin',
         'password',
         'pushToken',
-        'accessToken',
         'refreshToken',
         'verificationCode',
         'smsCode',

@@ -3,7 +3,7 @@ import { Spacing, Typography } from '@/src/constants/theme';
 import { format } from '@/src/utils';
 import { Image } from 'expo-image';
 import React from 'react';
-import { StyleProp, StyleSheet, Text, View, ViewStyle } from 'react-native';
+import { StyleProp, StyleSheet, Text, View, ViewStyle, TouchableOpacity } from 'react-native';
 
 export type AccountCardData = {
     bankId: string; // 서버에서 오는 bankId (UUID)
@@ -29,6 +29,7 @@ const getTextColor = (backgroundColor: string): string => {
 
 type AccountCardProps = AccountCardData & {
     style?: StyleProp<ViewStyle>;
+    onViewTransactions?: () => void;
 }
 
 const AccountCard: React.FC<AccountCardProps> = ({
@@ -37,6 +38,7 @@ const AccountCard: React.FC<AccountCardProps> = ({
     accountNumber,
     balance,
     style,
+    onViewTransactions,
 }) => {
     // 서버의 bankId로 은행 정보 찾기
     const bankInfo = BANK_CODES[bankId as keyof typeof BANK_CODES];
@@ -68,8 +70,19 @@ const AccountCard: React.FC<AccountCardProps> = ({
 
                 {/* 계좌명 */}
                 <Text style={[styles.accountName, { color: textColor }]}>{accountName}</Text>
-                {/* 계좌번호 */}
-                <Text style={[styles.accountNumber, { color: textColor }]}>{accountNumber}</Text>
+                {/* 계좌번호 + 거래내역 버튼 */}
+                <View style={styles.accountNumberRow}>
+                    <Text style={[styles.accountNumber, { color: textColor }]}>{accountNumber}</Text>
+                    {onViewTransactions && (
+                        <TouchableOpacity
+                            style={[styles.transactionButton, { backgroundColor: textColor === '#FFFFFF' ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.1)' }]}
+                            onPress={onViewTransactions}
+                            activeOpacity={0.7}
+                        >
+                            <Text style={[styles.transactionButtonText, { color: textColor }]}>거래내역</Text>
+                        </TouchableOpacity>
+                    )}
+                </View>
             </View>
 
             {/* 하단 : 잔액 */}
@@ -122,11 +135,25 @@ const styles = StyleSheet.create({
         fontSize: Typography.fontSize.lg,
         fontWeight: Typography.fontWeight.bold,
     },
-    accountNumber: {
+    accountNumberRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
         marginTop: Spacing.sm,
         marginLeft: Spacing.sm,
+    },
+    accountNumber: {
         fontSize: Typography.fontSize.lg,
         textDecorationLine: 'underline',
+        marginRight: Spacing.sm,
+    },
+    transactionButton: {
+        paddingHorizontal: Spacing.sm,
+        paddingVertical: Spacing.xs,
+        borderRadius: 12,
+    },
+    transactionButtonText: {
+        fontSize: Typography.fontSize.sm,
+        fontWeight: Typography.fontWeight.medium,
     },
     balance: {
         fontSize: Typography.fontSize['2xl'],
