@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, Alert, Dimensions } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useFocusEffect } from '@react-navigation/native';
-import { useNavigation } from '@react-navigation/native';
+import { useFocusEffect , useNavigation } from '@react-navigation/native';
 import { Image } from 'expo-image';
 import Animated, { 
   useSharedValue, 

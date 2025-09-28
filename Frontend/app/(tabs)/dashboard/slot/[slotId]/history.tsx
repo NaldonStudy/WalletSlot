@@ -10,8 +10,7 @@ import {
 } from 'react-native';
 import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useLocalSearchParams, router } from 'expo-router';
-import { Stack } from 'expo-router';
+import { useLocalSearchParams, router , Stack } from 'expo-router';
 import { useSlotStore } from '@/src/store/useSlotStore';
 import { themes, Spacing } from '@/src/constants/theme';
 import { useSlots } from '@/src/hooks/slots/useSlots';

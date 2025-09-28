@@ -2,8 +2,7 @@ import React from "react";
 import { View, Text, StyleSheet, useColorScheme, TouchableOpacity } from "react-native";
 import { router } from "expo-router";
 import type { SlotTransaction } from "@/src/types/slot";
-import { themes } from "@/src/constants/theme";
-import { Spacing } from "@/src/constants/theme";
+import { themes , Spacing } from "@/src/constants/theme";
 import { useAccountSelectionStore } from "@/src/store";
 
 // 시간 포맷팅 함수

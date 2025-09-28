@@ -1,4 +1,5 @@
 import { apiClient } from '@/src/api/client';
+import { normalizeSlots } from '@/src/api/responseNormalizer';
 import { API_ENDPOINTS } from '@/src/constants/api';
 import {
   ApiError,
@@ -110,5 +111,53 @@ export const slotApi = {
       throw new Error(message);
     }
   },
+
+  /**
+   * 예산안 확정 - 슬롯 리스트를 확정(reassign)
+   * 요청 바디: { slots: SlotDto[] }
+   */
+  reassignSlots: async (accountId: string, slotsPayload: any): Promise<BaseResponse<SlotsResponse>> => {
+    try {
+      // API 문서 상으로는 PATCH /api/accounts/{accountId}/slots/reassign
+      const url = API_ENDPOINTS.ACCOUNT_SLOT_REASSIGN(accountId);
+      const response = await apiClient.patch(url, slotsPayload);
+
+      // response가 애매한 형태일 수 있으므로 정규화 시도
+      try {
+        return normalizeSlots(response);
+      } catch (e) {
+        // 정규화 실패 시 원시 응답을 그대로 반환하려 시도
+        return response as BaseResponse<SlotsResponse>;
+      }
+    } catch (error) {
+      const apiError = error as ApiError | Error | any;
+      const apiCode = (apiError as ApiError)?.code ?? (apiError?.code) ?? 'UNKNOWN_ERROR_CODE';
+      const details = (apiError as ApiError)?.details ?? apiError?.details ?? null;
+      const requestId = details?.requestId ?? (slotsPayload && (slotsPayload as any)?.requestId) ?? null;
+
+      // 메시지 우선순위: ApiError.message > Error.message > 기본 메시지
+      const message = (apiError as ApiError)?.message ?? (apiError as Error)?.message ?? '예산안 확정에 실패했습니다.';
+
+      // 로깅: 서버에서 온 상세 정보와 요청 ID를 함께 남겨 추적 가능하게 함
+      try {
+        console.error('[reassignSlots] API 호출 실패 상세:', {
+          message,
+          code: apiCode,
+          requestId,
+          details,
+          accountId,
+          // slotsPayload는 크기가 클 수 있어 길이 및 샘플만 기록
+          slotsCount: Array.isArray(slotsPayload?.slots) ? slotsPayload.slots.length : undefined,
+          sampleSlot: Array.isArray(slotsPayload?.slots) && slotsPayload.slots.length ? slotsPayload.slots[0] : undefined,
+        });
+      } catch (logErr) {
+        console.error('[reassignSlots] 로깅 중 예외 발생:', logErr);
+      }
+
+      // 사용자에게는 requestId와 코드가 포함된 친절한 메시지를 던짐
+      const userMessage = requestId ? `${message} (요청ID: ${requestId}, 코드: ${apiCode})` : `${message} (코드: ${apiCode})`;
+      throw new Error(userMessage);
+    }
+  }
 
 };

@@ -1,9 +1,11 @@
+import { slotApi } from '@/src/api/slot';
+import { featureFlags } from '@/src/config/featureFlags';
 import { BANK_CODES } from '@/src/constants/banks';
 import { SLOT_CATEGORIES } from '@/src/constants/slots';
 import { useSlotDivideStore } from '@/src/store/slotDivideStore';
 import { router, useLocalSearchParams } from 'expo-router';
 import React from 'react';
-import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function A7djustSlotScreen() {
@@ -59,8 +61,44 @@ export default function A7djustSlotScreen() {
 
   const handleConfirm = () => {
     console.log('🎯 [CONFIRM] 예산안 확정');
-    // TODO: 예산안 확정 API 연동
+    if (!recommendationData) return;
+    const accountId = recommendationData.data.account.accountId;
+    // Build slots payload expected by API: { slots: [ { slotId, customName, initialBudget, isCustom } ] }
+    const slots = recommendationData.data.recommededSlots.map((s: any) => ({
+      slotId: s.slotId,
+      customName: s.customName ?? s.name,
+      initialBudget: s.initialBudget,
+      isCustom: (s.isCustom ?? false) as boolean,
+    }));
+
+  setIsSubmitting(true);
+  console.log('[reassignSlots] 요청 바디 (slots only):', JSON.stringify({ slots }));
+  slotApi.reassignSlots(accountId, { slots })
+      .then((res) => {
+        if (res && res.success) {
+          console.log('[reassignSlots] 성공 응답:', res);
+          // 마이데이터 연결 상태 true로 설정
+          try {
+            featureFlags.setMyDataConnectEnabled(true);
+          } catch (e) {
+            console.warn('[reassignSlots] featureFlags set 실패:', e);
+          }
+          Alert.alert('완료', '예산안이 성공적으로 확정되었습니다.', [
+            { text: '확인', onPress: () => router.replace('/(tabs)/dashboard') }
+          ]);
+        } else {
+          console.warn('[reassignSlots] 응답이 성공이 아님:', res);
+          Alert.alert('오류', res?.message || '예산안 확정에 실패했습니다.');
+        }
+      })
+      .catch((err) => {
+        console.error('[reassignSlots] 에러:', err);
+        Alert.alert('오류', err?.message || '서버와 통신 중 오류가 발생했습니다.');
+      })
+      .finally(() => setIsSubmitting(false));
   };
+
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
 
   // 은행 정보 가져오기
   const getBankInfo = (bankId: string) => {

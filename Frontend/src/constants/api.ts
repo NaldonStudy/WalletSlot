@@ -72,6 +72,7 @@ export const API_ENDPOINTS = {
   ACCOUNT_TRANSACTION_HISTORY_CHECK: (accountId: string) => `/api/accounts/${accountId}/transactions/history/check`,
   ACCOUNT_SLOT_RECOMMEND: (accountId: string) => `/api/accounts/${accountId}/slots/recommend`,
   ACCOUNT_SLOT_RECOMMEND_BY_PROFILE: (accountId: string) => `/api/accounts/${accountId}/slots/recommend/by-profile`,
+  ACCOUNT_SLOT_REASSIGN: (accountId: string) => `/api/accounts/${accountId}/slots/reassign`,
   ACCOUNTS_VERIFICATION_REQUEST: '/api/accounts/verification/request',
   ACCOUNTS_VERIFICATION_VERIFY: '/api/accounts/verification/verify',
 
