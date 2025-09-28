@@ -66,3 +66,39 @@ export interface AccountUpdateResponse {
     accountBalance: string;
   };
 }
+
+export interface SlotRecommendationRequest {
+  startDate: string;
+  endDate: string;
+}
+
+export interface SlotRecommendationByProfileRequest {
+  useAge: boolean;
+  income: number;
+  useGender: boolean;
+}
+
+export interface RecommendedSlot {
+  slotId: string;
+  name: string;
+  initialBudget: number;
+}
+
+export interface SlotRecommendationResponse {
+  success: boolean;
+  message?: string;
+  data: {
+    bank: {
+      bankId: string;
+      name: string;
+      color: string;
+    };
+    account: {
+      accountId: string;
+      accountNo: string;
+      accountBalance: number;
+    };
+    recommededSlots: RecommendedSlot[];
+  };
+}
+

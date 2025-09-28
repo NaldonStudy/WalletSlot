@@ -1,3 +1,4 @@
+import { SlotRecommendationResponse } from '@/src/types/account';
 import { create } from 'zustand';
 
 // 수입 레벨 계산 함수
@@ -22,16 +23,18 @@ const calculateIncomeLevel = (income: string): string | null => {
 interface SlotDivideData {
   baseDay: string;        // 기준일 (1-31)
   income: string;         // 월 수입
-  period: string;         // 분석 기간
   
-  // 날짜 관련 (직접 설정 시)
-  startDate: string;      // 시작 날짜 (YYYY.MM.DD)
-  endDate: string;        // 종료 날짜 (YYYY.MM.DD)
+  // 날짜 관련
+  startDate: string;      // 시작 날짜 (YYYYMMDD)
+  endDate: string;        // 종료 날짜 (YYYYMMDD)
   
   // 추천 기준 (거래 내역 부족 시)
   useAge: boolean | null;     // 비슷한 연령대 사용 여부
   useGender: boolean | null;  // 같은 성별 사용 여부
   incomeLevel: string; // 수입 레벨 (A~G)
+  
+  // 추천 결과
+  recommendationResult: SlotRecommendationResponse | null;
 }
 
 interface SlotDivideStore {
@@ -41,7 +44,6 @@ interface SlotDivideStore {
   // 액션
   setBaseDay: (day: string) => void;
   setIncome: (income: string) => void;
-  setPeriod: (period: string) => void;
   
   // 날짜 관련 액션
   setDates: (startDate: string, endDate: string) => void;
@@ -64,17 +66,22 @@ interface SlotDivideStore {
   
   // API 호출용 데이터 가져오기
   getApiData: () => SlotDivideData;
+  
+  // 추천 결과 관련 액션
+  setRecommendationResult: (result: SlotRecommendationResponse | null) => void;
+  getRecommendationResult: () => SlotRecommendationResponse | null;
+  clearRecommendationResult: () => void;
 }
 
 const initialData: SlotDivideData = {
   baseDay: '',
   income: '',
-  period: '',
   startDate: '',
   endDate: '',
   useAge: null,
   useGender: null,
   incomeLevel: '',
+  recommendationResult: null,
 };
 
 export const useSlotDivideStore = create<SlotDivideStore>((set, get) => ({
@@ -88,11 +95,6 @@ export const useSlotDivideStore = create<SlotDivideStore>((set, get) => ({
   setIncome: (income: string) => 
     set((state) => ({
       data: { ...state.data, income: income }
-    })),
-  
-  setPeriod: (period: string) => 
-    set((state) => ({
-      data: { ...state.data, period: period }
     })),
   
   // 날짜 관련 액션
@@ -154,4 +156,20 @@ export const useSlotDivideStore = create<SlotDivideStore>((set, get) => ({
     const { data } = get();
     return { ...data };
   },
+  
+  // 추천 결과 관련 액션
+  setRecommendationResult: (result: SlotRecommendationResponse | null) => 
+    set((state) => ({
+      data: { ...state.data, recommendationResult: result }
+    })),
+  
+  getRecommendationResult: () => {
+    const { data } = get();
+    return data.recommendationResult;
+  },
+  
+  clearRecommendationResult: () => 
+    set((state) => ({
+      data: { ...state.data, recommendationResult: null }
+    })),
 }));
