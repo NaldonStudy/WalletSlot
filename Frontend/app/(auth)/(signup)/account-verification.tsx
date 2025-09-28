@@ -35,6 +35,10 @@ export default function AccountVerificationScreen() {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [showAccountModal, setShowAccountModal] = useState<boolean>(false);
   const [showTimeoutModal, setShowTimeoutModal] = useState<boolean>(false);
+  // 토스트 관련 상태 (상단에 짧게 표시)
+  const [toastMessage, setToastMessage] = useState<string>('');
+  const [showToast, setShowToast] = useState<boolean>(false);
+  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // 참조
   const inputRefs = useRef<(TextInput | null)[]>([]);
@@ -98,7 +102,24 @@ export default function AccountVerificationScreen() {
       bankId: `"${bankId}"`,
       pin: `"${pin}"`
     });
-    console.log('[Account Verification] 받은 bankName 값:', bankName);
+    // 콘솔 로그 대신 상단에 토스트로 은행명을 표시
+    if (bankName) {
+      setToastMessage(`은행명: ${pin}`);
+      setShowToast(true);
+      // 이전 타이머가 있으면 정리
+      if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+      toastTimerRef.current = setTimeout(() => {
+        setShowToast(false);
+        toastTimerRef.current = null;
+      }, 300000); // 5분 동안 표시
+    }
+
+    return () => {
+      if (toastTimerRef.current) {
+        clearTimeout(toastTimerRef.current);
+        toastTimerRef.current = null;
+      }
+    };
   }, []);
 
   // 인증번호 입력 처리
@@ -240,6 +261,12 @@ export default function AccountVerificationScreen() {
         style={styles.container} 
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
+          {/* 상단 토스트 알림 (은행명 표시용) */}
+          {showToast && (
+            <View style={styles.toastContainer} pointerEvents="none">
+              <Text style={styles.toastText}>{toastMessage}</Text>
+            </View>
+          )}
         {/* 헤더 */}
         <View style={styles.header}>
           <TouchableOpacity 
@@ -611,6 +638,24 @@ const styles = StyleSheet.create({
     height: 44,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  // 상단 토스트 스타일
+  toastContainer: {
+    position: 'absolute',
+    top: Platform.OS === 'ios' ? 10 : 8,
+    left: 24,
+    right: 24,
+    backgroundColor: 'rgba(17,24,39,0.95)',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+    zIndex: 999,
+  },
+  toastText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '500',
   },
   modalResendText: {
     fontSize: 16,

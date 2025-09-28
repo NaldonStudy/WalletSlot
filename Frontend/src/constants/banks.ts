@@ -36,6 +36,6 @@ export const BANK_CODES = {
   'ef0eeb1e-99da-11f0-8086-0e08d0f2f752': { name: '새마을금고', shortName: '새마을', color: '#0050A3', logo: bankLogos['새마을은행'] },
   'ef0eeb73-99da-11f0-8086-0e08d0f2f752': { name: 'KEB하나은행', shortName: '하나', color: '#00C7A9', logo: bankLogos['하나은행'] },
   'ef0eebc9-99da-11f0-8086-0e08d0f2f752': { name: '신한은행', shortName: '신한', color: '#0046FF', logo: bankLogos['제주_신한은행'] },
-  'ef0eec1e-99da-11f0-8086-0e08d0f2f752': { name: '카카오뱅크', shortName: '카카오뱅크', color: '#FEE500', logo: bankLogos['카카오뱅크'] },
+  'ef0eec1e-99da-11f0-8086-0e08d0f2f752': { name: '카카오뱅크', shortName: '카뱅', color: '#FEE500', logo: bankLogos['카카오뱅크'] },
   'ef0eec7b-99da-11f0-8086-0e08d0f2f752': { name: '싸피은행', shortName: '싸피', color: '#004282', logo: bankLogos['싸피은행'] },
 } as const;
