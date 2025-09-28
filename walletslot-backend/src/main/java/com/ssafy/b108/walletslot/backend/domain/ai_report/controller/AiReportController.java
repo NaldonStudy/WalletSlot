@@ -42,78 +42,9 @@ public class AiReportController {
                 - 날짜 형식: `yyyy-MM-dd` (예: 2025-08-01). 서버는 내부적으로 `00:00:00`~`23:59:59`로 확장 집계.
                 - 분배 규칙: **미분류(PK=0)는 분배 제외**. 절약(savings)→초과(overs) 슬롯 비례 배분, 천원 단위 내림 후 잔여는 라운드로빈.
                 - persist=true: 생성 결과 저장. 응답의 `persist.id`는 **UUID**.
-                - 주요 필드:
-                  · `summary.*` 전체 합계
-                  · `slots[]` 슬롯별 실적 및 다음기간 추천(천원 단위)
-                  · `redistribution.*` 절약→초과 비례 배분 결과
-                  · `insights.*` 간단 통계 + AI 제안
+                - notify=true: 저장에 성공하면 즉시 푸시알림 발송(시연용).
                 """,
-            extensions = @Extension(name = "x-order", properties = @ExtensionProperty(name = "order", value = "1")),
-            responses = {
-                    @ApiResponse(
-                            responseCode = "200",
-                            description = "성공",
-                            content = @Content(
-                                    mediaType = "application/json",
-                                    schema = @Schema(implementation = GetAiReportResponseDto.class),
-                                    examples = @ExampleObject(
-                                            name = "성공 예시",
-                                            value = """
-                                            {
-                                              "success": true,
-                                              "message": "[AiReport - 015] OK",
-                                              "data": {
-                                                "period": {"yearMonth": null, "startAt": "2025-08-01 00:00:00", "endAt": "2025-08-31 23:59:59"},
-                                                "summary": {
-                                                  "totalBudget": 480000,
-                                                  "totalSpent": 0,
-                                                  "totalOverspent": 0,
-                                                  "totalUnderspent": 480000,
-                                                  "savedExcludingUnclassified": 480000,
-                                                  "oversExcludingUnclassified": 0,
-                                                  "top3Slots": [
-                                                    {"accountSlotId": "as-uuid-1", "slotName": "식비", "spent": 0, "budget": 150000}
-                                                  ]
-                                                },
-                                                "slots": [
-                                                  {
-                                                    "accountSlotId": "as-uuid-1",
-                                                    "slotId": "slot-uuid-1",
-                                                    "slotName": "식비",
-                                                    "unclassified": false,
-                                                    "budget": 150000,
-                                                    "spent": 0,
-                                                    "diff": 150000,
-                                                    "exceeded": false,
-                                                    "overspend": 0,
-                                                    "underspend": 150000,
-                                                    "baseNext": 150000,
-                                                    "allocated": 0,
-                                                    "recommendedNextBudget": 150000,
-                                                    "deltaFromCurrent": 0
-                                                  }
-                                                ],
-                                                "redistribution": {
-                                                  "savedTotal": 480000,
-                                                  "oversTotal": 0,
-                                                  "shares": [],
-                                                  "remainder": 480000
-                                                },
-                                                "insights": {
-                                                  "topMerchants": [],
-                                                  "peakDayBySlot": {},
-                                                  "notes": ["미분류 제외 절약액을 초과 슬롯에 비율 배분"],
-                                                  "aiSummary": null,
-                                                  "aiActionItems": []
-                                                },
-                                                "persist": {"id": "report-uuid", "createdAt": null}
-                                              }
-                                            }
-                                            """
-                                    )
-                            )
-                    )
-            }
+            extensions = @Extension(name = "x-order", properties = @ExtensionProperty(name = "order", value = "1"))
     )
     public ResponseEntity<GetAiReportResponseDto> getReport(
             @AuthenticationPrincipal final UserPrincipal principal,
@@ -127,10 +58,13 @@ public class AiReportController {
             final LocalDate endDate,
             @Parameter(description = "레포트를 DB에 저장할지 여부 (기본 true). 저장 시 persist.id는 UUID", example = "true")
             @RequestParam(name = "persist", required = false, defaultValue = "true")
-            final boolean persist
+            final boolean persist,
+            @Parameter(description = "저장 시 즉시 푸시 알림 전송 여부 (기본 true, 시연용)", example = "true")
+            @RequestParam(name = "notify", required = false, defaultValue = "true")
+            final boolean notify
     ) {
         return ResponseEntity.ok(
-                service.getReportByPeriod(principal.userId(), accountId, startDate, endDate, persist)
+                service.getReportByPeriod(principal.userId(), accountId, startDate, endDate, persist, notify)
         );
     }
 
@@ -177,25 +111,7 @@ public class AiReportController {
     @Operation(
             summary = "7-3-1 소비 레포트 보관 월 목록(최근→과거)",
             description = "해당 계좌(UUID)에 저장된 레포트가 존재하는 연-월 목록을 반환합니다. 예: [\"2025-09\",\"2025-08\",...]",
-            extensions = @Extension(name = "x-order", properties = @ExtensionProperty(name = "order", value = "0")),
-            responses = @ApiResponse(
-                    responseCode = "200",
-                    description = "성공",
-                    content = @Content(
-                            mediaType = "application/json",
-                            schema = @Schema(implementation = ListAiReportMonthsResponseDto.class),
-                            examples = @ExampleObject(
-                                    name = "성공 예시",
-                                    value = """
-                                    {
-                                      "success": true,
-                                      "message": "[AiReport - 031] months loaded",
-                                      "data": { "yearMonths": ["2025-09","2025-08","2025-07"] }
-                                    }
-                                    """
-                            )
-                    )
-            )
+            extensions = @Extension(name = "x-order", properties = @ExtensionProperty(name = "order", value = "0"))
     )
     public ResponseEntity<ListAiReportMonthsResponseDto> listMonths(
             @AuthenticationPrincipal final UserPrincipal principal,
@@ -216,88 +132,7 @@ public class AiReportController {
                 - 같은 달에 여러 개면 reports는 created_at 내림차순(최신→과거)입니다.
                 - reports의 각 아이템은 7-1 응답과 동일 구조(period/summary/slots/redistribution/insights/persist)입니다.
                 """,
-            extensions = @Extension(name = "x-order", properties = @ExtensionProperty(name = "order", value = "0.5")),
-            responses = @ApiResponse(
-                    responseCode = "200",
-                    description = "성공",
-                    content = @Content(
-                            mediaType = "application/json",
-                            schema = @Schema(implementation = GetAiReportArchiveResponseDto.class),
-                            examples = @ExampleObject(
-                                    name = "성공 예시",
-                                    value = """
-                                    {
-                                      "success": true,
-                                      "message": "[AiReport - 034] archive loaded",
-                                      "data": {
-                                        "yearMonth": "2025-09",
-                                        "prevYearMonth": "2025-08",
-                                        "nextYearMonth": null,
-                                        "yearMonths": ["2025-09","2025-08","2025-07"],
-                                        "reports": [
-                                          {
-                                            "reportId": "f3b8a8a0-1c8e-4c78-9d71-2e8b2e0a7f9a",
-                                            "createdAt": "2025-09-26T15:03:22",
-                                            "period": {
-                                              "yearMonth": null,
-                                              "startAt": "2025-09-01 00:00:00",
-                                              "endAt": "2025-09-30 23:59:59"
-                                            },
-                                            "summary": {
-                                              "totalBudget": 520000,
-                                              "totalSpent": 460000,
-                                              "totalOverspent": 10000,
-                                              "totalUnderspent": 70000,
-                                              "savedExcludingUnclassified": 70000,
-                                              "oversExcludingUnclassified": 10000,
-                                              "top3Slots": [
-                                                {"accountSlotId":"as-uuid-1","slotName":"식비","spent":210000,"budget":200000},
-                                                {"accountSlotId":"as-uuid-2","slotName":"교통","spent":80000,"budget":90000},
-                                                {"accountSlotId":"as-uuid-3","slotName":"생활","spent":60000,"budget":60000}
-                                              ]
-                                            },
-                                            "slots": [
-                                              {
-                                                "accountSlotId":"as-uuid-1",
-                                                "slotId":"slot-uuid-1",
-                                                "slotName":"식비",
-                                                "unclassified":false,
-                                                "budget":200000,
-                                                "spent":210000,
-                                                "diff":-10000,
-                                                "exceeded":true,
-                                                "overspend":10000,
-                                                "underspend":0,
-                                                "baseNext":200000,
-                                                "allocated":0,
-                                                "recommendedNextBudget":200000,
-                                                "deltaFromCurrent":0
-                                              }
-                                            ],
-                                            "redistribution": {
-                                              "savedTotal": 70000,
-                                              "oversTotal": 10000,
-                                              "shares": [
-                                                {"accountSlotId":"as-uuid-1","slotName":"식비","ratio":1.0,"allocated":10000}
-                                              ],
-                                              "remainder": 60000
-                                            },
-                                            "insights": {
-                                              "topMerchants": [{"name":"CU","amount":45000,"count":0}],
-                                              "peakDayBySlot": {"as-uuid-1":{"dayOfWeek":6,"amount":90000}},
-                                              "notes": ["미분류 제외 절약액을 초과 슬롯에 비율 배분"],
-                                              "aiSummary": "식비 초과가 발생했습니다. 남은 절약액으로 보전 가능합니다.",
-                                              "aiActionItems": ["식비 예산 상향 검토","주말 지출 패턴 관리"]
-                                            },
-                                            "persist": {"id":"f3b8a8a0-1c8e-4c78-9d71-2e8b2e0a7f9a","createdAt":"2025-09-26T15:03:22"}
-                                          }
-                                        ]
-                                      }
-                                    }
-                                    """
-                            )
-                    )
-            )
+            extensions = @Extension(name = "x-order", properties = @ExtensionProperty(name = "order", value = "0.5"))
     )
     public ResponseEntity<GetAiReportArchiveResponseDto> getArchive(
             @AuthenticationPrincipal final UserPrincipal principal,
