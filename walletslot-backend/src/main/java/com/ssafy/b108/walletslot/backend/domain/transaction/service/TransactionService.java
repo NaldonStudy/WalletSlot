@@ -1154,6 +1154,9 @@ public class TransactionService {
 
                             notificationRepository.save(notification);
 
+                            // accountSlot을 미분류 슬롯으로 세팅
+                            accountSlot = uncategorizedAccountSlot;
+
                         } else {    // 출금이면 아래 로직 적용
                             String merchantName = transactionDto.getTransactionSummary();    // 발생한 거래내역 거래처 이름
 
@@ -1324,22 +1327,6 @@ public class TransactionService {
                                     notificationRepository.save(notification);
                                 }
                             }
-
-                            // accountSlot에 들어있는 거 활용해서 Transaction 객체 만들기
-                            newTransaction = Transaction.builder()
-                                    .account(account)
-                                    .accountSlot(accountSlot)
-                                    .uniqueNo(transactionDto.getTransactionUniqueNo())
-                                    .type(transactionDto.getTransactionTypeName())
-                                    .opponentAccountNo(transactionDto.getTransactionAccountNo())
-                                    .summary(transactionDto.getTransactionSummary())
-                                    .amount(transactionDto.getTransactionBalance())
-                                    .balance(transactionDto.getTransactionAfterBalance())
-                                    .transactionAt(LocalDateTimeFormatter.StringToLocalDateTime(transactionDto.getTransactionDate(), transactionDto.getTransactionTime()))
-                                    .build();
-
-                            transactionRepository.save(newTransaction);
-
                         }
                         // 계좌 각종 필드들 최신화 (마지막 동기일, 잔액)
                         // SSAFY 금융 API >>>>> 2.4.12 계좌 거래내역 조회
@@ -1382,6 +1369,21 @@ public class TransactionService {
                         account.updateLastSyncedAt(LocalDateTime.now());
                         account.updateBalance(httpResponse2.getBody().getREC().getAccountBalance());
                         account.updateLastSyncedTransactionUniqueNo(transactionDto.getTransactionUniqueNo());
+
+                        // accountSlot에 들어있는 거 활용해서 Transaction 객체 만들기
+                        newTransaction = Transaction.builder()
+                                .account(account)
+                                .accountSlot(accountSlot)
+                                .uniqueNo(transactionDto.getTransactionUniqueNo())
+                                .type(transactionDto.getTransactionTypeName())
+                                .opponentAccountNo(transactionDto.getTransactionAccountNo())
+                                .summary(transactionDto.getTransactionSummary())
+                                .amount(transactionDto.getTransactionBalance())
+                                .balance(transactionDto.getTransactionAfterBalance())
+                                .transactionAt(LocalDateTimeFormatter.StringToLocalDateTime(transactionDto.getTransactionDate(), transactionDto.getTransactionTime()))
+                                .build();
+
+                        transactionRepository.save(newTransaction);
 
                         // 알림 보내기
                         fcmService.sendMessageNotification(targetFcmToken, notification);
