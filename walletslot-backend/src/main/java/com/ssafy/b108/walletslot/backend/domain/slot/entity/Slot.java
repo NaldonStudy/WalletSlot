@@ -28,7 +28,7 @@ public class Slot {
     @Builder.Default
     private boolean isSaving = false;
 
-    @Column(nullable = false)
+    @Column(nullable = false, name = "`rank`")
     private Integer rank;
 
     @OneToMany(mappedBy = "slot", cascade = CascadeType.ALL, orphanRemoval = true)
