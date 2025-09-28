@@ -40,7 +40,6 @@ public class SlotRestController {
                             content = @Content(schema = @Schema(implementation = GetSlotListResponseDto.class))
                     )
             }
-
     )
     public ResponseEntity<GetSlotListResponseDto> getSlotList() {
         return ResponseEntity.status(HttpStatus.OK).body(slotService.getSlotList());
