@@ -3,6 +3,7 @@ import { profileApi } from '@/src/api/profile';
 import { featureFlags } from '@/src/config/featureFlags';
 import { appService } from '@/src/services/appService';
 import { getOrCreateDeviceId } from '@/src/services/deviceIdService';
+import { firebasePushService } from '@/src/services/firebasePushService';
 import { saveAccessToken, saveRefreshToken } from '@/src/services/tokenService';
 import { unifiedPushService } from '@/src/services/unifiedPushService';
 import { useLocalUserStore } from '@/src/store/localUserStore';
@@ -280,7 +281,15 @@ export default function NotificationConsentScreen() {
         // 3. FCM 토큰 발급
         try {
           console.log('FCM 토큰 발급 시작...(로그인 모드)');
-          await unifiedPushService.initialize();
+          // 1. 여기서 실제 권한을 요청합니다.
+          const pushResult = await unifiedPushService.initialize();
+          if (pushResult.success) {
+            // 2. 권한 요청 성공 시, 서버에 토큰을 등록합니다.
+            console.log('✅ FCM 토큰 발급 성공, 서버 등록 시도...');
+            await firebasePushService.ensureServerRegistration();
+          } else {
+            console.warn('⚠️ 알림 권한이 거부되었거나 토큰 발급에 실패했습니다.');
+          }
         } catch {}
         
         // 4. 슬롯 분배 화면으로 이동

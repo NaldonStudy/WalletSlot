@@ -60,6 +60,30 @@ export default function TabLayout() {
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="person.fill" color={color} />,
         }}
       />
+      <Tabs.Screen
+        name="dashboard/slot/[slotId]/transaction/[transactionId]"
+        options={{
+          href: null, // 탭에 표시 안 함
+        }}
+      />
+      <Tabs.Screen
+        name="dashboard/slot/[slotId]/transaction/[transactionId]/splits"
+        options={{
+          href: null, // 탭에 표시 안 함
+        }}
+      />
+      <Tabs.Screen
+        name="dashboard/slot/[slotId]/transaction/[transactionId]/receipt-scan"
+        options={{
+          href: null, // 탭에 표시 안 함
+        }}
+      />
+      <Tabs.Screen
+        name="index"
+        options={{
+          href: null, // 탭에 표시 안 함
+        }}
+      />
     </Tabs>
   );
 }
