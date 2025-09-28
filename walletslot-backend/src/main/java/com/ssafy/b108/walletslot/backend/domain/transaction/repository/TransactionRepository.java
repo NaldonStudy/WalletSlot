@@ -1,6 +1,5 @@
 package com.ssafy.b108.walletslot.backend.domain.transaction.repository;
 
-import com.ssafy.b108.walletslot.backend.domain.account.entity.Account;
 import com.ssafy.b108.walletslot.backend.domain.slot.entity.AccountSlot;
 import com.ssafy.b108.walletslot.backend.domain.transaction.entity.Transaction;
 import org.springframework.data.domain.Pageable;
@@ -9,7 +8,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-import java.time.LocalDateTime;   // ✅ 추가
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -47,10 +46,16 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
            """)
     List<Transaction> findByAccountIdAndTransactionAtBetween(
             @Param("accountId") Long accountId,
-            @Param("startAt") LocalDateTime startInclusive,   // ✅ String → LocalDateTime
-            @Param("endAt")   LocalDateTime endInclusive      // ✅ String → LocalDateTime
+            @Param("startAt") LocalDateTime startInclusive,
+            @Param("endAt")   LocalDateTime endInclusive
     );
 
     List<Transaction> findByAccountSlot(AccountSlot accountSlot);
     Optional<Transaction> findByUuid(String transactionUuid);
+
+    @Query("select t.id from Transaction t where t.uuid = :uuid")
+    Optional<Long> findIdByUuid(@Param("uuid") String uuid);
+
+    @Query("select t.uuid from Transaction t where t.id = :id")
+    Optional<String> findUuidById(@Param("id") Long id);
 }
