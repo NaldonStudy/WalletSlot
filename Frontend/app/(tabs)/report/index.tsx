@@ -91,6 +91,9 @@ const ReportContent = React.memo(({ aiArchive, theme, onSectionLayout }: any) =>
   );
 });
 
+// 명시적 displayName 설정으로 ESLint의 react/display-name 규칙을 만족시킵니다.
+ReportContent.displayName = 'ReportContent';
+
 
 export default function ReportScreen() {
   const colorScheme = useColorScheme() ?? 'light';

@@ -104,7 +104,7 @@ class ApiClient {
             const fullUrl = `${config.baseURL || ''}${config.url}`;
             const payload = this.sanitizePayload(config.params || config.data || {});
             const headerLog: any = { ...(headers || {}) };
-            if (headerLog.Authorization) headerLog.Authorization = 'Bearer ****';
+            // if (headerLog.Authorization) headerLog.Authorization = 'Bearer ****';
             console.log(`[API] Request -> ${method} ${fullUrl}`, payload);
             console.log('[API] Headers:', headerLog);
           } catch (e) {}

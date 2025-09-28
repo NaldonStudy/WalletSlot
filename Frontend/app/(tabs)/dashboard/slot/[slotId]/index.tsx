@@ -4,7 +4,7 @@ import { useLocalSearchParams , Stack } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useSlotStore } from '@/src/store/useSlotStore';
 import { Spacing, themes, Typography } from '@/src/constants/theme';
-import { SLOT_CATEGORIES } from '@/src/constants/slots';
+import { SLOT_CATEGORIES , UNCATEGORIZED_SLOT_ID } from '@/src/constants/slots';
 import SlotHeader from '@/src/components/slot/SlotHeader';
 import SlotSpendingChart from '@/src/components/slot/SlotSpendingChart';
 import SlotBalanceCard from '@/src/components/slot/SlotBalanceCard';
@@ -14,7 +14,6 @@ import { useSlotTransactions } from '@/src/hooks/slots/useSlotTransactions';
 import { useSlots } from '@/src/hooks/slots/useSlots';
 import TransactionList from '@/src/components/transaction/TransactionList';
 import { SlotTransaction } from '@/src/types/slot';
-import { UNCATEGORIZED_SLOT_ID } from '@/src/constants/slots';
 
 
 export default function SlotDetailScreen() {

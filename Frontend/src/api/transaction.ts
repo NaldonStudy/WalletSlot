@@ -203,7 +203,7 @@ export const transactionApi = {
   splitTransaction: async (
     accountId: string,
     transactionId: string,
-    splits: Array<{ accountSlotId: string; amount: number }>
+    splits: { accountSlotId: string; amount: number }[]
   ): Promise<BaseResponse<any>> => {
     const url = `/api/accounts/${accountId}/transactions/${transactionId}/splits`;
     const requestBody = { transactions: splits };
