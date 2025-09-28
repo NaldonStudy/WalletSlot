@@ -1033,7 +1033,7 @@ public class TransactionService {
     }
 
     @Transactional(isolation = Isolation.READ_COMMITTED)
-    @Scheduled(fixedRate = 60000)
+    @Scheduled(fixedDelay = 60000)
     public void checkTransactions() {
 
 //        // 모아서 DB 가기 위해서 버퍼용 리스트 생성
