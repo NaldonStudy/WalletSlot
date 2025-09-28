@@ -4,17 +4,18 @@
     "slug": "WalletSlot",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/wallet.png",
     "scheme": "walletslot",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "notification": {
-      "icon": "./assets/images/icon.png",
+      "icon": "./assets/images/wallet.png",
       "color": "#ffffff",
       "androidMode": "default",
       "androidCollapsedTitle": "WalletSlot"
     },
     "ios": {
+      "icon": "./assets/images/wallet.png",
       "supportsTablet": true,
       "infoPlist": {
         "UIBackgroundModes": [
@@ -24,8 +25,9 @@
       "bundleIdentifier": "com.walletslot.app"
     },
     "android": {
+      "icon": "./assets/images/wallet.png",
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/adaptive-icon.png",
+        "foregroundImage": "./assets/images/wallet.png",
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
@@ -52,7 +54,7 @@
       [
         "expo-notifications",
         {
-          "icon": "./assets/images/icon.png",
+          "icon": "./assets/images/wallet.png",
           "color": "#ffffff",
           "sounds": [],
           "mode": "production"
