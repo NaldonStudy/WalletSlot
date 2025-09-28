@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, Text, Alert, TextInput, TouchableOpacity, TouchableWithoutFeedback, Keyboard } from 'react-native';
-import { BottomSheet } from '@/src/components';
+import { View, StyleSheet, Text, Alert, TextInput, TouchableOpacity, TouchableWithoutFeedback, Keyboard, Modal, Dimensions } from 'react-native';
 import { Button } from '@/src/components/Button';
 import { Spacing, themes } from '@/src/constants/theme';
 import { SlotTransaction } from '@/src/types/slot';
@@ -8,6 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { transactionApi } from '@/src/api/transaction';
 import { useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/src/api/queryKeys';
+import { useColorScheme } from 'react-native';
 
 interface DutchPayBottomSheetProps {
   visible: boolean;
@@ -17,6 +17,8 @@ interface DutchPayBottomSheetProps {
   accountId?: string;
   accountSlotId?: string;
 }
+
+const { height: screenHeight } = Dimensions.get('window');
 
 export const DutchPayBottomSheet: React.FC<DutchPayBottomSheetProps> = ({
   visible,
@@ -29,6 +31,8 @@ export const DutchPayBottomSheet: React.FC<DutchPayBottomSheetProps> = ({
   const [participantCount, setParticipantCount] = useState('');
   const [perPersonAmount, setPerPersonAmount] = useState<number | null>(null);
   const queryClient = useQueryClient();
+  const colorScheme = useColorScheme() ?? 'light';
+  const currentTheme = themes[colorScheme];
 
 
   // 1인당 금액 계산
@@ -93,28 +97,49 @@ export const DutchPayBottomSheet: React.FC<DutchPayBottomSheetProps> = ({
   const remainingAmount = transaction?.amount && perPersonAmount ? Number(transaction.amount) - perPersonAmount : 0;
 
   return (
-    <BottomSheet
+    <Modal
       visible={visible}
-      onClose={onClose}
-      title="더치페이"
-      showCloseButton={true}
+      transparent={true}
+      animationType="slide"
+      onRequestClose={onClose}
     >
-      <View style={styles.bottomSheetContent}>
-        {/* 상단 설명 문구 */}
-        <Text style={[styles.descriptionText, { color: theme.colors.text.secondary }]}>
-          본인 실제 사용액을 제외하고{'\n'}미분류 Slot으로 옮겨드려요!
-        </Text>
+      <TouchableOpacity
+        style={styles.modalOverlay}
+        activeOpacity={1}
+        onPress={onClose}
+      >
+        <TouchableOpacity
+          style={[styles.modalContainer, { backgroundColor: currentTheme.colors.background.primary }]}
+          activeOpacity={1}
+          onPress={(e) => e.stopPropagation()}
+        >
+          {/* 헤더 */}
+          <View style={[styles.header, { borderBottomColor: currentTheme.colors.border.light }]}>
+            <Text style={[styles.title, { color: currentTheme.colors.text.primary }]}>
+              더치페이
+            </Text>
+            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+              <Text style={[styles.closeButtonText, { color: currentTheme.colors.text.secondary }]}>
+                ✕
+              </Text>
+            </TouchableOpacity>
+          </View>
 
-        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-          <View>
+          {/* 컨텐츠 */}
+          <View style={styles.content}>
+            {/* 상단 설명 문구 */}
+            <Text style={[styles.descriptionText, { color: currentTheme.colors.text.secondary }]}>
+              본인 실제 사용액을 제외하고{'\n'}미분류 Slot으로 옮겨드려요!
+            </Text>
+
             {/* 카드 컨테이너 */}
-            <View style={[styles.cardContainer, { backgroundColor: theme.colors.background.primary }]}>
+            <View style={[styles.cardContainer, { backgroundColor: currentTheme.colors.background.primary }]}>
               {/* 나눌 금액 섹션 */}
               <View style={styles.section}>
-                <Text style={[styles.sectionLabel, { color: theme.colors.text.primary }]}>
+                <Text style={[styles.sectionLabel, { color: currentTheme.colors.text.primary }]}>
                   나눌 금액
                 </Text>
-                <Text style={[styles.amountValue, { color: theme.colors.text.primary }]}>
+                <Text style={[styles.amountValue, { color: currentTheme.colors.text.primary }]}>
                   -{transaction?.amount ? `${Number(transaction.amount).toLocaleString()}원` : '0원'}
                 </Text>
               </View>
@@ -123,21 +148,21 @@ export const DutchPayBottomSheet: React.FC<DutchPayBottomSheetProps> = ({
               
               {/* 함께한 사람 섹션 */}
               <View style={styles.section}>
-                <Text style={[styles.sectionLabel, { color: theme.colors.text.primary }]}>
+                <Text style={[styles.sectionLabel, { color: currentTheme.colors.text.primary }]}>
                   함께한 사람(본인 포함)
                 </Text>
                 <View style={styles.inputContainer}>
                   <TextInput
                     style={[styles.inputField, { 
                       borderColor: '#3B82F6',
-                      color: theme.colors.text.primary 
+                      color: currentTheme.colors.text.primary 
                     }]}
                     value={participantCount}
                     onChangeText={setParticipantCount}
                     keyboardType="numeric"
                     placeholder=""
                   />
-                  <Text style={[styles.unitText, { color: theme.colors.text.primary }]}>
+                  <Text style={[styles.unitText, { color: currentTheme.colors.text.primary }]}>
                     명
                   </Text>
                 </View>
@@ -147,14 +172,14 @@ export const DutchPayBottomSheet: React.FC<DutchPayBottomSheetProps> = ({
               
               {/* 인당 금액 섹션 */}
               <View style={styles.section}>
-                <Text style={[styles.sectionLabel, { color: theme.colors.text.primary }]}>
+                <Text style={[styles.sectionLabel, { color: currentTheme.colors.text.primary }]}>
                   인당
                 </Text>
                 <View style={styles.perPersonContainer}>
-                  <Text style={[styles.perPersonAmount, { color: theme.colors.text.primary }]}>
+                  <Text style={[styles.perPersonAmount, { color: currentTheme.colors.text.primary }]}>
                     {perPersonAmount ? `-${perPersonAmount.toLocaleString()}` : ''}
                   </Text>
-                  <Text style={[styles.unitText, { color: theme.colors.text.primary }]}>
+                  <Text style={[styles.unitText, { color: currentTheme.colors.text.primary }]}>
                     {perPersonAmount ? '원' : ''}
                   </Text>
                 </View>
@@ -163,31 +188,69 @@ export const DutchPayBottomSheet: React.FC<DutchPayBottomSheetProps> = ({
 
             {/* 하단 설명 */}
             {perPersonAmount && (
-              <Text style={[styles.bottomDescription, { color: theme.colors.text.primary }]}>
+              <Text style={[styles.bottomDescription, { color: currentTheme.colors.text.primary }]}>
                 나머지 {remainingAmount.toLocaleString()}원 결제 내역을{'\n'}미분류 Slot에서 차감합니다
               </Text>
             )}
-          </View>
-        </TouchableWithoutFeedback>
 
-        {/* 하단 버튼 */}
-        <View style={styles.buttonContainer}>
-          <Button
-            title="확인"
-            variant={participantCount.trim() ? "primary" : "secondary"}
-            size="md"
-            onPress={handleDutchPayRequest}
-            disabled={!participantCount.trim()}
-            style={styles.bottomSheetButton}
-          />
-        </View>
-      </View>
-    </BottomSheet>
+            {/* 하단 버튼 */}
+            <View style={styles.buttonContainer}>
+              <Button
+                title="확인"
+                variant={participantCount.trim() ? "primary" : "secondary"}
+                size="md"
+                onPress={handleDutchPayRequest}
+                disabled={!participantCount.trim()}
+                style={styles.bottomSheetButton}
+              />
+            </View>
+          </View>
+        </TouchableOpacity>
+      </TouchableOpacity>
+    </Modal>
   );
 };
 
 const styles = StyleSheet.create({
-  bottomSheetContent: {
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContainer: {
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    maxHeight: screenHeight * 0.9,
+    minHeight: screenHeight * 0.4,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.base,
+    borderBottomWidth: 1,
+    minHeight: 56,
+  },
+  title: {
+    fontSize: 18,
+    fontWeight: '600',
+    flex: 1,
+    textAlign: 'center',
+  },
+  closeButton: {
+    width: 32,
+    height: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'absolute',
+    right: Spacing.base,
+  },
+  closeButtonText: {
+    fontSize: 18,
+    fontWeight: '500',
+  },
+  content: {
     paddingHorizontal: Spacing.lg,
     paddingBottom: Spacing.lg,
   },
