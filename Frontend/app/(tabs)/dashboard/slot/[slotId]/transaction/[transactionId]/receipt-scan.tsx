@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLocalSearchParams, router, useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { 
@@ -8,6 +8,7 @@ import {
   Text, 
   Alert
 } from 'react-native';
+import { Image } from 'expo-image';
 import { Spacing, themes } from '@/src/constants/theme';
 import { useNavigation } from '@react-navigation/native';
 import ReceiptScanner from '@/src/components/camera/ReceiptScanner';
@@ -30,6 +31,20 @@ export default function ReceiptScanScreen() {
   const colorScheme = useColorScheme() ?? 'light';
   const theme = themes[colorScheme];
   const navigation = useNavigation();
+
+  // OCR 이미지 프리로딩
+  useEffect(() => {
+    const preloadOCRImage = async () => {
+      try {
+        await Image.prefetch(require('@/src/assets/images/dashboard/ocr.png'));
+        console.log('[ReceiptScan] OCR 이미지 프리로딩 완료');
+      } catch (error) {
+        console.warn('[ReceiptScan] OCR 이미지 프리로딩 실패:', error);
+      }
+    };
+
+    preloadOCRImage();
+  }, []);
 
   // 탭바 숨기기
   useFocusEffect(

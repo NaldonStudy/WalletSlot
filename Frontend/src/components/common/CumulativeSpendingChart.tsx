@@ -15,6 +15,7 @@ type CumulativeSpendingChartProps = {
   data: { date: string; spent: number }[];
   budget: number;
   color?: string;
+  isUncategorized?: boolean; // 미분류 슬롯 여부
 };
 
 // padding을 방향별로 분리
@@ -27,6 +28,7 @@ const CumulativeSpendingChart: React.FC<CumulativeSpendingChartProps> = ({
   data,
   budget,
   color = "#F59E0B", // 기본 슬롯 색 (노랑 계열)
+  isUncategorized = false,
 }) => {
   const [chartSize, setChartSize] = useState({ width: 0, height: 0 });
   const [selectedPoint, setSelectedPoint] = useState<{ index: number; amount: number; date: string; dailySpent: number } | null>(null);
@@ -37,9 +39,9 @@ const CumulativeSpendingChart: React.FC<CumulativeSpendingChartProps> = ({
     return { x: item.date, y: cumulative };
   });
 
-  // 예산을 넘은 시점의 툴팁 자동 표시
+  // 예산을 넘은 시점의 툴팁 자동 표시 (미분류 슬롯이 아닐 때만)
   useEffect(() => {
-    if (data && data.length > 0 && !selectedPoint) {
+    if (data && data.length > 0 && !selectedPoint && !isUncategorized) {
       // 예산을 넘은 첫 번째 인덱스 찾기
       const overBudgetIndex = cumulativeData.findIndex(point => point.y > budget);
       
@@ -56,7 +58,7 @@ const CumulativeSpendingChart: React.FC<CumulativeSpendingChartProps> = ({
         });
       }
     }
-  }, [data, cumulativeData, selectedPoint, budget]);
+  }, [data, cumulativeData, selectedPoint, budget, isUncategorized]);
 
   if (!data || data.length === 0) {
     return (
@@ -67,7 +69,7 @@ const CumulativeSpendingChart: React.FC<CumulativeSpendingChartProps> = ({
   }
 
   const actualMax = Math.max(...cumulativeData.map((d) => d.y));
-  const maxY = Math.max(actualMax, budget);
+  const maxY = isUncategorized ? actualMax : Math.max(actualMax, budget);
   const minY = 0;
   const yRange = maxY - minY || 1;
 
@@ -121,7 +123,7 @@ const CumulativeSpendingChart: React.FC<CumulativeSpendingChartProps> = ({
       ? cumulativeData.map((p, i) => `${scaleX(i)},${scaleY(p.y)}`).join(" ")
       : "";
 
-  // 영역 Path (예산 이하 부분)
+  // 영역 Path (예산 이하 부분 또는 전체 영역)
   const areaPath = (() => {
     if (chartWidth === 0 || chartHeight === 0) return "";
 
@@ -130,7 +132,9 @@ const CumulativeSpendingChart: React.FC<CumulativeSpendingChartProps> = ({
 
     let path = `M ${firstX} ${bottomY}`;
     cumulativeData.forEach((p, i) => {
-      path += ` L ${scaleX(i)} ${scaleY(Math.min(p.y, budget))}`;
+      // 미분류 슬롯이면 전체 누적 지출 영역, 아니면 예산 이하 부분만
+      const yValue = isUncategorized ? p.y : Math.min(p.y, budget);
+      path += ` L ${scaleX(i)} ${scaleY(yValue)}`;
     });
     const lastX = scaleX(cumulativeData.length - 1);
     path += ` L ${lastX} ${bottomY} Z`;
@@ -200,32 +204,41 @@ const CumulativeSpendingChart: React.FC<CumulativeSpendingChartProps> = ({
             </LinearGradient>
           </Defs>
 
-          {/* 예산선 */}
-          <Line
-            x1={paddingLeft}
-            y1={scaleY(budget)}
-            x2={chartWidth - paddingRight}
-            y2={scaleY(budget)}
-            stroke={actualMax > budget ? "#EF4444" : "#9CA3AF"}
-            strokeDasharray="6 4"
-            strokeWidth={2}
-          />
-          <SvgText
-            x={paddingLeft + 4}
-            y={scaleY(budget) - 6}
-            fontSize="12"
-            fill={actualMax > budget ? "#EF4444" : "#6B7280"}
-            textAnchor="start"
-          >
-            예산 {budget.toLocaleString()}
-          </SvgText>
+          {/* 예산선 (미분류 슬롯이 아닐 때만) */}
+          {!isUncategorized && (
+            <>
+              <Line
+                x1={paddingLeft}
+                y1={scaleY(budget)}
+                x2={chartWidth - paddingRight}
+                y2={scaleY(budget)}
+                stroke={actualMax > budget ? "#EF4444" : "#9CA3AF"}
+                strokeDasharray="6 4"
+                strokeWidth={2}
+              />
+              <SvgText
+                x={paddingLeft + 4}
+                y={scaleY(budget) - 6}
+                fontSize="12"
+                fill={actualMax > budget ? "#EF4444" : "#6B7280"}
+                textAnchor="start"
+              >
+                예산 {budget.toLocaleString()}
+              </SvgText>
 
-          {/* 예산 이하 영역 */}
-          <Path d={areaPath} fill="url(#areaGradient)" />
+              {/* 예산 이하 영역 */}
+              <Path d={areaPath} fill="url(#areaGradient)" />
 
-          {/* 예산 초과 영역 (빨간색) */}
-          {actualMax > budget && overPath && (
-            <Path d={overPath} fill="url(#overBudgetGradient)" />
+              {/* 예산 초과 영역 (빨간색) */}
+              {actualMax > budget && overPath && (
+                <Path d={overPath} fill="url(#overBudgetGradient)" />
+              )}
+            </>
+          )}
+
+          {/* 미분류 슬롯일 때는 전체 누적 지출 영역 표시 */}
+          {isUncategorized && (
+            <Path d={areaPath} fill="url(#areaGradient)" />
           )}
 
           {/* 데이터 라인 */}
@@ -263,7 +276,7 @@ const CumulativeSpendingChart: React.FC<CumulativeSpendingChartProps> = ({
             })()}
             y={scaleY(cumulativeData[cumulativeData.length - 1].y) - 8}
             fontSize="11"
-            fill={actualMax > budget ? "#EF4444" : "#666"}
+            fill={isUncategorized ? "#666" : (actualMax > budget ? "#EF4444" : "#666")}
             textAnchor="middle"
           >
             {cumulativeData[cumulativeData.length - 1].y.toLocaleString()}

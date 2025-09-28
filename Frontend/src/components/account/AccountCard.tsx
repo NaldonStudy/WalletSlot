@@ -16,17 +16,29 @@ export type AccountCardData = {
 
 // 배경색의 밝기에 따라 글자색 결정하는 함수
 const getTextColor = (backgroundColor: string): string => {
-    // hex 색상을 RGB로 변환
-    const hex = backgroundColor.replace('#', '');
-    const r = parseInt(hex.substr(0, 2), 16);
-    const g = parseInt(hex.substr(2, 2), 16);
-    const b = parseInt(hex.substr(4, 2), 16);
+    try {
+        // hex 색상을 정리하고 RGB로 변환
+        const hex = backgroundColor.replace('#', '').trim();
+        
+        // hex 색상이 유효한지 확인
+        if (hex.length !== 6 || !/^[0-9A-Fa-f]{6}$/.test(hex)) {
+            console.warn('[AccountCard] 유효하지 않은 색상:', backgroundColor);
+            return '#000000'; // 기본값
+        }
+        
+        const r = parseInt(hex.substr(0, 2), 16);
+        const g = parseInt(hex.substr(2, 2), 16);
+        const b = parseInt(hex.substr(4, 2), 16);
 
-    // 밝기 계산 (0-255)
-    const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+        // 밝기 계산 (0-255)
+        const brightness = (r * 299 + g * 587 + b * 114) / 1000;
 
-    // 밝기가 128보다 작으면 어두운 배경이므로 흰색, 아니면 검은색
-    return brightness < 128 ? '#FFFFFF' : '#000000';
+        // 밝기가 128보다 작으면 어두운 배경이므로 흰색, 아니면 검은색
+        return brightness < 128 ? '#FFFFFF' : '#000000';
+    } catch (error) {
+        console.error('[AccountCard] 색상 처리 오류:', error, backgroundColor);
+        return '#000000'; // 기본값
+    }
 };
 
 type AccountCardProps = AccountCardData & {
