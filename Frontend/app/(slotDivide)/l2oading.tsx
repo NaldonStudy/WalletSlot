@@ -3,11 +3,11 @@ import { useLocalUserStore } from '@/src/store/localUserStore';
 import { router } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import {
-    Animated,
-    Modal,
-    StyleSheet,
-    TouchableOpacity,
-    View
+  Animated,
+  Modal,
+  StyleSheet,
+  TouchableOpacity,
+  View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -288,7 +288,7 @@ export default function L2oadingScreen() {
   useEffect(() => {
     const timer = setTimeout(() => {
       startPuzzleExplosion();
-    }, 2000); // 2초 후 애니메이션 시작
+    }, 1000); // 1초 후 애니메이션 시작
     
     return () => clearTimeout(timer);
   }, []);

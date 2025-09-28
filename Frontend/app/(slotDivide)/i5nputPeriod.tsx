@@ -1,19 +1,20 @@
+import { accountApi } from '@/src/api/account';
 import { useSlotDivideStore } from '@/src/store/slotDivideStore';
 import { router } from 'expo-router';
 import React, { useEffect, useMemo, useState } from 'react';
 import {
-    Animated,
-    Dimensions,
-    Image,
-    KeyboardAvoidingView,
-    Modal,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    TouchableWithoutFeedback,
-    View,
+  Animated,
+  Dimensions,
+  Image,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  TouchableWithoutFeedback,
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -41,11 +42,11 @@ const calculateIncomeLevel = (income: string): string => {
 export default function I5nputPeriodScreen() {
   const { 
     data, 
-    setPeriod, 
     setDates, 
     setUseAge, 
     setUseGender, 
     setIncomeLevel,
+    setRecommendationResult,
     getApiData 
   } = useSlotDivideStore();
 
@@ -62,6 +63,7 @@ export default function I5nputPeriodScreen() {
   const [modalType, setModalType] = useState<'period' | 'criteria'>('period');
   const [periodInput, setPeriodInput] = useState('');
   const [selectedCriteria, setSelectedCriteria] = useState('');
+  
 
   // 날짜 선택 상태
   const [isCustomPeriod, setIsCustomPeriod] = useState(false);
@@ -154,16 +156,35 @@ export default function I5nputPeriodScreen() {
     router.push('/(slotDivide)/i4nputIncome' as any);
   };
 
-  const handleNext = () => {
-    const hasEnoughData = Math.random() > 0.5;
-    console.log('🎯 [HANDLE_NEXT] 다음 버튼 클릭됨!', { hasEnoughData });
-    
-    if (hasEnoughData) {
-      console.log('🎯 [HANDLE_NEXT] 기간 선택 모달 표시');
-      setModalType('period');
-      setIsModalVisible(true);
-    } else {
-      console.log('🎯 [HANDLE_NEXT] 추천 기준 모달 표시');
+  const handleNext = async () => {
+    try {
+      console.log('🎯 [HANDLE_NEXT] 다음 버튼 클릭됨! API 호출 시작');
+      
+      // 1. 대표 계좌 조회
+      console.log('🎯 [API_1] 대표 계좌 조회 시작');
+      const primaryAccount = await accountApi.getPrimaryAccount();
+      const accountId = primaryAccount.data.accountId;
+      console.log('🎯 [API_1] 대표 계좌 조회 성공:', { accountId });
+      
+      // 2. 거래 내역 3개월 이상 확인
+      console.log('🎯 [API_2] 거래 내역 3개월 이상 확인 시작');
+      const historyCheck = await accountApi.checkTransactionHistory(accountId);
+      const hasEnoughData = historyCheck.hasThreeMonthsHistory;
+      console.log('🎯 [API_2] 거래 내역 확인 결과:', { hasEnoughData });
+      
+      // 3. 결과에 따라 모달 결정
+      if (hasEnoughData) {
+        console.log('🎯 [HANDLE_NEXT] 기간 선택 모달 표시');
+        setModalType('period');
+        setIsModalVisible(true);
+      } else {
+        console.log('🎯 [HANDLE_NEXT] 추천 기준 모달 표시');
+        setModalType('criteria');
+        setIsModalVisible(true);
+      }
+    } catch (error) {
+      console.error('🎯 [HANDLE_NEXT] API 호출 실패:', error);
+      // 에러 발생 시 기본적으로 추천 기준 모달 표시
       setModalType('criteria');
       setIsModalVisible(true);
     }
@@ -177,6 +198,7 @@ export default function I5nputPeriodScreen() {
     setIsCustomPeriod(false);
     setIsListModalVisible(false);
   };
+
 
   const handlePeriodSelect = (period: string) => {
     if (period === '직접설정') setIsCustomPeriod(true);
@@ -228,31 +250,75 @@ export default function I5nputPeriodScreen() {
     else setEndDate(formatted);
   };
 
+  // 기간 선택 시 자동으로 날짜 계산하는 함수
+  const calculateDatesFromPeriod = (period: string) => {
+    const today = new Date();
+    const startDate = new Date(today);
+    
+    switch (period) {
+      case '3개월':
+        startDate.setMonth(today.getMonth() - 3);
+        break;
+      case '6개월':
+        startDate.setMonth(today.getMonth() - 6);
+        break;
+      case '9개월':
+        startDate.setMonth(today.getMonth() - 9);
+        break;
+      case '1년':
+        startDate.setMonth(today.getMonth() - 12);
+        break;
+      default:
+        return null;
+    }
+    
+    const formatDate = (date: Date) => {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${year}${month}${day}`;
+    };
+    
+    return {
+      startDate: formatDate(startDate),
+      endDate: formatDate(today)
+    };
+  };
+
   const handlePeriodConfirm = () => {
+    let formattedStartDate: string;
+    let formattedEndDate: string;
+
     if (isCustomPeriod) {
-      // 직접 설정: period에는 저장하지 않고 startDate, endDate만 저장
-      setDates(startDate, endDate);
-      console.log('🎯 [PERIOD] 직접 설정:', { startDate, endDate });
+      // 직접 설정: startDate, endDate를 API용 포맷으로 변환하여 저장
+      formattedStartDate = startDate.replace(/\./g, '');
+      formattedEndDate = endDate.replace(/\./g, '');
+      setDates(formattedStartDate, formattedEndDate);
+      console.log('🎯 [PERIOD] 직접 설정:', { 
+        startDate: formattedStartDate, 
+        endDate: formattedEndDate 
+      });
     } else if (periodInput.trim()) {
-      // 정해진 기간: 숫자로 변환하여 저장
-      let periodValue = '';
-      switch (periodInput) {
-        case '3개월': periodValue = '3'; break;
-        case '6개월': periodValue = '6'; break;
-        case '9개월': periodValue = '9'; break;
-        case '1년': periodValue = '12'; break;
-        default: periodValue = periodInput;
+      // 정해진 기간: 자동으로 날짜 계산하여 저장
+      const calculatedDates = calculateDatesFromPeriod(periodInput);
+      if (calculatedDates) {
+        formattedStartDate = calculatedDates.startDate;
+        formattedEndDate = calculatedDates.endDate;
+        setDates(formattedStartDate, formattedEndDate);
+        console.log('🎯 [PERIOD] 정해진 기간:', { 
+          periodInput, 
+          startDate: formattedStartDate, 
+          endDate: formattedEndDate 
+        });
+      } else {
+        return;
       }
-      setPeriod(periodValue);
-      console.log('🎯 [PERIOD] 정해진 기간:', { periodInput, periodValue });
     } else {
       return;
     }
-    
-    // 전체 store 데이터 출력
-    const storeData = getApiData();
-    console.log('🎯 [SLOT_DIVIDE_STORE] 전체 데이터:', storeData);
-    
+
+    // 모달 닫고 r6eady로 이동 (API 호출은 r6eady에서)
+    console.log('🎯 [PERIOD] 날짜 설정 완료, r6eady로 이동');
     setIsModalVisible(false);
     router.push('/(slotDivide)/r6eady' as any);
   };
@@ -275,8 +341,6 @@ export default function I5nputPeriodScreen() {
       console.log('🎯 [CRITERIA] 수입 레벨 계산:', { income: data.income, incomeLevel });
     }
     
-    // period에는 선택된 기준들을 문자열로 저장
-    setPeriod(selectedCriteria);
     
     console.log('🎯 [CRITERIA] 추천 기준 설정:', { 
       selectedCriteria, 
@@ -538,6 +602,7 @@ export default function I5nputPeriodScreen() {
           </View>
         </View>
       </Modal>
+
     </SafeAreaView>
   );
 }
@@ -669,4 +734,5 @@ const styles = StyleSheet.create({
   listContainer: { maxHeight: 300, paddingHorizontal: 20 },
   listItem: { paddingVertical: 16, paddingHorizontal: 20, borderBottomWidth: 1, borderBottomColor: '#F3F4F6' },
   listItemText: { fontSize: 16, color: '#111827', textAlign: 'center' },
+
 });
