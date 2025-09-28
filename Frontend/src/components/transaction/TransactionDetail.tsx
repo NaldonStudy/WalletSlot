@@ -12,11 +12,13 @@ interface TransactionDetailProps {
     accountSlotId: string;
     name: string;
   };
+  accountId?: string; // 계좌 ID 추가
 }
 
 const TransactionDetail: React.FC<TransactionDetailProps> = ({
   transaction,
   slot,
+  accountId,
 }) => {
   const colorScheme = useColorScheme() ?? 'light';
   const theme = themes[colorScheme];
@@ -130,6 +132,7 @@ const TransactionDetail: React.FC<TransactionDetailProps> = ({
         visible={isBottomModalVisible}
         onClose={() => setIsBottomModalVisible(false)}
         transaction={transaction}
+        accountId={accountId}
         accountSlotId={slot?.accountSlotId}
         onSlotSelect={() => {
                     // 슬롯 이동 성공 시 이 콜백은 호출되지 않음

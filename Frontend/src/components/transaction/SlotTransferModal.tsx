@@ -16,6 +16,7 @@ interface SlotTransferModalProps {
     visible: boolean;
     onClose: () => void;
     transaction: SlotTransaction;
+    accountId?: string; // 계좌 ID
     accountSlotId?: string; // 현재 거래가 속한 슬롯의 accountSlotId
     onSlotSelect?: (slot: SlotData, originalSlot?: SlotData) => void;
 }
@@ -24,6 +25,7 @@ const SlotTransferModal: React.FC<SlotTransferModalProps> = ({
     visible,
     onClose,
     transaction,
+    accountId,
     accountSlotId,
 }) => {
     const colorScheme = useColorScheme() ?? 'light';
@@ -32,12 +34,17 @@ const SlotTransferModal: React.FC<SlotTransferModalProps> = ({
     const [selectedSlotId, setSelectedSlotId] = useState<string | null>(null);
     const queryClient = useQueryClient();
 
-    // 현재 슬롯의 계좌 ID로 슬롯 리스트 가져오기
-    const { slots, isLoading: slotsLoading } = useSlots(selectedSlot?.accountId);
+    // 현재 거래가 속한 슬롯의 계좌 ID로 슬롯 리스트 가져오기
+    const currentAccountSlotId = accountSlotId || selectedSlot?.accountSlotId;
+    const accountIdForSlots = accountId || selectedSlot?.accountId;
+    
+    // 올바른 계좌 ID로 슬롯 리스트 가져오기
+    const { slots, isLoading: slotsLoading } = useSlots(accountIdForSlots);
 
     // 현재 슬롯 제외한 슬롯만 표시
-    const currentAccountSlotId = accountSlotId || selectedSlot?.accountSlotId;
     const availableSlots = slots.filter((s) => s.accountSlotId !== currentAccountSlotId);
+
+
 
     const isExpense = transaction.type === '출금' || transaction.type === '출금(이체)';
 
@@ -164,7 +171,12 @@ const SlotTransferModal: React.FC<SlotTransferModalProps> = ({
 
                     <View style={styles.slotsSection}>
                         <Text style={[styles.slotsTitle, { color: theme.colors.text.primary }]}>슬롯 선택</Text>
-                        <ScrollView style={styles.slotsScrollView}>
+                        <ScrollView 
+                            style={styles.slotsScrollView}
+                            showsVerticalScrollIndicator={true}
+                            persistentScrollbar={true}
+                            scrollIndicatorInsets={{ right: 1 }}
+                        >
                             {slotsLoading ? (
                                 <Text style={[styles.loadingText, { color: theme.colors.text.secondary }]}>
                                     슬롯을 불러오는 중...
@@ -241,7 +253,7 @@ const styles = StyleSheet.create({
     transactionSummary: { fontSize: Typography.fontSize.base, fontWeight: Typography.fontWeight.medium, flex: 1 },
     transactionAmount: { fontSize: Typography.fontSize.base, fontWeight: Typography.fontWeight.bold },
     slotsSection: { marginBottom: Spacing.lg },
-    slotsScrollView: { maxHeight: 200 },
+    slotsScrollView: { maxHeight: 450 },
     slotsTitle: { fontSize: Typography.fontSize.sm, fontWeight: Typography.fontWeight.medium, marginBottom: Spacing.sm },
     loadingText: { fontSize: Typography.fontSize.sm, textAlign: 'center', padding: Spacing.lg },
     slotsList: { gap: Spacing.lg },
