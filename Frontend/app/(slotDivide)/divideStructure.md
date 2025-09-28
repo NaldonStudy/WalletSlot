@@ -4,9 +4,9 @@
 ├── l2oading.tsx             # ✅ 슬롯 추천 로딩 화면
 ├── p3ermission.tsx          # ✅ 권한 동의 화면
 ├── i4nputIncome.tsx         # ✅ 월 수입 입력 화면
-├── i5nputPeriod.tsx         # ✅ 분석 기간 선택 화면 🚧api 연동 5번
-├── r6eady.tsx               # ✅ 추천 준비 완료 화면 🚧5-2번 응답에 따라서 에러 모달 or 거의 다됐어요! 6번
-└── a7djustSlot.tsx          # 🚧 슬롯 조정 화면     🚧5-2번 응답 success 시, 추천 결과 ui에 표시
+├── i5nputPeriod.tsx         # ✅ 분석 기간 선택 화면 ✅api 연동 5번
+├── r6eady.tsx               # ✅ 추천 준비 완료 화면 ✅5-2번 응답에 따라서 에러 모달 or 거의 다됐어요! 6번
+└── a7djustSlot.tsx          # 🚧 슬롯 조정 화면     ✅5-2번 응답 success 시, 추천 결과 ui에 표시 🚧 슬롯 추가, 삭제, 수정, 확정 api 연동 7번
  
 ## 화면 플로우 (파일명 숫자 순서)
 1. s1electDay.tsx → 기준일 선택
