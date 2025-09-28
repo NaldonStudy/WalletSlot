@@ -3,12 +3,17 @@ package com.ssafy.b108.walletslot.backend.global.exception;
 import com.ssafy.b108.walletslot.backend.global.dto.ErrorResponse;
 import com.ssafy.b108.walletslot.backend.global.error.AppException;
 import com.ssafy.b108.walletslot.backend.global.error.ErrorCode;
+import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.validation.BindException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 @Slf4j
 @RestControllerAdvice
@@ -30,6 +35,31 @@ public class GlobalExceptionHandler {
                 .orElse(ErrorCode.VALIDATION_FAILED.getMessage());
         return ResponseEntity.status(ErrorCode.VALIDATION_FAILED.getStatus())
                 .body(ErrorResponse.builder().message(msg).build());
+    }
+
+    // 🔹 쿼리/경로 파라미터 타입 불일치 → 400
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ErrorResponse> handleTypeMismatch(MethodArgumentTypeMismatchException ex) {
+        log.warn("Type mismatch: param={}, value={}, requiredType={}",
+                ex.getName(), ex.getValue(), ex.getRequiredType());
+        return ResponseEntity.badRequest()
+                .body(ErrorResponse.builder().message(ErrorCode.BAD_REQUEST.getMessage()).build());
+    }
+
+    // 🔹 필수 파라미터 누락 → 400
+    @ExceptionHandler(MissingServletRequestParameterException.class)
+    public ResponseEntity<ErrorResponse> handleMissingParam(MissingServletRequestParameterException ex) {
+        log.warn("Missing param: {}", ex.getParameterName());
+        return ResponseEntity.badRequest()
+                .body(ErrorResponse.builder().message(ErrorCode.BAD_REQUEST.getMessage()).build());
+    }
+
+    // 🔹 본문 파싱 실패/바인딩 실패/제약 위반 → 400
+    @ExceptionHandler({HttpMessageNotReadableException.class, BindException.class, ConstraintViolationException.class})
+    public ResponseEntity<ErrorResponse> handleBindAndReadable(Exception ex) {
+        log.warn("Bad request (bind/readable): {}", ex.getMessage());
+        return ResponseEntity.badRequest()
+                .body(ErrorResponse.builder().message(ErrorCode.BAD_REQUEST.getMessage()).build());
     }
 
     @ExceptionHandler(OcrUpstreamException.class)
@@ -64,7 +94,6 @@ public class GlobalExceptionHandler {
         ErrorResponse body = ErrorResponse.builder()
                 .message(ErrorCode.INTERNAL_SERVER_ERROR.getMessage()) // 내부 메시지 노출 X
                 .build();
-
         return ResponseEntity.status(ErrorCode.INTERNAL_SERVER_ERROR.getStatus()).body(body);
     }
 }

@@ -5,7 +5,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ssafy.b108.walletslot.backend.domain.account.entity.Account;
 import com.ssafy.b108.walletslot.backend.domain.account.repository.AccountRepository;
 import com.ssafy.b108.walletslot.backend.domain.ai_report.dto.*;
-import com.ssafy.b108.walletslot.backend.domain.ai_report.entity.AiReport;
 import com.ssafy.b108.walletslot.backend.domain.ai_report.repository.AiReportRepository;
 import com.ssafy.b108.walletslot.backend.domain.slot.entity.AccountSlot;
 import com.ssafy.b108.walletslot.backend.domain.slot.entity.Slot;
@@ -17,10 +16,13 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Mono;
 
+import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -38,6 +40,7 @@ public class AiReportServiceImpl implements AiReportService {
     private final ObjectMapper objectMapper;
 
     private final AiReportPersistService aiReportPersistService; // REQUIRES_NEW 저장 전용
+    private final AiReportNotificationService aiReportNotificationService; // 푸시 전담
 
     @Qualifier("ssafyGmsWebClient")
     private final WebClient ssafyGmsWebClient;
@@ -47,7 +50,7 @@ public class AiReportServiceImpl implements AiReportService {
 
     private static final DateTimeFormatter TS = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
-    // =========================== 임의 기간 레포트 (7-1) ===========================
+    // 하위호환: 배치 등 기존 호출은 notify=false로 위임
     @Override
     @Transactional(readOnly = true)
     public GetAiReportResponseDto getReportByPeriod(final long userId,
@@ -55,13 +58,25 @@ public class AiReportServiceImpl implements AiReportService {
                                                     final LocalDate startDate,
                                                     final LocalDate endDate,
                                                     final boolean persist) {
+        return getReportByPeriod(userId, accountId, startDate, endDate, persist, false);
+    }
+
+    // 신규: notify 플래그 포함
+    @Override
+    @Transactional(readOnly = true)
+    public GetAiReportResponseDto getReportByPeriod(final long userId,
+                                                    final String accountId,  // UUID
+                                                    final LocalDate startDate,
+                                                    final LocalDate endDate,
+                                                    final boolean persist,
+                                                    final boolean notify) {
 
         if (startDate == null || endDate == null || startDate.isAfter(endDate)) {
             throw new AppException(ErrorCode.BAD_REQUEST, "[AiReport - 001] invalid date range");
         }
 
-        log.info("[AiReport - 001] START userId={}, accountId(UUID)={}, start={}, end={}, persist={}",
-                userId, accountId, startDate, endDate, persist);
+        log.info("[AiReport - 001] START userId={}, accountId(UUID)={}, start={}, end={}, persist={}, notify={}",
+                userId, accountId, startDate, endDate, persist, notify);
 
         // 계좌 조회 (UUID)
         final Account account = accountRepo.findByUserIdAndUuid(userId, accountId)
@@ -141,8 +156,8 @@ public class AiReportServiceImpl implements AiReportService {
             }
 
             slotItems.add(GetAiReportResponseDto.SlotRow.builder()
-                    .accountSlotId(as.getUuid())                           // UUID
-                    .slotId(slot != null ? slot.getUuid() : null)          // UUID
+                    .accountSlotId(as.getUuid())
+                    .slotId(slot != null ? slot.getUuid() : null)
                     .slotName(resolveName(as))
                     .unclassified(isUncls)
                     .budget(budget)
@@ -167,7 +182,6 @@ public class AiReportServiceImpl implements AiReportService {
 
         if (savedPool > 0 && oversPool > 0) {
             for (GetAiReportResponseDto.SlotRow r : slotItems) {
-                // UUID → 내부 asId 역매핑
                 Long asId = asIdToUuid.entrySet().stream()
                         .filter(e -> Objects.equals(e.getValue(), r.getAccountSlotId()))
                         .map(Map.Entry::getKey)
@@ -235,7 +249,7 @@ public class AiReportServiceImpl implements AiReportService {
                     double ratio = (oversPool == 0L) ? 0d
                             : (double) (s != null ? s.getOverspend() : 0L) / (double) oversPool;
                     return GetAiReportResponseDto.Share.builder()
-                            .accountSlotId(asUuid) // UUID
+                            .accountSlotId(asUuid)
                             .slotName(name)
                             .ratio(ratio)
                             .allocated(e.getValue())
@@ -252,20 +266,29 @@ public class AiReportServiceImpl implements AiReportService {
                 .build();
 
         // 내부 인사이트 + GMS 콜
+        // 내부 인사이트 + GMS 콜
         GetAiReportResponseDto.Insights insights = buildInsights(merchantSum, dowByAsId, asIdToUuid);
         try {
             String label = startDate + "~" + endDate;
             Map<String, Object> gms = callGmsForInsightsByTextPeriod(label, slotItems, summary);
-            if (gms != null) {
+            if (isValidGms(gms)) { // ★ 유효성 체크
                 insights = insights.toBuilder()
-                        .aiSummary((String) gms.getOrDefault("summary", null))
+                        .aiSummary((String) gms.get("summary"))
                         .aiActionItems((List<String>) gms.getOrDefault("actions", Collections.emptyList()))
                         .aiRaw(gms)
+                        .build();
+            } else {
+                Heuristic fb = buildHeuristicAiText(summary, slotItems);
+                insights = insights.toBuilder()
+                        .aiSummary(fb.summary)
+                        .aiActionItems(fb.actions)
+                        .aiRaw(Map.of("summary", fb.summary, "actions", fb.actions, "source", "fallback"))
                         .build();
             }
         } catch (Exception e) {
             log.warn("[AiReport - 013] GMS insights failed: {}", e.getMessage());
         }
+
 
         final GetAiReportResponseDto.Period period = GetAiReportResponseDto.Period.builder()
                 .yearMonth(null)
@@ -284,6 +307,17 @@ public class AiReportServiceImpl implements AiReportService {
             persistRef = aiReportPersistService.saveInNewTx(account.getId(), content);
         }
 
+        // 저장 성공 + notify=true 이면 알림 전송
+        if (persist && notify && persistRef != null && persistRef.getId() != null) {
+            try {
+                aiReportNotificationService.notifyReportCreated(
+                        userId, accountId, persistRef.getId(), startDate, endDate
+                );
+            } catch (Exception e) {
+                log.warn("[AI-REPORT][PUSH] notify error: {}", e.toString());
+            }
+        }
+
         return GetAiReportResponseDto.builder()
                 .success(true)
                 .message("[AiReport - 015] OK")
@@ -298,23 +332,24 @@ public class AiReportServiceImpl implements AiReportService {
                 .build();
     }
 
-    // ============================= 삭제 (7-2) =============================
+    // ============================= 삭제 (7-2)
     @Override
     @Transactional
     public DeleteAiReportResponseDto delete(final long userId,
-                                            final String accountId, // UUID
-                                            final String reportId) { // UUID
-
+                                            final String accountId,
+                                            final String reportId) {
         log.info("[AiReport - 017] DELETE START userId={}, accountId(UUID)={}, reportId(UUID)={}",
                 userId, accountId, reportId);
 
         accountRepo.findByUserIdAndUuid(userId, accountId)
                 .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "[AiReport - 018] 계좌 없음"));
 
-        final AiReport report = aiReportRepo.findByUuid(reportId)
+        aiReportRepo.findByUuid(reportId)
                 .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "[AiReport - 020] 레포트 없음"));
 
-        aiReportRepo.delete(report);
+        aiReportRepo.deleteById(
+                aiReportRepo.findByUuid(reportId).orElseThrow().getId()
+        );
         log.info("[AiReport - 021] deleted reportUuid={}", reportId);
 
         return DeleteAiReportResponseDto.builder()
@@ -324,7 +359,7 @@ public class AiReportServiceImpl implements AiReportService {
                 .build();
     }
 
-    // ========================== 월 목록 (7-3-1) ==========================
+    // ========================== 월 목록 (7-3-1)
     @Override
     @Transactional(readOnly = true)
     public ListAiReportMonthsResponseDto listMonths(long userId, String accountId) {
@@ -339,7 +374,7 @@ public class AiReportServiceImpl implements AiReportService {
                 .build();
     }
 
-    // ====================== 월별 아카이브 (7-3-2) ======================
+    // ====================== 월별 아카이브 (7-3-2)
     @Override
     @Transactional(readOnly = true)
     public GetAiReportArchiveResponseDto getArchiveByMonthOrOffset(long userId,
@@ -349,7 +384,7 @@ public class AiReportServiceImpl implements AiReportService {
         accountRepo.findByUserIdAndUuid(userId, accountId)
                 .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "[AiReport - 032] 계좌 없음"));
 
-        var months = aiReportRepo.findAvailableYearMonths(userId, accountId); // 최근→과거
+        var months = aiReportRepo.findAvailableYearMonths(userId, accountId);
         if (months.isEmpty()) {
             return GetAiReportArchiveResponseDto.builder()
                     .success(true)
@@ -360,7 +395,6 @@ public class AiReportServiceImpl implements AiReportService {
                     .build();
         }
 
-        // 선택 월 결정 (yearMonth 우선, 없으면 offset)
         String chosen;
         if (yearMonth != null && !yearMonth.isBlank() && months.contains(yearMonth)) {
             chosen = yearMonth;
@@ -369,27 +403,22 @@ public class AiReportServiceImpl implements AiReportService {
             chosen = months.get(idx);
         }
 
-        // prev/next (0=최신)
         int index = months.indexOf(chosen);
         String prev = (index + 1 < months.size()) ? months.get(index + 1) : null;
         String next = (index - 1 >= 0) ? months.get(index - 1) : null;
 
-        // 월 범위
         var parts = chosen.split("-");
         int y = Integer.parseInt(parts[0]);
         int m = Integer.parseInt(parts[1]);
         var start = LocalDate.of(y, m, 1).atStartOfDay();
-        var end   = start.plusMonths(1); // [start, end)
+        var end   = start.plusMonths(1);
 
-        // DB 조회 (최신→과거)
         var rows = aiReportRepo.findByMonth(userId, accountId, start, end);
 
-        // JSON → 타입 매핑 (루트/래핑(data) 모두 지원)
         var items = rows.stream().map(r -> {
-            var body = r.getContent(); // JsonNode (저장된 원본)
-
+            var body = r.getContent();
             if (body != null && body.has("data") && body.get("data").isObject()) {
-                body = body.get("data"); // {"data": {...}} 형식 지원
+                body = body.get("data");
             }
 
             GetAiReportResponseDto.Period period = null;
@@ -514,85 +543,123 @@ public class AiReportServiceImpl implements AiReportService {
                 .build();
     }
 
-    // GMS 호출(기간 라벨로)
+    // -------- GMS 호출: temperature 제거, 1차 JSON 강제 → 실패 시 무응답형 재시도 --------
     @SuppressWarnings("unchecked")
     private Map<String, Object> callGmsForInsightsByTextPeriod(String periodLabel,
                                                                List<GetAiReportResponseDto.SlotRow> slots,
                                                                GetAiReportResponseDto.Summary summary) {
+        // 공통 메시지 구성
+        var msgSystem = Map.of(
+                "role", "system",
+                "content", String.join("\n",
+                        "너는 예산 분석가다.",
+                        "한국어로 간단 요약과 3~5개의 실행항목을 JSON으로만 응답해. 이때 말투는 동글동글 하게 해라.",
+                        "스키마: {\"summary\": string, \"actions\": string[] }")
+        );
+
+        String slotLines = slots.stream()
+                .map(s -> String.format("%s(budget=%d, spent=%d, diff=%d%s)",
+                        s.getSlotName(), s.getBudget(), s.getSpent(), s.getDiff(),
+                        s.isExceeded() ? ", EXCEEDED" : ""))
+                .collect(Collectors.joining("; "));
+
+        String userContent = "period=" + periodLabel + "\n"
+                + "totalBudget=" + summary.getTotalBudget()
+                + ", totalSpent=" + summary.getTotalSpent()
+                + ", totalUnderspent=" + summary.getTotalUnderspent()
+                + ", totalOverspent=" + summary.getTotalOverspent() + "\n"
+                + "slots=" + slotLines;
+
+        var msgUser = Map.of("role", "user", "content", userContent);
+
+        // 1차: JSON 강제
+        Map<String, Object> bodyJson = new HashMap<>();
+        bodyJson.put("model", "gpt-5-nano");
+        bodyJson.put("messages", List.of(msgSystem, msgUser));
+        bodyJson.put("response_format", Map.of("type", "json_object")); // ★ JSON 강제
+        // temperature 제거 (프록시가 금지)
+
         try {
-            Map<String, Object> body = new HashMap<>();
-            body.put("model", "gpt-5-nano");
-
-            var msgSystem = Map.of(
-                    "role", "system",
-                    "content", "예산 분석가로서 한 줄 요약과 행동항목을 제공해줘. 가능하면 JSON 객체로 응답해줘."
-            );
-
-            String userContent = "period=" + periodLabel + "\n" +
-                    "summary=" + summary + "\n" +
-                    "slots=" + slots.stream()
-                    .map(s -> String.format("%s(budget=%d, spent=%d, diff=%d)",
-                            s.getSlotName(), s.getBudget(), s.getSpent(), s.getDiff()))
-                    .collect(Collectors.joining("; "));
-
-            var msgUser = Map.of("role", "user", "content", userContent);
-            body.put("messages", List.of(msgSystem, msgUser));
-
-            Map<String, Object> res = ssafyGmsWebClient.post()
-                    .uri("/chat/completions")
-                    .bodyValue(body)
-                    .retrieve()
-                    .bodyToMono(Map.class)
-                    .blockOptional()
-                    .orElse(null);
-
-            if (res == null) return null;
-
-            String content = null;
+            return callAndParseGms(bodyJson, true);
+        } catch (Exception first) {
+            log.warn("[AiReport - 013] GMS JSON-mode failed ({}). Retrying without response_format...", first.toString());
+            // 2차: response_format 제거(일반 텍스트 응답 → 괄호 파싱)
+            Map<String, Object> bodyPlain = new HashMap<>();
+            bodyPlain.put("model", "gpt-5-nano");
+            bodyPlain.put("messages", List.of(msgSystem, msgUser));
             try {
-                var choices = (List<Map<String, Object>>) res.get("choices");
-                if (!choices.isEmpty()) {
-                    var msg = (Map<String, Object>) choices.get(0).get("message");
-                    content = (msg != null) ? (String) msg.get("content") : null;
-                }
-            } catch (Exception ignore) {}
-
-            if (content == null || content.isBlank()) return null;
-
-            String jsonOnly = extractFirstJsonObject(content);
-            if (jsonOnly == null) {
-                log.warn("[AiReport - 013] GMS returned no JSON object. head={}",
-                        content.substring(0, Math.min(80, content.length())));
+                return callAndParseGms(bodyPlain, false);
+            } catch (Exception second) {
+                log.warn("[AiReport - 013] GMS plain-mode failed: {}", second.getMessage());
                 return null;
             }
-
-            Map<String, Object> parsed = objectMapper.readValue(jsonOnly, Map.class);
-
-            Map<String, Object> out = new HashMap<>();
-            Object s = parsed.get("summary");
-            out.put("summary", (s instanceof String) ? ((String) s).strip() : null);
-
-            Object a = parsed.get("actions");
-            List<String> actions = new ArrayList<>();
-            if (a instanceof List<?> list) {
-                for (Object o : list) if (o != null) actions.add(String.valueOf(o).strip());
-            } else if (a instanceof String str) {
-                Arrays.stream(str.split("[\\r\\n•\\-]+"))
-                        .map(String::trim)
-                        .filter(t -> !t.isEmpty())
-                        .forEach(actions::add);
-            }
-            if (actions.size() > 5) actions = actions.subList(0, 5);
-            out.put("actions", actions);
-
-            return out;
-        } catch (Exception e) {
-            log.warn("[AiReport - 013] GMS call error: {}", e.getMessage());
-            return null;
         }
     }
 
-    // JSON 오브젝트 추출기
+    private Map<String, Object> callAndParseGms(Map<String, Object> body, boolean expectJson) throws Exception {
+        Map<String, Object> res = ssafyGmsWebClient.post()
+                .uri("/chat/completions")
+                .bodyValue(body)
+                .retrieve()
+                .onStatus(HttpStatusCode::isError, resp ->
+                        resp.bodyToMono(String.class).doOnNext(err ->
+                                log.warn("[AiReport - 013] GMS HTTP {}: {}", resp.statusCode(), err)
+                        ).then(Mono.error(new IllegalStateException("GMS error: " + resp.statusCode())))
+                )
+                .bodyToMono(Map.class)
+                .block(); // ★ 여기! Duration 제거 → 무기한 대기
+
+        if (res == null) throw new IllegalStateException("GMS null response");
+
+        String content = null;
+        try {
+            var choices = (List<Map<String, Object>>) res.get("choices");
+            if (choices != null && !choices.isEmpty()) {
+                var msg = (Map<String, Object>) choices.get(0).get("message");
+                content = (msg != null) ? (String) msg.get("content") : null;
+            }
+        } catch (Exception ignore) {}
+
+        if (content == null || content.isBlank()) {
+            throw new IllegalStateException("GMS empty content");
+        }
+
+        Map<String, Object> parsed;
+        if (expectJson) {
+            try {
+                parsed = objectMapper.readValue(content, Map.class);
+            } catch (Exception ex) {
+                String jsonOnly = extractFirstJsonObject(content);
+                if (jsonOnly == null) throw new IllegalStateException("No JSON object found in content");
+                parsed = objectMapper.readValue(jsonOnly, Map.class);
+            }
+        } else {
+            String jsonOnly = extractFirstJsonObject(content);
+            if (jsonOnly == null) return null;
+            parsed = objectMapper.readValue(jsonOnly, Map.class);
+        }
+
+        Map<String, Object> out = new HashMap<>();
+        Object s = parsed.get("summary");
+        out.put("summary", (s instanceof String) ? ((String) s).strip() : null);
+
+        List<String> actions = new ArrayList<>();
+        Object a = parsed.get("actions");
+        if (a instanceof List<?> list) {
+            for (Object o : list) if (o != null) actions.add(String.valueOf(o).strip());
+        } else if (a instanceof String str) {
+            Arrays.stream(str.split("[\\r\\n•\\-]+"))
+                    .map(String::trim).filter(t -> !t.isEmpty())
+                    .forEach(actions::add);
+        }
+        if (actions.size() > 5) actions = actions.subList(0, 5);
+        out.put("actions", actions);
+
+        return out;
+    }
+
+
+    // JSON 오브젝트 추출 (백업 파서)
     private static String extractFirstJsonObject(String s) {
         int depth = 0, start = -1;
         boolean inStr = false, esc = false;
@@ -610,4 +677,43 @@ public class AiReportServiceImpl implements AiReportService {
         }
         return null;
     }
+
+    // 휴리스틱 대체 텍스트
+    private static class Heuristic {
+        final String summary; final List<String> actions;
+        Heuristic(String s, List<String> a) { summary = s; actions = a; }
+    }
+    private Heuristic buildHeuristicAiText(GetAiReportResponseDto.Summary s,
+                                           List<GetAiReportResponseDto.SlotRow> items) {
+        String sum = String.format("총 지출 %,d원, 예산 대비 절약 %,d원, 초과 %,d원.",
+                s.getTotalSpent(), s.getTotalUnderspent(), s.getTotalOverspent());
+
+        List<String> actions = new ArrayList<>();
+        if (s.getTotalOverspent() == 0) {
+            actions.add("이번 기간엔 초과 지출이 없었습니다. 현재 예산을 유지해 보세요.");
+        } else {
+            items.stream().filter(GetAiReportResponseDto.SlotRow::isExceeded)
+                    .sorted(Comparator.comparingLong(GetAiReportResponseDto.SlotRow::getOverspend).reversed())
+                    .limit(3)
+                    .forEach(r -> actions.add(r.getSlotName() + " 예산 상향 또는 지출 원인 점검"));
+        }
+        if (s.getSavedExcludingUnclassified() > 0) {
+            actions.add("절약액 일부를 초과 위험 슬롯에 분배하는 것을 고려하세요.");
+        }
+        if (actions.size() < 3) actions.add("주간 단위로 결제 알림을 켜서 지출 피크일을 관리하세요.");
+
+        return new Heuristic(sum, actions);
+    }
+
+    // 헬퍼 추가
+    private boolean isValidGms(Map<String, Object> gms) {
+        if (gms == null) return false;
+        String s = (String) gms.get("summary");
+        @SuppressWarnings("unchecked")
+        List<String> a = (List<String>) gms.get("actions");
+        boolean hasSummary = (s != null && !s.isBlank());
+        boolean hasActions = (a != null && !a.isEmpty());
+        return hasSummary || hasActions;
+    }
+
 }
