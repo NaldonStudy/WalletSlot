@@ -17,8 +17,6 @@ export const AccountSummary = memo(({ account, onViewTransactions }: AccountSumm
     const bankInfo = BANK_CODES[account.bankId as keyof typeof BANK_CODES];
     const [imageLoaded, setImageLoaded] = useState(false);
     
-    // 디버깅용 로그
-    console.log('[AccountSummary] onViewTransactions:', !!onViewTransactions);
 
     const colorScheme = useColorScheme() ?? 'light';
     const theme = themes[colorScheme];

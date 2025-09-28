@@ -23,7 +23,7 @@ const AccountCarousel: React.FC<AccountCarouselProps> = ({ accounts, onIndexChan
                 data={accounts}
                 renderItem={({ item }) =>
                     <AccountCard {...item} style={{ width: CARD_WIDTH, marginHorizontal: CARD_MARGIN }} onViewTransactions={onViewTransactions} />}
-                keyExtractor={(item) => item.accountNumber}
+                keyExtractor={(item, index) => `${item.bankId}-${item.accountNumber}-${index}`}
                 horizontal
                 pagingEnabled
                 showsHorizontalScrollIndicator={false}

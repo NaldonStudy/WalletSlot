@@ -3,12 +3,13 @@ import { featureFlags } from '@/src/config/featureFlags';
 import { BANK_CODES } from '@/src/constants/banks';
 import { SLOT_CATEGORIES } from '@/src/constants/slots';
 import { useSlotDivideStore } from '@/src/store/slotDivideStore';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import React from 'react';
 import { Alert, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function A7djustSlotScreen() {
+  const { accountId } = useLocalSearchParams<{ accountId: string }>();
   const { getRecommendationResult } = useSlotDivideStore();
   const recommendationData = getRecommendationResult();
 
@@ -30,6 +31,14 @@ export default function A7djustSlotScreen() {
   const handleGoBack = () => {
     router.back();
   };
+
+  // accountId가 없으면 대시보드로 돌아가기
+  React.useEffect(() => {
+    if (!accountId) {
+      console.log('🎯 [A7DJUST_SLOT] accountId가 없어서 대시보드로 이동');
+      router.replace('/(tabs)/dashboard');
+    }
+  }, [accountId]);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('ko-KR').format(amount) + '원';
@@ -109,6 +118,29 @@ export default function A7djustSlotScreen() {
       color: '#6B7280'
     };
   };
+
+  // accountId가 없으면 로딩 화면 표시
+  if (!accountId) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.container}>
+          <View style={styles.header}>
+            <TouchableOpacity style={styles.backButton} onPress={handleGoBack}>
+              <Text style={styles.backButtonText}>← 뒤로</Text>
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>슬롯 조정</Text>
+            <View style={styles.headerSpacer} />
+          </View>
+          <View style={styles.errorContainer}>
+            <Text style={styles.errorText}>계좌 정보를 불러올 수 없습니다.</Text>
+            <TouchableOpacity style={styles.retryButton} onPress={handleGoBack}>
+              <Text style={styles.retryButtonText}>대시보드로 돌아가기</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.safeArea}>

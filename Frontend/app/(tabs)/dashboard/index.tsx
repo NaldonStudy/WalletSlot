@@ -12,7 +12,7 @@ import { profileApi } from '@/src/api/profile';
 import { useAccountSelectionStore } from '@/src/store';
 import { useSlotStore } from '@/src/store/useSlotStore';
 import React, { memo, useCallback, useMemo, useRef, useState } from 'react';
-import { Animated, StyleSheet, Text, useColorScheme, View, ScrollView } from 'react-native';
+import { Animated, StyleSheet, Text, useColorScheme, View, ScrollView, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 
@@ -52,6 +52,9 @@ export default function DashboardScreen() {
 
   // 사용자 프로필 데이터 조회
   const { data: userProfile, isLoading: isProfileLoading } = useUserProfile();
+  
+  // 대표 계좌 조회
+  const [primaryAccountId, setPrimaryAccountId] = useState<string | null>(null);
 
   // MSW API를 통한 계좌 데이터 조회
   const { linked } = useAccounts();
@@ -68,6 +71,24 @@ export default function DashboardScreen() {
   
   // 현재 계좌의 슬롯 데이터 조회
   const { slots: allSlots, isLoading: isSlotsLoading } = useSlots(currentAccount?.accountId);
+
+  // 대표 계좌 조회
+  React.useEffect(() => {
+    const fetchPrimaryAccount = async () => {
+      try {
+        const { accountApi } = await import('@/src/api/account');
+        const response = await accountApi.getPrimaryAccount();
+        if (response.success && response.data) {
+          setPrimaryAccountId(response.data.accountId);
+          console.log('[Dashboard] 대표 계좌 조회 성공:', response.data.accountId);
+        }
+      } catch (error) {
+        console.error('[Dashboard] 대표 계좌 조회 실패:', error);
+      }
+    };
+    
+    fetchPrimaryAccount();
+  }, []);
 
   // 기준일 조회 및 날짜 범위 계산
   const [dateRange, setDateRange] = useState<string>('2025.09.01 ~ 2025.09.30');
@@ -182,6 +203,7 @@ export default function DashboardScreen() {
     accountName: account.alias, // normalizeAccountList에서 이미 처리됨
     accountNumber: account.accountNo,
     balance: Number(account.accountBalance ?? 0),
+    isPrimary: account.accountId === primaryAccountId, // 대표 계좌 여부
   }));
   
 
@@ -197,8 +219,6 @@ export default function DashboardScreen() {
     extrapolate: 'clamp',
   });
   
-  // 디버깅용 로그
-  console.log('[Dashboard] accountCarouselY:', accountCarouselY);
 
   // 터치 이벤트 제어를 위한 상태
   const [isSummaryVisible, setIsSummaryVisible] = useState(false);
@@ -410,6 +430,38 @@ export default function DashboardScreen() {
                   슬롯 정보를 불러오는 중...
                 </Text>
               </View>
+            ) : currentAccountSlots.length === 0 ? (
+              <View style={styles.emptySlotsContainer}>
+                {/* 메인 메시지 */}
+                <Text style={[styles.emptySlotsTitle, { color: theme.colors.text.primary }]}>
+                  아직 슬롯을 만들지 않았네요!
+                </Text>
+                
+                {/* 서브 메시지 */}
+                <Text style={[styles.emptySlotsSubtitle, { color: theme.colors.text.secondary }]}>
+                  AI가 당신의 소비 패턴을 분석해서{'\n'}맞춤형 슬롯을 추천해드릴게요
+                </Text>
+                
+                {/* 추천 버튼 */}
+                <TouchableOpacity 
+                  style={[styles.recommendButton, { 
+                    backgroundColor: theme.colors.primary[600],
+                    shadowColor: theme.colors.primary[600],
+                  }]}
+                  onPress={() => {
+                    console.log('[Dashboard] 슬롯 추천 버튼 클릭');
+                    router.push({
+                      pathname: '/(slotDivide)/a7djustSlot',
+                      params: { accountId: currentAccount.accountId }
+                    });
+                  }}
+                  activeOpacity={0.8}
+                >
+                  <Text style={[styles.recommendButtonText, { color: '#FFFFFF' }]}>
+                    슬롯 추천받기
+                  </Text>
+                </TouchableOpacity>
+              </View>
             ) : (
               <AccountDonutChart data={currentAccountSlots} onSlotPress={handleSlotPress} />
             )}
@@ -424,6 +476,22 @@ export default function DashboardScreen() {
               <Text style={[styles.slotLoadingText, { color: theme.colors.text.secondary }]}>
                 슬롯 정보를 불러오는 중...
               </Text>
+            </View>
+          ) : currentAccountSlots.length === 0 ? (
+            <View style={styles.emptySlotsListContainer}>
+              <View style={[styles.emptySlotsListCard, { 
+                backgroundColor: theme.colors.background.tertiary,
+                borderColor: theme.colors.border.light,
+              }]}>
+                <View style={styles.emptySlotsListContent}>
+                  <Text style={[styles.emptySlotsListTitle, { color: theme.colors.text.primary }]}>
+                    슬롯 목록이 비어있어요
+                  </Text>
+                  <Text style={[styles.emptySlotsListText, { color: theme.colors.text.secondary }]}>
+                    위의 '슬롯 추천받기' 버튼을 눌러서{'\n'}나만의 맞춤 슬롯을 만들어보세요!
+                  </Text>
+                </View>
+              </View>
             </View>
           ) : (
             <View style={styles.slotListContainer}>
@@ -558,5 +626,67 @@ const styles = StyleSheet.create({
   },
   slotListContainer: {
     // 슬롯 리스트 컨테이너
+  },
+  // 빈 슬롯 상태 스타일
+  emptySlotsContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: Spacing.xl,
+    paddingHorizontal: Spacing.lg,
+  },
+  emptySlotsTitle: {
+    fontSize: Typography.fontSize.xl,
+    fontWeight: Typography.fontWeight.bold,
+    marginBottom: Spacing.sm,
+    textAlign: 'center',
+  },
+  emptySlotsSubtitle: {
+    fontSize: Typography.fontSize.base,
+    marginBottom: Spacing.xl,
+    textAlign: 'center',
+    lineHeight: 22,
+  },
+  recommendButton: {
+    paddingHorizontal: Spacing.base,
+    paddingVertical: Spacing.sm,
+    borderRadius: 10,
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.15,
+    shadowRadius: 2,
+    elevation: 2,
+    marginBottom: Spacing.base,
+  },
+  recommendButtonText: {
+    fontSize: Typography.fontSize.base,
+    fontWeight: Typography.fontWeight.semibold,
+  },
+  emptySlotsListContainer: {
+    paddingVertical: Spacing.lg,
+    alignItems: 'center',
+  },
+  emptySlotsListCard: {
+    width: '100%',
+    borderRadius: 16,
+    borderWidth: 1,
+    padding: Spacing.lg,
+    alignItems: 'center',
+  },
+  emptySlotsListContent: {
+    alignItems: 'center',
+  },
+  emptySlotsListTitle: {
+    fontSize: Typography.fontSize.lg,
+    fontWeight: Typography.fontWeight.semibold,
+    marginBottom: Spacing.sm,
+    textAlign: 'center',
+  },
+  emptySlotsListText: {
+    fontSize: Typography.fontSize.sm,
+    textAlign: 'center',
+    lineHeight: 20,
   },
 });
