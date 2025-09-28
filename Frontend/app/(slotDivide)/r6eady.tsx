@@ -79,6 +79,11 @@ export default function R6eadyScreen() {
           // 성공: store에 저장하고 현재 진행률 → 100% 빠르게
           isCompleted = true; // 🔥 중요: 성공 시에도 isCompleted 설정
           setRecommendationResult(recommendationResponse);
+          
+          // 추천 응답에서 accountId 가져오기 (더 안전함)
+          const responseAccountId = recommendationResponse.data.account.accountId;
+          console.log('🎯 [R6EADY] 추천 응답에서 accountId 추출:', responseAccountId);
+          
           const remainingProgress = 100 - currentProgress;
           const fastInterval = setInterval(() => {
             currentProgress += remainingProgress / 10; // 10단계로 빠르게
@@ -88,7 +93,10 @@ export default function R6eadyScreen() {
               clearInterval(fastInterval);
               setIsLoading(false);
               setTimeout(() => {
-                router.push('/(slotDivide)/a7djustSlot' as any);
+                router.push({
+                  pathname: '/(slotDivide)/a7djustSlot',
+                  params: { accountId: responseAccountId }
+                } as any);
               }, 500);
             }
           }, 50);
