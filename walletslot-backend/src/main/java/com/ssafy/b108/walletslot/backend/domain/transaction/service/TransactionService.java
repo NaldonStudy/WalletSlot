@@ -1036,10 +1036,6 @@ public class TransactionService {
     @Scheduled(fixedDelay = 60000)
     public void checkTransactions() {
 
-//        // 모아서 DB 가기 위해서 버퍼용 리스트 생성
-//        List<Transaction> transactionBuffer = new ArrayList<>();
-//        List<Notification> notificationBuffer = new ArrayList<>();
-
         // 우리 서비스 전체 유저
         List<User> users = userRepository.findAll();
 
@@ -1114,7 +1110,8 @@ public class TransactionService {
 
                         // 이 거래내역에서 쓸 Transaction, Notification, AccountSlot 객체와 푸시알림을 보낼 때 사용할 title, body
                         Transaction newTransaction = null;
-                        Notification notification;
+                        Notification notification = null;
+                        Notification budgetExceededNotification = null;
                         AccountSlot accountSlot = null;
                         String title = null;
                         String body = null;
@@ -1134,17 +1131,7 @@ public class TransactionService {
                                     .type(Notification.Type.UNCATEGORIZED)
                                     .build();
 
-//                            notificationBuffer.add(notification);
-//
-//                            // Notification 객체 저장
-//                            if (notificationBuffer.size() >= 100) { // transactionBuffer에 100개 이상 쌓이면 저장
-//                                notificationRepository.saveAll(notificationBuffer);
-//                                notificationRepository.flush();
-//                                notificationBuffer.clear();
-//                            }
-
                             notificationRepository.save(notification);
-                            fcmService.sendMessageNotification(targetFcmToken, notification); // 알림발송
                             
                             // accountSlot을 미분류 슬롯으로 세팅
                             accountSlot = uncategorizedAccountSlot;
@@ -1164,17 +1151,7 @@ public class TransactionService {
                                     .type(Notification.Type.UNCATEGORIZED)
                                     .build();
 
-//                            notificationBuffer.add(notification);
-//
-//                            // Notification 객체 저장
-//                            if (notificationBuffer.size() >= 100) { // transactionBuffer에 100개 이상 쌓이면 저장
-//                                notificationRepository.saveAll(notificationBuffer);
-//                                notificationRepository.flush();
-//                                notificationBuffer.clear();
-//                            }
-
                             notificationRepository.save(notification);
-                            fcmService.sendMessageNotification(targetFcmToken, notification); // 알림발송
 
                         } else {    // 출금이면 아래 로직 적용
                             String merchantName = transactionDto.getTransactionSummary();    // 발생한 거래내역 거래처 이름
@@ -1207,24 +1184,14 @@ public class TransactionService {
                                         body = "(초과금액: " + (accountSlot.getSpent() - accountSlot.getCurrentBudget()) + "원)";
 
                                         // Notification 객체 만들고 저장
-                                        Notification budgetExceededNotification = Notification.builder()
+                                        budgetExceededNotification = Notification.builder()
                                                 .user(user)
                                                 .title(title)
                                                 .body(body)
                                                 .type(Notification.Type.BUDGET)
                                                 .build();
 
-//                                        notificationBuffer.add(budgetExceededNotification);
-//
-//                                        // Notification 객체 저장
-//                                        if (notificationBuffer.size() >= 100) { // transactionBuffer에 100개 이상 쌓이면 저장
-//                                            notificationRepository.saveAll(notificationBuffer);
-//                                            notificationRepository.flush();
-//                                            notificationBuffer.clear();
-//                                        }
-
                                         notificationRepository.save(budgetExceededNotification);
-                                        fcmService.sendMessageNotification(targetFcmToken, budgetExceededNotification); // 알림발송
 
                                     } else {    // 지출이 예산을 초과하지 않았다면...
                                         accountSlot.updateIsBudgetExceeded(false);    // 혹시 모르니깐 예산초과 여부 false로 한번 더 덮어씌우기
@@ -1256,17 +1223,7 @@ public class TransactionService {
                                             .type(Notification.Type.SLOT)
                                             .build();
 
-//                                    notificationBuffer.add(notification);
-//
-//                                    // Notification 객체 저장
-//                                    if (notificationBuffer.size() >= 100) { // transactionBuffer에 100개 이상 쌓이면 저장
-//                                        notificationRepository.saveAll(notificationBuffer);
-//                                        notificationRepository.flush();
-//                                        notificationBuffer.clear();
-//                                    }
-
                                     notificationRepository.save(notification);
-                                    fcmService.sendMessageNotification(targetFcmToken, notification); // 알림발송
 
                                 } else {    // 그 슬롯이 이 계좌에 개설돼있지 않다면...
                                     AccountSlot recommededAccountSlot = recommendSlotFromGPT(account, merchantName);    //    이 계좌에 있는 슬롯들 기준으로 추천받기
@@ -1295,17 +1252,7 @@ public class TransactionService {
                                                 .type(Notification.Type.UNCATEGORIZED)
                                                 .build();
 
-//                                        notificationBuffer.add(notification);
-//
-//                                        // Notification 객체 저장
-//                                        if (notificationBuffer.size() >= 100) { // transactionBuffer에 100개 이상 쌓이면 저장
-//                                            notificationRepository.saveAll(notificationBuffer);
-//                                            notificationRepository.flush();
-//                                            notificationBuffer.clear();
-//                                        }
-
                                         notificationRepository.save(notification);
-                                        fcmService.sendMessageNotification(targetFcmToken, notification); // 알림발송
 
                                     } else {    // 추천된게 없다면...
                                         // 미분류 슬롯에서 차감
@@ -1324,17 +1271,7 @@ public class TransactionService {
                                                 .type(Notification.Type.UNCATEGORIZED)
                                                 .build();
 
-//                                        notificationBuffer.add(notification);
-//
-//                                        // Notification 객체 저장
-//                                        if (notificationBuffer.size() >= 100) { // transactionBuffer에 100개 이상 쌓이면 저장
-//                                            notificationRepository.saveAll(notificationBuffer);
-//                                            notificationRepository.flush();
-//                                            notificationBuffer.clear();
-//                                        }
-
                                         notificationRepository.save(notification);
-                                        fcmService.sendMessageNotification(targetFcmToken, notification); // 알림발송
                                     }
                                 }
                             } else { // 우리 DB에 존재하지 않아도 GPT한테 추천받기
@@ -1364,17 +1301,7 @@ public class TransactionService {
                                             .type(Notification.Type.UNCATEGORIZED)
                                             .build();
 
-//                                    notificationBuffer.add(notification);
-//
-//                                    // Notification 객체 저장
-//                                    if (notificationBuffer.size() >= 100) { // transactionBuffer에 100개 이상 쌓이면 저장
-//                                        notificationRepository.saveAll(notificationBuffer);
-//                                        notificationRepository.flush();
-//                                        notificationBuffer.clear();
-//                                    }
-
                                     notificationRepository.save(notification);
-                                    fcmService.sendMessageNotification(targetFcmToken, notification); // 알림발송
 
                                 } else {    // 추천된게 없다면...
                                     // 미분류 슬롯에서 차감
@@ -1393,18 +1320,7 @@ public class TransactionService {
                                             .type(Notification.Type.UNCATEGORIZED)
                                             .build();
 
-//
-//                                    notificationBuffer.add(notification);
-//
-//                                    // Notification 객체 저장
-//                                    if (notificationBuffer.size() >= 100) { // transactionBuffer에 100개 이상 쌓이면 저장
-//                                        notificationRepository.saveAll(notificationBuffer);
-//                                        notificationRepository.flush();
-//                                        notificationBuffer.clear();
-//                                    }
-
                                     notificationRepository.save(notification);
-                                    fcmService.sendMessageNotification(targetFcmToken, notification); // 알림발송
                                 }
                             }
 
@@ -1423,66 +1339,56 @@ public class TransactionService {
 
                             transactionRepository.save(newTransaction);
 
-//                            transactionBuffer.add(newTransaction); // 새로운 Transaction 객체를 buffer에 저장
-//
-//                            if (transactionBuffer.size() >= 100) { // transactionBuffer에 100개 이상 쌓이면 저장
-//                                transactionRepository.saveAll(transactionBuffer);
-//                                transactionRepository.flush();
-//                                transactionBuffer.clear();
-//                            }
-
-                            // 계좌 각종 필드들 최신화 (마지막 동기일, 잔액)
-                            // SSAFY 금융 API >>>>> 2.4.12 계좌 거래내역 조회
-                            // 요청보낼 url
-                            String url2 = "https://finopenapi.ssafy.io/ssafy/api/v1/edu/demandDeposit/inquireDemandDepositAccountBalance";
-
-                            // Header 만들기
-                            Map<String, String> formattedDateTime2 = LocalDateTimeFormatter.formatter();
-                            Header header2 = Header.builder()
-                                    .apiName("inquireDemandDepositAccountBalance")
-                                    .transmissionDate(formattedDateTime2.get("date"))
-                                    .transmissionTime(formattedDateTime2.get("time"))
-                                    .apiServiceCode("inquireDemandDepositAccountBalance")
-                                    .institutionTransactionUniqueNo(formattedDateTime2.get("date") + formattedDateTime2.get("time") + RandomNumberGenerator.generateRandomNumber())
-                                    .apiKey(ssafyFinanceApiKey)
-                                    .userKey(userKey)
-                                    .build();
-
-                            // body 만들기
-                            Map<String, Object> body2 = new HashMap<>();
-                            body2.put("Header", header2);
-                            try {
-                                body2.put("accountNo", AESUtil.decrypt(account.getEncryptedAccountNo(), encryptionKey));
-                            } catch(Exception e) {
-                                throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "TransactionService - 001");
-                            }
-
-                            // 요청보낼 http entity 만들기
-                            HttpEntity<Map<String, Object>> httpEntity2 = new HttpEntity<>(body2);
-
-                            // 요청 보내기
-                            ResponseEntity<SSAFYGetAccountBalanceResponseDto> httpResponse2 = restTemplate.exchange(
-                                    url2,
-                                    HttpMethod.POST,
-                                    httpEntity2,
-                                    SSAFYGetAccountBalanceResponseDto.class
-                            );
-
-                            // account 필드들 최신화
-                            account.updateLastSyncedAt(LocalDateTime.now());
-                            account.updateBalance(httpResponse2.getBody().getREC().getAccountBalance());
                         }
+                        // 계좌 각종 필드들 최신화 (마지막 동기일, 잔액)
+                        // SSAFY 금융 API >>>>> 2.4.12 계좌 거래내역 조회
+                        // 요청보낼 url
+                        String url2 = "https://finopenapi.ssafy.io/ssafy/api/v1/edu/demandDeposit/inquireDemandDepositAccountBalance";
+
+                        // Header 만들기
+                        Map<String, String> formattedDateTime2 = LocalDateTimeFormatter.formatter();
+                        Header header2 = Header.builder()
+                                .apiName("inquireDemandDepositAccountBalance")
+                                .transmissionDate(formattedDateTime2.get("date"))
+                                .transmissionTime(formattedDateTime2.get("time"))
+                                .apiServiceCode("inquireDemandDepositAccountBalance")
+                                .institutionTransactionUniqueNo(formattedDateTime2.get("date") + formattedDateTime2.get("time") + RandomNumberGenerator.generateRandomNumber())
+                                .apiKey(ssafyFinanceApiKey)
+                                .userKey(userKey)
+                                .build();
+
+                        // body 만들기
+                        Map<String, Object> body2 = new HashMap<>();
+                        body2.put("Header", header2);
+                        try {
+                            body2.put("accountNo", AESUtil.decrypt(account.getEncryptedAccountNo(), encryptionKey));
+                        } catch(Exception e) {
+                            throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "TransactionService - 001");
+                        }
+
+                        // 요청보낼 http entity 만들기
+                        HttpEntity<Map<String, Object>> httpEntity2 = new HttpEntity<>(body2);
+
+                        // 요청 보내기
+                        ResponseEntity<SSAFYGetAccountBalanceResponseDto> httpResponse2 = restTemplate.exchange(
+                                url2,
+                                HttpMethod.POST,
+                                httpEntity2,
+                                SSAFYGetAccountBalanceResponseDto.class
+                        );
+
+                        // account 필드들 최신화
+                        account.updateLastSyncedAt(LocalDateTime.now());
+                        account.updateBalance(httpResponse2.getBody().getREC().getAccountBalance());
                         account.updateLastSyncedTransactionUniqueNo(transactionDto.getTransactionUniqueNo());
+
+                        // 알림 보내기
+                        fcmService.sendMessageNotification(targetFcmToken, notification);
+                        if(budgetExceededNotification != null) {
+                            fcmService.sendMessageNotification(targetFcmToken, budgetExceededNotification);
+                        }
                     }
                 }
-
-//                if (!transactionBuffer.isEmpty()) {
-//                    transactionRepository.saveAll(transactionBuffer);
-//                }
-//
-//                if (!notificationBuffer.isEmpty()) {
-//                    notificationRepository.saveAll(notificationBuffer);
-//                }
             }
         }
 
