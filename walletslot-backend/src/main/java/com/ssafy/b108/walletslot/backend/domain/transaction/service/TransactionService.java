@@ -238,42 +238,39 @@ public class TransactionService {
                 SSAFYGetTransactionListResponseDto.class
         );
 
-        List<SSAFYGetTransactionListResponseDto.Transaction> allTx = httpResponse2.getBody().getREC().getList();
+        List<SSAFYGetTransactionListResponseDto.Transaction> transactions = httpResponse2.getBody().getREC().getList();
 
-// ✅ 지출만 남기기: "출금" 또는 "출금(이체)"
-        List<SSAFYGetTransactionListResponseDto.Transaction> spendingTx = new ArrayList<>();
-        for (SSAFYGetTransactionListResponseDto.Transaction tx : allTx) {
-            String typeName = tx.getTransactionTypeName();
-            if ("출금".equals(typeName) || "출금(이체)".equals(typeName)) {
-                spendingTx.add(tx);
-            }
-        }
-
-// 지출이 하나도 없으면 false
-        if (spendingTx.isEmpty()) {
-            return CheckAccountTransactionHistoryResponseDto.builder()
+        if(transactions.size() == 0) {
+            // dto
+            CheckAccountTransactionHistoryResponseDto checkAccountTransactionHistoryResponseDto = CheckAccountTransactionHistoryResponseDto.builder()
                     .success(true)
-                    .message("[TransactionService - 000] 계좌 지출 거래내역이 3개월 이상 있는지 조회 성공")
+                    .message("[TransactionService - 000] 계좌 거래내역이 3개월 이상 있는지 조회 성공")
                     .data(CheckAccountTransactionHistoryResponseDto.Data.builder().hasThreeMonthsHistory(false).build())
                     .build();
+
+            return checkAccountTransactionHistoryResponseDto;
         }
 
-// ASC 정렬로 요청했으므로, 필터링 결과의 0번이 가장 오래된 지출, 마지막이 가장 최근 지출
-        LocalDate startDate = LocalDateTimeFormatter.stringToLocalDate(spendingTx.get(0).getTransactionDate());
-        LocalDate endDate   = LocalDateTimeFormatter.stringToLocalDate(spendingTx.get(spendingTx.size() - 1).getTransactionDate());
-        long monthsBetween  = ChronoUnit.MONTHS.between(startDate, endDate);
+        LocalDate startDate = LocalDateTimeFormatter.stringToLocalDate(transactions.get(0).getTransactionDate());
+        LocalDate endDate = LocalDateTimeFormatter.stringToLocalDate(transactions.get(transactions.size()-1).getTransactionDate());
+        long monthsBetween = ChronoUnit.MONTHS.between(startDate, endDate);
 
-        CheckAccountTransactionHistoryResponseDto.Data data =
-                (monthsBetween >= 3)
-                        ? CheckAccountTransactionHistoryResponseDto.Data.builder().hasThreeMonthsHistory(true).build()
-                        : CheckAccountTransactionHistoryResponseDto.Data.builder().hasThreeMonthsHistory(false).build();
+        // dto > data
+        CheckAccountTransactionHistoryResponseDto.Data data = null;
+        if(monthsBetween >= 3) {
+            data = CheckAccountTransactionHistoryResponseDto.Data.builder().hasThreeMonthsHistory(true).build();
+        } else {
+            data = CheckAccountTransactionHistoryResponseDto.Data.builder().hasThreeMonthsHistory(false).build();
+        }
 
-        return CheckAccountTransactionHistoryResponseDto.builder()
+        // dto
+        CheckAccountTransactionHistoryResponseDto checkAccountTransactionHistoryResponseDto = CheckAccountTransactionHistoryResponseDto.builder()
                 .success(true)
-                .message("[TransactionService - 000] 계좌 지출 거래내역이 3개월 이상 있는지 조회 성공")
+                .message("[TransactionService - 000] 계좌 거래내역이 3개월 이상 있는지 조회 성공")
                 .data(data)
                 .build();
 
+        return checkAccountTransactionHistoryResponseDto;
     }
 
     /**
@@ -365,27 +362,37 @@ public class TransactionService {
         }
 
         // startDate 이후의 slot 거래내역 전체조회하기 (오름차순)
-        List<Transaction> transactions = transactionRepository.findByAccountSlotUuidForGraph(accountSlotUuid, startDate);
+        List<Transaction> all = transactionRepository.findByAccountSlotUuidForGraph(accountSlotUuid, startDate);
+
+        // 지출만 남기기: "입금", "입금(이체)" 는 제외
+        List<Transaction> spending = new ArrayList<>();
+        for (Transaction t : all) {
+            String name = t.getType(); // 저장 시 transactionTypeName 넣었던 필드
+            boolean isDeposit = "입금".equals(name) || "입금(이체)".equals(name);
+            if (!isDeposit) {
+                spending.add(t);
+            }
+        }
 
         // dto > data > transactions
         List<GetAccountSlotTransactionDailySpendingResponseDto.TransactionDto> transactionDtos = new ArrayList<>();
-        for(Transaction transaction : transactions) {
-            GetAccountSlotTransactionDailySpendingResponseDto.TransactionDto transactionDto = GetAccountSlotTransactionDailySpendingResponseDto.TransactionDto.builder()
-                    .date(transaction.getTransactionAt().toLocalDate())
-                    .spent(transaction.getAmount())
-                    .build();
-
-            transactionDtos.add(transactionDto);
+        for (Transaction t : spending) {
+            transactionDtos.add(
+                    GetAccountSlotTransactionDailySpendingResponseDto.TransactionDto.builder()
+                            .date(t.getTransactionAt().toLocalDate())
+                            .spent(t.getAmount())
+                            .build()
+            );
         }
 
-        // dto
-        GetAccountSlotTransactionDailySpendingResponseDto getAccountSlotTransactionDailySpendingResponseDto = GetAccountSlotTransactionDailySpendingResponseDto.builder()
+        return GetAccountSlotTransactionDailySpendingResponseDto.builder()
                 .success(true)
-                .message("[TransactionService - 000] 기준일 이후 슬롯 거래내역 조회 성공")
-                .data(GetAccountSlotTransactionDailySpendingResponseDto.Data.builder().startDate(startDate.toLocalDate()).transactions(transactionDtos).build())
+                .message("[TransactionService - 000] 기준일 이후 슬롯 '지출' 거래내역 조회 성공")
+                .data(GetAccountSlotTransactionDailySpendingResponseDto.Data.builder()
+                        .startDate(startDate.toLocalDate())
+                        .transactions(transactionDtos)
+                        .build())
                 .build();
-
-        return getAccountSlotTransactionDailySpendingResponseDto;
     }
 
     /**
