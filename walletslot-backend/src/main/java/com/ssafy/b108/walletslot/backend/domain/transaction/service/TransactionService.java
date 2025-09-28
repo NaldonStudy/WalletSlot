@@ -7,6 +7,7 @@ import com.ssafy.b108.walletslot.backend.common.dto.Header;
 import com.ssafy.b108.walletslot.backend.common.util.AESUtil;
 import com.ssafy.b108.walletslot.backend.common.util.LocalDateTimeFormatter;
 import com.ssafy.b108.walletslot.backend.common.util.RandomNumberGenerator;
+import com.ssafy.b108.walletslot.backend.domain.account.dto.external.SSAFYGetAccountHolderNameResponseDto;
 import com.ssafy.b108.walletslot.backend.domain.account.entity.Account;
 import com.ssafy.b108.walletslot.backend.domain.account.repository.AccountRepository;
 import com.ssafy.b108.walletslot.backend.domain.notification.entity.Notification;
@@ -26,7 +27,9 @@ import com.ssafy.b108.walletslot.backend.domain.slot.repository.SlotRepository;
 import com.ssafy.b108.walletslot.backend.domain.transaction.dto.*;
 import com.ssafy.b108.walletslot.backend.domain.transaction.entity.Transaction;
 import com.ssafy.b108.walletslot.backend.domain.transaction.repository.TransactionRepository;
+import com.ssafy.b108.walletslot.backend.domain.user.entity.Email;
 import com.ssafy.b108.walletslot.backend.domain.user.entity.User;
+import com.ssafy.b108.walletslot.backend.domain.user.repository.EmailRepository;
 import com.ssafy.b108.walletslot.backend.domain.user.repository.UserRepository;
 import com.ssafy.b108.walletslot.backend.global.error.AppException;
 import com.ssafy.b108.walletslot.backend.global.error.ErrorCode;
@@ -48,6 +51,8 @@ import org.springframework.web.reactive.function.client.WebClient;
 import javax.crypto.SecretKey;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -67,6 +72,7 @@ public class TransactionService {
     private final MerchantSlotDecisionRepository merchantSlotDecisionRepository;
     private final NotificationRepository notificationRepository;
     private final PushEndpointRepository pushEndpointRepository;
+    private final EmailRepository emailRepository;
     private final FcmService fcmService;
     private final RestTemplate restTemplate;
 
@@ -126,6 +132,144 @@ public class TransactionService {
 
         // 응답
         return getAccountTransactionListResponseDto;
+    }
+
+    /**
+     * 6-1-2 계좌 거래내역이 3개월 이상 있는지 조회
+     */
+    public CheckAccountTransactionHistoryResponseDto checkAccountTransactionHistory(Long userId, String accountUuid) {
+
+        // User 조회
+        User user = userRepository.findById(userId).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND, "TransactionService - 001"));
+
+        // userId != account userId 이면 403 응답
+        Account account = accountRepository.findByUuid(accountUuid).orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "TransactionService - 004"));
+        if(userId != account.getUser().getId()) {
+            throw new AppException(ErrorCode.FORBIDDEN, "TransactionService - 005");
+        }
+
+        // SSAFY 금융 API >>>>> 2.4.6 예금주 조회
+        // 요청보낼 url
+        String url = "https://finopenapi.ssafy.io/ssafy/api/v1/edu/demandDeposit/inquireDemandDepositAccountHolderName";
+
+        // body 만들기
+        Map<String, String> formattedDateTime = LocalDateTimeFormatter.formatter();
+        Header header = Header.builder()
+                .apiName("inquireDemandDepositAccountHolderName")
+                .transmissionDate(formattedDateTime.get("date"))
+                .transmissionTime(formattedDateTime.get("time"))
+                .apiServiceCode("inquireDemandDepositAccountHolderName")
+                .institutionTransactionUniqueNo(formattedDateTime.get("date") + formattedDateTime.get("time") + RandomNumberGenerator.generateRandomNumber())
+                .apiKey(ssafyFinanceApiKey)
+                .userKey(user.getUserKey())
+                .build();
+
+        Map<String, Object> body = new HashMap<>();
+        body.put("Header", header);
+        try {
+            body.put("accountNo", AESUtil.decrypt(account.getEncryptedAccountNo(), encryptionKey));
+        } catch(Exception e) {
+            e.printStackTrace();
+            throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "TransactionService - 000");
+        }
+
+        // 요청보낼 http entity 만들기
+        HttpEntity<Map<String, Object>> httpEntity = new HttpEntity<>(body);
+
+        // 요청 보내기
+        ResponseEntity<SSAFYGetAccountHolderNameResponseDto> httpResponse = restTemplate.exchange(
+                url,
+                HttpMethod.POST,
+                httpEntity,
+                SSAFYGetAccountHolderNameResponseDto.class
+        );
+
+        // 사용자 이름과 예금주 명이 불일치하면 403 응답
+        Email email = emailRepository.findByUser(user).orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "AccountService - 000"));
+        String emailStr = email.getEmail();
+        int atIndex = emailStr.indexOf("@");
+        String userName = emailStr.substring(0, atIndex);
+
+        if(!userName.equals(httpResponse.getBody().getREC().getUserName())) {
+            throw new AppException(ErrorCode.ACCOUNT_HOLDER_NAME_MISMATCH, "AccountService - 000");
+        }
+
+        // SSAFY 금융 API >>>>> 2.4.12 계좌 거래 내역 조회
+        // 요청보낼 url
+        String url2 = "https://finopenapi.ssafy.io/ssafy/api/v1/edu/demandDeposit/inquireTransactionHistoryList";
+
+        // Header 만들기
+        Map<String, String> formattedDateTime2 = LocalDateTimeFormatter.formatter();
+        Header header2 = Header.builder()
+                .apiName("inquireTransactionHistoryList")
+                .transmissionDate(formattedDateTime.get("date"))
+                .transmissionTime(formattedDateTime.get("time"))
+                .apiServiceCode("inquireTransactionHistoryList")
+                .institutionTransactionUniqueNo(formattedDateTime2.get("date") + formattedDateTime2.get("time") + RandomNumberGenerator.generateRandomNumber())
+                .apiKey(ssafyFinanceApiKey)
+                .userKey(user.getUserKey())
+                .build();
+
+        // body 만들기
+        Map<String, Object> body2 = new HashMap<>();
+        body2.put("Header", header2);
+        try {
+            body2.put("accountNo", AESUtil.decrypt(account.getEncryptedAccountNo(), encryptionKey));
+        } catch(Exception e) {
+            e.printStackTrace();
+            throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "TransactionService - 000");
+        }
+        body2.put("startDate", "19700101");
+
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMdd");
+        body2.put("endDate", LocalDate.now().format(formatter));
+        body2.put("transactionType", "A");
+        body2.put("orderByType", "ASC");
+
+        // 요청보낼 http entity 만들기
+        HttpEntity<Map<String, Object>> httpEntity2 = new HttpEntity<>(body2);
+
+        // 요청 보내기
+        ResponseEntity<SSAFYGetTransactionListResponseDto> httpResponse2 = restTemplate.exchange(
+                url2,
+                HttpMethod.POST,
+                httpEntity2,
+                SSAFYGetTransactionListResponseDto.class
+        );
+
+        List<SSAFYGetTransactionListResponseDto.Transaction> transactions = httpResponse2.getBody().getREC().getList();
+
+        if(transactions.size() == 0) {
+            // dto
+            CheckAccountTransactionHistoryResponseDto checkAccountTransactionHistoryResponseDto = CheckAccountTransactionHistoryResponseDto.builder()
+                    .success(true)
+                    .message("[TransactionService - 000] 계좌 거래내역이 3개월 이상 있는지 조회 성공")
+                    .data(CheckAccountTransactionHistoryResponseDto.Data.builder().hasThreeMonthsHistory(false).build())
+                    .build();
+
+            return checkAccountTransactionHistoryResponseDto;
+        }
+
+        LocalDate startDate = LocalDateTimeFormatter.stringToLocalDate(transactions.get(0).getTransactionDate());
+        LocalDate endDate = LocalDateTimeFormatter.stringToLocalDate(transactions.get(transactions.size()-1).getTransactionDate());
+        long monthsBetween = ChronoUnit.MONTHS.between(startDate, endDate);
+
+        // dto > data
+        CheckAccountTransactionHistoryResponseDto.Data data = null;
+        if(monthsBetween >= 3) {
+            data = CheckAccountTransactionHistoryResponseDto.Data.builder().hasThreeMonthsHistory(true).build();
+        } else {
+            data = CheckAccountTransactionHistoryResponseDto.Data.builder().hasThreeMonthsHistory(false).build();
+        }
+
+        // dto
+        CheckAccountTransactionHistoryResponseDto checkAccountTransactionHistoryResponseDto = CheckAccountTransactionHistoryResponseDto.builder()
+                .success(true)
+                .message("[TransactionService - 000] 계좌 거래내역이 3개월 이상 있는지 조회 성공")
+                .data(data)
+                .build();
+
+        return checkAccountTransactionHistoryResponseDto;
     }
 
     /**
