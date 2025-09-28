@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { View, Text, StyleSheet, LayoutChangeEvent, TouchableWithoutFeedback } from "react-native";
+import React, { useState, useEffect } from "react";
+import { View, Text, StyleSheet, LayoutChangeEvent, TouchableWithoutFeedback, TouchableOpacity } from "react-native";
 import Svg, {
   Polyline,
   Circle as SvgCircle,
@@ -32,10 +32,31 @@ const CumulativeSpendingChart: React.FC<CumulativeSpendingChartProps> = ({
   const [selectedPoint, setSelectedPoint] = useState<{ index: number; amount: number; date: string; dailySpent: number } | null>(null);
 
   let cumulative = 0;
-  const cumulativeData = data.map((item) => {
+  const cumulativeData = data.map((item, index) => {
     cumulative += item.spent;
     return { x: item.date, y: cumulative };
   });
+
+  // 예산을 넘은 시점의 툴팁 자동 표시
+  useEffect(() => {
+    if (data && data.length > 0 && !selectedPoint) {
+      // 예산을 넘은 첫 번째 인덱스 찾기
+      const overBudgetIndex = cumulativeData.findIndex(point => point.y > budget);
+      
+      if (overBudgetIndex !== -1) {
+        // 예산을 넘은 시점의 툴팁 표시
+        const overBudgetPoint = cumulativeData[overBudgetIndex];
+        const overBudgetData = data[overBudgetIndex];
+        
+        setSelectedPoint({
+          index: overBudgetIndex,
+          amount: overBudgetPoint.y,
+          date: overBudgetData.date,
+          dailySpent: overBudgetData.spent,
+        });
+      }
+    }
+  }, [data, cumulativeData, selectedPoint, budget]);
 
   if (!data || data.length === 0) {
     return (
@@ -60,6 +81,13 @@ const CumulativeSpendingChart: React.FC<CumulativeSpendingChartProps> = ({
   const handlePointPress = (index: number) => {
     const point = cumulativeData[index];
     const originalData = data[index];
+    
+    // 같은 점을 다시 터치하면 툴팁 닫기
+    if (selectedPoint && selectedPoint.index === index) {
+      setSelectedPoint(null);
+      return;
+    }
+    
     setSelectedPoint({
       index,
       amount: point.y,
@@ -156,8 +184,9 @@ const CumulativeSpendingChart: React.FC<CumulativeSpendingChartProps> = ({
   })();
 
   return (
-    <TouchableWithoutFeedback onPress={handleBackgroundPress}>
-      <View style={styles.container} onLayout={handleLayout}>
+    <View style={styles.container} onLayout={handleLayout}>
+      <TouchableWithoutFeedback onPress={handleBackgroundPress}>
+        <View style={styles.chartContainer}>
         {chartWidth > 0 && chartHeight > 0 && (
         <Svg width="100%" height="100%" style={{ overflow: "visible" }}>
           <Defs>
@@ -215,11 +244,10 @@ const CumulativeSpendingChart: React.FC<CumulativeSpendingChartProps> = ({
               key={i}
               cx={scaleX(i)}
               cy={scaleY(p.y)}
-              r={selectedPoint?.index === i ? "6" : "4"}
+              r={selectedPoint?.index === i ? "8" : "6"}
               fill={selectedPoint?.index === i ? "#FF6B6B" : color}
               stroke="#fff"
               strokeWidth="2"
-              onPress={() => handlePointPress(i)}
             />
           ))}
 
@@ -242,6 +270,28 @@ const CumulativeSpendingChart: React.FC<CumulativeSpendingChartProps> = ({
           </SvgText>
         </Svg>
       )}
+        </View>
+      </TouchableWithoutFeedback>
+      
+      {/* 터치 영역을 위한 투명한 TouchableOpacity들 */}
+      {chartWidth > 0 && chartHeight > 0 && cumulativeData.map((p, i) => (
+        <TouchableOpacity
+          key={`touch-${i}`}
+          style={{
+            position: 'absolute',
+            left: scaleX(i) - 15,
+            top: scaleY(p.y) - 15,
+            width: 30,
+            height: 30,
+            backgroundColor: 'transparent',
+          }}
+          onPress={() => {
+            console.log('TouchableOpacity 터치됨:', i);
+            handlePointPress(i);
+          }}
+          activeOpacity={0.7}
+        />
+      ))}
       
       {/* 선택된 점 정보 표시 - 점 아래에 툴팁 */}
       {selectedPoint && (
@@ -250,35 +300,25 @@ const CumulativeSpendingChart: React.FC<CumulativeSpendingChartProps> = ({
             styles.tooltip,
             {
               position: 'absolute',
-              left: (() => {
-                const x = scaleX(selectedPoint.index);
-                const tooltipWidth = 100; // 툴팁 최소 너비
-                const padding = 8; // 화면 가장자리 여백
+              left: Math.max(8, Math.min(scaleX(selectedPoint.index) - 60, chartWidth - 128)),
+              top: (() => {
+                const pointY = scaleY(cumulativeData[selectedPoint.index].y);
+                const tooltipHeight = 80; // 툴팁 예상 높이
+                const bottomSpace = chartHeight - pointY;
                 
-                // 첫 번째 점의 툴팁 왼쪽 위치를 기준으로 계산
-                const firstPointX = scaleX(0);
-                const firstPointTooltipLeft = Math.max(padding, firstPointX - tooltipWidth / 2);
-                
-                // 현재 점의 중앙 정렬 위치
-                const centerAlignedX = x - tooltipWidth / 2;
-                
-                // 오른쪽 끝 제한 (화면 끝을 넘지 않게)
-                const rightEdge = chartWidth - padding;
-                const maxRightX = rightEdge - tooltipWidth;
-                
-                // 왼쪽과 오른쪽 모두 제한
-                const constrainedX = Math.max(
-                  firstPointTooltipLeft, // 첫 번째 점 툴팁 왼쪽 끝보다 왼쪽으로 가지 않음
-                  Math.min(centerAlignedX, maxRightX) // 오른쪽 끝을 넘지 않게
-                );
-                
-                return constrainedX;
+                // 점이 화면 하단에 매우 가까울 때만 위쪽에 표시
+                if (bottomSpace < tooltipHeight + 50) {
+                  return pointY - tooltipHeight - 10;
+                } else {
+                  return pointY + 30;
+                }
               })(),
-              top: scaleY(cumulativeData[selectedPoint.index].y) + 20, // 첫 번째 점보다 30px 아래
             }
           ]}
         >
-          <Text style={styles.tooltipDate}>{selectedPoint.date}</Text>
+          <Text style={styles.tooltipDate}>
+            {selectedPoint.date.split('-').slice(1).join('/')}
+          </Text>
           <Text style={styles.tooltipDaily}>
             당일: {selectedPoint.dailySpent.toLocaleString()}원
           </Text>
@@ -287,13 +327,15 @@ const CumulativeSpendingChart: React.FC<CumulativeSpendingChartProps> = ({
           </Text>
         </View>
       )}
-      </View>
-    </TouchableWithoutFeedback>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
+    flex: 1,
+  },
+  chartContainer: {
     flex: 1,
   },
   summaryText: {
@@ -306,7 +348,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 8,
-    minWidth: 100,
+    minWidth: 120,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
@@ -315,6 +357,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
     elevation: 5,
+    zIndex: 1000,
   },
   tooltipDate: {
     color: '#fff',

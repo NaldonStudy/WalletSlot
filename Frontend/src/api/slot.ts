@@ -30,17 +30,44 @@ export const slotApi = {
   /**
    * 계좌별 슬롯 하루 지출 합계 (그래프 용도)
    */
-  getSlotDailySpending: async (accountId: string, slotId: string): Promise<BaseResponse<SlotDailySpendingResponse>> => {
+  getSlotDailySpending: async (accountId: string, accountSlotId: string): Promise<BaseResponse<SlotDailySpendingResponse>> => {
     try {
-      // return await apiClient.get<SlotDailySpendingResponse>(
-      //   API_ENDPOINTS.ACCOUNT_SLOT_DAILY_SPENDING(accountId, slotId)
-      // );
-      console.warn('[slotApi] getSlotDailySpending: legacy endpoint removed; returning default empty payload');
-      return {
-        success: true,
-        message: 'endpoint-removed',
-        data: { startDate: '', transactions: [] }
-      } as BaseResponse<SlotDailySpendingResponse>;
+      console.log('[getSlotDailySpending] API 요청:', {
+        accountId,
+        accountSlotId,
+        url: API_ENDPOINTS.ACCOUNT_SLOT_DAILY_SPENDING(accountId, accountSlotId)
+      });
+      
+      const response = await apiClient.get<SlotDailySpendingResponse>(
+        API_ENDPOINTS.ACCOUNT_SLOT_DAILY_SPENDING(accountId, accountSlotId)
+      );
+      
+      console.log('[getSlotDailySpending] API 응답:', {
+        success: response.success,
+        message: response.message,
+        data: response.data
+      });
+      
+      // 날짜별 그룹화 및 합계 계산 (로그 없이)
+      if (response.data && response.data.transactions) {
+        const groupedByDate = response.data.transactions.reduce((acc, tx) => {
+          if (acc[tx.date]) {
+            acc[tx.date] += tx.spent;
+          } else {
+            acc[tx.date] = tx.spent;
+          }
+          return acc;
+        }, {} as { [date: string]: number });
+        
+        const groupedTransactions = Object.entries(groupedByDate)
+          .map(([date, spent]) => ({ date, spent }))
+          .sort((a, b) => a.date.localeCompare(b.date));
+        
+        // 그룹화된 데이터로 응답 수정
+        response.data.transactions = groupedTransactions;
+      }
+      
+      return response;
     } catch (error) {
       const apiError = error as ApiError | Error;
       const message =
@@ -48,7 +75,12 @@ export const slotApi = {
         (apiError as Error)?.message ??
         '슬롯 하루 지출 합계 조회에 실패했습니다.';
 
-      console.error('[getSlotDailySpending] API 호출 실패:', message, apiError);
+      console.error('[getSlotDailySpending] API 호출 실패:', {
+        message,
+        error: apiError,
+        accountId,
+        accountSlotId
+      });
       throw new Error(message);
     }
   },

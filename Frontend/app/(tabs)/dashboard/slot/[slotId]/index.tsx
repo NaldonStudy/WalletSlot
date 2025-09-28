@@ -31,7 +31,7 @@ export default function SlotDetailScreen() {
 
     const { data: dailySpending, isLoading } = useSlotDailySpending(
         selectedSlot?.accountId, // 계좌 ID
-        slotId
+        selectedSlot?.accountSlotId // 계좌 슬롯 ID
     );
 
     // 실제 API를 사용한 거래내역 조회
