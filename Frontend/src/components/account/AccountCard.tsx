@@ -4,12 +4,14 @@ import { format } from '@/src/utils';
 import { Image } from 'expo-image';
 import React from 'react';
 import { StyleProp, StyleSheet, Text, View, ViewStyle, TouchableOpacity } from 'react-native';
+import RepresentativeIcon from '@/src/assets/icons/common/representative.svg';
 
 export type AccountCardData = {
     bankId: string; // 서버에서 오는 bankId (UUID)
     accountName: string;
     accountNumber: string;
     balance: number;
+    isPrimary?: boolean; // 대표 계좌 여부
 };
 
 // 배경색의 밝기에 따라 글자색 결정하는 함수
@@ -37,6 +39,7 @@ const AccountCard: React.FC<AccountCardProps> = ({
     accountName,
     accountNumber,
     balance,
+    isPrimary = false,
     style,
     onViewTransactions,
 }) => {
@@ -54,6 +57,16 @@ const AccountCard: React.FC<AccountCardProps> = ({
 
     return (
         <View style={[styles.card, { backgroundColor: bankInfo.color }, style]}>
+            {/* 대표 계좌 아이콘 */}
+            {isPrimary && (
+                <View style={styles.primaryStarContainer}>
+                    <RepresentativeIcon 
+                        width={28} 
+                        height={28} 
+                        fill={textColor}
+                    />
+                </View>
+            )}
             <View style={styles.topContent}>
                 {/* 상단: 은행 로고 + 은행명 */}
                 <View style={styles.row}>
@@ -102,6 +115,13 @@ const styles = StyleSheet.create({
         elevation: 3,
         height: 180,
         justifyContent: 'space-between', // 세로 공간 분배
+        position: 'relative', // 별표 위치 지정을 위해
+    },
+    primaryStarContainer: {
+        position: 'absolute',
+        top: Spacing.sm,
+        right: Spacing.sm,
+        zIndex: 1,
     },
     topContent: {
         flex: 1,
