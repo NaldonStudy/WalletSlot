@@ -3,7 +3,7 @@ import { themes } from '@/src/constants/theme';
 import { SlotData } from '@/src/types';
 import React, { memo } from "react";
 import { StyleSheet, Text, useColorScheme, View, TouchableOpacity } from "react-native";
-import Svg, { G, Path, Text as SvgText } from "react-native-svg";
+import Svg, { G, Path, Text as SvgText, Circle } from "react-native-svg";
 
 type AccountDonutChartProps = {
     data: SlotData[];
@@ -17,14 +17,15 @@ const AccountDonutChart = memo(({ data, onSlotPress }: AccountDonutChartProps) =
     // 미분류 슬롯 제외
     const filteredData = data.filter(slot => slot.slotId !== UNCATEGORIZED_SLOT_ID);
     const totalBudget = filteredData.reduce((sum, slot) => sum + slot.currentBudget, 0);
+    
     const size = 180;
     const innerRadius = 60;
     const outerRadius = 80;
     const centerX = size / 2;
     const centerY = size / 2;
 
-    // totalBudget이 0이면 빈 차트 표시
-    if (totalBudget === 0 || filteredData.length === 0) {
+    // 슬롯 데이터가 없으면 빈 차트 표시
+    if (filteredData.length === 0) {
         return (
             <View style={styles.container}>
                 <Text style={[styles.emptyText, { color: theme.colors.text.secondary }]}>
@@ -35,18 +36,33 @@ const AccountDonutChart = memo(({ data, onSlotPress }: AccountDonutChartProps) =
     }
 
      // 각 슬롯의 각도 계산 (간격 포함)
-     const gapAngle = 2; // 각 슬롯 사이 간격 (도)
+     const gapAngle = filteredData.length > 1 ? 2 : 0; // 슬롯이 2개 이상일 때만 간격 적용
      const totalGapAngle = gapAngle * filteredData.length; // 전체 간격
      const availableAngle = 360 - totalGapAngle; // 사용 가능한 각도
      
      let currentAngle = -90; // -90도부터 시작 (12시 방향)
-     const slots = filteredData.map((slot, index) => {
-         const budgetRatio = slot.currentBudget / totalBudget;
-         const angle = budgetRatio * availableAngle; // 간격을 제외한 각도
+    const slots = filteredData.map((slot, index) => {
         const remainRatio = slot.currentBudget > 0 ? slot.remainingBudget / slot.currentBudget : 0;
-
         const isOverBudget = slot.remainingBudget < 0;
         const slotColor = SLOT_CATEGORIES[slot.slotId as keyof typeof SLOT_CATEGORIES]?.color || '#F1A791';
+        
+        // 슬롯이 하나일 때는 항상 360도 원으로 만들기
+        if (filteredData.length === 1) {
+            return {
+                ...slot,
+                startAngle: -90,
+                endAngle: 270, // -90 + 360 = 270
+                budgetRatio: 1,
+                remainRatio,
+                isOverBudget,
+                displayColor: isOverBudget ? '#FF4444' : slotColor,
+            };
+        }
+         
+         // 슬롯이 여러 개일 때는 예산 비율에 따라 계산
+         const budgetRatio = totalBudget > 0 ? slot.currentBudget / totalBudget : 1 / filteredData.length;
+         const angle = budgetRatio * availableAngle;
+         
          const slotData = {
              ...slot,
              startAngle: currentAngle,
@@ -97,80 +113,141 @@ const AccountDonutChart = memo(({ data, onSlotPress }: AccountDonutChartProps) =
 
                  {/* 각 슬롯별 섹션 */}
                  {slots.map((slot, index) => {
-                     const remainAngle = slot.remainRatio * (slot.endAngle - slot.startAngle);
-                     const usedAngle = (slot.endAngle - slot.startAngle) - remainAngle; // 사용된 각도
+                     const totalAngle = slot.endAngle - slot.startAngle;
+                     const remainAngle = slot.remainRatio * totalAngle;
+                     const usedAngle = totalAngle - remainAngle; // 사용된 각도
                      const usedEndAngle = slot.startAngle + usedAngle; // 사용된 부분 끝 각도
+                     
+                     
 
                      return (
                           <G key={slot.slotId}>
-                              {slot.isOverBudget ? (
-                                  // 예산 초과 시: 사용된 부분만 흰색으로 표시 (남은 부분은 비워둠)
+                              {/* 슬롯이 하나이고 잔액이 100%일 때만 단순한 원형 */}
+                              {filteredData.length === 1 && slot.remainRatio === 1 ? (
                                   <>
-                                      {/* 사용된 부분 그림자 */}
-                                      <Path
-                                          d={createArcPath(slot.startAngle, slot.endAngle, innerRadius + 1, outerRadius + 1)}
+                                      {/* 그림자 */}
+                                      <Circle
+                                          cx={centerX}
+                                          cy={centerY}
+                                          r={outerRadius + 1}
                                           fill="#000000"
                                           fillOpacity="0.2"
-                                          stroke="none"
                                       />
-                                      {/* 사용된 부분 (흰색) */}
-                                      <Path
-                                          d={createArcPath(slot.startAngle, slot.endAngle, innerRadius, outerRadius)}
-                                          fill={theme.colors.background.primary}
-                                          stroke="none"
+                                      {/* 메인 원 */}
+                                      <Circle
+                                          cx={centerX}
+                                          cy={centerY}
+                                          r={outerRadius}
+                                          fill={slot.displayColor}
+                                      />
+                                      {/* 내부 원 */}
+                                      <Circle
+                                          cx={centerX}
+                                          cy={centerY}
+                                          r={innerRadius}
+                                          fill={colorScheme === 'dark' ? theme.colors.primary[800] : theme.colors.primary[50]}
                                       />
                                   </>
                               ) : (
                                   <>
-                                      {/* 사용된 부분 그림자 */}
-                                      <Path
-                                          d={createArcPath(slot.startAngle, usedEndAngle, innerRadius + 1, outerRadius + 1)}
-                                          fill="#000000"
-                                          fillOpacity="0.2"
-                                          stroke="none"
-                                      />
-                                      {/* 남은 부분 그림자 */}
-                                      <Path
-                                          d={createArcPath(usedEndAngle, slot.endAngle, innerRadius + 1, outerRadius + 1)}
-                                          fill="#000000"
-                                          fillOpacity="0.2"
-                                          stroke="none"
-                                      />
-                                      {/* 사용된 부분 (연한 색) - 먼저 그리기 (시계 방향으로 먼저) */}
-                                      <Path
-                                          d={createArcPath(slot.startAngle, usedEndAngle, innerRadius, outerRadius)}
-                                          fill={theme.colors.background.secondary} // 30은 투명도 (연한 색)
-                                          stroke="none" // 슬롯 내부는 경계선 없음
-                                      />
-                                      {/* 남은 부분 (진한 색) - 나중에 그리기 (사용된 부분 뒤에) */}
-                                      <Path
-                                          d={createArcPath(usedEndAngle, slot.endAngle, innerRadius, outerRadius)}
-                                          fill={slot.displayColor} // 진한 색
-                                          stroke="none" // 슬롯 내부는 경계선 없음
-                                      />
+                                      {slot.isOverBudget ? (
+                                          // 예산 초과 시: 사용된 부분만 흰색으로 표시 (남은 부분은 비워둠)
+                                          <>
+                                              {/* 사용된 부분 그림자 */}
+                                              <Path
+                                                  d={createArcPath(slot.startAngle, slot.endAngle, innerRadius + 1, outerRadius + 1)}
+                                                  fill="#000000"
+                                                  fillOpacity="0.2"
+                                                  stroke="none"
+                                              />
+                                              {/* 사용된 부분 (흰색) */}
+                                              <Path
+                                                  d={createArcPath(slot.startAngle, slot.endAngle, innerRadius, outerRadius)}
+                                                  fill={theme.colors.background.primary}
+                                                  stroke="none"
+                                              />
+                                          </>
+                                      ) : (
+                                          <>
+                                              {/* 사용된 부분 그림자 */}
+                                              {usedAngle > 0 && (
+                                                  <Path
+                                                      d={createArcPath(slot.startAngle, usedEndAngle, innerRadius + 1, outerRadius + 1)}
+                                                      fill="#000000"
+                                                      fillOpacity="0.2"
+                                                      stroke="none"
+                                                  />
+                                              )}
+                                              {/* 남은 부분 그림자 */}
+                                              {remainAngle > 0 && usedAngle > 0 && (
+                                                  <Path
+                                                      d={createArcPath(usedEndAngle, slot.endAngle, innerRadius + 1, outerRadius + 1)}
+                                                      fill="#000000"
+                                                      fillOpacity="0.2"
+                                                      stroke="none"
+                                                  />
+                                              )}
+                                              {/* 사용된 부분 (연한 색) - 먼저 그리기 (시계 방향으로 먼저) */}
+                                              {usedAngle > 0 && (
+                                                  <Path
+                                                      d={createArcPath(slot.startAngle, usedEndAngle, innerRadius, outerRadius)}
+                                                      fill={theme.colors.background.secondary} // 30은 투명도 (연한 색)
+                                                      stroke="none" // 슬롯 내부는 경계선 없음
+                                                  />
+                                              )}
+                                              {/* 남은 부분 (진한 색) - 나중에 그리기 (사용된 부분 뒤에) */}
+                                              {remainAngle > 0 && usedAngle > 0 && (
+                                                  <Path
+                                                      d={createArcPath(usedEndAngle, slot.endAngle, innerRadius, outerRadius)}
+                                                      fill={slot.displayColor} // 진한 색
+                                                      stroke="none" // 슬롯 내부는 경계선 없음
+                                                  />
+                                              )}
+                                              {/* 예산을 모두 사용했을 때는 전체를 연한 색으로 표시 */}
+                                              {usedAngle === totalAngle && (
+                                                  <Path
+                                                      d={createArcPath(slot.startAngle, slot.endAngle, innerRadius, outerRadius)}
+                                                      fill={theme.colors.background.secondary}
+                                                      stroke="none"
+                                                  />
+                                              )}
+                                              {/* 예산을 전혀 사용하지 않았을 때는 전체를 진한 색으로 표시 */}
+                                              {usedAngle === 0 && remainAngle === totalAngle && (
+                                                  <Path
+                                                      d={createArcPath(slot.startAngle, slot.endAngle, innerRadius, outerRadius)}
+                                                      fill={slot.displayColor}
+                                                      stroke="none"
+                                                  />
+                                              )}
+                                          </>
+                                      )}
                                   </>
                               )}
                               
-                              {/* 슬롯 경계선 (시작과 끝) */}
-                              <Path
-                                  d={`M ${polarToCartesian(centerX, centerY, innerRadius, slot.startAngle).x} ${polarToCartesian(centerX, centerY, innerRadius, slot.startAngle).y} L ${polarToCartesian(centerX, centerY, outerRadius, slot.startAngle).x} ${polarToCartesian(centerX, centerY, outerRadius, slot.startAngle).y}`}
-                                  fill="none"
-                                  stroke={theme.colors.background.tertiary}
-                                  strokeWidth="4"
-                                  strokeLinecap="round"
-                              />
-                              <Path
-                                  d={`M ${polarToCartesian(centerX, centerY, innerRadius, slot.endAngle).x} ${polarToCartesian(centerX, centerY, innerRadius, slot.endAngle).y} L ${polarToCartesian(centerX, centerY, outerRadius, slot.endAngle).x} ${polarToCartesian(centerX, centerY, outerRadius, slot.endAngle).y}`}
-                                  fill="none"
-                                  stroke={theme.colors.background.tertiary}
-                                  strokeWidth="4"
-                                  strokeLinecap="round"
-                              />
+                              {/* 슬롯 경계선 (시작과 끝) - 슬롯이 2개 이상일 때만 */}
+                              {filteredData.length > 1 && (
+                                  <>
+                                      <Path
+                                          d={`M ${polarToCartesian(centerX, centerY, innerRadius, slot.startAngle).x} ${polarToCartesian(centerX, centerY, innerRadius, slot.startAngle).y} L ${polarToCartesian(centerX, centerY, outerRadius, slot.startAngle).x} ${polarToCartesian(centerX, centerY, outerRadius, slot.startAngle).y}`}
+                                          fill="none"
+                                          stroke={colorScheme === 'dark' ? theme.colors.primary[800] : theme.colors.primary[50]}
+                                          strokeWidth="5"
+                                          strokeLinecap="round"
+                                      />
+                                      <Path
+                                          d={`M ${polarToCartesian(centerX, centerY, innerRadius, slot.endAngle).x} ${polarToCartesian(centerX, centerY, innerRadius, slot.endAngle).y} L ${polarToCartesian(centerX, centerY, outerRadius, slot.endAngle).x} ${polarToCartesian(centerX, centerY, outerRadius, slot.endAngle).y}`}
+                                          fill="none"
+                                          stroke={colorScheme === 'dark' ? theme.colors.primary[800] : theme.colors.primary[50]}
+                                          strokeWidth="5"
+                                          strokeLinecap="round"
+                                      />
+                                  </>
+                              )}
                           </G>
                      );
                  })}
 
-                {/* 중앙 텍스트 */}
+                {/* 중앙 텍스트 - 항상 표시 */}
                 <G>
                     <SvgText
                         x={centerX}
@@ -235,7 +312,7 @@ const AccountDonutChart = memo(({ data, onSlotPress }: AccountDonutChartProps) =
             {/* 범례 */}
             <View style={styles.legend}>
                 {filteredData.map((slot) => {
-                    const remainPercentage = (slot.remainingBudget / slot.currentBudget * 100).toFixed(0);
+                    const remainPercentage = slot.currentBudget > 0 ? (slot.remainingBudget / slot.currentBudget * 100).toFixed(0) : '0';
                     const isOverBudget = slot.remainingBudget < 0;
                     const slotColor = SLOT_CATEGORIES[slot.slotId as keyof typeof SLOT_CATEGORIES]?.color || '#F1A791';
                     return (

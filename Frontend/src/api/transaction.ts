@@ -35,6 +35,13 @@ export const transactionApi = {
       const queryString = queryParams.toString();
       const url = `/api/accounts/${accountId}/slots/${accountSlotId}/transactions${queryString ? `?${queryString}` : ''}`;
 
+      console.log('[getSlotTransactions] API 요청 정보:', {
+        url,
+        accountId,
+        accountSlotId,
+        params
+      });
+
       const response = await fetch(url);
 
       if (!response.ok) {
@@ -42,18 +49,28 @@ export const transactionApi = {
       }
 
       const data = await response.json();
+      console.log('[getSlotTransactions] API 응답:', data);
       return data as BaseResponse<SlotTransactionsResponse>;
     } catch (error) {
       try {
         // Fallback: 기존 axios 방식
+        console.log('[getSlotTransactions] Fallback axios 방식 사용');
         const res = await apiClient.get<BaseResponse<SlotTransactionsResponse>>(
           `/api/accounts/${accountId}/slots/${accountSlotId}/transactions`,
           { params }
         );
 
+        console.log('[getSlotTransactions] Fallback 응답:', res.data);
         return res.data as BaseResponse<SlotTransactionsResponse>;
       } catch (axiosError) {
-        console.error('[getSlotTransactions] API 호출 실패:', axiosError instanceof Error ? axiosError.message : String(axiosError));
+        console.error('[getSlotTransactions] API 호출 실패:', {
+          accountId,
+          accountSlotId,
+          params,
+          error: axiosError instanceof Error ? axiosError.message : String(axiosError),
+          status: (axiosError as any).response?.status,
+          data: (axiosError as any).response?.data
+        });
         throw axiosError;
       }
     }

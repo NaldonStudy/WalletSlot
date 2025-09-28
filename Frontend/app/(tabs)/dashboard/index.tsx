@@ -169,7 +169,6 @@ export default function DashboardScreen() {
       const slotItemHeight = 140; // 각 슬롯 아이템의 대략적인 높이
       const scrollY = baseOffset + (slotIndex * slotItemHeight);
       
-      console.log('[handleSlotPress] 스크롤 위치:', scrollY);
       
       mainScrollViewRef.current.scrollTo({ y: scrollY, animated: true });
     } else {
@@ -235,11 +234,9 @@ export default function DashboardScreen() {
     
     // scrollY 값도 확인
     const scrollListener = scrollY.addListener(({ value }) => {
-      console.log('[Dashboard] scrollY:', value);
       currentScrollYRef.current = value;
       // summaryOpacity 직접 계산
       const calculatedOpacity = value < 10 ? 0 : value > 50 ? 1 : (value - 10) / (50 - 10);
-      console.log('[Dashboard] calculatedOpacity:', calculatedOpacity);
     });
     
     return () => {
@@ -312,16 +309,14 @@ export default function DashboardScreen() {
           }}>
             <UncategorizedSlotCard 
               remain={uncategorizedAmount} 
-              unreadCount={3} 
+              unreadCount={0} // 실제 개수는 UncategorizedSlotCard 내부에서 API로 조회
               accountId={currentAccount?.accountId}
               onPress={() => {
                 // 직접 opacity 계산
                 const scrollValue = currentScrollYRef.current;
                 const calculatedOpacity = scrollValue < 10 ? 0 : scrollValue > 50 ? 1 : (scrollValue - 10) / (50 - 10);
-                console.log('[Dashboard] UncategorizedSlotCard onPress 호출됨, scrollValue:', scrollValue, 'calculatedOpacity:', calculatedOpacity);
                 // opacity가 0.5 미만이면 터치 무시
                 if (calculatedOpacity < 0.5) {
-                  console.log('[Dashboard] 투명도가 낮아서 미분류 슬롯 터치 무시');
                   return;
                 }
                 // 원래 handlePress 로직 실행
@@ -333,10 +328,12 @@ export default function DashboardScreen() {
                 setSelectedAccount(finalAccountId, UNCATEGORIZED_SLOT_ID);
                 
                 // Store에 미분류 슬롯 정보 저장
+                // 실제 슬롯 데이터에서 accountSlotId를 가져와야 하지만, 
+                // 현재는 UNCATEGORIZED_SLOT_ID를 사용하고 슬롯 상세 화면에서 실제 데이터로 교체됨
                 useSlotStore.getState().setSelectedSlot({
                   slotId: UNCATEGORIZED_SLOT_ID,
                   name: '미분류',
-                  accountSlotId: UNCATEGORIZED_SLOT_ID,
+                  accountSlotId: UNCATEGORIZED_SLOT_ID, // 임시값, 실제로는 슬롯 상세 화면에서 교체됨
                   customName: '미분류',
                   initialBudget: 0,
                   currentBudget: 0,
@@ -365,10 +362,8 @@ export default function DashboardScreen() {
                 // 직접 opacity 계산
                 const scrollValue = currentScrollYRef.current;
                 const calculatedOpacity = scrollValue < 10 ? 0 : scrollValue > 50 ? 1 : (scrollValue - 10) / (50 - 10);
-                console.log('[Dashboard] AccountSummary onViewTransactions 호출됨, scrollValue:', scrollValue, 'calculatedOpacity:', calculatedOpacity);
                 // opacity가 0.5 미만이면 터치 무시
                 if (calculatedOpacity < 0.5) {
-                  console.log('[Dashboard] 투명도가 낮아서 터치 무시');
                   return;
                 }
                 handleViewAllTransactions();
@@ -420,8 +415,9 @@ export default function DashboardScreen() {
           <Text style={[styles.sectionTitle, { color: theme.colors.text.primary }]}>이번 달 슬롯 현황</Text>
           {/* 원형 그래프 */}
           <View style={[styles.chartPlaceholder, theme.shadows.base, {
-            backgroundColor: theme.colors.background.tertiary,
-            borderColor: theme.colors.border.light,
+            backgroundColor: colorScheme === 'dark' ? theme.colors.primary[800] : theme.colors.primary[50],
+            borderColor: theme.colors.primary[300],
+            borderWidth: 1,
           }]}>
             <Text style={[styles.dateText, { color: theme.colors.text.primary }]}>{dateRange}</Text>
             {isSlotsLoading ? (
