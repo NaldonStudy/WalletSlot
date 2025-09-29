@@ -24,6 +24,7 @@ import com.ssafy.b108.walletslot.backend.domain.slot.entity.SlotHistory;
 import com.ssafy.b108.walletslot.backend.domain.slot.repository.AccountSlotRepository;
 import com.ssafy.b108.walletslot.backend.domain.slot.repository.SlotHistoryRepository;
 import com.ssafy.b108.walletslot.backend.domain.slot.repository.SlotRepository;
+import com.ssafy.b108.walletslot.backend.domain.transaction.dto.external.SSAFYGetAccountBalanceResponseDto;
 import com.ssafy.b108.walletslot.backend.domain.transaction.entity.Transaction;
 import com.ssafy.b108.walletslot.backend.domain.transaction.repository.TransactionRepository;
 import com.ssafy.b108.walletslot.backend.domain.user.entity.User;
@@ -41,6 +42,8 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.reactive.function.client.WebClient;
 
 import javax.crypto.SecretKey;
+import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
 
 @Service
@@ -56,30 +59,20 @@ public class SlotService {
     private final SlotHistoryRepository slotHistoryRepository;
     private final RestTemplate restTemplate;
     private final SecretKey encryptionKey;
-    @Qualifier("ssafyGmsWebClient") private final WebClient ssafyGmsWebClient;
     private final TransactionRepository transactionRepository;
     private final NotificationRepository notificationRepository;
     private final PushEndpointRepository pushEndpointRepository;
 
     private final FcmService fcmService;
 
+    @Qualifier("ssafyGmsWebClient") private final WebClient ssafyGmsWebClient;
+    @Qualifier("gptWebClient") private final WebClient gptWebClient;
+
     @Value("${api.ssafy.finance.apiKey}")
     private String ssafyFinanceApiKey;
 
     @Value("${api.ssafy.gms.key}")
     private String ssafyGmsKey;
-
-    private static Map<String, String> incomes = new HashMap<>(); // 수입구간
-
-    // Static Block
-    static {
-        incomes.put("F", "1백만원 ~ 2백만원");
-        incomes.put("E", "2백만원 ~ 3백만원");
-        incomes.put("D", "3백만원 ~ 4백만원");
-        incomes.put("C", "4백만원 ~ 5백만원");
-        incomes.put("B", "5백만원 ~ 1천만원");
-        incomes.put("A", "1천만원 이상");
-    }
 
     // Method
     // 5-1-1
@@ -144,7 +137,7 @@ public class SlotService {
             if(request.getNewBudget() == 0) {
 
                 // newBudget이 0이면 해당 슬롯 삭제하고 거기에 할당돼있던 예산과 거래내역을 모두 미분류 슬롯으로 이동
-                AccountSlot uncategorizedAccountSlot = accountSlotRepository.findUncategorizedSlot(account).orElseThrow(() -> new AppException(ErrorCode.MISSING_UNCATEGORIZED_SLOT, "SlotService - 000"));
+                AccountSlot uncategorizedAccountSlot = accountSlotRepository.findUncategorizedAccountSlot(accountSlotUuid).orElseThrow(() -> new AppException(ErrorCode.MISSING_UNCATEGORIZED_SLOT, "SlotService - 000"));
                 uncategorizedAccountSlot.updateBudget(uncategorizedAccountSlot.getCurrentBudget()+accountSlot.getCurrentBudget());
 
                 List<Transaction> transactions = transactionRepository.findByAccountSlot(accountSlot);
@@ -159,7 +152,7 @@ public class SlotService {
             } else {
                 Long oldBudget = accountSlot.getCurrentBudget(); // 기존 예산
                 accountSlot.updateBudget(request.getNewBudget()); // 새로운 예산
-                accountSlot.increaseBudgetChangeCount(); // 예산 변경횟수 +1
+                accountSlot.addBudgetChangeCount(); // 예산 변경횟수 +1
 
                 // 예산 초과여부 다시 검사
                 if(accountSlot.getSpent() > accountSlot.getCurrentBudget()) {
@@ -169,7 +162,7 @@ public class SlotService {
                         accountSlot.updateIsBudgetExceeded(true); // 일단 예산초과 필드 true로 바꿔주고
                         Notification notification = Notification.builder() // Notification 객체 만들어서 저장하기
                                 .user(user)
-                                .title("[지출초과] " + accountSlot.getName() + " 슬롯의 예산이 초과됐어요!⚠️")
+                                .title("[⚠️예산초과] " + accountSlot.getName() + " 슬롯의 예산이 초과됐어요!⚠️")
                                 .body("슬롯의 예산을 조금 증액하고, 남은 기간 동안 해당 슬롯에 대한 지출을 줄여서 예산 안에서 소비할 수 있도록 해보세요. 계획안 예산 안에서 소비해야 좋은 소비습관을 기를 수 있어요")
                                 .type(Notification.Type.BUDGET)
                                 .build();
@@ -232,7 +225,7 @@ public class SlotService {
 
         // accountSlot의 currentBudget을 미분류로 이동 (기존 accountSlot rank--)
         // accountSlot에 연결돼있던 거래내역들 전부 미분류로 이동
-        AccountSlot uncategorizedAccountSlot = accountSlotRepository.findUncategorizedSlot(account).orElseThrow(() -> new AppException(ErrorCode.MISSING_UNCATEGORIZED_SLOT, "SlotService - 000"));
+        AccountSlot uncategorizedAccountSlot = accountSlotRepository.findUncategorizedAccountSlot(accountUuid).orElseThrow(() -> new AppException(ErrorCode.MISSING_UNCATEGORIZED_SLOT, "SlotService - 000"));
         uncategorizedAccountSlot.updateBudget(uncategorizedAccountSlot.getCurrentBudget()+accountSlot.getCurrentBudget());
 
         List<Transaction> transactions = transactionRepository.findByAccountSlot(accountSlot);
@@ -362,7 +355,7 @@ public class SlotService {
     }
 
     // 5-2-1
-    public RecommendSlotListResponseDto recommendSlotList(Long userId, String accountUuid, Short baseDay, String income, Short period) {
+    public RecommendSlotsResponseDto recommendSlots(Long userId, String accountUuid, String startDateStr, String endDateStr) {
 
         // userId != account userId 이면 403 응답
         Account account = accountRepository.findByUuid(accountUuid).orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "[SlotService - 021]"));
@@ -374,18 +367,12 @@ public class SlotService {
         User user = userRepository.findById(userId).orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "[SlotService - 023]"));
         String userKey = user.getUserKey();
 
-        // baseDay 저장
-        user.updateBaseDay(baseDay);
-
-        // period 기간동안의 거래내역 조회하기
         // SSAFY 금융 API >>>>> 2.4.12 계좌 거래 내역 조회
         // 요청보낼 url
         String url1 = "https://finopenapi.ssafy.io/ssafy/api/v1/edu/demandDeposit/inquireTransactionHistoryList";
 
         // Header 만들기
         Map<String, String> formattedDateTime = LocalDateTimeFormatter.formatter();
-        System.out.println("transmissionDate: " + formattedDateTime.get("date"));
-        System.out.println("transmissionTime: " + formattedDateTime.get("time"));
         Header header = Header.builder()
                 .apiName("inquireTransactionHistoryList")
                 .transmissionDate(formattedDateTime.get("date"))
@@ -402,13 +389,11 @@ public class SlotService {
         try {
             body1.put("accountNo", AESUtil.decrypt(account.getEncryptedAccountNo(), encryptionKey));
         } catch(Exception e) {
-            throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "[SlotService - 024]");
+            throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "SlotService - 024");
         }
 
-        Map<String, String> date = LocalDateTimeFormatter.fomatterWithMonthsAgo(period);
-        System.out.println("dateWithMonthsAgo:" + date.get("dateMonthsAgo"));
-        body1.put("startDate", date.get("dateMonthsAgo"));
-        body1.put("endDate", date.get("date"));
+        body1.put("startDate", startDateStr);
+        body1.put("endDate", endDateStr);
         body1.put("transactionType", "D");
         body1.put("orderByType", "ASC");
 
@@ -423,32 +408,78 @@ public class SlotService {
                 SSAFYGetTransactionListResponseDto.class
         );
 
-        // gpt한테 보내기 위해 우리 서비스 slot 전체조회
-        List<Slot> slotList = slotRepository.findAll();
-        List<SlotDto> slotDtoList1 = new ArrayList<>();
-        for(Slot slot : slotList){
+        // SSAFY 금융망 API >>>>> 2.4.7 계좌 잔액 조회
+        // 요청보낼 url
+        String url3 = "https://finopenapi.ssafy.io/ssafy/api/v1/edu/demandDeposit/inquireDemandDepositAccountBalance";
+        Map<String, String> formattedDateTime3 = LocalDateTimeFormatter.formatter();
+        Header header3 = Header.builder()
+                .apiName("inquireDemandDepositAccountBalance")
+                .transmissionDate(formattedDateTime3.get("date"))
+                .transmissionTime(formattedDateTime3.get("time"))
+                .apiServiceCode("inquireDemandDepositAccountBalance")
+                .institutionTransactionUniqueNo(formattedDateTime3.get("date") + formattedDateTime3.get("time") + RandomNumberGenerator.generateRandomNumber())
+                .apiKey(ssafyFinanceApiKey)
+                .userKey(userKey)
+                .build();
+
+        Map<String, Object> body3 = new HashMap<>();
+        body3.put("Header", header3);
+        try {
+            body3.put("accountNo", AESUtil.decrypt(account.getEncryptedAccountNo(), encryptionKey));
+        } catch(Exception e) {
+            throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "SlotService - 024");
+        }
+
+        // 요청보낼 http entity 만들기
+        HttpEntity<Map<String, Object>> httpEntity3 = new HttpEntity<>(body3);
+
+        // 요청 보내기
+        ResponseEntity<SSAFYGetAccountBalanceResponseDto> httpResponse3 = restTemplate.exchange(
+                url3,
+                HttpMethod.POST,
+                httpEntity3,
+                SSAFYGetAccountBalanceResponseDto.class
+        );
+
+        // 잔액 데이터 확보
+        Long balance = httpResponse3.getBody().getREC().getAccountBalance();
+
+        Map<String, Long> accountBalance = new HashMap<>();
+        accountBalance.put("balance", balance);
+
+        // gpt한테 보내기 위해 우리 서비스 slot 전체조회 (미분류 제외)
+        List<Slot> slots = slotRepository.findAll();
+        List<SlotDto> slotDtos = new ArrayList<>();
+        for(Slot slot : slots){
             SlotDto slotDto = SlotDto.builder()
                     .name(slot.getName())
                     .isSaving(slot.isSaving())
                     .build();
 
-            slotDtoList1.add(slotDto);
+            slotDtos.add(slotDto);
         }
 
         // gpt한테 보내기 위해 거래내역 dto와 slot 리스트를 json으로 직렬화
         ObjectMapper objectMapper = new ObjectMapper();
-        String transactionData = null;
-        String slotListData = null;
+        String accountData = null;
+        String transactionsData = null;
+        String slotsData = null;
         try {
-            transactionData = objectMapper.writeValueAsString(httpResponse1.getBody().getREC().getList());
-            slotListData = objectMapper.writeValueAsString(slotDtoList1);
+            accountData = objectMapper.writeValueAsString(accountBalance);
+            transactionsData = objectMapper.writeValueAsString(httpResponse1.getBody().getREC().getList());
+            slotsData = objectMapper.writeValueAsString(slotDtos);
         } catch(Exception e) {
             e.printStackTrace();
             throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "SlotService - 025");
         }
 
+        // 기록 몇개월치인지 계산
+        LocalDate startDate = LocalDateTimeFormatter.stringToLocalDate(startDateStr);
+        LocalDate endDate = LocalDateTimeFormatter.stringToLocalDate(endDateStr);
+        Long monthsBetween = ChronoUnit.MONTHS.between(startDate, endDate);
+
         // gpt한테 요청보내기
-        // SSAFY GMS >>>>> gpt-5-nano
+        // OpenAI >>>>> gpt-5-nano
         // body 만들기
         // body > messages
         List<ChatGPTRequestDto.Message> messages = new ArrayList<>();
@@ -457,7 +488,7 @@ public class SlotService {
                 .role("developer")
                 .content("""
                         너는 개인 예산 관리 서비스를 위한 추천 엔진 역할을 해.
-                        나는 최근 3개월간의 계좌 거래내역과 우리 서비스에서 제공하는 슬롯 리스트를 JSON 형태로 제공할거야.
+                        나는 일정 기간의 계좌 거래내역 및 잔액과 우리 서비스에서 제공하는 슬롯 리스트를 JSON 형태로 제공할거야.
                         """)
                 .build();
         messages.add(message1);
@@ -474,14 +505,14 @@ public class SlotService {
            그리고 한달 치 거래내역에 대해 각 슬롯마다의 합계를 계산해. 이것을 %d달치 거래내역에 대해 반복한 후,
            각 슬롯별로 %d달치 금액의 평균을 계산해.
            그렇게 계산된 각 슬롯에 대한 %d개월 치 평균 금액이 최종 추천 슬롯 리스트의 추천 예산 금액이 될거야.
-        6. 만약 거래내역이 없다면 주어진 나이와 수입구간을 참고해서 일반적인 슬롯리스트를 만들고 예산을 편성해줘.
-        7. 니가 편성한 모든 슬롯리스트의 예산은 주어진 income 수준에 적절해야 해.
-        8. 최종 결과는 JSON 형태로만 반환해줘. 반환할 때는 그 어떤 인사말이나 멘트도 포함하지 않은 채로 그냥 JSON만 반환해.
+        6. 각 슬롯들의 예산을 전부 더한 값이 계좌 잔액 이하여야 돼.
+        7. 최종 결과는 JSON 형태로만 반환해줘. 반환할 때는 그 어떤 인사말이나 멘트도 포함하지 않은 채로 그냥 JSON만 반환해.
         
-        [입력 데이터]
-        "transactions" : %s,
-        "age" : %d,
-        "income" : %s,
+        [계좌잔액 데이터]
+        "accountBalance" : %s
+        
+        [거래내역 데이터]
+        "transactions" : %s
         
         [슬롯 리스트]
         "slots": "%s"
@@ -497,11 +528,8 @@ public class SlotService {
             ]
         }
         """,
-                period, period, period, period,
-                transactionData,
-                LocalDateTimeFormatter.calculateAge(user.getBirthDate()),
-                incomes.get(income),
-                slotListData
+                monthsBetween, monthsBetween, monthsBetween, monthsBetween,
+                accountData, transactionsData, slotsData
         );
 
         ChatGPTRequestDto.Message message2 = ChatGPTRequestDto.Message.builder()
@@ -516,7 +544,7 @@ public class SlotService {
                 .build();
 
         // 요청보내기
-        ChatGPTResponseDto httpResponse2 = callGMS(body2);
+        ChatGPTResponseDto httpResponse2 = callGPT(body2);
 
         // gpt로부터 받은 응답 역직렬화
         JsonNode node;
@@ -535,26 +563,26 @@ public class SlotService {
 
         // dto 조립
         // dto > data > bank
-        RecommendSlotListResponseDto.BankDto bankDto = RecommendSlotListResponseDto.BankDto.builder()
+        RecommendSlotsResponseDto.BankDto bankDto = RecommendSlotsResponseDto.BankDto.builder()
                 .bankId(account.getBank().getUuid())
                 .name(account.getBank().getName())
                 .color(account.getBank().getColor())
                 .build();
 
         // dto > data > account
-        RecommendSlotListResponseDto.AccountDto accountDto;
+        RecommendSlotsResponseDto.AccountDto accountDto;
         try {
-            accountDto = RecommendSlotListResponseDto.AccountDto.builder()
+            accountDto = RecommendSlotsResponseDto.AccountDto.builder()
                     .accountId(account.getUuid())
                     .accountNo(AESUtil.decrypt(account.getEncryptedAccountNo(), encryptionKey))
                     .accountBalance(account.getBalance())
                     .build();
         } catch(Exception e) {
-            throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "[SlotService - 027]");
+            throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "SlotService - 027");
         }
 
         // dto > data > recommendedSlots
-        List<RecommendSlotListResponseDto.SlotDto> slotDtoList2 = new ArrayList<>();
+        List<RecommendSlotsResponseDto.SlotDto> recommenededSlotDtos = new ArrayList<>();
         for(ChatGPTResponseDto.RecommendedSlotDto recommendedSlotDto : recommendedSlots) {
 
             // gpt가 준 이름 기준으로 slot 조회
@@ -566,25 +594,270 @@ public class SlotService {
             }
 
             // 조회된 슬롯이 있다면 dto 조립
-            RecommendSlotListResponseDto.SlotDto slotDto = RecommendSlotListResponseDto.SlotDto.builder()
+            RecommendSlotsResponseDto.SlotDto slotDto = RecommendSlotsResponseDto.SlotDto.builder()
                     .slotId(slot.getUuid())
                     .name(slot.getName())
                     .initialBudget(recommendedSlotDto.getInitialBudget())
                     .build();
 
-            slotDtoList2.add(slotDto);
+            recommenededSlotDtos.add(slotDto);
         }
 
         // dto 조립
-        RecommendSlotListResponseDto recommendSlotListResponseDto = RecommendSlotListResponseDto.builder()
+        RecommendSlotsResponseDto recommendSlotsResponseDto = RecommendSlotsResponseDto.builder()
                 .success(true)
                 .message("[SlotService - 028] 슬롯 추천 성공")
-                .data(RecommendSlotListResponseDto.Data.builder().bank(bankDto).account(accountDto).recommededSlots(slotDtoList2).build())
+                .data(RecommendSlotsResponseDto.Data.builder().bank(bankDto).account(accountDto).recommededSlots(recommenededSlotDtos).build())
                 .build();
 
         // 응답
-        return recommendSlotListResponseDto;
+        return recommendSlotsResponseDto;
     }
+
+    // 5-2-1
+    public RecommendSlotsByProfileResponseDto recommendSlotsByProfile(Long userId, String accountUuid, RecommendSlotsByProfileRequestDto request) {
+
+        // userId != account userId 이면 403 응답
+        Account account = accountRepository.findByUuid(accountUuid).orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "[SlotService - 021]"));
+        if(userId != account.getUser().getId()) {
+            throw new AppException(ErrorCode.FORBIDDEN, "SlotService - 022");
+        }
+
+        // userKey
+        User user = userRepository.findById(userId).orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "[SlotService - 023]"));
+        String userKey = user.getUserKey();
+
+        // gpt한테 줄 정보 만들기
+        User.Gender gender = null;
+        Integer age = null;
+        Long income = null;
+
+        if(request.getUseAge() == true) {
+            age = LocalDateTimeFormatter.calculateAge(user.getBirthDate());
+        }
+
+        if(request.getIncome() != null) {
+            income = request.getIncome();
+        }
+
+        if(request.getUseGender() == true) {
+            gender = user.getGender();
+        }
+
+        Map<String, String> profile = new HashMap<>();
+        profile.put("age", String.valueOf(age));
+        profile.put("income", String.valueOf(income));
+        profile.put("gender", String.valueOf(gender));
+
+        // gpt한테 보내기 위해 우리 서비스 slot 전체조회 (미분류 제외)
+        List<Slot> slots = slotRepository.findByIdNot(0L);
+        List<SlotDto> slotDtos = new ArrayList<>();
+        for(Slot slot : slots){
+            SlotDto slotDto = SlotDto.builder()
+                    .name(slot.getName())
+                    .isSaving(slot.isSaving())
+                    .build();
+
+            slotDtos.add(slotDto);
+        }
+
+        // SSAFY 금융망 API >>>>> 2.4.7 계좌 잔액 조회
+        // 요청보낼 url
+        String url3 = "https://finopenapi.ssafy.io/ssafy/api/v1/edu/demandDeposit/inquireDemandDepositAccountBalance";
+        Map<String, String> formattedDateTime3 = LocalDateTimeFormatter.formatter();
+        Header header3 = Header.builder()
+                .apiName("inquireDemandDepositAccountBalance")
+                .transmissionDate(formattedDateTime3.get("date"))
+                .transmissionTime(formattedDateTime3.get("time"))
+                .apiServiceCode("inquireDemandDepositAccountBalance")
+                .institutionTransactionUniqueNo(formattedDateTime3.get("date") + formattedDateTime3.get("time") + RandomNumberGenerator.generateRandomNumber())
+                .apiKey(ssafyFinanceApiKey)
+                .userKey(userKey)
+                .build();
+
+        Map<String, Object> body3 = new HashMap<>();
+        body3.put("Header", header3);
+        try {
+            body3.put("accountNo", AESUtil.decrypt(account.getEncryptedAccountNo(), encryptionKey));
+        } catch(Exception e) {
+            throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "SlotService - 024");
+        }
+
+        // 요청보낼 http entity 만들기
+        HttpEntity<Map<String, Object>> httpEntity3 = new HttpEntity<>(body3);
+
+        // 요청 보내기
+        ResponseEntity<SSAFYGetAccountBalanceResponseDto> httpResponse3 = restTemplate.exchange(
+                url3,
+                HttpMethod.POST,
+                httpEntity3,
+                SSAFYGetAccountBalanceResponseDto.class
+        );
+
+        // 잔액 데이터 확보
+        Long balance = httpResponse3.getBody().getREC().getAccountBalance();
+
+        Map<String, Long> accountBalance = new HashMap<>();
+        accountBalance.put("balance", balance);
+
+        // gpt한테 보내기 위해 profile, slot 리스트, accountBalance를 json으로 직렬화
+        ObjectMapper objectMapper = new ObjectMapper();
+        String profileData = null;
+        String slotsData = null;
+        String accountBalanceData = null;
+        try {
+            profileData = objectMapper.writeValueAsString(profile);
+            slotsData = objectMapper.writeValueAsString(slotDtos);
+            accountBalanceData = objectMapper.writeValueAsString(accountBalance);
+        } catch(Exception e) {
+            e.printStackTrace();
+            throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "SlotService - 025");
+        }
+
+        // gpt한테 요청보내기
+        // OpenAI >>>>> gpt-5-nano
+        // body 만들기
+        // body > messages
+        List<ChatGPTRequestDto.Message> messages = new ArrayList<>();
+
+        ChatGPTRequestDto.Message message1 = ChatGPTRequestDto.Message.builder()
+                .role("developer")
+                .content("""
+                        너는 개인 예산 관리 서비스를 위한 추천 엔진 역할을 해.
+                        나는 사용자 계좌의 잔액과 나이/수입구간/성별 중 일부 또는 전부 그리고 우리 서비스에서 제공하는 슬롯 리스트를 JSON 형태로 제공할거야.
+                        """)
+                .build();
+        messages.add(message1);
+
+        // user 프롬프트 만들기
+        String userPrompt = String.format("""
+        [요구사항]
+        1. 나이/수입구간/성별 중 일부만 주어질 수도 있고, 전부 다 주어질 수도 있어. 주어진 선에서 정보를 활용해서 이 사용자가 우리 서비스에서 이용할 슬롯 리스트를 만들어줘.
+        2. 각 슬롯별로 적절한 예산 금액을 배정해줘.
+        3. 나이만 주어졌다면, 해당 연령대인 사람의 일반적인 지출성향 및 예산분배를 생각해서 추천 슬롯 리스트를 만들어줘.
+        4. 수입구간만 주어졌다면, 해당 수입구간인 사람의 일반적인 지출성향 및 예산분배를 생각해서 추천 슬롯 리스트를 만들어줘.
+        5. 나이와 수입구간이 주어졌다면, 해당 연령대이면서 해당 수입구간인 사람의 일반적인 지출성향 및 예산분배를 생각해서 추천 슬롯 리스트를 만들어줘.
+        6. 수입구간과 성별만 주어졌다면, 해당 수입구간이면서 해당 성별을 가지는 사람의 일반적인 지출성향 및 예산분배를 생각해서 추천 슬롯 리스트를 만들어줘.
+        7. 나이와 성별만 주어졌다면, 해당 연령대이면서 해당 성별을 가지는 사람의 일반적인 지출성향 및 예산분배를 생각해서 추천 슬롯 리스트를 만들어줘.
+        8. 모든 정보가 다 주어졌다면, 해당 연령대이면서, 해당 수입구간에 있으면서, 해당 성별을 가지는 사람의 일반적인 지출성향 및 예산분배를 생각해서 추천 슬롯 리스트를 만들어줘.
+        9. 각 슬롯들의 예산을 전부 더한 값이 계좌 잔액 이하여야 돼.
+        10. 최종 결과는 JSON 형태로만 반환해줘. 반환할 때는 그 어떤 인사말이나 멘트도 포함하지 않은 채로 그냥 JSON만 반환해.
+        
+        [계좌잔액 데이터]
+        "accountBalance" : %s
+        
+        [사용자 정보 데이터]
+        "profile" : %s
+        
+        [슬롯 리스트]
+        "slots": "%s"
+        
+        [반환 데이터 예시]
+        {
+            "recommendedSlots": [
+                { "name": "식비", "initialBudget": 350000 },
+                { "name": "교통비", "initialBudget": 50000 },
+                { "name": "카페/간식", "initialBudget": 100000 },
+                { "name": "저축", "initialBudget": 250000 },
+                { "name": "구독비", "initialBudget": 150000 }
+            ]
+        }
+        """,
+                accountBalanceData, profileData, slotsData
+        );
+
+        ChatGPTRequestDto.Message message2 = ChatGPTRequestDto.Message.builder()
+                .role("user")
+                .content(userPrompt)
+                .build();
+        messages.add(message2);
+
+        ChatGPTRequestDto body2 = ChatGPTRequestDto.builder()
+                .model("gpt-5-nano")
+                .messages(messages)
+                .build();
+
+        // 요청보내기
+        ChatGPTResponseDto httpResponse2 = callGPT(body2);
+
+        // gpt로부터 받은 응답 역직렬화
+        JsonNode node;
+        List<ChatGPTResponseDto.RecommendedSlotDto> recommendedSlots;
+        try {
+            node = objectMapper.readTree(httpResponse2.getChoices().get(0).getMessage().getContent());
+            JsonNode slotsNode = node.get("recommendedSlots");
+
+            recommendedSlots = objectMapper.readValue(
+                    slotsNode.toString(),
+                    new TypeReference<List<ChatGPTResponseDto.RecommendedSlotDto>>(){}
+            );
+        } catch(Exception e) {
+            throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "[SlotService - 026]");
+        }
+
+        // dto 조립
+        // dto > data > bank
+        RecommendSlotsByProfileResponseDto.BankDto bankDto = RecommendSlotsByProfileResponseDto.BankDto.builder()
+                .bankId(account.getBank().getUuid())
+                .name(account.getBank().getName())
+                .color(account.getBank().getColor())
+                .build();
+
+        // dto > data > account
+        RecommendSlotsByProfileResponseDto.AccountDto accountDto;
+        try {
+            accountDto = RecommendSlotsByProfileResponseDto.AccountDto.builder()
+                    .accountId(account.getUuid())
+                    .accountNo(AESUtil.decrypt(account.getEncryptedAccountNo(), encryptionKey))
+                    .accountBalance(account.getBalance())
+                    .build();
+        } catch(Exception e) {
+            throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "[SlotService - 027]");
+        }
+
+        // dto > data > recommendedSlots
+        List<RecommendSlotsByProfileResponseDto.SlotDto> recommendedSlotDtos = new ArrayList<>();
+        for(ChatGPTResponseDto.RecommendedSlotDto recommendedSlotDto : recommendedSlots) {
+
+            // gpt가 준 이름 기준으로 slot 조회
+            Slot slot = slotRepository.findByName(recommendedSlotDto.getName());
+
+            // 조회된 슬롯이 없다면 그냥 넘어가기
+            if(slot == null) {
+                continue;
+            }
+
+            // 조회된 슬롯이 있다면 dto 조립
+            RecommendSlotsByProfileResponseDto.SlotDto slotDto = RecommendSlotsByProfileResponseDto.SlotDto.builder()
+                    .slotId(slot.getUuid())
+                    .name(slot.getName())
+                    .initialBudget(recommendedSlotDto.getInitialBudget())
+                    .build();
+
+            recommendedSlotDtos.add(slotDto);
+        }
+
+        // dto 조립
+        RecommendSlotsByProfileResponseDto recommendSlotsByProfileResponseDto = RecommendSlotsByProfileResponseDto.builder()
+                .success(true)
+                .message("[SlotService - 028] 슬롯 추천 성공")
+                .data(RecommendSlotsByProfileResponseDto.Data.builder().bank(bankDto).account(accountDto).recommededSlots(recommendedSlotDtos).build())
+                .build();
+
+        // 응답
+        return recommendSlotsByProfileResponseDto;
+    }
+
+    // 5-2-1에서 ChatGPT 호출할 때 쓸 메서드
+    private ChatGPTResponseDto callGPT(ChatGPTRequestDto body) {
+        return gptWebClient.post()
+                .uri("/chat/completions")
+                .bodyValue(body)
+                .retrieve()
+                .bodyToMono(ChatGPTResponseDto.class)
+                .block();
+    }
+
 
     // 5-2-1에서 ChatGPT 호출할 때 쓸 메서드
     private ChatGPTResponseDto callGMS(ChatGPTRequestDto body) {

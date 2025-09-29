@@ -251,11 +251,20 @@ CREATE TABLE `notification` (
   `is_read` BOOLEAN DEFAULT FALSE NOT NULL,
   `read_at` DATETIME,
   `type` ENUM('SYSTEM', 'DEVICE', 'BUDGET', 'SLOT', 'UNCATEGORIZED', 'TRANSACTION', 'MARKETING') DEFAULT NULL,
+  `tx_id` INT UNSIGNED NULL,
   CONSTRAINT `fk_notification_user_id`
     FOREIGN KEY (`user_id`) REFERENCES `user`(`id`)
       ON DELETE CASCADE
-      ON UPDATE CASCADE
+      ON UPDATE CASCADE,
+  CONSTRAINT `fk_notification_tx_id`
+    FOREIGN KEY (`tx_id`) REFERENCES `transaction`(`id`)
+      ON DELETE SET NULL
+      ON UPDATE CASCADE,
+  UNIQUE KEY `uq_notification_user_type_tx` (`user_id`,`type`,`tx_id`),
+  KEY `idx_notification_user_isread_type` (`user_id`,`is_read`,`type`)
 ) ENGINE=InnoDB;
+
+
 
 -- =========================
 -- wishlist

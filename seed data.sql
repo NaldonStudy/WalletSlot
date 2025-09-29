@@ -24,7 +24,7 @@ SET FOREIGN_KEY_CHECKS = 1;
 -- USER
 INSERT INTO `user` (id, uuid, name, user_key, phone_number, gender, birth_date, base_day, job)
 VALUES
-(1, UUID(), '전해지', 'd022c753-e3f0-4d58-a405-ee8a058fd199', '01012345678', 'FEMALE', '2000-02-24 00:00:00', 26, 'STUDENT');
+(1, UUID(), '전해지', 'd022c753-e3f0-4d58-a405-ee8a058fd199', '01012345678', 'FEMALE', '2000-02-24 00:00:00', 27, 'STUDENT');
 
 -- PEPPER_KEYS
 INSERT INTO `pepper_keys` (id, key_alias, status)
@@ -60,48 +60,48 @@ VALUES
 (18, UUID(), '싸피은행', '999', NULL);
 
 -- ACCOUNT
-INSERT INTO `account` (id, uuid, user_id, bank_id, alias, encrypted_account_no, balance, is_primary)
+INSERT INTO `account` (id, uuid, user_id, bank_id, alias, encrypted_account_no, balance, is_primary, last_synced_transaction_unique_no)
 VALUES
-(1, UUID(), 1, 3, NULL, 'XBaVgD2G8YWC6otR70CIB+QEUyihPrjpOEKmwzPhgco=', 5000000, TRUE),
-(2, UUID(), 1, 4, '비상금통장', '+XuHwQ48eiy4J3rSoCToieQEUyihPrjpOEKmwzPhgco=', 2000000, FALSE),
-(3, UUID(), 1, 5, NULL, 'iNmlCNGeZOAHc7k6ar6PFOQEUyihPrjpOEKmwzPhgco=', 1000000, TRUE),
-(4, UUID(), 1, 5, NULL, '3zkMX7fMlQXCAsR/mEnkR+QEUyihPrjpOEKmwzPhgco=', 1000000, TRUE),
-(5, UUID(), 1, 5, NULL, 'FqNF3m7Kc6hNMZ5c+22vkuQEUyihPrjpOEKmwzPhgco=', 1000000, TRUE),
-(6, UUID(), 1, 5, NULL, 'tSlPBJlPzR182rcfPeGQleQEUyihPrjpOEKmwzPhgco=', 1000000, TRUE),
-(7, UUID(), 1, 5, NULL, 'E6QSXu7oSvcgX3wr8U8wKuQEUyihPrjpOEKmwzPhgco=', 1000000, TRUE);
+(1, UUID(), 1, 3, NULL, 'XBaVgD2G8YWC6otR70CIB+QEUyihPrjpOEKmwzPhgco=', 5000000, TRUE, 0),
+(2, UUID(), 1, 4, '비상금통장', '+XuHwQ48eiy4J3rSoCToieQEUyihPrjpOEKmwzPhgco=', 2000000, FALSE, 0),
+(3, UUID(), 1, 5, NULL, 'iNmlCNGeZOAHc7k6ar6PFOQEUyihPrjpOEKmwzPhgco=', 1000000, TRUE, 0),
+(4, UUID(), 1, 5, NULL, '3zkMX7fMlQXCAsR/mEnkR+QEUyihPrjpOEKmwzPhgco=', 1000000, TRUE, 0),
+(5, UUID(), 1, 5, NULL, 'FqNF3m7Kc6hNMZ5c+22vkuQEUyihPrjpOEKmwzPhgco=', 1000000, TRUE, 0),
+(6, UUID(), 1, 5, NULL, 'tSlPBJlPzR182rcfPeGQleQEUyihPrjpOEKmwzPhgco=', 1000000, TRUE, 0),
+(7, UUID(), 1, 5, NULL, 'E6QSXu7oSvcgX3wr8U8wKuQEUyihPrjpOEKmwzPhgco=', 1000000, TRUE, 0);
 
+-- 0을 명시적으로 넣기 위해 필요 (미분류 슬롯 id=0)
 SET @OLD_SQL_MODE := @@sql_mode;
 SET sql_mode = CONCAT(@@sql_mode, IF(@@sql_mode='', '', ','), 'NO_AUTO_VALUE_ON_ZERO');
 
 -- SLOT
-INSERT INTO `slot` (id, uuid, name, is_saving, icon, color, `rank`)
+INSERT INTO `slot` (id, uuid, name, is_saving, `rank`)
 VALUES
-(0, UUID(), '미분류', FALSE, NULL, NULL, NULL),
-(1, UUID(), '식비', FALSE, NULL, NULL, NULL),
-(2, UUID(), '교통비', FALSE, NULL, NULL, NULL),
-(3, UUID(), '의류/잡화', FALSE, NULL, NULL, NULL),
-(4, UUID(), '카페/간식', FALSE, NULL, NULL, NULL),
-(5, UUID(), '여가비', FALSE, NULL, NULL, NULL),
-(6, UUID(), '의료/건강', FALSE, NULL, NULL, NULL),
-(7, UUID(), '저축', TRUE, NULL, NULL, NULL),
-(8, UUID(), '자동차비', FALSE, NULL, NULL, NULL),
-(9, UUID(), '미용', FALSE, NULL, NULL, NULL),
-(10, UUID(), '취미', FALSE, NULL, NULL, NULL),
-(11, UUID(), '보험비', FALSE, NULL, NULL, NULL),
-(12, UUID(), '통신비', FALSE, NULL, NULL, NULL),
-(13, UUID(), '주거비', FALSE, NULL, NULL, NULL),
-(14, UUID(), '구독비', FALSE, NULL, NULL, NULL),
-(15, UUID(), '육아비', FALSE, NULL, NULL, NULL),
-(16, UUID(), '용돈/선물', FALSE, NULL, NULL, NULL),
-(17, UUID(), '반려동물', FALSE, NULL, NULL, NULL),
-(18, UUID(), '데이트', FALSE, NULL, NULL, NULL),
-(19, UUID(), '세금', FALSE, NULL, NULL, NULL),
-(20, UUID(), '교육비', FALSE, NULL, NULL, NULL),
-(21, UUID(), '경조사', FALSE, NULL, NULL, NULL),
-(22, UUID(), '회비', FALSE, NULL, NULL, NULL),
-(23, UUID(), '후원', FALSE, NULL, NULL, NULL),
-(24, UUID(), '여행/숙박', FALSE, NULL, NULL, NULL);
-
+(0, UUID(), '미분류', FALSE, NULL),
+(1, UUID(), '식비', FALSE, NULL),
+(2, UUID(), '교통비', FALSE, NULL),
+(3, UUID(), '의류/잡화', FALSE, NULL),
+(4, UUID(), '카페/간식', FALSE, NULL),
+(5, UUID(), '여가비', FALSE, NULL),
+(6, UUID(), '의료/건강', FALSE, NULL),
+(7, UUID(), '저축', TRUE, NULL),
+(8, UUID(), '자동차비', FALSE, NULL),
+(9, UUID(), '미용', FALSE, NULL),
+(10, UUID(), '취미', FALSE, NULL),
+(11, UUID(), '보험비', FALSE, NULL),
+(12, UUID(), '통신비', FALSE, NULL),
+(13, UUID(), '주거비', FALSE, NULL),
+(14, UUID(), '구독비', FALSE, NULL),
+(15, UUID(), '육아비', FALSE, NULL),
+(16, UUID(), '용돈/선물', FALSE, NULL),
+(17, UUID(), '반려동물', FALSE, NULL),
+(18, UUID(), '데이트', FALSE, NULL),
+(19, UUID(), '세금', FALSE, NULL),
+(20, UUID(), '교육비', FALSE, NULL),
+(21, UUID(), '경조사', FALSE, NULL),
+(22, UUID(), '회비', FALSE, NULL),
+(23, UUID(), '후원', FALSE, NULL),
+(24, UUID(), '여행/숙박', FALSE, NULL);
 
 -- ACCOUNT_SLOT
 INSERT INTO `account_slot` (id, uuid, account_id, slot_id, initial_budget, current_budget, spent, budget_change_count, is_budget_exceeded, is_custom, custom_name)
@@ -123,7 +123,9 @@ VALUES
 (15, UUID(), 6, 0,       335555,      0,  0, 0, FALSE, FALSE, NULL), 
 (16, UUID(), 7, 1,       552125,      0,  0, 0, FALSE, FALSE, NULL), 
 (17, UUID(), 7, 0,       52222,      0,  0, 0, FALSE, FALSE, NULL), 
-(18, UUID(), 7, 2,       10000,      0,  0, 0, FALSE, FALSE, NULL);
+(18, UUID(), 7, 2,       10000,      0,  0, 0, FALSE, FALSE, NULL),
+(19, UUID(), 1, 4, 120000, 120000, 0, 0, FALSE, FALSE, NULL),
+(20, UUID(), 1, 14, 15000, 15000, 0, 0, FALSE, FALSE, NULL);
 
 -- SLOT_HISTORY
 INSERT INTO `slot_history` (id, uuid, account_slot_id, old_budget, new_budget)
@@ -154,21 +156,21 @@ VALUES
 (12, UUID(), 1, 3, 80010, '출금',         NULL, '유니클로 타임월드',    20000, 4960000, '2025-08-18 16:20:00'),
 
 -- TRANSACTION 추가 (8월 카페/간식: 총 160,000 → 예산 120,000 초과 40,000)
-(13, UUID(), 1, 10, 80011, '출금', NULL, '스타벅스 도안DT점', 45000, 4955000, '2025-08-03 10:15:00'),
-(14, UUID(), 1, 10, 80012, '출금', NULL, '투썸플레이스 시청점', 38000, 4917000, '2025-08-07 16:40:00'),
-(15, UUID(), 1, 10, 80013, '출금', NULL, '메가커피 둔산점',    27000, 4890000, '2025-08-12 14:05:00'),
-(16, UUID(), 1, 10, 80014, '출금', NULL, '스타벅스 둔산점',   50000, 4840000, '2025-08-22 08:55:00'),
+(13, UUID(), 1, 19, 80011, '출금', NULL, '스타벅스 도안DT점', 45000, 4955000, '2025-08-03 10:15:00'),
+(14, UUID(), 1, 19, 80012, '출금', NULL, '투썸플레이스 시청점', 38000, 4917000, '2025-08-07 16:40:00'),
+(15, UUID(), 1, 19, 80013, '출금', NULL, '메가커피 둔산점',    27000, 4890000, '2025-08-12 14:05:00'),
+(16, UUID(), 1, 19, 80014, '출금', NULL, '스타벅스 둔산점',   50000, 4840000, '2025-08-22 08:55:00'),
 
 -- TRANSACTION 추가 (8월 구독비: 총 14,500 → 예산 15,000 이내)
-(17, UUID(), 1, 11, 80015, '출금', NULL, '넷플릭스',    9500,  4830500, '2025-08-05 03:00:00'),
-(18, UUID(), 1, 11, 80016, '출금', NULL, '유튜브 프리미엄', 5000,  4825500, '2025-08-18 03:00:00'),
+(17, UUID(), 1, 20, 80015, '출금', NULL, '넷플릭스',    9500,  4830500, '2025-08-05 03:00:00'),
+(18, UUID(), 1, 20, 80016, '출금', NULL, '유튜브 프리미엄', 5000,  4825500, '2025-08-18 03:00:00'),
 
 -- TRANSACTION 추가 (8월 미분류: 총 23,900 → 분배/요약에서 제외되는 케이스)
-(19, UUID(), 1, 12, 80017, '출금', NULL, '편의점 기타',  9900,  4815600, '2025-08-06 21:10:00'),
-(20, UUID(), 1, 12, 80018, '출금', NULL, '기타 소액지출', 14000, 4801600, '2025-08-27 11:22:00'),
+(19, UUID(), 1, 3, 80017, '출금', NULL, '편의점 기타',  9900,  4815600, '2025-08-06 21:10:00'),
+(20, UUID(), 1, 3, 80018, '출금', NULL, '기타 소액지출', 14000, 4801600, '2025-08-27 11:22:00'),
 
--- (옵션) 7월 데이터 몇 건 추가 – 월 필터링 잘 되는지 확인용 (레포트 대상월=8월이면 포함 X)
-(21, UUID(), 1, 10, 70001, '출금', NULL, '스타벅스 도안DT점', 4200,  4797400, '2025-07-25 09:10:00'),
+-- (옵션) 7월 데이터 몇 건 추가 – 월 필터링 잘 되는지 확인용
+(21, UUID(), 1, 19, 70001, '출금', NULL, '스타벅스 도안DT점', 4200,  4797400, '2025-07-25 09:10:00'),
 (22, UUID(), 1,  2, 70002, '출금', NULL, 'KTX 부산',        61000, 4736400, '2025-07-29 06:50:00');
 
 -- CONSENT_FORM
@@ -187,10 +189,17 @@ INSERT INTO `push_endpoint` (id, user_id, device_id, platform, token, status, is
 VALUES
 (1, 1, 'device-1234', 'ANDROID', 'eHGzIgD5Sz--716JANZ5V4:APA91bFRTcdxU_jAVtOlm5PWiH45WK4422QAE551LQQeJFVm8mD8aTABSya3mXi3kt5iX7I_db7WKZ-Ymz82MSVVBEVWIQpxXAV67k5c-avbRiM8ZOPfjr0', 'ACTIVE', TRUE);
 
--- NOTIFICATION  (ENUM: SYSTEM, DEVICE, BUDGET, TRANSACTION, MARKETING)
-INSERT INTO `notification` (id, uuid, user_id, title, body, is_delivered, delivered_at, is_read, read_at, type)
+-- NOTIFICATION
+-- 팀 규칙: DB에는 트랜잭션 id(tx_id) 저장, 응답 DTO에는 transactionUuid로 변환해 내려감
+INSERT INTO `notification`
+(id, uuid, user_id, title, body, is_delivered, delivered_at, is_read, read_at, type, tx_id)
 VALUES
-(1, UUID(), 1, '예산 초과 알림', '식비 예산을 초과했습니다.', TRUE, '2025-09-20 15:00:03', FALSE, NULL, 'BUDGET');
+-- 일반 BUDGET 알림(트랜잭션 연계 없음 → tx_id = NULL)
+(1, UUID(), 1, '예산 초과 알림', '식비 예산을 초과했습니다.', TRUE, '2025-09-20 15:00:03', FALSE, NULL, 'BUDGET', NULL),
+
+-- 미분류 알림 2건: 트랜잭션 id 19/20을 참조 (account_slot_id=3 → 슬롯=미분류)
+(2, UUID(), 1, '분류되지 않은 지출이 있어요', '편의점 기타 9,900원 • 2025-08-06 21:10:00\n카테고리를 지정해 주세요.', FALSE, NULL, FALSE, NULL, 'UNCATEGORIZED', 19),
+(3, UUID(), 1, '분류되지 않은 지출이 있어요', '기타 소액지출 14,000원 • 2025-08-27 11:22:00\n카테고리를 지정해 주세요.', FALSE, NULL, FALSE, NULL, 'UNCATEGORIZED', 20);
 
 -- WISHLIST
 INSERT INTO `wishlist` (id, uuid, user_id, name, price, image)
@@ -200,14 +209,14 @@ VALUES
 -- EMAIL
 INSERT INTO `email` (id, user_id, name, email, is_primary, verified_at, created_at)
 VALUES
--- user 1: 과거 이메일(비기본) + 현재 이메일(기본)
 (1, 1, '전해지', 'wjsgowl0224@naver.com', 0, '2024-07-10 10:00:00', '2024-07-10 10:00:00');
 
 -- AI_REPORT (옵션)
-INSERT INTO `ai_report` (id, uuid, account_id, content)
-VALUES
-(1, UUID(), 1, JSON_OBJECT('summary', '이번달 식비 과다', 'advice', '다음달 식비 예산 상향 또는 지출 절감'));
+-- INSERT INTO `ai_report` (id, uuid, account_id, content)
+-- VALUES
+-- (1, UUID(), 1, JSON_OBJECT('summary', '이번달 식비 과다', 'advice', '다음달 식비 예산 상향 또는 지출 절감'));
 
+-- 확인용
 SELECT * FROM `user`;
 SELECT * FROM `pepper_keys`;
 SELECT * FROM `user_pin`;
@@ -223,3 +232,9 @@ SELECT * FROM `push_endpoint`;
 SELECT * FROM `notification`;
 SELECT * FROM `wishlist`;
 SELECT * FROM `email`;
+SELECT * FROM `ai_report`;
+
+-- (참고) 알림-트랜잭션 매핑 확인용 조인
+-- SELECT n.id, n.type, n.tx_id, t.uuid AS transaction_uuid, t.summary, t.transaction_at
+-- FROM notification n LEFT JOIN `transaction` t ON t.id = n.tx_id
+-- ORDER BY n.id;

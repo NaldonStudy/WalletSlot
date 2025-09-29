@@ -26,32 +26,30 @@ public class AiReportPersistService {
     private final AccountRepository accountRepo;
     private final ObjectMapper objectMapper;
 
+    // AiReportPersistService#saveInNewTx(Long accountId, Map<String,Object> content)
     @Transactional(propagation = Propagation.REQUIRES_NEW, readOnly = false)
     public GetAiReportResponseDto.PersistInfo saveInNewTx(Long accountId, Map<String, Object> content) {
         try {
-            JsonNode json = objectMapper.valueToTree(content);
-            Account accountRef = accountRepo.getReferenceById(accountId);
-
+            var json = objectMapper.valueToTree(content); // JsonNode
+            var accountRef = accountRepo.getReferenceById(accountId);
             AiReport saved = aiReportRepo.save(
-                    AiReport.builder()
-                            .account(accountRef)
-                            .content(json)
-                            .build()
+                    AiReport.builder().account(accountRef).content(json).build()
             );
+            // flush로 DB에 바로 밀어넣고 created_at 채워지게 함
+            aiReportRepo.flush();
 
             return GetAiReportResponseDto.PersistInfo.builder()
                     .id(saved.getUuid())
                     .createdAt(saved.getCreatedAt())
                     .build();
 
-        } catch (DataIntegrityViolationException e) {
-            TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
-            log.warn("[AiReport - PERSIST] DataIntegrityViolation: {}", e.getMessage());
-            return null;
-        } catch (Exception e) {
-            TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
-            log.warn("[AiReport - PERSIST] skipped: {} {}", e.getClass().getSimpleName(), e.getMessage());
-            return null;
+        } catch (DataIntegrityViolationException ex) {
+            log.error("[AI-REPORT][PERSIST] DataIntegrityViolation: {}", ex.getMessage(), ex);
+            throw ex; // 여기서는 삼키지 말고 던져서 상위 로그/트레이싱에 확실히 남기자
+        } catch (Exception ex) {
+            log.error("[AI-REPORT][PERSIST] Unexpected: {}", ex.getMessage(), ex);
+            throw ex;
         }
     }
+
 }

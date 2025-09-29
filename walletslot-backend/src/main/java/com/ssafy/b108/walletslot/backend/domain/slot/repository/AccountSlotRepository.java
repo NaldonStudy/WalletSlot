@@ -22,6 +22,6 @@ public interface AccountSlotRepository extends JpaRepository<AccountSlot, Long> 
     @Query("SELECT s.slot.uuid FROM AccountSlot s WHERE s.account.uuid = :accountUuid")
     Set<String> findSlotUuidsByAccountUuid(@Param("accountUuid") String accountUuid);
 
-    @Query("SELECT s FROM AccountSlot s WHERE s.slot.id=0 ")
-    Optional<AccountSlot> findUncategorizedSlot(Account account);
+    @Query("SELECT s FROM AccountSlot s WHERE s.account.uuid=:accountUuid AND s.slot.id=0 ")
+    Optional<AccountSlot> findUncategorizedAccountSlot(String accountUuid);
 }

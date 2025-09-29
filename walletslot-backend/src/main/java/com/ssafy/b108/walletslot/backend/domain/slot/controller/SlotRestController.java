@@ -40,15 +40,46 @@ public class SlotRestController {
                             content = @Content(schema = @Schema(implementation = GetSlotListResponseDto.class))
                     )
             }
-
     )
     public ResponseEntity<GetSlotListResponseDto> getSlotList() {
         return ResponseEntity.status(HttpStatus.OK).body(slotService.getSlotList());
     }
 
+    @GetMapping("/accounts/{accountId}/slots")
+    @Operation(
+            summary = "5-1-2 계좌 슬롯 리스트 전체 조회",
+            description = "계좌의 슬롯 리스트를 전체 조회합니다.",
+            responses = {
+                    @ApiResponse(
+                            responseCode = "200",
+                            description = "[SlotService - 015] 계좌의 슬롯 리스트 조회 성공",
+                            content = @Content(schema = @Schema(implementation = GetAccountSlotListResponseDto.class))
+                    )
+            }
+    )
+    public ResponseEntity<GetAccountSlotListResponseDto> getAccountSlotList(@AuthenticationPrincipal UserPrincipal principal, @PathVariable String accountId) {
+        return ResponseEntity.status(HttpStatus.OK).body(slotService.getAccountSlotList(principal.userId(), accountId));
+    }
+
+    @PostMapping("/accounts/{accountId}/slots")
+    @Operation(
+            summary = "5-1-3 슬롯 추가등록",
+            description = "서비스 이용 중 새로운 슬롯을 추가로 등록합니다.",
+            responses = {
+                    @ApiResponse(
+                            responseCode = "201",
+                            description = "[SlotService - 035] 슬롯 추가 성공",
+                            content = @Content(schema = @Schema(implementation = AddSlotListResponseDto.class))
+                    )
+            }
+    )
+    public ResponseEntity<AddSlotListResponseDto> addSlots(@AuthenticationPrincipal UserPrincipal principal, @PathVariable String accountId, @RequestBody AddSlotListRequestDto request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(slotService.addSlots(principal.userId(), accountId, request.getSlots()));
+    }
+
     @PatchMapping("/accounts/{accountId}/slots/{accountSlotId}")
     @Operation(
-            summary = "5-1-2 슬롯 정보수정",
+            summary = "5-1-4 슬롯 정보수정",
             description = "슬롯에 별칭을 지정하거나 예산을 변경합니다. 별칭은 추후 같은 API에 customName 키 값을 default로 해서 요청을 보내시면 기본값으로 되돌아갑니다.",
             responses = {
                     @ApiResponse(
@@ -64,7 +95,7 @@ public class SlotRestController {
 
     @DeleteMapping("/accounts/{accountId}/slots/{accountSlotId}")
     @Operation(
-            summary = "5-1-3 슬롯 삭제",
+            summary = "5-1-5 슬롯 삭제",
             description = "슬롯을 삭제합니다.",
             responses = {
                     @ApiResponse(
@@ -78,25 +109,9 @@ public class SlotRestController {
         return ResponseEntity.status(HttpStatus.NO_CONTENT).body(slotService.removeAccountSlot(principal.userId(), accountId, accountSlotId));
     }
 
-    @GetMapping("/accounts/{accountId}/slots")
-    @Operation(
-            summary = "5-1-4 계좌 슬롯 리스트 전체 조회",
-            description = "계좌의 슬롯 리스트를 전체 조회합니다.",
-            responses = {
-                    @ApiResponse(
-                            responseCode = "200",
-                            description = "[SlotService - 015] 계좌의 슬롯 리스트 조회 성공",
-                            content = @Content(schema = @Schema(implementation = GetAccountSlotListResponseDto.class))
-                    )
-            }
-    )
-    public ResponseEntity<GetAccountSlotListResponseDto> getAccountSlotList(@AuthenticationPrincipal UserPrincipal principal, @PathVariable String accountId) {
-        return ResponseEntity.status(HttpStatus.OK).body(slotService.getAccountSlotList(principal.userId(), accountId));
-    }
-
     @GetMapping("/accounts/{accountId}/slots/{accountSlotId}/history")
     @Operation(
-            summary = "5-1-5 슬롯 히스토리 전체조회",
+            summary = "5-1-6 슬롯 히스토리 전체조회",
             description = "슬롯 예산변경 히스토리를 전체 조회합니다.",
             responses = {
                     @ApiResponse(
@@ -112,39 +127,39 @@ public class SlotRestController {
 
     @PostMapping("/accounts/{accountId}/slots/recommend")
     @Operation(
-            summary = "5-2-1 계좌 슬롯 리스트 추천",
-            description = "계좌 연동 후 슬롯 리스트를 추천합니다.",
+            summary = "5-2-1 거래내역 기반 계좌 슬롯 리스트 추천",
+            description = "주어진 기간 동안의 거래내역을 기반으로 계좌 슬롯 리스트를 추천합니다.",
             responses = {
                     @ApiResponse(
                             responseCode = "200",
                             description = "[SlotService - 028] 슬롯 추천 성공",
-                            content = @Content(schema = @Schema(implementation = RecommendSlotListResponseDto.class))
+                            content = @Content(schema = @Schema(implementation = RecommendSlotsResponseDto.class))
                     )
             }
     )
-    public ResponseEntity<RecommendSlotListResponseDto> recommendSlotList(@AuthenticationPrincipal UserPrincipal principal, @PathVariable String accountId, @RequestBody RecommendSlotListRequestDto request) {
-        return ResponseEntity.status(HttpStatus.OK).body(slotService.recommendSlotList(principal.userId(), accountId, request.getBaseDay(), request.getIncome(), request.getPeriod()));
+    public ResponseEntity<RecommendSlotsResponseDto> recommendSlots(@AuthenticationPrincipal UserPrincipal principal, @PathVariable String accountId, @RequestBody RecommendSlotsRequestDto request) {
+        return ResponseEntity.status(HttpStatus.OK).body(slotService.recommendSlots(principal.userId(), accountId, request.getStartDate(), request.getEndDate()));
     }
 
-    @PostMapping("/accounts/{accountId}/slots")
+    @PostMapping("/accounts/{accountId}/slots/recommend/by-profile")
     @Operation(
-            summary = "5-2-2 슬롯 추가등록",
-            description = "서비스 이용 중 새로운 슬롯을 추가로 등록합니다.",
+            summary = "5-2-2 사용자 정보 기반 계좌 슬롯 리스트 추천",
+            description = "주어진 사용자 정보를 기반으로 슬롯 리스트를 추천합니다.",
             responses = {
                     @ApiResponse(
-                            responseCode = "201",
-                            description = "[SlotService - 035] 슬롯 추가 성공",
-                            content = @Content(schema = @Schema(implementation = AddSlotListResponseDto.class))
+                            responseCode = "200",
+                            description = "[SlotService - 028] 슬롯 추천 성공",
+                            content = @Content(schema = @Schema(implementation = RecommendSlotsByProfileResponseDto.class))
                     )
             }
     )
-    public ResponseEntity<AddSlotListResponseDto> addSlots(@AuthenticationPrincipal UserPrincipal principal, @PathVariable String accountId, @RequestBody AddSlotListRequestDto request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(slotService.addSlots(principal.userId(), accountId, request.getSlots()));
+    public ResponseEntity<RecommendSlotsByProfileResponseDto> recommendSlotsByProfile(@AuthenticationPrincipal UserPrincipal principal, @PathVariable String accountId, @RequestBody RecommendSlotsByProfileRequestDto request) {
+        return ResponseEntity.status(HttpStatus.OK).body(slotService.recommendSlotsByProfile(principal.userId(), accountId, request));
     }
 
     @PatchMapping("/accounts/{accountId}/slots/reassign")
     @Operation(
-            summary = "5-2-3 슬롯편성",
+            summary = "5-3-1 슬롯편성",
             description = "서비스에 계좌 연동 후 처음으로 슬롯 리스트를 확정하거나, 기준일이 도래하여 새로운 슬롯 리스트를 확정합니다. 확정하고자 하는 슬롯 리스트를 요청 바디에 넣어서 보내시면 됩니다.",
             responses = {
                     @ApiResponse(
