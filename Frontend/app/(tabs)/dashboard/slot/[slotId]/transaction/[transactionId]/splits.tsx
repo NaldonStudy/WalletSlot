@@ -1,12 +1,12 @@
-import React, { useState } from 'react';
-import { useLocalSearchParams, router, useFocusEffect } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { View, StyleSheet, useColorScheme, Text, Alert, Modal, TouchableOpacity } from 'react-native';
-import { Image } from 'expo-image';
 import { Button } from '@/src/components/Button';
 import { Spacing, themes } from '@/src/constants/theme';
-import * as ImagePicker from 'expo-image-picker';
 import { useNavigation } from '@react-navigation/native';
+import { Image } from 'expo-image';
+import * as ImagePicker from 'expo-image-picker';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import React, { useState } from 'react';
+import { Alert, Modal, StyleSheet, Text, TouchableOpacity, useColorScheme, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function AmountSplitScreen() {
   const { slotId, transactionId, transactionData, slotData, slotName, accountId, accountSlotId } = useLocalSearchParams<{ 
@@ -156,7 +156,7 @@ export default function AmountSplitScreen() {
         {/* 중앙 일러스트레이션 */}
         <View style={styles.illustrationContainer}>
           <Image 
-            source={require('@/src/assets/images/dashboard/금액나누기.png')}
+            source={require('@/src/assets/images/dashboard/splitmoney.png')}
             style={styles.illustrationImage}
             contentFit="contain"
             transition={200}
