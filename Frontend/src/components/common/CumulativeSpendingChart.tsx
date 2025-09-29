@@ -1,14 +1,14 @@
-import React, { useState, useEffect } from "react";
-import { View, Text, StyleSheet, LayoutChangeEvent, TouchableWithoutFeedback, TouchableOpacity } from "react-native";
+import React, { useEffect, useState } from "react";
+import { LayoutChangeEvent, StyleSheet, Text, TouchableOpacity, TouchableWithoutFeedback, View } from "react-native";
 import Svg, {
-  Polyline,
-  Circle as SvgCircle,
-  Text as SvgText,
-  Defs,
-  LinearGradient,
-  Stop,
-  Path,
-  Line,
+    Defs,
+    Line,
+    LinearGradient,
+    Path,
+    Polyline,
+    Stop,
+    Circle as SvgCircle,
+    Text as SvgText,
 } from "react-native-svg";
 
 type CumulativeSpendingChartProps = {
@@ -35,7 +35,9 @@ const CumulativeSpendingChart: React.FC<CumulativeSpendingChartProps> = ({
 
   let cumulative = 0;
   const cumulativeData = data.map((item, index) => {
-    cumulative += item.spent;
+    // spent 값이 유효하지 않은 경우 0으로 처리
+    const validSpent = isFinite(item.spent) && !isNaN(item.spent) ? item.spent : 0;
+    cumulative += validSpent;
     return { x: item.date, y: cumulative };
   });
 
@@ -71,7 +73,7 @@ const CumulativeSpendingChart: React.FC<CumulativeSpendingChartProps> = ({
   const actualMax = Math.max(...cumulativeData.map((d) => d.y));
   const maxY = isUncategorized ? actualMax : Math.max(actualMax, budget);
   const minY = 0;
-  const yRange = maxY - minY || 1;
+  const yRange = Math.max(maxY - minY, 1); // 최소값 1로 보장
 
   const handleLayout = (e: LayoutChangeEvent) => {
     setChartSize({
@@ -104,18 +106,34 @@ const CumulativeSpendingChart: React.FC<CumulativeSpendingChartProps> = ({
 
   const { width: chartWidth, height: chartHeight } = chartSize;
 
-  // Y 스케일
-  const scaleY = (value: number) =>
-    chartHeight -
-    paddingBottom -
-    ((value - minY) / yRange) *
-      (chartHeight - paddingTop - paddingBottom);
+  // Y 스케일 (NaN 방지)
+  const scaleY = (value: number) => {
+    // NaN이나 유효하지 않은 값 체크
+    if (!isFinite(value) || isNaN(value)) {
+      console.warn('CumulativeSpendingChart: Invalid value detected:', value);
+      return chartHeight - paddingBottom; // 기본값 반환
+    }
+    
+    if (chartHeight <= 0 || yRange <= 0) {
+      return chartHeight - paddingBottom; // 레이아웃이 완료되지 않은 경우
+    }
+    
+    return chartHeight -
+      paddingBottom -
+      ((value - minY) / yRange) *
+        (chartHeight - paddingTop - paddingBottom);
+  };
 
-  // X 스케일
-  const scaleX = (index: number) =>
-    paddingLeft +
-    (index * (chartWidth - paddingLeft - paddingRight)) /
-      (cumulativeData.length - 1);
+  // X 스케일 (NaN 방지)
+  const scaleX = (index: number) => {
+    if (chartWidth <= 0 || cumulativeData.length <= 1) {
+      return paddingLeft; // 기본값 반환
+    }
+    
+    return paddingLeft +
+      (index * (chartWidth - paddingLeft - paddingRight)) /
+        (cumulativeData.length - 1);
+  };
 
   // Path (전체 지출 라인)
   const points =
