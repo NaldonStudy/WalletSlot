@@ -347,16 +347,25 @@ export default function NotificationConsentScreen() {
       console.log('FCM 토큰 발급 시작...');
       const pushResult = await unifiedPushService.initialize();
       if (pushResult.success) {
-        // 2. 권한 요청 성공 시, 서버에 토큰을 등록합니다.
-        console.log('✅ FCM 토큰 발급 성공, 서버 등록 시도...');
-        await firebasePushService.ensureServerRegistration();
-        console.log('✅ FCM 토큰 발급 및 서버 등록 성공');
         console.log('Device ID:', pushResult.deviceId);
         fcmToken = unifiedPushService.getFCMToken() || undefined;
       } else {
         console.warn('⚠️ FCM 토큰 발급 실패 (알림 기능 제한)');
       }
       await completeSignup(true, fcmToken);
+        // 3. FCM 토큰 발급
+        try {
+          console.log('FCM 토큰 발급 시작...(로그인 모드)');
+          // 1. 여기서 실제 권한을 요청합니다.
+          const pushResult = await unifiedPushService.initialize();
+          if (pushResult.success) {
+            // 2. 권한 요청 성공 시, 서버에 토큰을 등록합니다.
+            console.log('✅ FCM 토큰 발급 성공, 서버 등록 시도...');
+            await firebasePushService.ensureServerRegistration();
+          } else {
+            console.warn('⚠️ 알림 권한이 거부되었거나 토큰 발급에 실패했습니다.');
+          }
+        } catch {}
       
     } catch (error: any) {
       console.error('알림 허용 처리 중 오류:', error);
