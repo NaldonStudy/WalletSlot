@@ -1,8 +1,11 @@
 import { ThemedText } from '@/components/ThemedText';
+import { updateBaseDay } from '@/src/api/profile';
 import { useLocalUserStore } from '@/src/store/localUserStore';
+import { useSlotDivideStore } from '@/src/store/slotDivideStore';
 import { router } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import {
+  Alert,
   Animated,
   Modal,
   StyleSheet,
@@ -13,6 +16,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function L2oadingScreen() {
   const { user } = useLocalUserStore();
+  const { getBaseDay } = useSlotDivideStore();
   
   // 모달 상태
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -116,12 +120,48 @@ export default function L2oadingScreen() {
     setIsOptionalAgreed(!isOptionalAgreed);
   };
 
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
     if (isRequired1Agreed && isRequired2Agreed) {
-      // 필수 항목에 모두 동의한 경우 다음 화면으로 이동
-      console.log('동의 완료 - 다음 화면으로 이동');
-      setIsModalVisible(false);
-      router.push('/(slotDivide)/i4nputIncome' as any);
+      // 필수 항목에 모두 동의한 경우 baseDay 패치 후 다음 화면으로 이동
+      try {
+        console.log('🎯 [L2OADING] 동의 완료 - baseDay 패치 시작');
+        
+        // store에서 baseDay 가져오기
+        const baseDay = getBaseDay();
+        console.log('🎯 [L2OADING] 현재 baseDay:', baseDay);
+        
+        if (baseDay) {
+          // baseDay 패치 API 호출
+          await updateBaseDay(parseInt(baseDay, 10));
+          console.log('🎯 [L2OADING] baseDay 패치 성공:', baseDay);
+        } else {
+          console.warn('🎯 [L2OADING] baseDay가 없어서 패치 건너뜀');
+        }
+        
+        // 모달 닫기
+        setIsModalVisible(false);
+        
+        // 다음 화면으로 이동
+        router.push('/(slotDivide)/i4nputIncome' as any);
+        
+      } catch (error) {
+        console.error('🎯 [L2OADING] baseDay 패치 실패:', error);
+        
+        // 패치 실패해도 다음 화면으로 이동 (사용자 경험 우선)
+        Alert.alert(
+          '알림', 
+          '기준일 설정에 실패했지만 계속 진행합니다.',
+          [
+            {
+              text: '확인',
+              onPress: () => {
+                setIsModalVisible(false);
+                router.push('/(slotDivide)/i4nputIncome' as any);
+              }
+            }
+          ]
+        );
+      }
     }
   };
 
