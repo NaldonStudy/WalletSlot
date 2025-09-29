@@ -133,26 +133,15 @@ export default function L2oadingScreen() {
         if (baseDay) {
           const numericBaseDay = parseInt(baseDay, 10);
           
-          // baseDay 값 검증
+          // baseDay 값 검증 (1-31 범위만 확인)
           console.log('🎯 [L2OADING] baseDay 검증 시작:', {
             baseDay: numericBaseDay,
-            today: new Date().getDate(),
             isValidRange: numericBaseDay >= 1 && numericBaseDay <= 31
           });
           
           // 범위 검증 (1-31)
           if (numericBaseDay < 1 || numericBaseDay > 31) {
             throw new Error(`baseDay는 1-31 범위여야 합니다. 현재 값: ${numericBaseDay}`);
-          }
-          
-          // 오늘 날짜와 비교 검증
-          const today = new Date().getDate();
-          if (numericBaseDay > today) {
-            console.warn('🎯 [L2OADING] baseDay가 오늘 날짜보다 이후입니다:', {
-              baseDay: numericBaseDay,
-              today: today,
-              warning: '서버에서 에러가 발생할 수 있습니다.'
-            });
           }
           
           // baseDay 패치 API 호출
