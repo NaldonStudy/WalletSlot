@@ -304,8 +304,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   scanArea: {
-    width: width * 0.9,
-    height: width * 0.7,
+    width: '90%',
+    height: '70%',
     position: 'relative',
   },
   scanFrame: {

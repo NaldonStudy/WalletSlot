@@ -162,16 +162,16 @@ const styles = StyleSheet.create({
         fontWeight: Typography.fontWeight.bold,
     },
     accountName: {
-        marginTop: Spacing.lg,
-        marginLeft: Spacing.sm,
+        marginTop: Spacing.sm,
+        marginLeft: 0,
         fontSize: Typography.fontSize.lg,
         fontWeight: Typography.fontWeight.bold,
     },
     accountNumberRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginTop: Spacing.sm,
-        marginLeft: Spacing.sm,
+        marginTop: Spacing.xs,
+        marginLeft: 0,
     },
     accountNumber: {
         fontSize: Typography.fontSize.lg,
