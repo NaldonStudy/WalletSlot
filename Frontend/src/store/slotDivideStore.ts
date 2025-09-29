@@ -43,6 +43,7 @@ interface SlotDivideStore {
   
   // 액션
   setBaseDay: (day: string) => void;
+  getBaseDay: () => string;
   setIncome: (income: string) => void;
   
   // 날짜 관련 액션
@@ -91,6 +92,11 @@ export const useSlotDivideStore = create<SlotDivideStore>((set, get) => ({
     set((state) => ({
       data: { ...state.data, baseDay: day }
     })),
+  
+  getBaseDay: () => {
+    const { data } = get();
+    return data.baseDay;
+  },
   
   setIncome: (income: string) => 
     set((state) => ({
