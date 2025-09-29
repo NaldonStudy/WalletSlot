@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useLocalSearchParams, router, useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { View, StyleSheet, useColorScheme, Text, ScrollView, TouchableOpacity, Modal, TextInput, Alert } from 'react-native';
+import { View, StyleSheet, useColorScheme, Text, ScrollView, TouchableOpacity, Modal, TextInput, Alert, FlatList } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { Image } from 'expo-image';
 import { Button } from '@/src/components/Button';
@@ -625,16 +625,33 @@ export default function ItemSplitScreen() {
       </View>
 
       {/* 항목 선택 모달 */}
-      <BottomSheet 
-        visible={isItemModalVisible} 
-        onClose={() => {
+      <Modal
+        visible={isItemModalVisible}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => {
           setIsItemModalVisible(false);
           setCurrentSlotId(null);
-        }} 
-        title="항목 선택" 
-        height="full"
+        }}
       >
-        <View style={styles.modalContainer}>
+        <SafeAreaView style={[styles.modalSafeArea, { backgroundColor: theme.colors.background.primary }]}>
+          <View style={styles.modalHeader}>
+            <Text style={[styles.modalTitle, { color: theme.colors.text.primary }]}>
+              항목 선택
+            </Text>
+            <TouchableOpacity
+              style={styles.modalCloseButton}
+              onPress={() => {
+                setIsItemModalVisible(false);
+                setCurrentSlotId(null);
+              }}
+            >
+              <Text style={[styles.modalCloseText, { color: theme.colors.primary[500] }]}>
+                닫기
+              </Text>
+            </TouchableOpacity>
+          </View>
+
           <View style={styles.modalContent}>
             <Text style={[styles.modalText, { color: theme.colors.text.primary }]}>
               {currentSlotId 
@@ -643,14 +660,17 @@ export default function ItemSplitScreen() {
               }
             </Text>
 
-            <ScrollView style={styles.itemsModalList} showsVerticalScrollIndicator={false}>
-              {items.map((item, index) => {
+            <FlatList
+              data={items}
+              keyExtractor={(item, index) => `item-${index}`}
+              style={styles.itemsModalList}
+              showsVerticalScrollIndicator={true}
+              renderItem={({ item, index }) => {
                 const isAssigned = item.assignedSlotId;
                 const isAssignedToCurrentSlot = item.assignedSlotId === currentSlotId;
                 
                 return (
                   <TouchableOpacity
-                    key={index}
                     style={[
                       styles.itemModalRow,
                       {
@@ -690,8 +710,8 @@ export default function ItemSplitScreen() {
                     )}
                   </TouchableOpacity>
                 );
-              })}
-            </ScrollView>
+              }}
+            />
           </View>
 
           <View style={[styles.modalBottomButtonContainer, { backgroundColor: theme.colors.background.primary }]}>
@@ -705,8 +725,8 @@ export default function ItemSplitScreen() {
               style={styles.modalConfirmButton}
             />
           </View>
-        </View>
-      </BottomSheet>
+        </SafeAreaView>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -963,17 +983,38 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   // 모달 스타일
-  modalContainer: { 
-    flex: 1, 
-    flexDirection: 'column' 
+  modalSafeArea: {
+    flex: 1,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.base,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E0E0E0',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  modalCloseButton: {
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
+  },
+  modalCloseText: {
+    fontSize: 16,
+    fontWeight: '500',
   },
   modalContent: { 
     flex: 1, 
-    padding: Spacing.lg 
+    padding: Spacing.lg,
   },
   modalBottomButtonContainer: { 
     padding: Spacing.lg, 
-    marginBottom: Spacing.lg 
+    borderTopWidth: 1,
+    borderTopColor: '#E0E0E0',
   },
   modalText: {
     fontSize: 16,

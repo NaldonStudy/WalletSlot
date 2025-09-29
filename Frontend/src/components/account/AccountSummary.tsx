@@ -5,14 +5,13 @@ import { UserAccount } from '@/src/types';
 import { format } from '@/src/utils';
 import { Image } from 'expo-image';
 import React, { memo, useState } from 'react';
-import { StyleSheet, Text, useColorScheme, View, TouchableOpacity } from 'react-native';
+import { StyleSheet, Text, useColorScheme, View } from 'react-native';
 
 type AccountSummaryProps = {
     account: UserAccount;
-    onViewTransactions?: () => void;
 }
 
-export const AccountSummary = memo(({ account, onViewTransactions }: AccountSummaryProps) => {
+export const AccountSummary = memo(({ account }: AccountSummaryProps) => {
     // 서버의 bankCode로 은행 정보 찾기
     const bankInfo = BANK_CODES[account.bankId as keyof typeof BANK_CODES];
     const [imageLoaded, setImageLoaded] = useState(false);
@@ -72,19 +71,6 @@ export const AccountSummary = memo(({ account, onViewTransactions }: AccountSumm
                     </View>
                     <Text style={[styles.bankName, { color: textColor.color }]}>{bankInfo.name}</Text>
                     <Text style={[styles.accountNumber, { color: textColor.color }]}>{account.accountNo}</Text>
-                    {onViewTransactions && (
-                        <TouchableOpacity
-                            style={[styles.transactionButton, { backgroundColor: theme.colors.primary[100] }]}
-                            onPress={() => {
-                                console.log('[AccountSummary] 거래내역 버튼 클릭됨');
-                                onViewTransactions();
-                            }}
-                            activeOpacity={0.7}
-                            hitSlop={{ top: 5, bottom: 5, left: 5, right: 5 }}
-                        >
-                            <Text style={[styles.transactionButtonText, { color: theme.colors.primary[600] }]}>거래내역</Text>
-                        </TouchableOpacity>
-                    )}
                 </View>
             </View>
             {/* 잔액 */}
@@ -92,12 +78,11 @@ export const AccountSummary = memo(({ account, onViewTransactions }: AccountSumm
         </View>
     )
 }, (prevProps, nextProps) => {
-    // 계좌 정보와 onViewTransactions 함수가 같으면 리렌더링하지 않음
+    // 계좌 정보가 같으면 리렌더링하지 않음
     return prevProps.account.bankId === nextProps.account.bankId &&
         prevProps.account.alias === nextProps.account.alias &&
         prevProps.account.accountNo === nextProps.account.accountNo &&
-        String(prevProps.account.accountBalance ?? '') === String(nextProps.account.accountBalance ?? '') &&
-        prevProps.onViewTransactions === nextProps.onViewTransactions;
+        String(prevProps.account.accountBalance ?? '') === String(nextProps.account.accountBalance ?? '');
 });
 
 AccountSummary.displayName = 'AccountSummary';
@@ -146,21 +131,6 @@ const styles = StyleSheet.create({
         fontSize: Typography.fontSize.lg,
         textDecorationLine: 'underline',
         marginRight: Spacing.sm,
-    },
-    transactionButton: {
-        paddingHorizontal: Spacing.sm,
-        paddingVertical: Spacing.xs,
-        borderRadius: 8,
-        minHeight: 28, // 최소 높이 보장
-        minWidth: 60,  // 최소 너비 보장
-        justifyContent: 'center',
-        alignItems: 'center',
-        zIndex: 10, // 다른 요소 위에 표시
-        marginLeft: Spacing.xs, // 계좌번호와의 간격
-    },
-    transactionButtonText: {
-        fontSize: Typography.fontSize.sm,
-        fontWeight: Typography.fontWeight.medium,
     },
     balance: {
         fontSize: Typography.fontSize['2xl'],
