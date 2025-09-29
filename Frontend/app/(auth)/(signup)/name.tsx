@@ -1,16 +1,24 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, StyleSheet, KeyboardAvoidingView, Platform, Animated } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
+import { appService } from '@/src/services/appService';
 import { useSignupStore } from '@/src/store/signupStore';
+import { router } from 'expo-router';
+import React, { useEffect, useState } from 'react';
+import { Animated, KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function NameScreen() {
   const [inputName, setLocalName] = useState('');
   const { setName, isNameValid } = useSignupStore();
+  
 
   // 애니메이션 값들
   const nameFieldOpacity = useState(new Animated.Value(0))[0];
   const nameFieldTranslateY = useState(new Animated.Value(50))[0];
+
+  /** 기존 회원 로그인으로 이동 */
+  const handleGoLogin = async () => {
+    await appService.setOnboardingCompleted(true);
+    router.replace('/(auth)/(login)/login' as any);
+  };
 
   // 컴포넌트 마운트 시 애니메이션 실행
   useEffect(() => {
@@ -68,6 +76,9 @@ export default function NameScreen() {
               importantForAutofill="yes"
             />
           </Animated.View>
+          <TouchableOpacity style={styles.secondaryButton} onPress={handleGoLogin}>
+            <Text style={styles.secondaryButtonText}>기존 회원 로그인 하러가기</Text>
+          </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -108,6 +119,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     fontSize: 16,
     backgroundColor: '#FFFFFF',
+  },
+  secondaryButton: {
+    paddingVertical: 8,
+  },
+  secondaryButtonText: {
+    color: '#007AFF',
+    fontSize: 16,
+    marginBottom: 8,
   },
 });
 
