@@ -341,10 +341,15 @@ export default function NotificationConsentScreen() {
       setPushEnabled(true);
       console.log('알림 허용 - 스토어에 저장');
 
+
+      let fcmToken: string | undefined;
+
       console.log('FCM 토큰 발급 시작...');
       const pushResult = await unifiedPushService.initialize();
-      let fcmToken: string | undefined;
       if (pushResult.success) {
+        // 2. 권한 요청 성공 시, 서버에 토큰을 등록합니다.
+        console.log('✅ FCM 토큰 발급 성공, 서버 등록 시도...');
+        await firebasePushService.ensureServerRegistration();
         console.log('✅ FCM 토큰 발급 및 서버 등록 성공');
         console.log('Device ID:', pushResult.deviceId);
         fcmToken = unifiedPushService.getFCMToken() || undefined;
