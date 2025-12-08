@@ -1,0 +1,51 @@
+spring:
+  config:
+    activate:
+      on-profile: dev
+
+  datasource:
+    url: ${SPRING_DATASOURCE_URL}
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
+
+  jpa:
+    open-in-view: false
+    show-sql: false
+    hibernate:
+      ddl-auto: none
+    properties:
+      hibernate.jdbc.time_zone: Asia/Seoul
+      hibernate.dialect: org.hibernate.dialect.MySQL8Dialect
+
+app:
+  security:
+    jwt:
+      secret_b64: ${JWT_SECRET_B64}  # <<여기에는 JWT Secret (Base64 인코딩) 정보>>
+
+    refresh:
+      enabled: true          # ✅ dev에서 리프레시 사용
+      rotation: true         # 회전(rotate) 사용
+      reuse-block: true      # 재사용 탐지 시 차단
+      hash-pepper: ${RT_HASH_PEPPER}  # <<여기에는 Refresh Token Hash Pepper 정보>>
+
+    pepper:
+      cipher:
+        pepper_v1: ${PEPPER_CIPHER_V1}  # <<여기에는 Cipher Pepper V1 정보>>
+        pepper_v0: ${PEPPER_CIPHER_V0}  # <<여기에는 Cipher Pepper V0 정보>>
+
+fcm:
+  server:
+    project-id: ${FCM_PROJECT_ID}  # <<여기에는 FCM 프로젝트 ID 정보>>
+    service-account-json-path: ${FCM_SERVICE_ACCOUNT_JSON_PATH}  # <<여기에는 FCM 서비스 계정 JSON 파일 경로 정보>>
+
+api:
+  ssafy:
+    finance:
+      baseUrl: ${SSAFY_FINANCE_BASE_URL}  # <<여기에는 SSAFY Finance API Base URL 정보>>
+      apiKey: ${SSAFY_FINANCE_API_KEY}  # <<여기에는 SSAFY Finance API Key 정보>>
+      userKey: ${SSAFY_FINANCE_USER_KEY}  # <<여기에는 SSAFY Finance User Key 정보>>
+    gms:
+      key: ${SSAFY_GMS_KEY}  # <<여기에는 SSAFY GMS Key 정보>>
+  haeji:
+    openai:
+      key: ${OPENAI_API_KEY}  # <<여기에는 OpenAI API Key 정보>>

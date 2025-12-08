@@ -1,0 +1,130 @@
+spring:
+  application:
+    name: walletslot-backend
+
+  jackson:
+    time-zone: Asia/Seoul
+
+  datasource:
+    url: ${SPRING_DATASOURCE_URL}
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
+
+  servlet:
+    multipart:
+      max-file-size: 15MB
+      max-request-size: 15MB
+
+  jpa:
+    open-in-view: false
+    show-sql: false
+    hibernate:
+      ddl-auto: none
+    properties:
+      hibernate.jdbc.time_zone: Asia/Seoul
+      # dev에만 있던 dialect를 기본에도 반영 (자동 인식이 안될 상황 대비)
+      hibernate.dialect: org.hibernate.dialect.MySQL8Dialect
+
+server:
+  # prod에서 쓰던 설정을 기본으로 반영 (리버스 프록시/X-Forwarded-* 신뢰)
+  forward-headers-strategy: framework
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui
+    disable-swagger-default-url: true
+    tags-sorter: alpha
+    operations-sorter: method
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+cloud:
+  aws:
+    # prod처럼 환경변수 우선, 없으면 기존 기본값 사용
+    region: ${AWS_REGION:ap-northeast-2}
+
+api:
+  ssafy:
+    finance:
+      baseUrl: ${SSAFY_FINANCE_BASE_URL}  # <<여기에는 SSAFY Finance API Base URL 정보>>
+      apiKey: ${SSAFY_FINANCE_API_KEY}  # <<여기에는 SSAFY Finance API Key 정보>>
+      userKey: ${SSAFY_FINANCE_USER_KEY}  # <<여기에는 SSAFY Finance User Key 정보>>
+    gms:
+      key: ${SSAFY_GMS_KEY}  # <<여기에는 SSAFY GMS Key 정보>>
+      baseUrl: ${SSAFY_GMS_BASE_URL}  # <<여기에는 SSAFY GMS Base URL 정보>>
+  haeji:
+    openai:
+      key: ${OPENAI_API_KEY}  # <<여기에는 OpenAI API Key 정보>>
+fcm:
+  server:
+    project-id: ${FCM_PROJECT_ID}  # <<여기에는 FCM 프로젝트 ID 정보>>
+    service-account-json-path: ${FCM_SERVICE_ACCOUNT_JSON_PATH}  # <<여기에는 FCM 서비스 계정 JSON 파일 경로 정보>>
+
+app:
+  sms:
+    provider: aligo        # <= 이걸 켜야 AligoSmsSender가 올라옴
+    aligo:
+      key: ${ALIGO_API_KEY}  # <<여기에는 Aligo API Key 정보>>
+      userId: ${ALIGO_USER_ID}  # <<여기에는 Aligo User ID 정보>>
+      sender: ${ALIGO_SENDER}  # <<여기에는 Aligo 발신번호 정보>>
+
+  transaction:
+    # checkTransactions 스케줄러가 처음 실행될 때 사용할 초기 동기화 날짜 (YYYYMMDD)
+    initial-sync-date: "20250927"
+
+  security:
+    jwt:
+      access-ttl-minutes: 1440
+      refresh-ttl-days: 30
+      clock-skew-seconds: 60
+      # prod의 secret_b64를 기본에도 반영. 환경변수 없으면 dev 기본값 사용
+      secret_b64: ${JWT_SECRET_B64}  # <<여기에는 JWT Secret (Base64 인코딩) 정보>>
+
+    # prod처럼 환경변수 우선, 없으면 기존 기본값(12)
+    bcrypt:
+      cost: 12
+
+    # RT(리프레시) 토글: 기본 OFF (코드만 준비, 현재 미사용)
+    refresh:
+      enabled: true
+      rotation: true
+      reuse-block: true
+      hash-pepper: ${RT_HASH_PEPPER}
+
+    # prod의 pepper 구성을 기본에도 반영. 없으면 dev 기본값 사용
+    pepper:
+      cipher:
+        pepper_v1: ${PEPPER_CIPHER_V1}  # <<여기에는 Cipher Pepper V1 정보>>
+        pepper_v0: ${PEPPER_CIPHER_V0}  # <<여기에는 Cipher Pepper V0 정보>>
+
+    otp:
+      ttl-minutes: 3
+      secret: ${OTP_SECRET}  # <<여기에는 OTP Secret 정보>>
+
+encryption:
+  aes:
+    base64-key: ${AES_BASE64_KEY}  # <<여기에는 AES Base64 Key 정보>>
+
+logging:
+  level:
+    com.ssafy.b108.walletslot: INFO
+
+naver:
+  ocr:
+    enabled: true
+    invoke-url: ${NAVER_OCR_INVOKE_URL}  # <<여기에는 Naver OCR Invoke URL 정보>>
+    receipt-path: "/custom/v1/{projectId}/{privateKey}/document/receipt"
+    project-id: ${NAVER_OCR_PROJECT_ID}  # <<여기에는 Naver OCR Project ID 정보>>
+    private-key: ${NAVER_OCR_PRIVATE_KEY}  # <<여기에는 Naver OCR Private Key 정보>>
+    secret: ${NAVER_OCR_SECRET}  # <<여기에는 Naver OCR Secret 정보>>
+    version: "V2"
+
+scheduling:
+  zone: Asia/Seoul
+  ai-report:
+    cron: "0 10 0 * * *"
+    # cron: "0 */1 * * * *"
