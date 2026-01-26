@@ -11,7 +11,7 @@ public class AESUtil {
 
 
     // Field
-    public static String base64Key = "Xm/4GeyvCqWw7QpXfYh5+qJxwHt6v0TfZ8GslrklJ4o=";
+    public static String base64Key = "<<·AES 암호화용 Base64 인코딩된 키·>>";
     public static SecretKey encryptionKey;
     private static final String ALGORITHM = "AES";
 
