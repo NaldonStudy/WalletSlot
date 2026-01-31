@@ -1,0 +1,125 @@
+spring:
+  application:
+    name: walletslot-backend
+
+  jackson:
+    time-zone: Asia/Seoul
+
+  datasource:
+    url: ${SPRING_DATASOURCE_URL}
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
+
+  servlet:
+    multipart:
+      max-file-size: 15MB
+      max-request-size: 15MB
+
+  jpa:
+    open-in-view: false
+    show-sql: false
+    hibernate:
+      ddl-auto: none
+    properties:
+      hibernate.jdbc.time_zone: Asia/Seoul
+      # dev에만 있던 dialect를 기본에도 반영 (자동 인식이 안될 상황 대비)
+      hibernate.dialect: org.hibernate.dialect.MySQL8Dialect
+
+server:
+  # prod에서 쓰던 설정을 기본으로 반영 (리버스 프록시/X-Forwarded-* 신뢰)
+  forward-headers-strategy: framework
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui
+    disable-swagger-default-url: true
+    tags-sorter: alpha
+    operations-sorter: method
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+cloud:
+  aws:
+    # prod처럼 환경변수 우선, 없으면 기존 기본값 사용
+    region: ${AWS_REGION:ap-northeast-2}
+
+api:
+  ssafy:
+    finance:
+      baseUrl: https://finopenapi.ssafy.io
+      apiKey: <<·SSAFY 금융 API 키·>>
+      userKey: <<·SSAFY 금융 사용자 키·>>
+    gms:
+      key: <<·SSAFY GMS API 키·>>
+  haeji:
+    openai:
+      key: <<·OpenAI API 키·>>
+fcm:
+  server:
+    project-id: "walletslot-9dc34"
+    service-account-json-path: walletslot-9dc34-firebase-adminsdk-fbsvc-0a23894ecd.json
+
+app:
+  sms:
+    provider: aligo        # <= 이걸 켜야 AligoSmsSender가 올라옴
+    aligo:
+      key: <<·Aligo SMS API 키·>>
+      userId: <<·Aligo 사용자 ID·>>
+      sender: <<·Aligo 발신번호 (사전 등록 필수)·>>
+
+  security:
+    jwt:
+      access-ttl-minutes: 1440
+      refresh-ttl-days: 30
+      clock-skew-seconds: 60
+      # prod의 secret_b64를 기본에도 반영. 환경변수 없으면 dev 기본값 사용
+      secret_b64: <<·JWT 서명용 Base64 인코딩된 비밀키·>>
+
+    # prod처럼 환경변수 우선, 없으면 기존 기본값(12)
+    bcrypt:
+      cost: 12
+
+    # RT(리프레시) 토글: 기본 OFF (코드만 준비, 현재 미사용)
+    refresh:
+      enabled: true
+      rotation: true
+      reuse-block: true
+      hash-pepper: <<·리프레시 토큰 해시용 페퍼 값·>>
+
+    # prod의 pepper 구성을 기본에도 반영. 없으면 dev 기본값 사용
+    pepper:
+      cipher:
+        pepper_v1: <<·비밀번호 암호화용 페퍼 v1 (plain:접두사 포함)·>>
+        pepper_v0: <<·비밀번호 암호화용 페퍼 v0 (이전 버전)·>>
+
+    otp:
+      ttl-minutes: 3
+      secret: <<·OTP 생성용 비밀키 (32바이트 hex 문자열)·>>
+
+encryption:
+  aes:
+    base64-key: <<·AES 암호화용 Base64 인코딩된 키·>>
+
+logging:
+  level:
+    com.ssafy.b108.walletslot: INFO
+
+naver:
+  ocr:
+    enabled: true
+    invoke-url: <<·네이버 OCR API 호출 URL (호스트만, 뒤에 / 없음)·>>
+    receipt-path: "/custom/v1/{projectId}/{privateKey}/document/receipt"
+    project-id: <<·네이버 OCR 프로젝트 ID (Invoke URL의 첫 세그먼트)·>>
+    private-key: <<·네이버 OCR 개인 키 (Invoke URL의 두 번째 세그먼트)·>>
+    secret: <<·네이버 OCR 시크릿 키 (Base64 인코딩)·>>
+    version: "V2"
+
+scheduling:
+  zone: Asia/Seoul
+  ai-report:
+    cron: "0 10 0 * * *"
+    # cron: "0 */1 * * * *"

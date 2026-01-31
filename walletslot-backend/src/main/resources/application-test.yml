@@ -1,0 +1,32 @@
+spring:
+  config:
+    activate:
+      on-profile: test
+
+  datasource:
+    url: jdbc:mysql://localhost:3306/walletslotdb?useSSL=false&serverTimezone=Asia/Seoul&characterEncoding=UTF-8&allowPublicKeyRetrieval=true
+    username: <<·테스트 환경 MySQL 사용자명·>>
+    password: <<·테스트 환경 MySQL 비밀번호·>>
+
+  jpa:
+    show-sql: true
+    hibernate:
+      ddl-auto: none
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui
+
+
+app:
+  security:
+    jwt:
+      secret_b64: ${JWT_SECRET_B64:<<·테스트 환경 JWT 서명용 Base64 인코딩된 비밀키 (기본값)·>>}
+
+    pepper:
+      cipher:
+        pepper_v1: ${PEPPER_CIPHER_V1}   # ACTIVE
+        pepper_v0: ${PEPPER_CIPHER_V0}   # PREVIOUS(그레이스 후 제거)
+
+    bcrypt:
+      cost: 12
