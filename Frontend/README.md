@@ -1,50 +1,331 @@
-# Welcome to your Expo app 👋
+<div align="center">
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+# 📱 WalletSlot Frontend
 
-## Get started
+**React Native + Expo 기반 모바일 애플리케이션**
 
-1. Install dependencies
+[![React Native](https://img.shields.io/badge/React%20Native-0.81.4-61DAFB?logo=react)](https://reactnative.dev/)
+[![Expo](https://img.shields.io/badge/Expo-54.0.8-000020?logo=expo)](https://expo.dev/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.9.2-3178C6?logo=typescript)](https://www.typescriptlang.org/)
 
-   ```bash
-   npm install
-   ```
+</div>
 
-2. Start the app
+---
 
-   ```bash
-   npx expo start
-   ```
+## 📋 목차
 
-In the output, you'll find options to open the app in a
+- [프로젝트 소개](#-프로젝트-소개)
+- [기술 스택](#-기술-스택)
+- [프로젝트 구조](#-프로젝트-구조)
+- [시작하기](#-시작하기)
+- [주요 기능](#-주요-기능)
+- [개발 가이드](#-개발-가이드)
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+---
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+## 🎯 프로젝트 소개
 
-## Get a fresh project
+WalletSlot Frontend는 **React Native**와 **Expo**를 기반으로 개발된 크로스 플랫폼 모바일 애플리케이션입니다. 
 
-When you're ready, run:
+사용자에게 직관적이고 아름다운 UI/UX를 제공하며, 계좌 연동, 슬롯 관리, AI 리포트 등 핀테크 서비스의 모든 기능을 모바일에서 경험할 수 있도록 구현되었습니다.
 
-```bash
-npm run reset-project
+### 주요 특징
+
+- ✨ **크로스 플랫폼**: iOS, Android, Web 지원
+- 🎨 **모던 UI/UX**: React Native Skia와 Victory Native를 활용한 고성능 그래픽
+- 🔄 **실시간 동기화**: TanStack Query를 통한 서버 상태 관리
+- 🔔 **푸시 알림**: Firebase Cloud Messaging v23 통합
+- 📱 **네이티브 기능**: 카메라, 생체인증, 딥링크 등 완벽 지원
+
+---
+
+## 🛠 기술 스택
+
+### 핵심 프레임워크
+| 기술 | 버전 | 용도 |
+|:---:|:---:|:---|
+| **React Native** | 0.81.4 | 모바일 앱 프레임워크 |
+| **Expo** | 54.0.8 | 개발 도구 및 빌드 시스템 |
+| **React** | 19.1.0 | UI 라이브러리 |
+| **TypeScript** | 5.9.2 | 타입 안정성 |
+
+### 상태 관리 & 네트워킹
+| 기술 | 버전 | 용도 |
+|:---:|:---:|:---|
+| **TanStack Query** | 5.87.4 | 서버 상태 관리, 캐싱, 동기화 |
+| **Zustand** | 5.0.8 | 클라이언트 상태 관리 |
+| **Axios** | 1.12.2 | HTTP 클라이언트 |
+
+### UI/UX 라이브러리
+| 기술 | 버전 | 용도 |
+|:---:|:---:|:---|
+| **React Native Skia** | 2.2.12 | 고성능 그래픽 렌더링 |
+| **Victory Native** | 41.20.1 | 차트 및 데이터 시각화 |
+| **React Hook Form** | 7.62.0 | 폼 관리 및 유효성 검사 |
+| **Zod** | 4.1.8 | 스키마 검증 |
+
+### 네비게이션 & 라우팅
+| 기술 | 버전 | 용도 |
+|:---:|:---:|:---|
+| **Expo Router** | 6.0.7 | 파일 기반 라우팅 |
+| **React Navigation** | 7.1.8 | 네비게이션 라이브러리 |
+
+### 푸시 알림
+| 기술 | 버전 | 용도 |
+|:---:|:---:|:---|
+| **Firebase Messaging** | 23.3.1 | 푸시 알림 서비스 |
+| **Expo Notifications** | 0.32.11 | 로컬 알림 관리 |
+
+### 네이티브 기능
+- **expo-camera**: 카메라 및 영수증 촬영
+- **expo-image-picker**: 이미지 선택
+- **expo-secure-store**: 보안 저장소
+- **expo-haptics**: 햅틱 피드백
+- **expo-linking**: 딥링크 처리
+
+---
+
+## 📁 프로젝트 구조
+
+```
+Frontend/
+├── app/                      # Expo Router 기반 화면 구성
+│   ├── (auth)/              # 🔐 인증 관련 화면
+│   │   ├── (login)/         # 로그인, 비밀번호 찾기
+│   │   └── (signup)/        # 회원가입 플로우
+│   ├── (tabs)/              # 📱 메인 탭 네비게이션
+│   │   ├── dashboard/       # 대시보드
+│   │   ├── report/          # AI 리포트
+│   │   ├── notifications/   # 알림
+│   │   ├── wishlist/        # 위시리스트
+│   │   └── profile/         # 프로필 및 설정
+│   ├── (mydata)/            # 🏦 마이데이터 연동
+│   ├── (slotDivide)/        # 💰 슬롯 추천 및 분배
+│   └── (onboarding)/        # 👋 온보딩
+│
+├── components/              # 재사용 가능한 컴포넌트
+│   ├── ui/                  # UI 컴포넌트
+│   └── ...
+│
+├── src/                      # 소스 코드
+│   ├── api/                 # API 클라이언트
+│   │   ├── accountApi.ts    # 계좌 관련 API
+│   │   ├── authApi.ts       # 인증 관련 API
+│   │   ├── slotApi.ts       # 슬롯 관련 API
+│   │   └── ...
+│   ├── hooks/               # 커스텀 훅
+│   │   ├── useAuth.ts       # 인증 훅
+│   │   ├── useAccount.ts    # 계좌 관리 훅
+│   │   └── ...
+│   ├── store/               # 상태 관리
+│   │   └── index.ts         # Zustand 스토어
+│   ├── types/               # TypeScript 타입 정의
+│   ├── constants/           # 상수 정의
+│   └── utils/               # 유틸리티 함수
+│
+├── assets/                   # 정적 리소스
+│   ├── images/              # 이미지 파일
+│   └── fonts/               # 폰트 파일
+│
+├── package.json
+├── tsconfig.json
+└── README.md
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+---
 
-## Learn more
+## 🚀 시작하기
 
-To learn more about developing your project with Expo, look at the following resources:
+### Prerequisites
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+- **Node.js** 18.x 이상
+- **npm** 또는 **yarn**
+- **Expo CLI** (전역 설치 권장)
+- **Android Studio** (Android 개발용)
+- **Xcode** (iOS 개발용, macOS만)
 
-## Join the community
+### 설치 및 실행
 
-Join our community of developers creating universal apps.
+```bash
+# 1. 의존성 설치
+npm install
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+# 2. 개발 서버 시작
+npm start
+
+# 또는 특정 플랫폼 실행
+npm run android    # Android 에뮬레이터/디바이스
+npm run ios        # iOS 시뮬레이터 (macOS만)
+npm run web        # 웹 브라우저
+```
+
+### 개발 빌드 (Development Build)
+
+```bash
+# Android Development Build
+npx expo run:android
+
+# iOS Development Build (macOS만)
+npx expo run:ios
+```
+
+### 환경 변수 설정
+
+`.env` 파일을 생성하고 다음 변수들을 설정하세요:
+
+```env
+EXPO_PUBLIC_API_URL=http://localhost:8080
+EXPO_PUBLIC_FIREBASE_API_KEY=your_firebase_api_key
+```
+
+---
+
+## ✨ 주요 기능
+
+### 🔐 인증 시스템
+- **PIN 기반 로그인**: 6자리 PIN으로 안전한 인증
+- **생체 인증**: 지문/얼굴 인식 지원
+- **회원가입 플로우**: 전화번호 인증, 계좌 검증 등 단계별 가입
+
+### 🏦 계좌 관리
+- **마이데이터 연동**: SSAFY 금융망 API를 통한 계좌 자동 연동
+- **다중 계좌 관리**: 여러 은행 계좌 통합 관리
+- **실시간 잔액 조회**: 최신 계좌 정보 동기화
+
+### 💰 슬롯 관리
+- **AI 기반 자동 추천**: 과거 소비 패턴 분석을 통한 슬롯 자동 분배
+- **슬롯 조정**: 사용자 맞춤형 슬롯 생성 및 예산 조정
+- **예산 추적**: 실시간 예산 사용량 및 달성률 모니터링
+- **슬롯별 거래 내역**: 각 슬롯에 할당된 거래 상세 조회
+
+### 📊 대시보드
+- **통합 대시보드**: 계좌, 슬롯, 거래 내역 한눈에 보기
+- **차트 시각화**: Victory Native를 활용한 소비 패턴 차트
+- **예산 달성률**: 슬롯별 예산 달성 현황
+
+### 📈 AI 리포트
+- **개인화된 인사이트**: OpenAI 기반 맞춤형 소비 분석
+- **소비 패턴 분석**: 카테고리별 트렌드 분석
+- **절약 제안**: 효율적인 예산 관리 방법 제안
+
+### 🔔 알림 시스템
+- **Firebase 푸시 알림**: 실시간 예산 초과 및 거래 알림
+- **알림 설정**: 사용자별 알림 수신 커스터마이징
+
+### 🎁 위시리스트
+- **소비 목표 관리**: 원하는 상품을 위시리스트에 추가
+- **목표 달성 추적**: 슬롯 예산 절약을 통한 목표 달성
+
+### 📷 OCR 기능
+- **영수증 인식**: 카메라로 영수증 촬영하여 거래 정보 자동 입력
+
+---
+
+## 📚 개발 가이드
+
+### 코드 스타일
+
+- **ESLint**: 코드 품질 관리
+- **TypeScript**: 엄격한 타입 체크
+- **Prettier**: 코드 포맷팅 (권장)
+
+### 주요 개발 원칙
+
+1. **컴포넌트 분리**: 재사용 가능한 컴포넌트 설계
+2. **타입 안정성**: TypeScript를 활용한 타입 정의
+3. **상태 관리**: TanStack Query (서버), Zustand (클라이언트)
+4. **에러 처리**: 전역 에러 핸들링 및 사용자 친화적 메시지
+
+### API 연동
+
+```typescript
+// src/api/accountApi.ts 예시
+import { apiClient } from './client';
+
+export const getAccounts = async () => {
+  const response = await apiClient.get('/api/accounts/link');
+  return response.data;
+};
+```
+
+### 상태 관리
+
+```typescript
+// TanStack Query 사용 예시
+const { data, isLoading } = useQuery({
+  queryKey: ['accounts'],
+  queryFn: getAccounts,
+});
+
+// Zustand 사용 예시
+const useAuthStore = create((set) => ({
+  user: null,
+  setUser: (user) => set({ user }),
+}));
+```
+
+### 상세 개발 가이드
+
+더 자세한 개발 가이드는 [`DEVELOPMENT_GUIDE.md`](./DEVELOPMENT_GUIDE.md)를 참고하세요.
+
+---
+
+## 🧪 테스팅
+
+```bash
+# 테스트 실행
+npm test
+
+# 테스트 커버리지
+npm test -- --coverage
+```
+
+---
+
+## 📦 빌드
+
+### Android APK 빌드
+
+```bash
+# Development Build
+npx expo run:android
+
+# Production Build (EAS Build 필요)
+eas build --platform android
+```
+
+### iOS 빌드
+
+```bash
+# Development Build (macOS만)
+npx expo run:ios
+
+# Production Build (EAS Build 필요)
+eas build --platform ios
+```
+
+---
+
+## 🔧 트러블슈팅
+
+### 일반적인 문제
+
+1. **Metro 번들러 오류**: `npm start -- --reset-cache`
+2. **의존성 충돌**: `rm -rf node_modules && npm install`
+3. **Android 빌드 오류**: `cd android && ./gradlew clean`
+
+자세한 트러블슈팅은 [`DEVELOPMENT_GUIDE.md`](./DEVELOPMENT_GUIDE.md)의 트러블슈팅 섹션을 참고하세요.
+
+---
+
+## 📄 라이선스
+
+이 프로젝트는 삼성 청년 SWㆍAI 아카데미 특화 프로젝트의 일환으로 개발되었습니다.
+
+---
+
+<div align="center">
+
+**Made with ❤️ by Team B108 Frontend Team**
+
+</div>
