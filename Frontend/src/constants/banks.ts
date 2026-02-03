@@ -1,0 +1,41 @@
+// ===== 은행 로고 이미지들 =====
+const bankLogos = {
+  '한국은행': require('../assets/images/banks/krbank.png'),
+  '산업은행': require('../assets/images/banks/kdbbank.png'),
+  '기업은행': require('../assets/images/banks/ibkbank.png'),
+  '국민은행': require('../assets/images/banks/kbbank.png'),
+  '농협은행': require('../assets/images/banks/nhbank.png'),
+  '우리은행': require('../assets/images/banks/woori.png'),
+  'sc제일은행': require('../assets/images/banks/scbank.png'),
+  '씨티은행': require('../assets/images/banks/citibank.png'),
+  '대구은행': require('../assets/images/banks/dgbank.png'),
+  '광주_전북은행': require('../assets/images/banks/jbbank.png'),
+  '제주_신한은행': require('../assets/images/banks/jjshbank.png'),
+  '경남은행': require('../assets/images/banks/gnbank.png'),
+  '새마을은행': require('../assets/images/banks/mgbank.png'),
+  '하나은행': require('../assets/images/banks/hanabank.png'),
+  '카카오뱅크': require('../assets/images/banks/kakaobank.png'),
+  '싸피은행': require('../assets/images/banks/ssafybank.png'),
+} as const;
+
+// ===== 은행 코드 상수 =====
+export const BANK_CODES = {
+  'ef0ee344-99da-11f0-8086-0e08d0f2f752': { name: '한국은행', shortName: '한은', color: '#0057B8', logo: bankLogos['한국은행'] },
+  'ef0ee561-99da-11f0-8086-0e08d0f2f752': { name: '산업은행', shortName: '산업', color: '#183F6E', logo: bankLogos['산업은행'] },
+  'ef0ee682-99da-11f0-8086-0e08d0f2f752': { name: '기업은행', shortName: '기업', color: '#004080', logo: bankLogos['기업은행'] },
+  'ef0ee6f2-99da-11f0-8086-0e08d0f2f752': { name: '국민은행', shortName: '국민', color: '#5F6062', logo: bankLogos['국민은행'] },
+  'ef0ee74c-99da-11f0-8086-0e08d0f2f752': { name: '농협은행', shortName: '농협', color: '#00B140', logo: bankLogos['농협은행'] },
+  'ef0ee79f-99da-11f0-8086-0e08d0f2f752': { name: '우리은행', shortName: '우리', color: '#007BC1', logo: bankLogos['우리은행'] },
+  'ef0ee810-99da-11f0-8086-0e08d0f2f752': { name: 'SC제일은행', shortName: 'SC제일', color: '#0072AA', logo: bankLogos['sc제일은행'] },
+  'ef0ee91f-99da-11f0-8086-0e08d0f2f752': { name: '한국씨티은행', shortName: '씨티', color: '#003B70', logo: bankLogos['씨티은행'] },
+  'ef0ee977-99da-11f0-8086-0e08d0f2f752': { name: '대구은행', shortName: '대구', color: '#00A0E2', logo: bankLogos['대구은행'] },
+  'ef0ee9cc-99da-11f0-8086-0e08d0f2f752': { name: '광주은행', shortName: '광주', color: '#0084D4', logo: bankLogos['광주_전북은행'] },
+  'ef0eea1c-99da-11f0-8086-0e08d0f2f752': { name: '제주은행', shortName: '제주', color: '#003F7D', logo: bankLogos['제주_신한은행'] },
+  'ef0eea77-99da-11f0-8086-0e08d0f2f752': { name: '전북은행', shortName: '전북', color: '#0055A0', logo: bankLogos['광주_전북은행'] },
+  'ef0eeacc-99da-11f0-8086-0e08d0f2f752': { name: '경남은행', shortName: '경남', color: '#D71922', logo: bankLogos['경남은행'] },
+  'ef0eeb1e-99da-11f0-8086-0e08d0f2f752': { name: '새마을금고', shortName: '새마을', color: '#0050A3', logo: bankLogos['새마을은행'] },
+  'ef0eeb73-99da-11f0-8086-0e08d0f2f752': { name: 'KEB하나은행', shortName: '하나', color: '#00C7A9', logo: bankLogos['하나은행'] },
+  'ef0eebc9-99da-11f0-8086-0e08d0f2f752': { name: '신한은행', shortName: '신한', color: '#0046FF', logo: bankLogos['제주_신한은행'] },
+  'ef0eec1e-99da-11f0-8086-0e08d0f2f752': { name: '카카오뱅크', shortName: '카뱅', color: '#FEE500', logo: bankLogos['카카오뱅크'] },
+  'ef0eec7b-99da-11f0-8086-0e08d0f2f752': { name: '싸피은행', shortName: '싸피', color: '#004282', logo: bankLogos['싸피은행'] },
+} as const;

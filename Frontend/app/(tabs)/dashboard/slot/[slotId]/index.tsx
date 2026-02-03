@@ -1,0 +1,201 @@
+import React from 'react';
+import { View, Text, StyleSheet, useColorScheme, ScrollView } from 'react-native';
+import { useLocalSearchParams , Stack } from 'expo-router';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSlotStore } from '@/src/store/useSlotStore';
+import { Spacing, themes, Typography } from '@/src/constants/theme';
+import { SLOT_CATEGORIES , UNCATEGORIZED_SLOT_ID } from '@/src/constants/slots';
+import SlotHeader from '@/src/components/slot/SlotHeader';
+import SlotSpendingChart from '@/src/components/slot/SlotSpendingChart';
+import SlotBalanceCard from '@/src/components/slot/SlotBalanceCard';
+import UncategorizedSlotBalanceCard from '@/src/components/slot/UncategorizedSlotBalanceCard';
+import { useSlotDailySpending } from '@/src/hooks/slots/useSlotDailySpending';
+import { useSlotTransactions } from '@/src/hooks/slots/useSlotTransactions';
+import { useSlots } from '@/src/hooks/slots/useSlots';
+import TransactionList from '@/src/components/transaction/TransactionList';
+import { SlotTransaction } from '@/src/types/slot';
+
+
+export default function SlotDetailScreen() {
+    const { slotId } = useLocalSearchParams<{ slotId: string }>();
+    const { selectedSlot } = useSlotStore();
+    const colorScheme = useColorScheme() ?? 'light';
+    const theme = themes[colorScheme];
+
+    // API를 통해 최신 슬롯 데이터 가져오기
+    const { slots, isLoading: slotsLoading } = useSlots(selectedSlot?.accountId);
+    
+    // 현재 슬롯 결정 - 최신 데이터 우선 사용
+    const currentSlot = slots?.find(slot => slot.slotId === slotId) || selectedSlot;
+
+    // 미분류 슬롯인지 확인
+    const isUncategorizedSlot = slotId === UNCATEGORIZED_SLOT_ID;
+
+    // 실제 슬롯 데이터에서 accountSlotId 가져오기
+    const actualAccountSlotId = currentSlot?.accountSlotId || selectedSlot?.accountSlotId || '';
+
+    // 일일 지출 데이터 조회 (모든 슬롯에 대해 동일한 API 사용)
+    const { data: dailySpending, isLoading } = useSlotDailySpending(
+        selectedSlot?.accountId || '', // 계좌 ID
+        actualAccountSlotId // 실제 accountSlotId 사용
+    );
+
+    // 거래내역 조회 (모든 슬롯에 대해 동일한 API 사용)
+    const { 
+        transactions, 
+        isLoading: isTransactionsLoading,
+        totalPages,
+        currentPage 
+    } = useSlotTransactions({
+        accountId: selectedSlot?.accountId || '',
+        accountSlotId: actualAccountSlotId,
+        params: {
+            page: 1,
+            pageSize: 20,
+        },
+        enabled: !!selectedSlot?.accountId && !!actualAccountSlotId
+    });
+
+    // 로딩 중이거나 슬롯 데이터가 없을 때 처리
+    if (slotsLoading) {
+        return (
+            <SafeAreaView style={styles.container}>
+                <Text style={styles.error}>슬롯 정보를 불러오는 중...</Text>
+            </SafeAreaView>
+        );
+    }
+
+    if (!currentSlot) {
+        return (
+            <SafeAreaView style={styles.container}>
+                <Text style={styles.error}>슬롯 정보를 불러올 수 없습니다.</Text>
+            </SafeAreaView>
+        );
+    }
+
+    return (
+        <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background.primary }]}>
+            
+            <ScrollView 
+                style={styles.scrollView}
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={styles.scrollContent}
+            >
+                {/* SlotHeader 컴포넌트 사용 */}
+                <SlotHeader slot={currentSlot} variant="large" />
+
+                {/* 잔액 현황 카드 */}
+                {currentSlot.slotId === UNCATEGORIZED_SLOT_ID ? (
+                    <UncategorizedSlotBalanceCard
+                        remaining={currentSlot.remainingBudget}
+                        unreadCount={0} // 실제 개수는 UncategorizedSlotCard 내부에서 API로 조회
+                    />
+                ) : (
+                    <SlotBalanceCard
+                        remaining={currentSlot.remainingBudget}
+                        budget={currentSlot.currentBudget}
+                        color={SLOT_CATEGORIES[currentSlot.slotId as keyof typeof SLOT_CATEGORIES]?.color || '#F1A791'}
+                    />
+                )}
+
+                {/* 누적 지출 그래프 */}
+                <View style={styles.chartContainer}>
+                    {isLoading ? (
+                        <View style={styles.loadingCard}>
+                            <Text style={styles.loadingText}>불러오는 중...</Text>
+                        </View>
+                    ) : dailySpending && dailySpending.transactions ? (
+                        <SlotSpendingChart
+                            data={dailySpending}
+                            slotName={currentSlot.name}
+                            color={SLOT_CATEGORIES[currentSlot.slotId as keyof typeof SLOT_CATEGORIES]?.color || '#F1A791'}
+                            budget={currentSlot.currentBudget}
+                            isUncategorized={isUncategorizedSlot}
+                        />
+                    ) : (
+                        <View style={styles.emptyCard}>
+                            <Text style={styles.emptyText}>데이터 없음</Text>
+                        </View>
+                    )}
+                </View>
+                
+                <View style={styles.section}>
+                    <Text style={[styles.sectionTitle, { color: theme.colors.text.primary }]}>상세 거래 내역</Text>
+                    {isTransactionsLoading ? (
+                        <View style={styles.loadingCard}>
+                            <Text style={styles.loadingText}>거래내역을 불러오는 중...</Text>
+                        </View>
+                    ) : transactions.length > 0 ? (
+                        <TransactionList 
+                            transactions={transactions} 
+                            slotId={slotId}
+                            accountId={selectedSlot?.accountId}
+                            accountSlotId={currentSlot?.accountSlotId}
+                        />
+                    ) : (
+                        <View style={styles.emptyCard}>
+                            <Text style={styles.emptyText}>거래내역이 없습니다.</Text>
+                        </View>
+                    )}
+                </View>
+            </ScrollView>
+        </SafeAreaView>
+    );
+}
+
+const styles = StyleSheet.create({
+    container: {
+        flex: 1,
+        backgroundColor: "#F9FAFB", // 기본 배경 (테마 색상으로 덮어씌워짐)
+    },
+    scrollView: {
+        flex: 1,
+    },
+    scrollContent: {
+        paddingBottom: 20, // 하단 여백
+    },
+    error: {
+        padding: Spacing.lg,
+        textAlign: "center",
+        color: "#888",
+    },
+    chartContainer: {
+        paddingHorizontal: 16,
+        marginTop: 16,
+    },
+    loadingCard: {
+        flex: 1,
+        borderRadius: 12,
+        backgroundColor: "#fff",
+        padding: 12,
+        height: "100%",
+        justifyContent: "center",
+        alignItems: "center",
+    },
+    loadingText: {
+        fontSize: 14,
+        color: "#666",
+    },
+    emptyCard: {
+        flex: 1,
+        borderRadius: 12,
+        backgroundColor: "#fff",
+        padding: 12,
+        height: "100%",
+        justifyContent: "center",
+        alignItems: "center",
+    },
+    emptyText: {
+        fontSize: 14,
+        color: "#666",
+    },
+    section: {
+        padding: Spacing.lg,
+    },
+    sectionTitle: {
+        fontSize: Typography.fontSize.lg,
+        fontWeight: Typography.fontWeight.semibold,
+        marginBottom: Spacing.base,
+    },
+});
+

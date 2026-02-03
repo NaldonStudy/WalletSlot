@@ -1,0 +1,57 @@
+/*
+ * 📦 컴포넌트 중앙 Export 파일
+ * 
+ * 목적:
+ * - 공통 컴포넌트들의 중앙 집중식 export
+ * - import 경로 단순화 및 일관성 제공
+ * - 타입 정의도 함께 export하여 TypeScript 지원
+ * 
+ * 사용법:
+ * import { Button, NotificationRow } from '@/src/components';
+ * 
+ * 구조:
+ * - 공통 UI 컴포넌트 (Button, InputField 등)
+ * - 도메인별 컴포넌트 (알림, 슬롯, 계좌 등)
+ * - 타입 정의 함께 export
+ */
+
+// 공통 컴포넌트 export
+export { Button } from './Button';
+export type { ButtonProps } from './Button';
+
+export { InputField } from './InputField';
+export type { InputFieldProps } from './InputField';
+
+// 공통 UI 컴포넌트
+export { CommonCard } from './common';
+export type { CommonCardProps } from './common';
+
+export { LoadingIndicator, SimpleLoadingIndicator } from './common';
+export type { LoadingIndicatorProps } from './common';
+
+// 모달 시스템
+export { AlertDialog, AuthKeypad, BottomSheet, CommonModal, PickerModal, PinDots } from './common';
+export type { AlertDialogProps, AuthKeypadProps, BottomSheetProps, CommonModalProps, PickerModalProps, PickerOption, PinDotsProps } from './common';
+
+// 알림 관련 컴포넌트
+export { NotificationFilters } from './NotificationFilters';
+export { NotificationRow } from './NotificationItem';
+
+// 레포트 관련 컴포넌트
+export * from './report';
+
+/**
+ * 향후 추가 예정인 공통 컴포넌트들
+ * 
+ * Phase 2 개발 계획:
+ * - UI 기본 컴포넌트: Card, Modal, LoadingSpinner, Toast, Badge
+ * - 폼 컴포넌트: Switch, Slider, DatePicker
+ * - 네비게이션: TabBar, Header, IconButton
+ * - 차트: PieChart, BarChart, LineChart
+ * - 레이아웃: SafeAreaView, KeyboardAvoidingView, Divider
+ * - 도메인 특화: SlotCard, AccountCard, Avatar
+ */
+
+// 스플래시 화면 컴포넌트
+export { default as CustomSplashScreen } from './CustomSplashScreen';
+
