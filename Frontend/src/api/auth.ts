@@ -1,14 +1,24 @@
 import { apiClient } from '@/src/api/client';
-import { 
-  User, 
-  UserDevice, 
-  LoginForm, 
-  RegisterForm, 
-  PhoneVerificationForm,
-  AccountVerificationForm,
-  PasswordForm,
-  AuthTokens,
-  BaseResponse 
+import { API_ENDPOINTS } from '@/src/constants/api';
+import {
+  AccountVerificationRequestRequest,
+  AccountVerificationRequestResponse,
+  AccountVerificationVerifyRequest,
+  AccountVerificationVerifyResponse,
+  CompleteSignupRequest,
+  CompleteSignupResponse,
+  LoginRequest,
+  LoginResponse,
+  RequestPinResetRequest,
+  RequestPinResetResponse,
+  ResetPinRequest,
+  ResetPinResponse,
+  SmsSendRequest,
+  SmsSendResponse,
+  SmsVerifyRequest,
+  SmsVerifyResponse,
+  SmsVerifySignupRequest,
+  SmsVerifySignupResponse,
 } from '@/src/types';
 
 /**
@@ -16,79 +26,91 @@ import {
  */
 export const authApi = {
   /**
-   * 로그인
+   * 로그인 (PIN 포함 전체 로그인)
+   * POST /api/auth/login/full
    */
-  login: async (data: LoginForm): Promise<BaseResponse<{ user: User; tokens: AuthTokens }>> => {
-    return apiClient.post('/auth/login', data);
+  loginFull: async (data: LoginRequest): Promise<LoginResponse> => {
+    return apiClient.post(API_ENDPOINTS.AUTH_LOGIN_FULL, data);
   },
 
   /**
-   * 토큰 갱신
+   * SMS 인증코드 발송
+   * POST /api/auth/sms/send
    */
-  refreshToken: async (refreshToken: string): Promise<BaseResponse<AuthTokens>> => {
-    return apiClient.post('/auth/refresh', { refreshToken });
+  sendSms: async (data: SmsSendRequest): Promise<SmsSendResponse> => {
+    return apiClient.post(API_ENDPOINTS.AUTH_SMS_SEND, data);
   },
 
   /**
-   * 회원가입 - 기본 정보 등록
+   * 가입용 SMS 검증
+   * POST /api/auth/sms/verify-signup
    */
-  register: async (data: RegisterForm): Promise<BaseResponse<{ userId: number }>> => {
-    return apiClient.post('/auth/register', data);
+  verifySmsSignup: async (data: SmsVerifySignupRequest): Promise<SmsVerifySignupResponse> => {
+    return apiClient.post(API_ENDPOINTS.AUTH_SMS_VERIFY_SIGNUP, data);
   },
 
   /**
-   * 휴대폰 인증 코드 발송
+   * 로그인/공통 SMS 검증
+   * POST /api/auth/sms/verify
    */
-  sendPhoneVerification: async (phoneNumber: string): Promise<BaseResponse<void>> => {
-    return apiClient.post('/auth/phone/send', { phoneNumber });
+  verifySms: async (data: SmsVerifyRequest): Promise<SmsVerifyResponse> => {
+    return apiClient.post(API_ENDPOINTS.AUTH_SMS_VERIFY, data);
   },
 
   /**
-   * 휴대폰 인증 코드 확인
+   * PIN 재설정
+   * POST /api/auth/password/reset
    */
-  verifyPhone: async (data: PhoneVerificationForm): Promise<BaseResponse<void>> => {
-    return apiClient.post('/auth/phone/verify', data);
+  resetPin: async (data: ResetPinRequest): Promise<ResetPinResponse> => {
+    return apiClient.post(API_ENDPOINTS.AUTH_PASSWORD_RESET, data);
   },
 
   /**
-   * 계좌 1원 인증 요청
+   * PIN 재설정 요청 (SMS 발송)
+   * POST /api/auth/password/reset-request
    */
-  requestAccountVerification: async (data: { accountNumber: string; bankCode: string }): Promise<BaseResponse<void>> => {
-    return apiClient.post('/auth/account/verify-request', data);
+  requestPinReset: async (data: RequestPinResetRequest): Promise<RequestPinResetResponse> => {
+    return apiClient.post(API_ENDPOINTS.AUTH_PASSWORD_RESET_REQUEST, data);
+  },
+  /**
+   * 1원 인증 요청
+   * POST /api/accounts/verification/request
+   */
+  requestAccountVerification: async (
+    data: AccountVerificationRequestRequest,
+  ): Promise<AccountVerificationRequestResponse> => {
+  return apiClient.postNoAuth(API_ENDPOINTS.ACCOUNTS_VERIFICATION_REQUEST, data);
   },
 
   /**
-   * 계좌 1원 인증 확인
+   * 1원 인증 검증
+   * POST /api/accounts/verification/verify
    */
-  verifyAccount: async (data: AccountVerificationForm): Promise<BaseResponse<void>> => {
-    return apiClient.post('/auth/account/verify', data);
+  verifyAccountVerification: async (
+    data: AccountVerificationVerifyRequest,
+  ): Promise<AccountVerificationVerifyResponse> => {
+  return apiClient.postNoAuth(API_ENDPOINTS.ACCOUNTS_VERIFICATION_VERIFY, data);
   },
 
   /**
-   * 간편 비밀번호 설정
+   * 회원가입 완료
+   * POST /api/auth/signup
    */
-  setPassword: async (data: PasswordForm): Promise<BaseResponse<void>> => {
-    return apiClient.post('/auth/password/set', data);
+  completeSignup: async (data: CompleteSignupRequest): Promise<CompleteSignupResponse> => {
+    return apiClient.postWithConfig(API_ENDPOINTS.AUTH_SIGNUP, data, { skipAuth: true, disableRetry: true });
   },
-
-  /**
-   * 간편 비밀번호 변경
-   */
-  changePassword: async (data: { currentPassword: string; newPassword: string }): Promise<BaseResponse<void>> => {
-    return apiClient.post('/auth/password/change', data);
+  
+  refresh: async (data: { refreshToken: string; deviceId: string }) => {
+    return apiClient.post(API_ENDPOINTS.AUTH_REFRESH, data);
   },
-
-  /**
-   * FCM 토큰 등록/갱신
-   */
-  updateFcmToken: async (data: { deviceUuid: string; fcmToken: string; platform: string }): Promise<BaseResponse<void>> => {
-    return apiClient.post('/auth/fcm-token', data);
+  logout: async (data: { refreshToken: string; deviceId: string }) => {
+    return apiClient.post(API_ENDPOINTS.AUTH_LOGOUT, data);
   },
-
   /**
-   * 기기 정보 등록
+   * PIN 검증
+   * POST /api/auth/pin/verify
    */
-  registerDevice: async (data: { deviceUuid: string; fcmToken: string; platform: string }): Promise<BaseResponse<UserDevice>> => {
-    return apiClient.post('/auth/device', data);
+  verifyPin: async (data: { pin: string }) => {
+    return apiClient.post<{ valid?: boolean }>(`${API_ENDPOINTS.PIN_CHANGE}/verify`, data);
   },
 };

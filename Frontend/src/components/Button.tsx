@@ -1,15 +1,15 @@
+import { BorderRadius, Shadows, Spacing, themes, Typography } from '@/src/constants/theme';
 import React from 'react';
 import {
-  TouchableOpacity,
-  Text,
-  ActivityIndicator,
-  StyleSheet,
-  ViewStyle,
-  TextStyle,
-  TouchableOpacityProps,
-  useColorScheme,
+    StyleSheet,
+    Text,
+    TextStyle,
+    TouchableOpacity,
+    TouchableOpacityProps,
+    useColorScheme,
+    ViewStyle,
 } from 'react-native';
-import { themes, Typography, Spacing, BorderRadius, Shadows } from '../constants/theme';
+import { SimpleLoadingIndicator } from './common/LoadingIndicator';
 
 export interface ButtonProps extends Omit<TouchableOpacityProps, 'style'> {
   /** 버튼 텍스트 */
@@ -81,7 +81,7 @@ export const Button: React.FC<ButtonProps> = ({
       {...props}
     >
       {loading ? (
-        <ActivityIndicator
+        <SimpleLoadingIndicator
           size="small"
           color={getTextColor(variant)}
         />

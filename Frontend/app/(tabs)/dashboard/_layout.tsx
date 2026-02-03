@@ -1,24 +1,19 @@
 import { Stack } from 'expo-router';
 
 export default function DashboardLayout() {
-  return (
-    <Stack>
-      <Stack.Screen 
-        name="index" 
-        options={{ 
-          title: '대시보드',
-          headerShown: false 
-        }} 
-      />
-      {/* TODO: 슬롯 상세 페이지 구현 후 활성화
-      <Stack.Screen 
-        name="[slotId]" 
-        options={{ 
-          title: '슬롯 상세',
-          presentation: 'modal'
-        }} 
-      />
-      */}
-    </Stack>
-  );
+    return (
+        <Stack>
+            <Stack.Screen
+                name="index"
+                options={{
+                    title: '대시보드',
+                    headerShown: false
+                }}
+            />
+            <Stack.Screen
+                name="slot/[slotId]"
+                options={{ headerShown: false }} // 하위 레이아웃에 맡기기
+            />
+        </Stack>
+    );
 }

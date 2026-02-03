@@ -1,11 +1,12 @@
 import { apiClient } from '@/src/api/client';
-import { 
-  Slot, 
-  SlotCategory, 
-  SlotHistory,
-  CreateSlotRequest,
-  UpdateSlotBudgetRequest,
-  BaseResponse 
+import { normalizeSlots } from '@/src/api/responseNormalizer';
+import { API_ENDPOINTS } from '@/src/constants/api';
+import {
+  ApiError,
+  BaseResponse,
+  SlotDailySpendingResponse,
+  SlotHistoryResponse,
+  SlotsResponse
 } from '@/src/types';
 
 /**
@@ -15,190 +16,148 @@ export const slotApi = {
   /**
    * 계좌별 슬롯 목록 조회
    */
-  getSlotsByAccount: async (accountId: number): Promise<BaseResponse<Slot[]>> => {
-    return apiClient.get(`/slots?accountId=${accountId}`);
+  getSlotsByAccount: async (accountId: string): Promise<BaseResponse<SlotsResponse>> => {
+    try {
+    return await apiClient.get<SlotsResponse>(API_ENDPOINTS.ACCOUNT_SLOTS(accountId));
+    } catch (error) {
+      console.error(
+        '[getSlotsByAccount] API 호출 실패:',
+        error instanceof Error ? error.message : String(error)
+      );
+      throw error;
+    }
   },
 
   /**
-   * 슬롯 상세 조회
+   * 계좌별 슬롯 하루 지출 합계 (그래프 용도)
    */
-  getSlotDetail: async (slotId: number): Promise<BaseResponse<Slot>> => {
-    return apiClient.get(`/slots/${slotId}`);
+  getSlotDailySpending: async (accountId: string, accountSlotId: string): Promise<BaseResponse<SlotDailySpendingResponse>> => {
+    try {
+      console.log('[getSlotDailySpending] API 요청:', {
+        accountId,
+        accountSlotId,
+        url: API_ENDPOINTS.ACCOUNT_SLOT_DAILY_SPENDING(accountId, accountSlotId)
+      });
+      
+      const response = await apiClient.get<SlotDailySpendingResponse>(
+        API_ENDPOINTS.ACCOUNT_SLOT_DAILY_SPENDING(accountId, accountSlotId)
+      );
+      
+      console.log('[getSlotDailySpending] API 응답:', {
+        success: response.success,
+        message: response.message,
+        data: response.data
+      });
+      
+      // 날짜별 그룹화 및 합계 계산 (로그 없이)
+      if (response.data && response.data.transactions) {
+        const groupedByDate = response.data.transactions.reduce((acc, tx) => {
+          if (acc[tx.date]) {
+            acc[tx.date] += tx.spent;
+          } else {
+            acc[tx.date] = tx.spent;
+          }
+          return acc;
+        }, {} as { [date: string]: number });
+        
+        const groupedTransactions = Object.entries(groupedByDate)
+          .map(([date, spent]) => ({ date, spent }))
+          .sort((a, b) => a.date.localeCompare(b.date));
+        
+        // 그룹화된 데이터로 응답 수정
+        response.data.transactions = groupedTransactions;
+      }
+      
+      return response;
+    } catch (error) {
+      const apiError = error as ApiError | Error;
+      const message =
+        (apiError as ApiError)?.message ??
+        (apiError as Error)?.message ??
+        '슬롯 하루 지출 합계 조회에 실패했습니다.';
+
+      console.error('[getSlotDailySpending] API 호출 실패:', {
+        message,
+        error: apiError,
+        accountId,
+        accountSlotId
+      });
+      throw new Error(message);
+    }
   },
 
   /**
-   * 새 슬롯 생성
+   * 슬롯 예산 변경 히스토리 조회
    */
-  createSlot: async (data: CreateSlotRequest): Promise<BaseResponse<Slot>> => {
-    return apiClient.post('/slots', data);
+  getSlotHistory: async (accountId: string, slotId: string): Promise<BaseResponse<SlotHistoryResponse>> => {
+    try {
+      return await apiClient.get<SlotHistoryResponse>(
+        API_ENDPOINTS.ACCOUNT_SLOT_HISTORY(accountId, slotId)
+      );
+    } catch (error) {
+      const apiError = error as ApiError | Error;
+      const message =
+        (apiError as ApiError)?.message ??
+        (apiError as Error)?.message ??
+        '슬롯 히스토리 조회에 실패했습니다.';
+
+      console.error('[getSlotHistory] API 호출 실패:', {
+        message,
+        error: apiError,
+        accountId,
+        slotId,
+        url: `/api/accounts/${accountId}/slots/${slotId}/history`
+      });
+      throw new Error(message);
+    }
   },
 
   /**
-   * 슬롯 예산 수정
+   * 예산안 확정 - 슬롯 리스트를 확정(reassign)
+   * 요청 바디: { slots: SlotDto[] }
    */
-  updateSlotBudget: async (data: UpdateSlotBudgetRequest): Promise<BaseResponse<Slot>> => {
-    return apiClient.put(`/slots/${data.slotId}/budget`, {
-      newBudget: data.newBudget,
-      reason: data.reason,
-    });
-  },
+  reassignSlots: async (accountId: string, slotsPayload: any): Promise<BaseResponse<SlotsResponse>> => {
+    try {
+      // API 문서 상으로는 PATCH /api/accounts/{accountId}/slots/reassign
+      const url = API_ENDPOINTS.ACCOUNT_SLOT_REASSIGN(accountId);
+      const response = await apiClient.patch(url, slotsPayload);
 
-  /**
-   * 슬롯 정보 수정 (이름, 색상 등)
-   */
-  updateSlot: async (slotId: number, data: {
-    slotName?: string;
-    color?: string;
-    categoryId?: number;
-  }): Promise<BaseResponse<Slot>> => {
-    return apiClient.put(`/slots/${slotId}`, data);
-  },
+      // response가 애매한 형태일 수 있으므로 정규화 시도
+      try {
+        return normalizeSlots(response);
+      } catch (e) {
+        // 정규화 실패 시 원시 응답을 그대로 반환하려 시도
+        return response as BaseResponse<SlotsResponse>;
+      }
+    } catch (error) {
+      const apiError = error as ApiError | Error | any;
+      const apiCode = (apiError as ApiError)?.code ?? (apiError?.code) ?? 'UNKNOWN_ERROR_CODE';
+      const details = (apiError as ApiError)?.details ?? apiError?.details ?? null;
+      const requestId = details?.requestId ?? (slotsPayload && (slotsPayload as any)?.requestId) ?? null;
 
-  /**
-   * 슬롯 삭제
-   */
-  deleteSlot: async (slotId: number): Promise<BaseResponse<void>> => {
-    return apiClient.delete(`/slots/${slotId}`);
-  },
+      // 메시지 우선순위: ApiError.message > Error.message > 기본 메시지
+      const message = (apiError as ApiError)?.message ?? (apiError as Error)?.message ?? '예산안 확정에 실패했습니다.';
 
-  /**
-   * 슬롯 히스토리 조회
-   */
-  getSlotHistory: async (slotId: number): Promise<BaseResponse<SlotHistory[]>> => {
-    return apiClient.get(`/slots/${slotId}/history`);
-  },
+      // 로깅: 서버에서 온 상세 정보와 요청 ID를 함께 남겨 추적 가능하게 함
+      try {
+        console.error('[reassignSlots] API 호출 실패 상세:', {
+          message,
+          code: apiCode,
+          requestId,
+          details,
+          accountId,
+          // slotsPayload는 크기가 클 수 있어 길이 및 샘플만 기록
+          slotsCount: Array.isArray(slotsPayload?.slots) ? slotsPayload.slots.length : undefined,
+          sampleSlot: Array.isArray(slotsPayload?.slots) && slotsPayload.slots.length ? slotsPayload.slots[0] : undefined,
+        });
+      } catch (logErr) {
+        console.error('[reassignSlots] 로깅 중 예외 발생:', logErr);
+      }
 
-  /**
-   * AI 기반 슬롯 추천 (신규 사용자)
-   */
-  getSlotRecommendations: async (data: {
-    accountId: number;
-    incomeLevel: string;
-    age: number;
-    gender: string;
-  }): Promise<BaseResponse<{
-    recommendedSlots: Array<{
-      categoryId: number;
-      slotName: string;
-      recommendedBudget: number;
-      reason: string;
-    }>;
-  }>> => {
-    return apiClient.post('/slots/recommendations/new-user', data);
-  },
+      // 사용자에게는 requestId와 코드가 포함된 친절한 메시지를 던짐
+      const userMessage = requestId ? `${message} (요청ID: ${requestId}, 코드: ${apiCode})` : `${message} (코드: ${apiCode})`;
+      throw new Error(userMessage);
+    }
+  }
 
-  /**
-   * 거래내역 기반 슬롯 추천 (기존 사용자)
-   */
-  getSlotRecommendationsFromHistory: async (data: {
-    accountId: number;
-    analysisMonths: number; // 분석할 개월 수 (최대 12개월)
-  }): Promise<BaseResponse<{
-    recommendedSlots: Array<{
-      categoryId: number;
-      slotName: string;
-      recommendedBudget: number;
-      reason: string;
-    }>;
-  }>> => {
-    return apiClient.post('/slots/recommendations/from-history', data);
-  },
-
-  /**
-   * 통합 AI 슬롯 추천 (신규/기존 사용자 모두 대응)
-   * 거래내역이 있으면 우선 활용하고, 부족하면 인구통계학적 정보로 보완
-   */
-  getSmartSlotRecommendations: async (data: {
-    accountId: number;
-    // 사용자 기본 정보 (거래내역이 부족할 때 사용)
-    userProfile?: {
-      incomeLevel: string;
-      age: number;
-      gender: string;
-      occupation?: string;
-    };
-    // 분석 설정
-    analysisOptions?: {
-      includeExternalAccounts?: boolean; // 연동된 외부 계좌 거래내역 포함 여부
-      analysisMonths?: number; // 분석 기간 (기본 6개월)
-      minTransactionCount?: number; // 추천에 필요한 최소 거래 건수
-    };
-  }): Promise<BaseResponse<{
-    recommendedSlots: Array<{
-      categoryId: number;
-      slotName: string;
-      recommendedBudget: number;
-      reason: string;
-      confidence: number; // 추천 신뢰도 (0-100)
-      dataSource: 'transaction_history' | 'demographic' | 'hybrid'; // 추천 근거
-    }>;
-    analysisInfo: {
-      totalTransactions: number;
-      analysisMonths: number;
-      dataQuality: 'high' | 'medium' | 'low'; // 분석에 사용된 데이터의 품질
-      demographicWeight: number; // 인구통계학적 정보의 가중치 (0-100)
-      historyWeight: number; // 거래내역의 가중치 (0-100)
-    };
-  }>> => {
-    return apiClient.post('/slots/recommendations/smart', data);
-  },
-
-  /**
-   * 다음 달 슬롯 예산 추천
-   */
-  getNextMonthBudgetRecommendations: async (accountId: number): Promise<BaseResponse<{
-    recommendations: Array<{
-      slotId: number;
-      currentBudget: number;
-      recommendedBudget: number;
-      reason: string;
-      changeAmount: number;
-    }>;
-    totalSavings: number; // 지난달 총 절약 금액
-  }>> => {
-    return apiClient.get(`/slots/recommendations/next-month?accountId=${accountId}`);
-  },
-
-  /**
-   * 슬롯 예산 일괄 적용
-   */
-  applyBulkBudgetUpdate: async (data: {
-    accountId: number;
-    period: string; // YYYY-MM
-    slots: Array<{
-      slotId?: number; // 기존 슬롯
-      categoryId: number;
-      slotName: string;
-      budget: number;
-      isNew?: boolean; // 신규 슬롯 여부
-    }>;
-  }): Promise<BaseResponse<Slot[]>> => {
-    return apiClient.post('/slots/bulk-update', data);
-  },
-};
-
-/**
- * 슬롯 카테고리 관련 API 서비스
- */
-export const slotCategoryApi = {
-  /**
-   * 모든 슬롯 카테고리 조회
-   */
-  getAllCategories: async (): Promise<BaseResponse<SlotCategory[]>> => {
-    return apiClient.get('/slot-categories');
-  },
-
-  /**
-   * 기본 슬롯 카테고리 조회
-   */
-  getDefaultCategories: async (): Promise<BaseResponse<SlotCategory[]>> => {
-    return apiClient.get('/slot-categories/default');
-  },
-
-  /**
-   * 슬롯 카테고리 상세 조회
-   */
-  getCategoryDetail: async (categoryId: number): Promise<BaseResponse<SlotCategory>> => {
-    return apiClient.get(`/slot-categories/${categoryId}`);
-  },
 };

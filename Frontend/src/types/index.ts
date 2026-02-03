@@ -1,4 +1,28 @@
+import { SLOT_CATEGORIES } from "../constants/slots";
+export * from './account';
+export * from './auth';
+export * from './profile';
+export * from './report';
+export * from './slot';
+
+/**
+ * 앱 설정 정보 (AsyncStorage 저장용)
+ */
+export interface LocalSettings {
+  onboardingCompleted: boolean;
+  // theme: 'light' | 'dark';
+}
+
 // ===== 공통 타입 =====
+// ===== UI 컴포넌트용 타입들 =====
+
+/**
+ * 슬롯 데이터 (원형 그래프용)
+ */
+
+export type SlotId = keyof typeof SLOT_CATEGORIES;
+
+
 export interface BaseResponse<T = any> {
   success: boolean;
   data: T;
@@ -49,31 +73,19 @@ export interface User {
   updatedAt: string; // update_at -> updatedAt, datetime -> string
 }
 
+
+
 /**
  * 은행 정보 인터페이스 (banks 테이블)
  */
 export interface Bank {
-  bankCode: string;
+  bankId: string;
   bankName: string;
   displayLabel: string | null;
   logoKey: string;
   brandColor: string | null;
 }
 
-/**
- * 사용자 계좌 정보 인터페이스 (accounts 테이블)
- */
-export interface UserAccount {
-  accountId: number;
-  userId: number;
-  bankName: string;
-  bankCode: string;
-  accountName: string;
-  accountNumberMasked: string | null;
-  balanceMinor: number;
-  lastSyncedAt: string | null;
-  isPrimary: boolean; // tinyint(1) -> boolean
-}
 
 /**
  * 슬롯(통장 쪼개기) 정보 인터페이스 (slots 테이블)
@@ -230,21 +242,14 @@ export interface UserDevice {
   createdAt: string;
 }
 
-/**
- * 인증 토큰 정보
- */
-export interface AuthTokens {
-  accessToken: string;
-  refreshToken: string;
-  expiresIn: number;
-}
 
 /**
  * 로그인 폼 데이터
  */
 export interface LoginForm {
   phone: string;
-  password: string;
+  pin: string;
+  deviceId: string;
 }
 
 /**
@@ -271,7 +276,7 @@ export interface PhoneVerificationForm {
  */
 export interface AccountVerificationForm {
   accountNumber: string;
-  bankCode: string;
+  bankId: string;
   verificationCode: string; // 예금주명에 포함된 3자리 숫자 (예: "국민073" → "073")
 }
 
@@ -319,24 +324,95 @@ export interface TransactionCategory {
  * 알림 항목 인터페이스
  */
 export interface NotificationItem {
-  id: string;
+  id: string; // notificationUuid in API
   title: string;
-  message: string;
-  type: 'budget_exceeded' | 'goal_achieved' | 'spending_pattern' | 'system' | 'account_sync';
+  message: string; // content in API
+  type: 'SYSTEM' | 'DEVICE' | 'BUDGET' | 'TRANSACTION' | 'MARKETING';
   isRead: boolean;
   createdAt: string;
   slotId?: number;
   accountId?: number;
+  transactionId?: string;
   pushData?: {
     action?: string;        // 알림 클릭 시 액션
     targetScreen?: string;  // 이동할 화면
     params?: any;          // 추가 데이터
   };
+  readAt?: string | null;
+  deliveredAt?: string | null;
 }
 
 // ===== 푸시 알림 관련 =====
+// ===== Push Endpoint API Types (Based on Swagger) =====
+
 /**
- * 최초 토큰 등록 요청 (알림 권한 허용시)
+ * 푸시 엔드포인트 등록/갱신 요청 (POST ` /api/push/endpoints` )
+ * @note 코드에서는 중앙화된 상수 `API_ENDPOINTS.PUSH_ENDPOINTS` 사용 권장
+ */
+export interface RegisterDeviceRequestDto {
+  deviceId?: string;
+  platform: 'ANDROID' | 'IOS';
+  token?: string;
+  pushEnabled?: boolean;
+}
+
+/**
+ * 푸시 엔드포인트 등록/갱신 응답
+ */
+export interface RegisterDeviceResponseDto {
+  success: boolean;
+  message?: string;
+  data: {
+    device: {
+      deviceId: string;
+      platform: 'ANDROID' | 'IOS';
+      status: 'ACTIVE' | 'LOGGED_OUT' | 'ACCOUNT_LOCKED' | 'USER_WITHDRAW';
+      pushEnabled: boolean;
+      tokenPresent: boolean;
+    };
+  };
+}
+
+/**
+ * 디바이스 목록 조회 응답 (GET ` /api/push/endpoints`)
+ * @note 코드에서는 중앙화된 상수 `API_ENDPOINTS.PUSH_ENDPOINTS` 사용 권장
+ */
+export interface GetDeviceListResponseDto {
+  success: boolean;
+  message?: string;
+  data: {
+    devices: {
+      deviceId: string;
+      platform: 'ANDROID' | 'IOS';
+      status: 'ACTIVE' | 'LOGGED_OUT' | 'ACCOUNT_LOCKED' | 'USER_WITHDRAW';
+      pushEnabled: boolean;
+      tokenPresent: boolean;
+    }[];
+  };
+}
+
+/**
+ * 디바이스 업데이트 요청 (PATCH ` /api/push/endpoints/{deviceId}`)
+ * @note 코드에서는 중앙화된 상수 `API_ENDPOINTS.PUSH_ENDPOINT_BY_ID(deviceId)` 사용 권장
+ */
+export interface UpdateDeviceRequestDto {
+  remoteLogout?: boolean;
+  pushEnabled?: boolean;
+  token?: string;
+  platform?: 'ANDROID' | 'IOS';
+  status?: 'ACTIVE' | 'LOGGED_OUT' | 'ACCOUNT_LOCKED' | 'USER_WITHDRAW';
+}
+
+/**
+ * 토큰 교체 요청 (POST ` /api/devices/{deviceId}/token`)
+ * @note 코드에서는 중앙화된 상수 `API_ENDPOINTS.DEVICE_TOKEN(deviceId)` 사용 권장
+ */
+export interface ReplaceTokenRequestDto {
+  token?: string;
+}
+
+/**
+ * 최초 토큰 등록 요청 (알림 권한 허용시) - 레거시 호환용
  */
 export interface InitialTokenRequest {
   token: string;     // FCM/APNS 푸시 토큰
@@ -344,14 +420,14 @@ export interface InitialTokenRequest {
 }
 
 /**
- * 최초 토큰 등록 응답
+ * 최초 토큰 등록 응답 - 레거시 호환용
  */
 export interface InitialTokenResponse extends BaseResponse {
   deviceId: string;  // 서버에서 생성한 디바이스 고유 식별자
 }
 
 /**
- * 토큰 갱신 요청 (앱 실행시 토큰이 변경된 경우)
+ * 토큰 갱신 요청 (앱 실행시 토큰이 변경된 경우) - 레거시 호환용
  */
 export interface UpdateTokenRequest {
   token: string;     // 새로운 FCM/APNS 푸시 토큰
@@ -371,8 +447,69 @@ export interface NotificationSettings {
   systemAlertsEnabled: boolean;
 }
 
+// ===== Notification API Types (Based on Swagger) =====
+
 /**
- * 푸시 알림 전송 요청 (테스트용)
+ * 알림 생성 요청 (POST /api/notifications)
+ */
+export interface CreateNotificationRequestDto {
+  targetUserId: number;
+  title?: string;
+  content?: string;
+  type: 'SYSTEM' | 'DEVICE' | 'BUDGET' | 'TRANSACTION' | 'MARKETING';
+}
+
+/**
+ * 알림 목록 조회 응답 (GET /api/notifications)
+ */
+export interface GetNotificationPageResponseDto {
+  success: boolean;
+  message?: string;
+  data: {
+    content: NotificationItem[];
+    page: {
+      number: number;
+      size: number;
+      totalElements: number;
+      totalPages: number;
+      first: boolean;
+      last: boolean;
+    };
+  };
+}
+
+/**
+ * 미전송 Pull 응답 (POST /api/notifications/pull)
+ */
+export interface PullNotificationListResponseDto {
+  success: boolean;
+  message?: string;
+  data: {
+    notifications: NotificationItem[];
+  };
+}
+
+/**
+ * 미읽음 개수 조회 응답 (GET /api/notifications/unread-count)
+ */
+export interface CountUnreadResponseDto {
+  success: boolean;
+  message?: string;
+  data: {
+    count: number;
+  };
+}
+
+/**
+ * 간단한 OK 응답
+ */
+export interface SimpleOkResponseDto {
+  success: boolean;
+  message?: string;
+}
+
+/**
+ * 푸시 알림 전송 요청 (테스트용) - 레거시 호환용
  */
 export interface SendNotificationRequest {
   userIds?: number[];
@@ -380,4 +517,115 @@ export interface SendNotificationRequest {
   message: string;
   type: NotificationItem['type'];
   data?: any;
+}
+
+// ===== Firebase 푸시 알림 관련 =====
+
+/**
+ * FCM 토큰 등록 요청
+ */
+export interface FCMTokenRequest {
+  fcmToken: string;
+  deviceId: string;
+  platform: 'ios' | 'android';
+  appVersion: string;
+  osVersion: string;
+  apnsToken?: string; // iOS APNs 토큰 (옵션)
+}
+
+/**
+ * FCM 푸시 알림 페이로드
+ */
+export interface FCMPushPayload {
+  notification: {
+    title: string;
+    body: string;
+    icon?: string;
+    sound?: string;
+    badge?: string;
+  };
+  data: {
+    notificationId: string;
+    type: NotificationItem['type'];
+    action?: string;
+    targetScreen?: string;
+    slotId?: string;
+    accountId?: string;
+    [key: string]: string | undefined;
+  };
+  android?: {
+    priority: 'high' | 'normal';
+    notification: {
+      channel_id: string;
+      color?: string;
+      sound?: string;
+    };
+  };
+  apns?: {
+    payload: {
+      aps: {
+        alert: {
+          title: string;
+          body: string;
+          subtitle?: string;
+        };
+        sound: string;
+        badge?: number;
+        'content-available'?: 1; // 백그라운드 업데이트용
+        'mutable-content'?: 1; // 미디어 첨부 지원
+        category?: string; // 알림 카테고리
+      };
+      customData?: {
+        [key: string]: any;
+      };
+    };
+    headers?: {
+      'apns-priority'?: '5' | '10';
+      'apns-expiration'?: string;
+      'apns-topic'?: string;
+    };
+  };
+}
+
+/**
+ * Firebase Admin SDK를 통한 알림 전송 요청
+ */
+export interface FirebasePushRequest {
+  tokens: string[];  // FCM 토큰 배열 (멀티캐스트)
+  payload: FCMPushPayload;
+  options?: {
+    priority?: 'high' | 'normal';
+    timeToLive?: number;
+    collapseKey?: string;
+  };
+}
+
+/**
+ * iOS 전용 푸시 알림 옵션
+ */
+export interface IOSNotificationOptions {
+  sound?: 'default' | string | null;
+  badge?: number;
+  subtitle?: string;
+  categoryIdentifier?: string;
+  launchImageName?: string;
+  threadIdentifier?: string;
+  targetContentIdentifier?: string;
+}
+
+/**
+ * 플랫폼별 푸시 알림 설정
+ */
+export interface PlatformPushConfig {
+  ios?: {
+    apnsKeyId: string;
+    apnsTeamId: string;
+    apnsBundleId: string;
+    apnsProduction: boolean;
+  };
+  android?: {
+    fcmProjectId: string;
+    fcmPrivateKey: string;
+    defaultChannelId: string;
+  };
 }
