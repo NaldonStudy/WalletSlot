@@ -17,6 +17,16 @@ Thumbs.db
 .env.local
 .env.*.local
 
+# Firebase 설정 파일 (API 키 포함)
+**/google-services.json
+Frontend/google-services.json
+FCMUtil/app/google-services.json
+
+# Spring Boot 설정 파일 (민감 정보 포함)
+**/application-test.yml
+**/application-prod.yml
+**/application-dev.yml
+
 
 # ## 4. 로그 및 임시 파일 ##
 # 개발 중 발생하는 로그나 에러 리포트 파일들을 무시합니다.
